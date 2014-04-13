@@ -1,0 +1,67 @@
+# Copyright © 2014 Jesse 'Jeaye' Wilkerson
+# See licensing in LICENSE file, or at:
+#   http://www.opensource.org/licenses/MIT
+#
+# File: Makefile.in
+# Author: Jesse 'Jeaye' Wilkerson
+
+SOURCES=src/main.cpp
+
+OBJ_DIR=obj/
+CPP_OBJECTS=$(SOURCES:.cpp=.cpp.o)
+OBJECTS=$(CPP_OBJECTS)
+BIN_OBJECTS=$(foreach obj,$(OBJECTS), $(addprefix $(OBJ_DIR), $(obj)))
+BIN=bin/cppman
+
+# Installation
+PREFIX=%PREFIX%
+REFERENCE=%REFERENCE%
+
+CXX=c++
+CXX_WARN=-Wall -Wextra -pedantic
+CXX_NOWARN=
+CXX_OPT=-O3
+CXX_INCLUDE=-I src
+CXX_PLATFORM_FLAGS=%CXX_PLATFORM_FLAGS_IN%
+CXX_FLAGS=-std=c++11 $(CXX_WARN) $(CXX_NOWARN) $(CXX_OPT) $(CXX_INCLUDE) $(CXX_PLATFORM_FLAGS) -c
+
+LD_PLATFORM_LIBS=%LD_PLATFORM_LIBS_IN%
+LD_LIBS=-lcurl $(LD_PLATFORM_LIBS)
+
+COLOR_OFF=$(shell tput sgr0)
+COLOR_GREEN=$(shell tput setaf 2)
+ECHO_PREFIX=$(COLOR_GREEN)»»»$(COLOR_OFF)
+
+.PHONY: all setup clean cppman cppman_setup cppman_link
+
+.SILENT:
+
+all: setup cppman
+	echo "$(ECHO_PREFIX) Success"
+
+setup: clean
+	echo "$(ECHO_PREFIX) Preparing"
+	mkdir -p obj bin man
+
+clean:
+	rm -f bin/cppman
+	rm -rf $(OBJ_DIR)
+	echo "$(ECHO_PREFIX) Cleaned"
+
+cppman: setup cppman_link
+	echo "$(ECHO_PREFIX) Done building cppman"
+
+cppman_setup: setup
+	echo "$(ECHO_PREFIX) Building cppman"
+
+cppman_link: cppman_setup $(OBJECTS)
+	echo "  $(ECHO_PREFIX) Linking"
+	$(CXX) -o $(BIN) $(BIN_OBJECTS) $(LD_LIBS)
+
+%.cpp.o: %.cpp setup
+	echo "  $(ECHO_PREFIX) Compiling $<"
+	mkdir -p $(addprefix $(OBJ_DIR),$(dir $<))
+	$(CXX) $(CXX_FLAGS) $< -o $(addsuffix .o,$(addprefix $(OBJ_DIR), $<))
+
+install:
+	echo "$(ECHO_PREFIX) Installing from $(REFERENCE) to $(PREFIX)"

@@ -5,14 +5,17 @@ cppman is a tool that parses archived HTML files from [cppreference](http://cppr
 ### Installation
 There's no need to compile cppman if you just want to install the man pages. Instead, just run:
 ```bash
+./configure
 make install 
 ```
+If you need to pass options to configure, you can do so. See `./configure --help` for more updated information.
 
 ### Building/Generating
 Should you want to build the source to make modifications and/or generate your own man pages, simply:
 ```bash
-make && ./bin/cppman
+make && make generate
 ```
+**NOTE**: `make generate` expects sources will be in the `./reference/en/cpp` directory by default. See `./configure --help` to modify this.
 
 ### Compilation/Generation Dependencies
 * C++11 (recommended GCC 4.8 or clang 3.4)
