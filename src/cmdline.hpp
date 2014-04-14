@@ -74,13 +74,21 @@ struct cmdline
       {
         if((arg + 1) != end)
         {
-          if(state.output_file.size())
-          { throw invalid_cmdline{ state.prog, "-o/--output specified more than once" }; }
           state.output_file = *++arg;
           return true;
         }
         else
         { throw invalid_cmdline{ state.prog, "-o/--output requires a parameter" }; }
+      }
+      else if(*arg == "-d" || *arg == "--directory")
+      {
+        if((arg + 1) != end)
+        {
+          state.output_dir = *++arg + "/";
+          return true;
+        }
+        else
+        { throw invalid_cmdline{ state.prog, "-d/--directory requires a parameter" }; }
       }
       return false;
     }

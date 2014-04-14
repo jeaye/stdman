@@ -24,6 +24,7 @@ namespace groff_detail
        l.find("Member types") != std::string::npos ||
        l.find("Member functions") != std::string::npos ||
        l.find("Member classes") != std::string::npos ||
+       l.find("Member objects") != std::string::npos ||
        l.find("Element access") != std::string::npos ||
        l.find("Getting the result") != std::string::npos ||
        l.find("State") != std::string::npos ||

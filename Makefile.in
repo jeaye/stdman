@@ -16,6 +16,7 @@ BIN=bin/cppman
 # Installation
 PREFIX=%PREFIX%
 REFERENCE=%REFERENCE%
+TMP_MAN=%TMP_MAN%
 
 CXX=c++
 CXX_WARN=-Wall -Wextra -pedantic
@@ -63,5 +64,18 @@ cppman_link: cppman_setup $(OBJECTS)
 	mkdir -p $(addprefix $(OBJ_DIR),$(dir $<))
 	$(CXX) $(CXX_FLAGS) $< -o $(addsuffix .o,$(addprefix $(OBJ_DIR), $<))
 
+generate: cppman
+	echo "$(ECHO_PREFIX) Generating from $(REFERENCE) to $(TMP_MAN)"
+	for file in $$(find $(REFERENCE) -name '*.html') ; do\
+		echo "  $(ECHO_PREFIX) $$file" ;\
+		./bin/cppman -d $(TMP_MAN) $$file > /dev/null 2>&1 || true;\
+	done
+	echo "$(ECHO_PREFIX) Done"
+
 install:
 	echo "$(ECHO_PREFIX) Installing from $(REFERENCE) to $(PREFIX)"
+	for file in $$(find $(TMP_MAN) -name '*.3') ; do\
+		echo "  $(ECHO_PREFIX) $$file" ;\
+		install -g 0 -o 0 -m 0644 $$file $(PREFIX)/ > /dev/null 2>&1 || true ;\
+		gzip -f $(PREFIX)/$$(basename $$file) > /dev/null 2>&1 || true ;\
+	done

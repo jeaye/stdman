@@ -39,7 +39,7 @@ namespace groff_detail
     for(auto &l : lines)
     {
       /* Determine what section we're in. */
-      if(l.size() > 3 && l.substr(0, 3) == ".SH")
+      if(l.size() > 3 && l.substr(0, 3) == ".SH" && l.find("//") == std::string::npos)
       { section = l.substr(4); }
 
       /* Color standard release annotations. */

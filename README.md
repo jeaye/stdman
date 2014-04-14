@@ -6,7 +6,7 @@ cppman is a tool that parses archived HTML files from [cppreference](http://cppr
 There's no need to compile cppman if you just want to install the man pages. Instead, just run:
 ```bash
 ./configure
-make install 
+sudo make install 
 ```
 If you need to pass options to configure, you can do so. See `./configure --help` for more updated information.
 

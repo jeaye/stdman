@@ -30,9 +30,10 @@ class helper
           << "Generate man pages from cppreference html." << std::endl
           << std::endl
           << "Options:" << std::endl
-          << "  -o, --output\t\tSpecify output file" << std::endl
-          << "  -h, --help\t\tShow this help page and quit" << std::endl
-          << "  -v, --version\t\tShow the version number and quit" << std::endl
+          << "  -h, --help         Show this help page and quit" << std::endl
+          << "  -v, --version      Show the version number and quit" << std::endl
+          << "  -o, --output       Specify output file, including directory" << std::endl
+          << "  -d, --directory    Specify output directory (cannot be used with -o)" << std::endl
           << std::endl
           << "Issues/bugs/questions visit https://github.com/jeaye/cppman" << std::endl;
     }

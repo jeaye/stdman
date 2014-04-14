@@ -32,8 +32,9 @@ class groff
       { throw std::runtime_error("insufficient lines in plain render"); }
 
       std::string name{ state.lines[0] };
+      str::replace(str::trim(name), " ", "-"); /* Don't allow spaces in the filename. */
       if(state.output_file.empty())
-      { state.output_file = "man/" + str::trim(name) + ".3"; }
+      { state.output_file = state.output_dir + name + ".3"; }
 
       /* First two lines are always the same. */
       state.lines[0] = ".TH " + name + " 3 "

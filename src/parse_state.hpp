@@ -19,7 +19,8 @@ struct parse_state
   std::string const creation_date{ "April 11, 2014" };
 
   std::string prog;
-  std::string input_file, output_file, tmp_file{ ".tmp.html" };
+  std::string input_file, output_file;
+  std::string tmp_file{ ".tmp.html" }, output_dir{ "./man/" };
   std::string html;
   std::string plain;
   std::vector<std::string> lines;
