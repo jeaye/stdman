@@ -35,11 +35,11 @@ class helper
           << "  -o, --output       Specify output file, including directory" << std::endl
           << "  -d, --directory    Specify output directory (cannot be used with -o)" << std::endl
           << std::endl
-          << "Issues/bugs/questions visit https://github.com/jeaye/cppman" << std::endl;
+          << "Issues/bugs/questions visit https://github.com/jeaye/stdman" << std::endl;
     }
 
   private:
-    std::string prog_{ "cppman" };
+    std::string prog_{ "stdman" };
 };
 
 class invalid_cmdline : public helper

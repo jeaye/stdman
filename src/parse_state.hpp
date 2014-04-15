@@ -14,7 +14,7 @@
 
 struct parse_state
 {
-  std::string const name{ "cppman" };
+  std::string const name{ "stdman" };
   std::string const version{ "1.0.0" };
   std::string const creation_date{ "April 11, 2014" };
 

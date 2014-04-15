@@ -1,19 +1,19 @@
 C++ stdlib man pages
 ======
-cppman is a tool that parses archived HTML files from [cppreference](http://cppreference.com) and generates groff-formatted manual pages for Unix-based systems. The goal is to provide excellent formatting for easy readability.
+stdman is a tool that parses archived HTML files from [cppreference](http://cppreference.com) and generates groff-formatted manual pages for Unix-based systems. The goal is to provide excellent formatting for easy readability.
 
 ### Installation
-There's no need to compile cppman if you just want to install the man pages. Instead, just run:
+There's no need to compile stdman if you just want to install the man pages. Instead, just run:
 ```bash
 ./configure
-sudo make install 
+sudo make install # sudo required for permission setting via install(1)
 ```
 If you need to pass options to configure, you can do so. See `./configure --help` for more updated information.
 
 ### Building/Generating
 Should you want to build the source to make modifications and/or generate your own man pages, simply:
 ```bash
-make && make generate
+make generate # will build and generate
 ```
 **NOTE**: `make generate` expects sources will be in the `./reference/en/cpp` directory by default. See `./configure --help` to modify this.
 
