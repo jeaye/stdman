@@ -11,6 +11,7 @@
 
 #include <string>
 #include <memory>
+#include <array>
 #include <unistd.h>
 
 #include "parse_state.hpp"
