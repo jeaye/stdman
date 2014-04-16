@@ -32,6 +32,20 @@ namespace groff_detail
       }
     }
   }
+  void highlight_impl(std::string &l, std::string const &beg, std::string const &end,
+                      fmt const &format)
+  {
+    auto const found_beg(l.find(beg));
+    if(found_beg == std::string::npos)
+    { return; }
+
+    auto const found_end(l.find(end, found_beg));
+    if(found_end == std::string::npos)
+    { highlight_impl(l, beg, format); }
+
+    std::string full{ l.substr(found_beg, found_end) };
+    highlight_impl(l, str::trim(full), format);
+  }
 
   void highlight(std::vector<std::string> &lines)
   {
@@ -52,18 +66,19 @@ namespace groff_detail
 
       /* Description of members. */
       highlight_impl(l, "[static]", fmt::bold);
-      highlight_impl(l, "(public member function)", fmt::italic);
-      highlight_impl(l, "(public static member function)", fmt::italic);
-      highlight_impl(l, "(public member)", fmt::italic);
-      highlight_impl(l, "(public member constant)", fmt::italic);
-      highlight_impl(l, "(public static member)", fmt::italic);
-      highlight_impl(l, "(public static member constant)", fmt::italic);
-      highlight_impl(l, "(public member class)", fmt::italic);
+      highlight_impl(l, "[virtual]", fmt::bold);
+      highlight_impl(l, "(deprecated)", fmt::bold);
+      highlight_impl(l, "(public member", ")", fmt::italic);
+      highlight_impl(l, "(public static member", ")", fmt::italic);
+      highlight_impl(l, "(virtual public member function", ")", fmt::italic);
+      highlight_impl(l, "(virtual protected member function", ")", fmt::italic);
+      highlight_impl(l, "(protected member", ")", fmt::italic);
       highlight_impl(l, "(class template specialization)", fmt::italic);
+      highlight_impl(l, "(typedef)", fmt::italic);
+      highlight_impl(l, "(enum)", fmt::italic);
       highlight_impl(l, "(class)", fmt::italic);
       highlight_impl(l, "(class template)", fmt::italic);
-      highlight_impl(l, "(function)", fmt::italic);
-      highlight_impl(l, "(function template)", fmt::italic);
+      highlight_impl(l, "(function", ")", fmt::italic);
       highlight_impl(l, "(strong exception guarantee)", fmt::italic);
 
       /* Overload numbers. */
