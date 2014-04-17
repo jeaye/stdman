@@ -11,761 +11,16 @@
 
 namespace groff_detail
 {
+  extern std::vector<std::string> sections;
+
   void section(std::vector<std::string> &lines)
   {
     for(auto &l : lines)
     {
-      if
-      ( /* No, I did not type this by hand. In fact, for future reference:
-           grep -r "<span class=\"toctext\">" | sed 's/^.*<span class\=\"toctext\">//' | \
-           sed 's/<\/span>.*$//' | grep -v "<span>" | sort -u
-         */
-        l.find("Contents") != std::string::npos ||
-
-        l.find("3D Graphics") != std::string::npos ||
-        l.find("Abstraction") != std::string::npos ||
-        l.find("Acquire operation") != std::string::npos ||
-        l.find("Adaptors") != std::string::npos ||
-        l.find("Additional basic types and macros") != std::string::npos ||
-        l.find("Additional support") != std::string::npos ||
-        l.find("Additive operators") != std::string::npos ||
-        l.find("Algorithm") != std::string::npos ||
-        l.find("Algorithms") != std::string::npos ||
-        l.find("Algorithms library") != std::string::npos ||
-        l.find("Alignment") != std::string::npos ||
-        l.find("Alignment specifier") != std::string::npos ||
-        l.find("Allocation") != std::string::npos ||
-        l.find("Allocator non-member operations") != std::string::npos ||
-        l.find("Allocators") != std::string::npos ||
-        l.find("Alternative keywords") != std::string::npos ||
-        l.find("Alternatives") != std::string::npos ||
-        l.find("# and ## operators") != std::string::npos ||
-        l.find("Arithmetic") != std::string::npos ||
-        l.find("Arithmetic comparison operators") != std::string::npos ||
-        l.find("Arithmetic operations") != std::string::npos ||
-        l.find("Arithmetic types defined by the language") != std::string::npos ||
-        l.find("Array I/O implementations") != std::string::npos ||
-        l.find("Array rvalues") != std::string::npos ||
-        l.find("Arrays") != std::string::npos ||
-        l.find("Arrays of unknown bound") != std::string::npos ||
-        l.find("Array subscript operator") != std::string::npos ||
-        l.find("Array to pointer conversion") != std::string::npos ||
-        l.find("Array to pointer decay") != std::string::npos ||
-        l.find("Array version, unique_ptr&lt;T[]&gt;") != std::string::npos ||
-        l.find("ASCII chart") != std::string::npos ||
-        l.find("Assertions") != std::string::npos ||
-        l.find("Assignment") != std::string::npos ||
-        l.find("Assignment operator") != std::string::npos ||
-        l.find("Associative containers") != std::string::npos ||
-        l.find("Atomic Operations library") != std::string::npos ||
-        l.find("Atoms") != std::string::npos ||
-        l.find("Attribute list") != std::string::npos ||
-        l.find("Audio") != std::string::npos ||
-        l.find("Backreferences") != std::string::npos ||
-        l.find("Base") != std::string::npos ||
-        l.find("Base specifiers and member initializer lists") != std::string::npos ||
-        l.find("Basic") != std::string::npos ||
-        l.find("Basic operations") != std::string::npos ||
-        l.find("Basic types") != std::string::npos ||
-        l.find("Benchmarking") != std::string::npos ||
-        l.find("Bernoulli distributions") != std::string::npos ||
-        l.find("Best viable function") != std::string::npos ||
-        l.find("Binary arithmetic operators") != std::string::npos ||
-        l.find("Binary search operations (on sorted ranges)") != std::string::npos ||
-        l.find("Bind") != std::string::npos ||
-        l.find("Binders") != std::string::npos ||
-        l.find("Binding rules") != std::string::npos ||
-        l.find("Bit fields") != std::string::npos ||
-        l.find("Bitset") != std::string::npos ||
-        l.find("Bitwise logic operators") != std::string::npos ||
-        l.find("Bitwise operations") != std::string::npos ||
-        l.find("Bitwise shift operators") != std::string::npos ||
-        l.find("Block scope") != std::string::npos ||
-        l.find("Boolean conversions") != std::string::npos ||
-        l.find("Boolean type") != std::string::npos ||
-        l.find("Braced init lists") != std::string::npos ||
-        l.find("Bucket interface") != std::string::npos ||
-        l.find("Built-in address-of operator") != std::string::npos ||
-        l.find("Built-in comma operator") != std::string::npos ||
-        l.find("Builtin compound assignment") != std::string::npos ||
-        l.find("Built-in conversion operator") != std::string::npos ||
-        l.find("Builtin direct assignment") != std::string::npos ||
-        l.find("Built-in function call operator") != std::string::npos ||
-        l.find("Built-in indirection operator") != std::string::npos ||
-        l.find("Built-in member access operators") != std::string::npos ||
-        l.find("Builtin operators") != std::string::npos ||
-        l.find("Built-in pointer-to-member access operators") != std::string::npos ||
-        l.find("Built-in postfix operators") != std::string::npos ||
-        l.find("Built-in prefix operators") != std::string::npos ||
-        l.find("Built-in subscript operator") != std::string::npos ||
-        l.find("Call once") != std::string::npos ||
-        l.find("Call to a class object") != std::string::npos ||
-        l.find("Call to a named function") != std::string::npos ||
-        l.find("Call to an overloaded operator") != std::string::npos ||
-        l.find("Candidate functions") != std::string::npos ||
-        l.find("Canonical implementations") != std::string::npos ||
-        l.find("Capacity") != std::string::npos ||
-        l.find("Capture and storage of exception objects") != std::string::npos ||
-        l.find("Carries dependency") != std::string::npos ||
-        l.find("C compatibility headers") != std::string::npos ||
-        l.find("C FAQs") != std::string::npos ||
-        l.find("C++ FAQs") != std::string::npos ||
-        l.find("Character array manipulation") != std::string::npos ||
-        l.find("Character arrays") != std::string::npos ||
-        l.find("Character classes") != std::string::npos ||
-        l.find("Character classification") != std::string::npos ||
-        l.find("Character conversions") != std::string::npos ||
-        l.find("Characteristics") != std::string::npos ||
-        l.find("Character manipulation") != std::string::npos ||
-        l.find("Character types") != std::string::npos ||
-        l.find("chrono library") != std::string::npos ||
-        l.find("C Language and library references") != std::string::npos ||
-        l.find("C++ Language and library references") != std::string::npos ||
-        l.find("Classes") != std::string::npos ||
-        l.find("Classification") != std::string::npos ||
-        l.find("Classification and comparison") != std::string::npos ||
-        l.find("Class scope") != std::string::npos ||
-        l.find("Class-specific overloads") != std::string::npos ||
-        l.find("Class template instantiation") != std::string::npos ||
-        l.find("C library") != std::string::npos ||
-        l.find("C library locales") != std::string::npos ||
-        l.find("Clocks") != std::string::npos ||
-        l.find("C numeric limits interface") != std::string::npos ||
-        l.find("Comments") != std::string::npos ||
-        l.find("Common mathematical functions") != std::string::npos ||
-        l.find("Communicating with the environment") != std::string::npos ||
-        l.find("Communication") != std::string::npos ||
-        l.find("Comparison") != std::string::npos ||
-        l.find("Comparisons") != std::string::npos ||
-        l.find("Compatibility with C") != std::string::npos ||
-        l.find("Complexity") != std::string::npos ||
-        l.find("Complex numbers") != std::string::npos ||
-        l.find("Composite type categories") != std::string::npos ||
-        l.find("Compound statement") != std::string::npos ||
-        l.find("Compression") != std::string::npos ||
-        l.find("Concept requirements") != std::string::npos ||
-        l.find("Concurrency") != std::string::npos ||
-        l.find("Conditional execution statements") != std::string::npos ||
-        l.find("Conditional operator") != std::string::npos ||
-        l.find("Condition evaluation") != std::string::npos ||
-        l.find("Condition variables") != std::string::npos ||
-        l.find("Configuration") != std::string::npos ||
-        l.find("Constants") != std::string::npos ||
-        l.find("Constant static members") != std::string::npos ||
-        l.find("Constness") != std::string::npos ||
-        l.find("Construction") != std::string::npos ||
-        l.find("Construction and Seeding") != std::string::npos ||
-        l.find("const T* specialization member types") != std::string::npos ||
-        l.find("const-, volatile-, and ref-qualified member functions") != std::string::npos ||
-        l.find("Const-volatility specifiers") != std::string::npos ||
-        l.find("Consume operation") != std::string::npos ||
-        l.find("Container") != std::string::npos ||
-        l.find("Container adaptors") != std::string::npos ||
-        l.find("Container data races") != std::string::npos ||
-        l.find("Container element") != std::string::npos ||
-        l.find("Containers") != std::string::npos ||
-        l.find("Containers library") != std::string::npos ||
-        l.find("Convenience Typedefs") != std::string::npos ||
-        l.find("Conversions") != std::string::npos ||
-        l.find("Conversions to numeric formats") != std::string::npos ||
-        l.find("Copy and swap") != std::string::npos ||
-        l.find("Copy-initialization by conversion") != std::string::npos ||
-        l.find("Core constant expressions") != std::string::npos ||
-        l.find("Covariant return types") != std::string::npos ||
-        l.find("C random library") != std::string::npos ||
-        l.find("Cryptography") != std::string::npos ||
-        l.find("C-style") != std::string::npos ||
-        l.find("C++-style") != std::string::npos ||
-        l.find("C-style date and time library") != std::string::npos ||
-        l.find("C-style IO") != std::string::npos ||
-        l.find("C-style memory management") != std::string::npos ||
-        l.find("Current instantiation") != std::string::npos ||
-        l.find("Dangling references") != std::string::npos ||
-        l.find("Databases") != std::string::npos ||
-        l.find("Data models") != std::string::npos ||
-        l.find("Date and time") != std::string::npos ||
-        l.find("Declarations") != std::string::npos ||
-        l.find("Declaration statement") != std::string::npos ||
-        l.find("Declarators") != std::string::npos ||
-        l.find("Default conversions") != std::string::npos ||
-        l.find("Default template arguments") != std::string::npos ||
-        l.find("#define directives") != std::string::npos ||
-        l.find("Definitions") != std::string::npos ||
-        l.find("Delegating constructor") != std::string::npos ||
-        l.find("Deleted implicitly-declared copy assignment operator") != std::string::npos ||
-        l.find("Deleted implicitly-declared copy constructor") != std::string::npos ||
-        l.find("Deleted implicitly-declared copy destructor") != std::string::npos ||
-        l.find("Deleted implicitly-declared default constructor") != std::string::npos ||
-        l.find("Deleted implicitly-declared move assignment operator") != std::string::npos ||
-        l.find("Deleted implicitly-declared move constructor") != std::string::npos ||
-        l.find("Dependency-ordered before") != std::string::npos ||
-        l.find("Dependent types") != std::string::npos ||
-        l.find("Deprecated headers") != std::string::npos ||
-        l.find("Deprecated in C++11") != std::string::npos ||
-        l.find("Deprecated member types") != std::string::npos ||
-        l.find("Deprecates") != std::string::npos ||
-        l.find("Description") != std::string::npos ||
-        l.find("Destruction sequence") != std::string::npos ||
-        l.find("Details") != std::string::npos ||
-        l.find("Digraphs and trigraphs") != std::string::npos ||
-        l.find("Direct input/output") != std::string::npos ||
-        l.find("Duration") != std::string::npos ||
-        l.find("During construction and destruction") != std::string::npos ||
-        l.find("Dynamic exception specifications") != std::string::npos ||
-        l.find("Dynamic memory management") != std::string::npos ||
-        l.find("Dynamic type") != std::string::npos ||
-        l.find("Early C++") != std::string::npos ||
-        l.find("Element access") != std::string::npos ||
-        l.find("Embedded languages bindings") != std::string::npos ||
-        l.find("Embedded/realtime") != std::string::npos ||
-        l.find("Enumeration scope") != std::string::npos ||
-        l.find("Error and gamma functions") != std::string::npos ||
-        l.find("Error category interface") != std::string::npos ||
-        l.find("Error Conditions") != std::string::npos ||
-        l.find("Error handling") != std::string::npos ||
-        l.find("Error numbers") != std::string::npos ||
-        l.find("Escape sequences") != std::string::npos ||
-        l.find("Evaluations") != std::string::npos ||
-        l.find("Example") != std::string::npos ||
-        l.find("Example 1") != std::string::npos ||
-        l.find("Example 1: non-member functions") != std::string::npos ||
-        l.find("Example 2") != std::string::npos ||
-        l.find("Example 3") != std::string::npos ||
-        l.find("Examples") != std::string::npos ||
-        l.find("Example With Comparator") != std::string::npos ||
-        l.find("Exception categories") != std::string::npos ||
-        l.find("Exception handling") != std::string::npos ||
-        l.find("Exception objects") != std::string::npos ||
-        l.find("Exceptions") != std::string::npos ||
-        l.find("Exception safety") != std::string::npos ||
-        l.find("Execution") != std::string::npos ||
-        l.find("Exeptions") != std::string::npos ||
-        l.find("Expanded value") != std::string::npos ||
-        l.find("Expansion loci") != std::string::npos ||
-        l.find("Explanation") != std::string::npos ||
-        l.find("Explicit instantiation") != std::string::npos ||
-        l.find("Explicit specializations of function templates") != std::string::npos ||
-        l.find("Exponential functinos") != std::string::npos ||
-        l.find("Exponential functions") != std::string::npos ||
-        l.find("Expressions") != std::string::npos ||
-        l.find("Expression statements") != std::string::npos ||
-        l.find("External links") != std::string::npos ||
-        l.find("Facet categories") != std::string::npos ||
-        l.find("Facet category base classes") != std::string::npos ||
-        l.find("File access") != std::string::npos ||
-        l.find("File I/0 implementation") != std::string::npos ||
-        l.find("File metadata") != std::string::npos ||
-        l.find("File operations") != std::string::npos ||
-        l.find("File positioning") != std::string::npos ||
-        l.find("Files") != std::string::npos ||
-        l.find("First version") != std::string::npos ||
-        l.find("Floating - integral conversions") != std::string::npos ||
-        l.find("Floating point conversions") != std::string::npos ||
-        l.find("Floating-point environment") != std::string::npos ||
-        l.find("Floating point manipulation functions") != std::string::npos ||
-        l.find("Floating point promotion") != std::string::npos ||
-        l.find("Floating point types") != std::string::npos ||
-        l.find("Flow control") != std::string::npos ||
-        l.find("footnotes") != std::string::npos ||
-        l.find("Formal description") != std::string::npos ||
-        l.find("Format") != std::string::npos ||
-        l.find("Format conversions") != std::string::npos ||
-        l.find("Format macro constants") != std::string::npos ||
-        l.find("Formatted input") != std::string::npos ||
-        l.find("Formatted input/output") != std::string::npos ||
-        l.find("Formatted output") != std::string::npos ||
-        l.find("Formatting") != std::string::npos ||
-        l.find("Forward declaration") != std::string::npos ||
-        l.find("Forward declarations") != std::string::npos ||
-        l.find("Function adaptors") != std::string::npos ||
-        l.find("Function argument lists") != std::string::npos ||
-        l.find("Function call operator") != std::string::npos ||
-        l.find("Function declaration") != std::string::npos ||
-        l.find("Function-like macros") != std::string::npos ||
-        l.find("Function objects") != std::string::npos ||
-        l.find("Function Objects") != std::string::npos ||
-        l.find("Function parameter list") != std::string::npos ||
-        l.find("Function prototype scope") != std::string::npos ||
-        l.find("Functions") != std::string::npos ||
-        l.find("Function scope") != std::string::npos ||
-        l.find("Functions managing the current thread") != std::string::npos ||
-        l.find("Function template instantiation") != std::string::npos ||
-        l.find("Function template specialization") != std::string::npos ||
-        l.find("Function to pointer") != std::string::npos ||
-        l.find("Fundamental types defined by the language") != std::string::npos ||
-        l.find("Future development") != std::string::npos ||
-        l.find("Future errors") != std::string::npos ||
-        l.find("Futures") != std::string::npos ||
-        l.find("Garbage collector support") != std::string::npos ||
-        l.find("General") != std::string::npos ||
-        l.find("General-purpose utilities") != std::string::npos ||
-        l.find("General topics") != std::string::npos ||
-        l.find("Generation") != std::string::npos ||
-        l.find("Generic") != std::string::npos ||
-        l.find("Generic locking algorithms") != std::string::npos ||
-        l.find("Generic mutex management") != std::string::npos ||
-        l.find("Generic numeric operations") != std::string::npos ||
-        l.find("Get area") != std::string::npos ||
-        l.find("Getting the result") != std::string::npos ||
-        l.find("Global objects") != std::string::npos ||
-        l.find("Global replacements") != std::string::npos ||
-        l.find("glvalue") != std::string::npos ||
-        l.find("GPS") != std::string::npos ||
-        l.find("Graphics") != std::string::npos ||
-        l.find("Graphic user interface") != std::string::npos ||
-        l.find("Gtk+ widgets") != std::string::npos ||
-        l.find("Handling of exception specification violations") != std::string::npos ||
-        l.find("Handling of failures in exception handling") != std::string::npos ||
-        l.find("Happens-before") != std::string::npos ||
-        l.find("Hashing") != std::string::npos ||
-        l.find("Hash policy") != std::string::npos ||
-        l.find("Hash support") != std::string::npos ||
-        l.find("Heap operations") != std::string::npos ||
-        l.find("Helper classes") != std::string::npos ||
-        l.find("Helper Classes") != std::string::npos ||
-        l.find("Helper types") != std::string::npos ||
-        l.find("History of C") != std::string::npos ||
-        l.find("Hyperbolic functions") != std::string::npos ||
-        l.find("#ifdef, #ifndef") != std::string::npos ||
-        l.find("#if, #elif") != std::string::npos ||
-        l.find("Implementation notes") != std::string::npos ||
-        l.find("Implicit instantiation") != std::string::npos ||
-        l.find("Implicitly-declared copy assignment operator") != std::string::npos ||
-        l.find("Implicitly-declared copy constructor") != std::string::npos ||
-        l.find("Implicitly-declared default constructor") != std::string::npos ||
-        l.find("Implicitly-declared destructor") != std::string::npos ||
-        l.find("Implicitly-declared move assignment operator") != std::string::npos ||
-        l.find("Implicitly-declared move constructor") != std::string::npos ||
-        l.find("Implicitly-defined copy assignment operator") != std::string::npos ||
-        l.find("Implicitly-defined copy constructor") != std::string::npos ||
-        l.find("Implicitly-defined destructor") != std::string::npos ||
-        l.find("Implicitly-defined member functions") != std::string::npos ||
-        l.find("Implicitly-defined move assignment operator") != std::string::npos ||
-        l.find("Implicitly-defined move constructor") != std::string::npos ||
-        l.find("In class definition") != std::string::npos ||
-        l.find("Includes") != std::string::npos ||
-        l.find("Incomplete type") != std::string::npos ||
-        l.find("Increment and decrement") != std::string::npos ||
-        l.find("In detail") != std::string::npos ||
-        l.find("Initialization by constructor") != std::string::npos ||
-        l.find("Initialization order") != std::string::npos ||
-        l.find("Initializer lists") != std::string::npos ||
-        l.find("inline Example") != std::string::npos ||
-        l.find("Inline namespaces") != std::string::npos ||
-        l.find("In namespace and block scope") != std::string::npos ||
-        l.find("Input/output") != std::string::npos ||
-        l.find("Input/Output") != std::string::npos ||
-        l.find("Input/output library") != std::string::npos ||
-        l.find("Integer types") != std::string::npos ||
-        l.find("Integral conversions") != std::string::npos ||
-        l.find("Integral promotion") != std::string::npos ||
-        l.find("Internal extensible array") != std::string::npos ||
-        l.find("Internationalization") != std::string::npos ||
-        l.find("International monetary numeric formatting parameters") != std::string::npos ||
-        l.find("Interprocess") != std::string::npos ||
-        l.find("Inter-thread happens-before") != std::string::npos ||
-        l.find("I/O Manipulators") != std::string::npos ||
-        l.find("Iteration statements") != std::string::npos ||
-        l.find("Iterator") != std::string::npos ||
-        l.find("Iterator adaptors") != std::string::npos ||
-        l.find("Iterator categories") != std::string::npos ||
-        l.find("Iterator operations") != std::string::npos ||
-        l.find("Iterator primitives") != std::string::npos ||
-        l.find("Iterators") != std::string::npos ||
-        l.find("Iterators library") != std::string::npos ||
-        l.find("Iterator tags") != std::string::npos ||
-        l.find("Javascript") != std::string::npos ||
-        l.find("JSON") != std::string::npos ||
-        l.find("Jump statements") != std::string::npos ||
-        l.find("Keywords") != std::string::npos ||
-        l.find("Labels") != std::string::npos ||
-        l.find("Lambda captures") != std::string::npos ||
-        l.find("Language support") != std::string::npos ||
-        l.find("Layout") != std::string::npos ||
-        l.find("Legend") != std::string::npos ||
-        l.find("libc") != std::string::npos ||
-        l.find("Library-wide") != std::string::npos ||
-        l.find("Lifetime of a temporary") != std::string::npos ||
-        l.find("Linkage") != std::string::npos ||
-        l.find("List-initialization") != std::string::npos ||
-        l.find("Literals") != std::string::npos ||
-        l.find("Locale") != std::string::npos ||
-        l.find("Locale-independent unicode conversion facets") != std::string::npos ||
-        l.find("Locales") != std::string::npos ||
-        l.find("Locales and facets") != std::string::npos ||
-        l.find("Locale-specific facet categories") != std::string::npos ||
-        l.find("Localization library") != std::string::npos ||
-        l.find("Local monetary numeric formatting parameters") != std::string::npos ||
-        l.find("Locking") != std::string::npos ||
-        l.find("Logical operations") != std::string::npos ||
-        l.find("Lookup") != std::string::npos ||
-        l.find("Lookup rules") != std::string::npos ||
-        l.find("Low level memory management") != std::string::npos ||
-        l.find("lvalue") != std::string::npos ||
-        l.find("Lvalue references") != std::string::npos ||
-        l.find("Lvalue to rvalue conversion") != std::string::npos ||
-        l.find("Lvalue transformations") != std::string::npos ||
-        l.find("Macro constants") != std::string::npos ||
-        l.find("Macros") != std::string::npos ||
-        l.find("Main classes") != std::string::npos ||
-        l.find("Manipulation") != std::string::npos ||
-        l.find("Manipulators") != std::string::npos ||
-        l.find("Matching") != std::string::npos ||
-        l.find("Math") != std::string::npos ||
-        l.find("Maths") != std::string::npos ||
-        l.find("Member access") != std::string::npos ||
-        l.find("Member accessibility by specifier") != std::string::npos ||
-        l.find("Member alias templates") != std::string::npos ||
-        l.find("Member classes") != std::string::npos ||
-        l.find("Member constants") != std::string::npos ||
-        l.find("Member function") != std::string::npos ||
-        l.find("Member function operator()") != std::string::npos ||
-        l.find("Member functions") != std::string::npos ||
-        l.find("Member function table") != std::string::npos ||
-        l.find("Member initialization") != std::string::npos ||
-        l.find("Member name lookup") != std::string::npos ||
-        l.find("Member objects") != std::string::npos ||
-        l.find("Members of partial specializations") != std::string::npos ||
-        l.find("Members of specializations") != std::string::npos ||
-        l.find("Member type result_type") != std::string::npos ||
-        l.find("Member types") != std::string::npos ||
-        l.find("Member types and constants") != std::string::npos ||
-        l.find("Memory allocation") != std::string::npos ||
-        l.find("Memory leaks") != std::string::npos ||
-        l.find("Memory management") != std::string::npos ||
-        l.find("Methods") != std::string::npos ||
-        l.find("Methods and operators") != std::string::npos ||
-        l.find("Might be also useful") != std::string::npos ||
-        l.find("Minimum/maximum operations") != std::string::npos ||
-        l.find("Miscellaneous") != std::string::npos ||
-        l.find("Miscellaneous algorithms and math") != std::string::npos ||
-        l.find("Miscellaneous transformations") != std::string::npos ||
-        l.find("Mixed categories") != std::string::npos ||
-        l.find("Modification order") != std::string::npos ||
-        l.find("Modifiers") != std::string::npos ||
-        l.find("Modifying sequence operations") != std::string::npos ||
-        l.find("Monetary numeric formatting parameters") != std::string::npos ||
-        l.find("Multibyte/wide character conversion") != std::string::npos ||
-        l.find("Multidimensional arrays") != std::string::npos ||
-        l.find("Multiplicative operators") != std::string::npos ||
-        l.find("Mutual exclusion") != std::string::npos ||
-        l.find("Name lookup") != std::string::npos ||
-        l.find("Namespaces") != std::string::npos ||
-        l.find("Namespace scope") != std::string::npos ||
-        l.find("Narrowing conversions") != std::string::npos ||
-        l.find("Native handle") != std::string::npos ||
-        l.find("Nearest integer floating point operations") != std::string::npos ||
-        l.find("Negators") != std::string::npos ||
-        l.find("Non-class initialization by conversion") != std::string::npos ||
-        l.find("Non-deterministic random numbers") != std::string::npos ||
-        l.find("Non-local jumps") != std::string::npos ||
-        l.find("Non-member function definitions") != std::string::npos ||
-        l.find("Non-member functions") != std::string::npos ||
-        l.find("Non-member operations") != std::string::npos ||
-        l.find("Non-member operators") != std::string::npos ||
-        l.find("Non-modifying sequence operations") != std::string::npos ||
-        l.find("Non-monetary numeric formatting parameters") != std::string::npos ||
-        l.find("Non-static data members") != std::string::npos ||
-        l.find("Non-type template parameter") != std::string::npos ||
-        l.find("Non-type template parameters") != std::string::npos ||
-        l.find("_Noreturn Example") != std::string::npos ||
-        l.find("Normal distributions") != std::string::npos ||
-        l.find("Note") != std::string::npos ||
-        l.find("Notes") != std::string::npos ||
-        l.find("Notification") != std::string::npos ||
-        l.find("Null pointers") != std::string::npos ||
-        l.find("Null-terminated strings") != std::string::npos ||
-        l.find("Numeric arrays") != std::string::npos ||
-        l.find("Numeric conversions") != std::string::npos ||
-        l.find("numeric_limits") != std::string::npos ||
-        l.find("Numeric limits") != std::string::npos ||
-        l.find("Numeric operations") != std::string::npos ||
-        l.find("Numeric promotions") != std::string::npos ||
-        l.find("Numerics library") != std::string::npos ||
-        l.find("Numeric string conversion") != std::string::npos ||
-        l.find("Object-like macros") != std::string::npos ||
-        l.find("Object representation and value representation") != std::string::npos ||
-        l.find("Objects") != std::string::npos ||
-        l.find("Observers") != std::string::npos ||
-        l.find("Operating system") != std::string::npos ||
-        l.find("Operations") != std::string::npos ||
-        l.find("Operations on files") != std::string::npos ||
-        l.find("Operators") != std::string::npos ||
-        l.find("Optional Operations") != std::string::npos ||
-        l.find("Ordering") != std::string::npos ||
-        l.find("Order of the conversions") != std::string::npos ||
-        l.find("Other") != std::string::npos ||
-        l.find("Other concepts") != std::string::npos ||
-        l.find("Overflows") != std::string::npos ||
-        l.find("Overloaded operators") != std::string::npos ||
-        l.find("Overload resolution") != std::string::npos ||
-        l.find("overloads for arithmetic types") != std::string::npos ||
-        l.find("overloads for iterator types") != std::string::npos ||
-        l.find("Pack expansion") != std::string::npos ||
-        l.find("Pairs and tuples") != std::string::npos ||
-        l.find("Parameter list") != std::string::npos ||
-        l.find("Parameters") != std::string::npos ||
-        l.find("Partitioning operations") != std::string::npos ||
-        l.find("Pending member function call") != std::string::npos ||
-        l.find("Phase 1") != std::string::npos ||
-        l.find("Phase 2") != std::string::npos ||
-        l.find("Phase 3") != std::string::npos ||
-        l.find("Phase 4") != std::string::npos ||
-        l.find("Phase 5") != std::string::npos ||
-        l.find("Phase 6") != std::string::npos ||
-        l.find("Phase 7") != std::string::npos ||
-        l.find("Phase 8") != std::string::npos ||
-        l.find("Phase 9") != std::string::npos ||
-        l.find("Pointer categories") != std::string::npos ||
-        l.find("Pointer comparison operators") != std::string::npos ||
-        l.find("Pointer conversions") != std::string::npos ||
-        l.find("Pointers") != std::string::npos ||
-        l.find("Pointers to data members") != std::string::npos ||
-        l.find("Pointers to functions") != std::string::npos ||
-        l.find("Pointers to member functions") != std::string::npos ||
-        l.find("Pointers to objects") != std::string::npos ||
-        l.find("Pointers to void") != std::string::npos ||
-        l.find("Pointer-to-member conversions") != std::string::npos ||
-        l.find("Point of declaration") != std::string::npos ||
-        l.find("Poisson distributions") != std::string::npos ||
-        l.find("Polymorphic function wrappers") != std::string::npos ||
-        l.find("Polymorphic objects") != std::string::npos ||
-        l.find("Positioning") != std::string::npos ||
-        l.find("POSIX-based character classes") != std::string::npos ||
-        l.find("Possible implementation") != std::string::npos ||
-        l.find("Postconditions") != std::string::npos ||
-        l.find("Power functions") != std::string::npos ||
-        l.find("Precondition") != std::string::npos ||
-        l.find("Preconditions") != std::string::npos ||
-        l.find("Predefined generators") != std::string::npos ||
-        l.find("Predefined macros") != std::string::npos ||
-        l.find("Predefined random number generators") != std::string::npos ||
-        l.find("Preprocessor") != std::string::npos ||
-        l.find("Preprocessor macros") != std::string::npos ||
-        l.find("Primary categories") != std::string::npos ||
-        l.find("Primary expressions") != std::string::npos ||
-        l.find("Primary type categories") != std::string::npos ||
-        l.find("Primitives") != std::string::npos ||
-        l.find("Private inheritance") != std::string::npos ||
-        l.find("Private member access") != std::string::npos ||
-        l.find("Process control") != std::string::npos ||
-        l.find("Program termination") != std::string::npos ||
-        l.find("Program utilities") != std::string::npos ||
-        l.find("Properties") != std::string::npos ||
-        l.find("Property queries") != std::string::npos ||
-        l.find("Protected inheritance") != std::string::npos ||
-        l.find("Protected member access") != std::string::npos ||
-        l.find("Protected member functions") != std::string::npos ||
-        l.find("Protected member objects") != std::string::npos ||
-        l.find("Pseudo-random number generation") != std::string::npos ||
-        l.find("Public inheritance") != std::string::npos ||
-        l.find("Public member access") != std::string::npos ||
-        l.find("Public member functions") != std::string::npos ||
-        l.find("Pure virtual destructors") != std::string::npos ||
-        l.find("Put area") != std::string::npos ||
-        l.find("Putback") != std::string::npos ||
-        l.find("Qualification conversions") != std::string::npos ||
-        l.find("Qualified name lookup") != std::string::npos ||
-        l.find("Quantifiers") != std::string::npos ||
-        l.find("Random number distributions") != std::string::npos ||
-        l.find("Random number engine adaptors") != std::string::npos ||
-        l.find("Random number engines") != std::string::npos ||
-        l.find("Random Number Generation") != std::string::npos ||
-        l.find("Range") != std::string::npos ||
-        l.find("Range access") != std::string::npos ||
-        l.find("Range of values") != std::string::npos ||
-        l.find("Ranking of implicit conversion sequences") != std::string::npos ||
-        l.find("Reference initialization by conversion") != std::string::npos ||
-        l.find("References") != std::string::npos ||
-        l.find("Reference wrappers") != std::string::npos ||
-        l.find("Regular Expressions library") != std::string::npos ||
-        l.find("Related standards") != std::string::npos ||
-        l.find("Relational operators") != std::string::npos ||
-        l.find("Relationship with C library macro constants") != std::string::npos ||
-        l.find("Relationship with the main function") != std::string::npos ||
-        l.find("Relationship with volatile") != std::string::npos ||
-        l.find("Relaxed ordering") != std::string::npos ||
-        l.find("Release-Acquire ordering") != std::string::npos ||
-        l.find("Release-Consume ordering") != std::string::npos ||
-        l.find("Release operation") != std::string::npos ||
-        l.find("Release sequence") != std::string::npos ||
-        l.find("Requirements") != std::string::npos ||
-        l.find("Restrictions") != std::string::npos ||
-        l.find("Results") != std::string::npos ||
-        l.find("Return value") != std::string::npos ||
-        l.find("Rules") != std::string::npos ||
-        l.find("Runtime type identification") != std::string::npos ||
-        l.find("rvalue") != std::string::npos ||
-        l.find("Rvalue references") != std::string::npos ||
-        l.find("Sampling distributions") != std::string::npos ||
-        l.find("Search") != std::string::npos ||
-        l.find("Second version") != std::string::npos ||
-        l.find("See also") != std::string::npos ||
-        l.find("See Also") != std::string::npos ||
-        l.find("Selection statements") != std::string::npos ||
-        l.find("Sequence containers") != std::string::npos ||
-        l.find("SequenceContainers in the standard library") != std::string::npos ||
-        l.find("Sequenced-before") != std::string::npos ||
-        l.find("Sequentially-consistent ordering") != std::string::npos ||
-        l.find("Serialization") != std::string::npos ||
-        l.find("Set operations (on sorted ranges)") != std::string::npos ||
-        l.find("Setting the result") != std::string::npos ||
-        l.find("Shared locking") != std::string::npos ||
-        l.find("Signals") != std::string::npos ||
-        l.find("Signal types") != std::string::npos ||
-        l.find("Signed integers : maximum value") != std::string::npos ||
-        l.find("Signed integers : minimum value") != std::string::npos ||
-        l.find("Sign modifiers") != std::string::npos ||
-        l.find("Single character matches") != std::string::npos ||
-        l.find("Single-object version, unique_ptr&lt;T&gt;") != std::string::npos ||
-        l.find("Size") != std::string::npos ||
-        l.find("Smart pointer non-member operations") != std::string::npos ||
-        l.find("Smart pointers") != std::string::npos ||
-        l.find("Smart pointers categories") != std::string::npos ||
-        l.find("Smart pointers helper classes") != std::string::npos ||
-        l.find("Sorting operations") != std::string::npos ||
-        l.find("Sorting operations (on sorted ranges)") != std::string::npos ||
-        l.find("Special categories") != std::string::npos ||
-        l.find("Special constant expression") != std::string::npos ||
-        l.find("Specializations") != std::string::npos ||
-        l.find("Specialized member functions") != std::string::npos ||
-        l.find("Special member functions") != std::string::npos ||
-        l.find("Specifiers") != std::string::npos ||
-        l.find("Stage 1: conversion specifier selection") != std::string::npos ||
-        l.find("Stage 2: character extraction") != std::string::npos ||
-        l.find("Stage 2: locale-specific conversion") != std::string::npos ||
-        l.find("Stage 3: conversion and storage") != std::string::npos ||
-        l.find("Stage 3: padding") != std::string::npos ||
-        l.find("Stage 4: output") != std::string::npos ||
-        l.find("Standard C++") != std::string::npos ||
-        l.find("Standard layout") != std::string::npos ||
-        l.find("Standard library") != std::string::npos ||
-        l.find("Standard pragmas") != std::string::npos ||
-        l.find("Standard specializations") != std::string::npos ||
-        l.find("Standard specializations for basic types") != std::string::npos ||
-        l.find("Standard specializations for library types") != std::string::npos ||
-        l.find("State") != std::string::npos ||
-        l.find("State functions") != std::string::npos ||
-        l.find("Static data members") != std::string::npos ||
-        l.find("Static member functions") != std::string::npos ||
-        l.find("Static type") != std::string::npos ||
-        l.find("Storage duration") != std::string::npos ||
-        l.find("Stream-based I/O") != std::string::npos ||
-        l.find("Stream extraction and insertion") != std::string::npos ||
-        l.find("Stream insertion/extraction operators") != std::string::npos ||
-        l.find("Stream I/O functions") != std::string::npos ||
-        l.find("Stream iterators") != std::string::npos ||
-        l.find("Stream Iterators") != std::string::npos ||
-        l.find("Strict aliasing") != std::string::npos ||
-        l.find("String and stream conversions") != std::string::npos ||
-        l.find("String conversions") != std::string::npos ||
-        l.find("String examination") != std::string::npos ||
-        l.find("String I/0 implementation") != std::string::npos ||
-        l.find("String manipulation") != std::string::npos ||
-        l.find("String operations") != std::string::npos ||
-        l.find("Strings library") != std::string::npos ||
-        l.find("Sub-expressions") != std::string::npos ||
-        l.find("Subobjects") != std::string::npos ||
-        l.find("Supported operations") != std::string::npos ||
-        l.find("Swap, forward and move") != std::string::npos ||
-        l.find("Synopsis") != std::string::npos ||
-        l.find("Synospis") != std::string::npos ||
-        l.find("Syntax") != std::string::npos ||
-        l.find("System error") != std::string::npos ||
-        l.find("Target access") != std::string::npos ||
-        l.find("Template argument deduction") != std::string::npos ||
-        l.find("Template argument lists") != std::string::npos ||
-        l.find("Template argument substitution") != std::string::npos ||
-        l.find("Template friend operators") != std::string::npos ||
-        l.find("Template friends") != std::string::npos ||
-        l.find("Template Non-type arguments") != std::string::npos ||
-        l.find("Template parameter list") != std::string::npos ||
-        l.find("Template parameters") != std::string::npos ||
-        l.find("Template Parameters") != std::string::npos ||
-        l.find("Template parameter scope") != std::string::npos ||
-        l.find("Template template arguments") != std::string::npos ||
-        l.find("Template template parameter") != std::string::npos ||
-        l.find("Template type arguments") != std::string::npos ||
-        l.find("Terminal") != std::string::npos ||
-        l.find("Terms") != std::string::npos ||
-        l.find("Testing") != std::string::npos ||
-        l.find("Text") != std::string::npos ||
-        l.find("The argument list") != std::string::npos ||
-        l.find("The badbit") != std::string::npos ||
-        l.find("The eofbit") != std::string::npos ||
-        l.find("The failbit") != std::string::npos ||
-        l.find("The imaginary constant") != std::string::npos ||
-        l.find("The safe bool problem") != std::string::npos ||
-        l.find("The sizeof... operator") != std::string::npos ||
-        l.find("The type of the literal") != std::string::npos ||
-        l.find("The unnamed namespace") != std::string::npos ||
-        l.find("Thread-local storage") != std::string::npos ||
-        l.find("Threads") != std::string::npos ||
-        l.find("Thread safety") != std::string::npos ||
-        l.find("Thread support library") != std::string::npos ||
-        l.find("Time manipulation") != std::string::npos ||
-        l.find("Time point") != std::string::npos ||
-        l.find("Trade-offs / usage notes") != std::string::npos ||
-        l.find("Traits") != std::string::npos ||
-        l.find("Trigonometric functions") != std::string::npos ||
-        l.find("Trivial copy assignment operator") != std::string::npos ||
-        l.find("Trivial copy constructor") != std::string::npos ||
-        l.find("Trivial default constructor") != std::string::npos ||
-        l.find("Trivial destructor") != std::string::npos ||
-        l.find("Trivial move assignment operator") != std::string::npos ||
-        l.find("Trivial move constructor") != std::string::npos ||
-        l.find("Try block") != std::string::npos ||
-        l.find("T* specialization member types") != std::string::npos ||
-        l.find("Type") != std::string::npos ||
-        l.find("Type aliasing") != std::string::npos ||
-        l.find("Type classification") != std::string::npos ||
-        l.find("Typedefs") != std::string::npos ||
-        l.find("Typedefs and specializations") != std::string::npos ||
-        l.find("Type-dependent expressions") != std::string::npos ||
-        l.find("Type modifications") != std::string::npos ||
-        l.find("Type naming") != std::string::npos ||
-        l.find("Type properties") != std::string::npos ||
-        l.find("Type relationships") != std::string::npos ||
-        l.find("Type requirements") != std::string::npos ||
-        l.find("Types") != std::string::npos ||
-        l.find("Type support") != std::string::npos ||
-        l.find("Type template parameter") != std::string::npos ||
-        l.find("Unary arithmetic operators") != std::string::npos ||
-        l.find("#undef directive") != std::string::npos ||
-        l.find("Undefined behavior") != std::string::npos ||
-        l.find("Unevaluated expressions") != std::string::npos ||
-        l.find("Unformatted input") != std::string::npos ||
-        l.find("Unformatted input/output") != std::string::npos ||
-        l.find("Unformatted output") != std::string::npos ||
-        l.find("Uniform distributions") != std::string::npos ||
-        l.find("Uninitialized storage") != std::string::npos ||
-        l.find("Unknown specializations") != std::string::npos ||
-        l.find("Unordered associative containers") != std::string::npos ||
-        l.find("Unqualified name lookup") != std::string::npos ||
-        l.find("Unsigned integers : maximum value") != std::string::npos ||
-        l.find("Usage") != std::string::npos ||
-        l.find("Using-declarations") != std::string::npos ||
-        l.find("Using-directives") != std::string::npos ||
-        l.find("Utilities") != std::string::npos ||
-        l.find("Utilities library") != std::string::npos ||
-        l.find("Value-dependent expressions") != std::string::npos ||
-        l.find("Variadic functions") != std::string::npos ||
-        l.find("vector&lt;bool&gt; specific modifiers") != std::string::npos ||
-        l.find("Viable functions") != std::string::npos ||
-        l.find("Video") != std::string::npos ||
-        l.find("Virtual and pure virtual functions") != std::string::npos ||
-        l.find("Virtual base classes") != std::string::npos ||
-        l.find("Virtual destructor") != std::string::npos ||
-        l.find("Virtual destructors") != std::string::npos ||
-        l.find("Visible side-effects") != std::string::npos ||
-        l.find("Void expressions") != std::string::npos ||
-        l.find("Waiting") != std::string::npos ||
-        l.find("Web") != std::string::npos ||
-        l.find("Wide character array manipulation") != std::string::npos ||
-        l.find("Wide string manimpulation") != std::string::npos ||
-        l.find("XML") != std::string::npos ||
-        l.find("xvalue") != std::string::npos
-      )
+      auto const is_section(std::find_if(sections.begin(), sections.end(),
+      [&](std::string const &s)
+      { return l.find(s) != std::string::npos; }));
+      if(is_section != sections.end())
       {
         if(l.find("•") == std::string::npos)
         {
@@ -782,4 +37,756 @@ namespace groff_detail
       { l = ".SH " + str::ltrim(l); }
     }
   }
+
+  /* No, I did not type this by hand. In fact, for future reference:
+     grep -r "<span class=\"toctext\">" | sed 's/^.*<span class\=\"toctext\">//' | \
+     sed 's/<\/span>.*$//' | grep -v "<span>" | sort -u
+   */
+  std::vector<std::string> sections
+  {
+    "3D Graphics",
+    "Abstraction",
+    "Acquire operation",
+    "Adaptors",
+    "Additional basic types and macros",
+    "Additional support",
+    "Additive operators",
+    "Algorithm",
+    "Algorithms",
+    "Algorithms library",
+    "Alignment",
+    "Alignment specifier",
+    "Allocation",
+    "Allocator non-member operations",
+    "Allocators",
+    "Alternative keywords",
+    "Alternatives",
+    "# and ## operators",
+    "Arithmetic",
+    "Arithmetic comparison operators",
+    "Arithmetic operations",
+    "Arithmetic types defined by the language",
+    "Array I/O implementations",
+    "Array rvalues",
+    "Arrays",
+    "Arrays of unknown bound",
+    "Array subscript operator",
+    "Array to pointer conversion",
+    "Array to pointer decay",
+    "Array version, unique_ptr<T[]>",
+    "ASCII chart",
+    "Assertions",
+    "Assignment",
+    "Assignment operator",
+    "Associative containers",
+    "Atomic Operations library",
+    "Atoms",
+    "Attribute list",
+    "Audio",
+    "Backreferences",
+    "Base",
+    "Base specifiers and member initializer lists",
+    "Basic",
+    "Basic operations",
+    "Basic types",
+    "Benchmarking",
+    "Bernoulli distributions",
+    "Best viable function",
+    "Binary arithmetic operators",
+    "Binary search operations (on sorted ranges)",
+    "Bind",
+    "Binders",
+    "Binding rules",
+    "Bit fields",
+    "Bitset",
+    "Bitwise logic operators",
+    "Bitwise operations",
+    "Bitwise shift operators",
+    "Block scope",
+    "Boolean conversions",
+    "Boolean type",
+    "Braced init lists",
+    "Bucket interface",
+    "Built-in address-of operator",
+    "Built-in comma operator",
+    "Builtin compound assignment",
+    "Built-in conversion operator",
+    "Builtin direct assignment",
+    "Built-in function call operator",
+    "Built-in indirection operator",
+    "Built-in member access operators",
+    "Builtin operators",
+    "Built-in pointer-to-member access operators",
+    "Built-in postfix operators",
+    "Built-in prefix operators",
+    "Built-in subscript operator",
+    "Call once",
+    "Call to a class object",
+    "Call to a named function",
+    "Call to an overloaded operator",
+    "Candidate functions",
+    "Canonical implementations",
+    "Capacity",
+    "Capture and storage of exception objects",
+    "Carries dependency",
+    "C compatibility headers",
+    "C FAQs",
+    "C++ FAQs",
+    "Character array manipulation",
+    "Character arrays",
+    "Character classes",
+    "Character classification",
+    "Character conversions",
+    "Characteristics",
+    "Character manipulation",
+    "Character types",
+    "chrono library",
+    "C Language and library references",
+    "C++ Language and library references",
+    "Classes",
+    "Classification",
+    "Classification and comparison",
+    "Class scope",
+    "Class-specific overloads",
+    "Class template instantiation",
+    "C library",
+    "C library locales",
+    "Clocks",
+    "C numeric limits interface",
+    "Comments",
+    "Common mathematical functions",
+    "Communicating with the environment",
+    "Communication",
+    "Comparison",
+    "Comparisons",
+    "Compatibility with C",
+    "Complexity",
+    "Complex numbers",
+    "Composite type categories",
+    "Compound statement",
+    "Compression",
+    "Concept requirements",
+    "Concurrency",
+    "Conditional execution statements",
+    "Conditional operator",
+    "Condition evaluation",
+    "Condition variables",
+    "Configuration",
+    "Constants",
+    "Constant static members",
+    "Constness",
+    "Construction",
+    "Construction and Seeding",
+    "const T* specialization member types",
+    "const-, volatile-, and ref-qualified member functions",
+    "Const-volatility specifiers",
+    "Consume operation",
+    "Container",
+    "Container adaptors",
+    "Container data races",
+    "Container element",
+    "Containers",
+    "Containers library",
+    "Contents",
+    "Convenience Typedefs",
+    "Conversions",
+    "Conversions to numeric formats",
+    "Copy and swap",
+    "Copy-initialization by conversion",
+    "Core constant expressions",
+    "Covariant return types",
+    "C random library",
+    "Cryptography",
+    "C-style",
+    "C++-style",
+    "C-style date and time library",
+    "C-style IO",
+    "C-style memory management",
+    "Current instantiation",
+    "Dangling references",
+    "Databases",
+    "Data models",
+    "Date and time",
+    "Declarations",
+    "Declaration statement",
+    "Declarators",
+    "Default conversions",
+    "Default template arguments",
+    "#define directives",
+    "Definitions",
+    "Delegating constructor",
+    "Deleted implicitly-declared copy assignment operator",
+    "Deleted implicitly-declared copy constructor",
+    "Deleted implicitly-declared copy destructor",
+    "Deleted implicitly-declared default constructor",
+    "Deleted implicitly-declared move assignment operator",
+    "Deleted implicitly-declared move constructor",
+    "Dependency-ordered before",
+    "Dependent types",
+    "Deprecated headers",
+    "Deprecated in C++11",
+    "Deprecated member types",
+    "Deprecates",
+    "Description",
+    "Destruction sequence",
+    "Details",
+    "Digraphs and trigraphs",
+    "Direct input/output",
+    "Duration",
+    "During construction and destruction",
+    "Dynamic exception specifications",
+    "Dynamic memory management",
+    "Dynamic type",
+    "Early C++",
+    "Element access",
+    "Embedded languages bindings",
+    "Embedded/realtime",
+    "Enumeration scope",
+    "Error and gamma functions",
+    "Error category interface",
+    "Error Conditions",
+    "Error handling",
+    "Error numbers",
+    "Escape sequences",
+    "Evaluations",
+    "Example",
+    "Example 1",
+    "Example 1: non-member functions",
+    "Example 2",
+    "Example 3",
+    "Examples",
+    "Example With Comparator",
+    "Exception categories",
+    "Exception handling",
+    "Exception objects",
+    "Exceptions",
+    "Exception safety",
+    "Execution",
+    "Exeptions",
+    "Expanded value",
+    "Expansion loci",
+    "Explanation",
+    "Explicit instantiation",
+    "Explicit specializations of function templates",
+    "Exponential functinos",
+    "Exponential functions",
+    "Expressions",
+    "Expression statements",
+    "External links",
+    "Facet categories",
+    "Facet category base classes",
+    "File access",
+    "File I/0 implementation",
+    "File metadata",
+    "File operations",
+    "File positioning",
+    "Files",
+    "First version",
+    "Floating - integral conversions",
+    "Floating point conversions",
+    "Floating-point environment",
+    "Floating point manipulation functions",
+    "Floating point promotion",
+    "Floating point types",
+    "Flow control",
+    "footnotes",
+    "Formal description",
+    "Format",
+    "Format conversions",
+    "Format macro constants",
+    "Formatted input",
+    "Formatted input/output",
+    "Formatted output",
+    "Formatting",
+    "Forward declaration",
+    "Forward declarations",
+    "Function adaptors",
+    "Function argument lists",
+    "Function call operator",
+    "Function declaration",
+    "Function-like macros",
+    "Function objects",
+    "Function Objects",
+    "Function parameter list",
+    "Function prototype scope",
+    "Functions",
+    "Function scope",
+    "Functions managing the current thread",
+    "Function template instantiation",
+    "Function template specialization",
+    "Function to pointer",
+    "Fundamental types defined by the language",
+    "Future development",
+    "Future errors",
+    "Futures",
+    "Garbage collector support",
+    "General",
+    "General-purpose utilities",
+    "General topics",
+    "Generation",
+    "Generic",
+    "Generic locking algorithms",
+    "Generic mutex management",
+    "Generic numeric operations",
+    "Get area",
+    "Getting the result",
+    "Global objects",
+    "Global replacements",
+    "glvalue",
+    "GPS",
+    "Graphics",
+    "Graphic user interface",
+    "Gtk+ widgets",
+    "Handling of exception specification violations",
+    "Handling of failures in exception handling",
+    "Happens-before",
+    "Hashing",
+    "Hash policy",
+    "Hash support",
+    "Heap operations",
+    "Helper classes",
+    "Helper Classes",
+    "Helper types",
+    "History of C",
+    "Hyperbolic functions",
+    "#ifdef, #ifndef",
+    "#if, #elif",
+    "Implementation notes",
+    "Implicit instantiation",
+    "Implicitly-declared copy assignment operator",
+    "Implicitly-declared copy constructor",
+    "Implicitly-declared default constructor",
+    "Implicitly-declared destructor",
+    "Implicitly-declared move assignment operator",
+    "Implicitly-declared move constructor",
+    "Implicitly-defined copy assignment operator",
+    "Implicitly-defined copy constructor",
+    "Implicitly-defined destructor",
+    "Implicitly-defined member functions",
+    "Implicitly-defined move assignment operator",
+    "Implicitly-defined move constructor",
+    "In class definition",
+    "Includes",
+    "Incomplete type",
+    "Increment and decrement",
+    "In detail",
+    "Initialization by constructor",
+    "Initialization order",
+    "Initializer lists",
+    "inline Example",
+    "Inline namespaces",
+    "In namespace and block scope",
+    "Input/output",
+    "Input/Output",
+    "Input/output library",
+    "Integer types",
+    "Integral conversions",
+    "Integral promotion",
+    "Internal extensible array",
+    "Internationalization",
+    "International monetary numeric formatting parameters",
+    "Interprocess",
+    "Inter-thread happens-before",
+    "I/O Manipulators",
+    "Iteration statements",
+    "Iterator",
+    "Iterator adaptors",
+    "Iterator categories",
+    "Iterator operations",
+    "Iterator primitives",
+    "Iterators",
+    "Iterators library",
+    "Iterator tags",
+    "Javascript",
+    "JSON",
+    "Jump statements",
+    "Keywords",
+    "Labels",
+    "Lambda captures",
+    "Language support",
+    "Layout",
+    "Legend",
+    "libc",
+    "Library-wide",
+    "Lifetime of a temporary",
+    "Linkage",
+    "List-initialization",
+    "Literals",
+    "Locale",
+    "Locale-independent unicode conversion facets",
+    "Locales",
+    "Locales and facets",
+    "Locale-specific facet categories",
+    "Localization library",
+    "Local monetary numeric formatting parameters",
+    "Locking",
+    "Logical operations",
+    "Lookup",
+    "Lookup rules",
+    "Low level memory management",
+    "lvalue",
+    "Lvalue references",
+    "Lvalue to rvalue conversion",
+    "Lvalue transformations",
+    "Macro constants",
+    "Macros",
+    "Main classes",
+    "Manipulation",
+    "Manipulators",
+    "Matching",
+    "Math",
+    "Maths",
+    "Member access",
+    "Member accessibility by specifier",
+    "Member alias templates",
+    "Member classes",
+    "Member constants",
+    "Member function",
+    "Member function operator()",
+    "Member functions",
+    "Member function table",
+    "Member initialization",
+    "Member name lookup",
+    "Member objects",
+    "Members of partial specializations",
+    "Members of specializations",
+    "Member type result_type",
+    "Member types",
+    "Member types and constants",
+    "Memory allocation",
+    "Memory leaks",
+    "Memory management",
+    "Methods",
+    "Methods and operators",
+    "Might be also useful",
+    "Minimum/maximum operations",
+    "Miscellaneous",
+    "Miscellaneous algorithms and math",
+    "Miscellaneous transformations",
+    "Mixed categories",
+    "Modification order",
+    "Modifiers",
+    "Modifying sequence operations",
+    "Monetary numeric formatting parameters",
+    "Multibyte/wide character conversion",
+    "Multidimensional arrays",
+    "Multiplicative operators",
+    "Mutual exclusion",
+    "Name lookup",
+    "Namespaces",
+    "Namespace scope",
+    "Narrowing conversions",
+    "Native handle",
+    "Nearest integer floating point operations",
+    "Negators",
+    "Non-class initialization by conversion",
+    "Non-deterministic random numbers",
+    "Non-local jumps",
+    "Non-member function definitions",
+    "Non-member functions",
+    "Non-member operations",
+    "Non-member operators",
+    "Non-modifying sequence operations",
+    "Non-monetary numeric formatting parameters",
+    "Non-static data members",
+    "Non-type template parameter",
+    "Non-type template parameters",
+    "_Noreturn Example",
+    "Normal distributions",
+    "Note",
+    "Notes",
+    "Notification",
+    "Null pointers",
+    "Null-terminated strings",
+    "Numeric arrays",
+    "Numeric conversions",
+    "numeric_limits",
+    "Numeric limits",
+    "Numeric operations",
+    "Numeric promotions",
+    "Numerics library",
+    "Numeric string conversion",
+    "Object-like macros",
+    "Object representation and value representation",
+    "Objects",
+    "Observers",
+    "Operating system",
+    "Operations",
+    "Operations on files",
+    "Operators",
+    "Optional Operations",
+    "Ordering",
+    "Order of the conversions",
+    "Other",
+    "Other concepts",
+    "Overflows",
+    "Overloaded operators",
+    "Overload resolution",
+    "overloads for arithmetic types",
+    "overloads for iterator types",
+    "Pack expansion",
+    "Pairs and tuples",
+    "Parameter list",
+    "Parameters",
+    "Partitioning operations",
+    "Pending member function call",
+    "Phase 1",
+    "Phase 2",
+    "Phase 3",
+    "Phase 4",
+    "Phase 5",
+    "Phase 6",
+    "Phase 7",
+    "Phase 8",
+    "Phase 9",
+    "Pointer categories",
+    "Pointer comparison operators",
+    "Pointer conversions",
+    "Pointers",
+    "Pointers to data members",
+    "Pointers to functions",
+    "Pointers to member functions",
+    "Pointers to objects",
+    "Pointers to void",
+    "Pointer-to-member conversions",
+    "Point of declaration",
+    "Poisson distributions",
+    "Polymorphic function wrappers",
+    "Polymorphic objects",
+    "Positioning",
+    "POSIX-based character classes",
+    "Possible implementation",
+    "Postconditions",
+    "Power functions",
+    "Precondition",
+    "Preconditions",
+    "Predefined generators",
+    "Predefined macros",
+    "Predefined random number generators",
+    "Preprocessor",
+    "Preprocessor macros",
+    "Primary categories",
+    "Primary expressions",
+    "Primary type categories",
+    "Primitives",
+    "Private inheritance",
+    "Private member access",
+    "Process control",
+    "Program termination",
+    "Program utilities",
+    "Properties",
+    "Property queries",
+    "Protected inheritance",
+    "Protected member access",
+    "Protected member functions",
+    "Protected member objects",
+    "Pseudo-random number generation",
+    "Public inheritance",
+    "Public member access",
+    "Public member functions",
+    "Pure virtual destructors",
+    "Put area",
+    "Putback",
+    "Qualification conversions",
+    "Qualified name lookup",
+    "Quantifiers",
+    "Random number distributions",
+    "Random number engine adaptors",
+    "Random number engines",
+    "Random Number Generation",
+    "Range",
+    "Range access",
+    "Range of values",
+    "Ranking of implicit conversion sequences",
+    "Reference initialization by conversion",
+    "References",
+    "Reference wrappers",
+    "Regular Expressions library",
+    "Related standards",
+    "Relational operators",
+    "Relationship with C library macro constants",
+    "Relationship with the main function",
+    "Relationship with volatile",
+    "Relaxed ordering",
+    "Release-Acquire ordering",
+    "Release-Consume ordering",
+    "Release operation",
+    "Release sequence",
+    "Requirements",
+    "Restrictions",
+    "Results",
+    "Return value",
+    "Rules",
+    "Runtime type identification",
+    "rvalue",
+    "Rvalue references",
+    "Sampling distributions",
+    "Search",
+    "Second version",
+    "See also",
+    "See Also",
+    "Selection statements",
+    "Sequence containers",
+    "SequenceContainers in the standard library",
+    "Sequenced-before",
+    "Sequentially-consistent ordering",
+    "Serialization",
+    "Set operations (on sorted ranges)",
+    "Setting the result",
+    "Shared locking",
+    "Signals",
+    "Signal types",
+    "Signed integers : maximum value",
+    "Signed integers : minimum value",
+    "Sign modifiers",
+    "Single character matches",
+    "Single-object version, unique_ptr<T>",
+    "Size",
+    "Smart pointer non-member operations",
+    "Smart pointers",
+    "Smart pointers categories",
+    "Smart pointers helper classes",
+    "Sorting operations",
+    "Sorting operations (on sorted ranges)",
+    "Special categories",
+    "Special constant expression",
+    "Specializations",
+    "Specialized member functions",
+    "Special member functions",
+    "Specifiers",
+    "Stage 1: conversion specifier selection",
+    "Stage 2: character extraction",
+    "Stage 2: locale-specific conversion",
+    "Stage 3: conversion and storage",
+    "Stage 3: padding",
+    "Stage 4: output",
+    "Standard C++",
+    "Standard layout",
+    "Standard library",
+    "Standard pragmas",
+    "Standard specializations",
+    "Standard specializations for basic types",
+    "Standard specializations for library types",
+    "State",
+    "State functions",
+    "Static data members",
+    "Static member functions",
+    "Static type",
+    "Storage duration",
+    "Stream-based I/O",
+    "Stream extraction and insertion",
+    "Stream insertion/extraction operators",
+    "Stream I/O functions",
+    "Stream iterators",
+    "Stream Iterators",
+    "Strict aliasing",
+    "String and stream conversions",
+    "String conversions",
+    "String examination",
+    "String I/0 implementation",
+    "String manipulation",
+    "String operations",
+    "Strings library",
+    "Sub-expressions",
+    "Subobjects",
+    "Supported operations",
+    "Swap, forward and move",
+    "Synopsis",
+    "Synospis",
+    "Syntax",
+    "System error",
+    "Target access",
+    "Template argument deduction",
+    "Template argument lists",
+    "Template argument substitution",
+    "Template friend operators",
+    "Template friends",
+    "Template Non-type arguments",
+    "Template parameter list",
+    "Template parameters",
+    "Template Parameters",
+    "Template parameter scope",
+    "Template template arguments",
+    "Template template parameter",
+    "Template type arguments",
+    "Terminal",
+    "Terms",
+    "Testing",
+    "Text",
+    "The argument list",
+    "The badbit",
+    "The eofbit",
+    "The failbit",
+    "The imaginary constant",
+    "The safe bool problem",
+    "The sizeof... operator",
+    "The type of the literal",
+    "The unnamed namespace",
+    "Thread-local storage",
+    "Threads",
+    "Thread safety",
+    "Thread support library",
+    "Time manipulation",
+    "Time point",
+    "Trade-offs / usage notes",
+    "Traits",
+    "Trigonometric functions",
+    "Trivial copy assignment operator",
+    "Trivial copy constructor",
+    "Trivial default constructor",
+    "Trivial destructor",
+    "Trivial move assignment operator",
+    "Trivial move constructor",
+    "Try block",
+    "T* specialization member types",
+    "Type",
+    "Type aliasing",
+    "Type classification",
+    "Typedefs",
+    "Typedefs and specializations",
+    "Type-dependent expressions",
+    "Type modifications",
+    "Type naming",
+    "Type properties",
+    "Type relationships",
+    "Type requirements",
+    "Types",
+    "Type support",
+    "Type template parameter",
+    "Unary arithmetic operators",
+    "#undef directive",
+    "Undefined behavior",
+    "Unevaluated expressions",
+    "Unformatted input",
+    "Unformatted input/output",
+    "Unformatted output",
+    "Uniform distributions",
+    "Uninitialized storage",
+    "Unknown specializations",
+    "Unordered associative containers",
+    "Unqualified name lookup",
+    "Unsigned integers : maximum value",
+    "Usage",
+    "Using-declarations",
+    "Using-directives",
+    "Utilities",
+    "Utilities library",
+    "Value-dependent expressions",
+    "Variadic functions",
+    "vector<bool> specific modifiers",
+    "Viable functions",
+    "Video",
+    "Virtual and pure virtual functions",
+    "Virtual base classes",
+    "Virtual destructor",
+    "Virtual destructors",
+    "Visible side-effects",
+    "Void expressions",
+    "Waiting",
+    "Web",
+    "Wide character array manipulation",
+    "Wide string manimpulation",
+    "XML",
+    "xvalue"
+  };
 }
