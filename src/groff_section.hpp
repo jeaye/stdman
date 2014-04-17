@@ -179,7 +179,7 @@ namespace groff_detail
     "Container element",
     "Containers",
     "Containers library",
-    "Contents",
+    "Contents", /* XXX: Manually added. */
     "Convenience Typedefs",
     "Conversions",
     "Conversions to numeric formats",
@@ -511,6 +511,7 @@ namespace groff_detail
     "Order of the conversions",
     "Other",
     "Other concepts",
+    "Output:", /* XXX: Manually added. */
     "Overflows",
     "Overloaded operators",
     "Overload resolution",
@@ -548,6 +549,7 @@ namespace groff_detail
     "Positioning",
     "POSIX-based character classes",
     "Possible implementation",
+    "Possible output", /* XXX: Manually added. */
     "Postconditions",
     "Power functions",
     "Precondition",
