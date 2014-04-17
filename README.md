@@ -18,6 +18,8 @@ make generate # will build and generate
 **NOTE**: `make generate` expects sources will be in the `./reference/en/cpp` directory by default. See `./configure --help` to modify this.
 
 ### Compilation/Generation Dependencies
-* C++11 (recommended GCC 4.8 or clang 3.4)
-* [elinks](http://www.elinks.cz)
-    * An advanced and well-established feature-rich text mode web browser.
+* C++11 (recommended GCC 4.8 or clang 3.4 or greater)
+* elinks (recommended 0.12pre6 or greater)
+* gzip (recommended 1.3.12 or greater)
+
+**NOTE**: Generation not tested on Windows/cygwin.

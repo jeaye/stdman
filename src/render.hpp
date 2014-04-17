@@ -23,7 +23,8 @@ class render
     void operator ()(parse_state &state)
     {
       /* Render the stripped html to plain text. */
-      state.plain = execute("elinks -dump -dump-width 90 -no-numbering -no-references "
+      state.plain = execute("elinks -dump 1 -dump-width 90 -no-numbering -no-references "
+                            "-dump-charset UTF-8 -force-html "
                             + state.tmp_file);
 
       /* Cleanup a bit. */
