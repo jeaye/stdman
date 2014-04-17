@@ -121,6 +121,7 @@ namespace groff_detail
     "Capacity",
     "Capture and storage of exception objects",
     "Carries dependency",
+    "Category:", /* XXX: Manually added. */
     "C compatibility headers",
     "C FAQs",
     "C++ FAQs",
