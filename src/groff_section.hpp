@@ -20,6 +20,8 @@ namespace groff_detail
            grep -r "<span class=\"toctext\">" | sed 's/^.*<span class\=\"toctext\">//' | \
            sed 's/<\/span>.*$//' | grep -v "<span>" | sort -u
          */
+        l.find("Contents") != std::string::npos ||
+
         l.find("3D Graphics") != std::string::npos ||
         l.find("Abstraction") != std::string::npos ||
         l.find("Acquire operation") != std::string::npos ||
@@ -163,7 +165,6 @@ namespace groff_detail
         l.find("Container element") != std::string::npos ||
         l.find("Containers") != std::string::npos ||
         l.find("Containers library") != std::string::npos ||
-        l.find("Contents") != std::string::npos ||
         l.find("Convenience Typedefs") != std::string::npos ||
         l.find("Conversions") != std::string::npos ||
         l.find("Conversions to numeric formats") != std::string::npos ||
