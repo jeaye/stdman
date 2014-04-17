@@ -17,23 +17,15 @@ namespace groff_detail
   {
     for(auto &l : lines)
     {
+      std::string tmp{ l };
+      str::trim(tmp);
+      std::string::size_type found{ std::string::npos };
+
       auto const is_section(std::find_if(sections.begin(), sections.end(),
       [&](std::string const &s)
-      { return l.find(s) != std::string::npos; }));
-      if(is_section != sections.end())
-      {
-        if(l.find("•") == std::string::npos)
-        {
-          std::string tmp{ l };
-          str::trim(tmp);
+      { return (found = tmp.find(s)) != std::string::npos; }));
 
-          /* Lower case means false positive. */
-          if(std::isupper(tmp[0]))
-          { str::trim(l); } /* Move back to column 0 for sectioning. */
-        }
-      }
-
-      if(l.size() && !std::isspace(l[0]) && l[0] != '.')
+      if(is_section != sections.end() && found == 0)
       { l = ".SH " + str::ltrim(l); }
     }
   }
