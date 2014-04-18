@@ -17,7 +17,7 @@ struct parse_state
 {
   std::string const name{ "stdman" };
   std::string const version{ "1.0.0" };
-  std::string const creation_date{ "April 11, 2014" };
+  std::string const creation_date{ __DATE__ }; /* Relies on `make generate` for usage. */
 
   std::string prog;
   std::string input_file, output_file;
