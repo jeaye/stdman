@@ -32,7 +32,7 @@ class helper
           << "Options:" << std::endl
           << "  -h, --help         Show this help page and quit" << std::endl
           << "  -v, --version      Show the version number and quit" << std::endl
-          << "  -s                 Silence all output" << std::endl
+          << "  -s, --silent       Silence all output" << std::endl
           << "  -o, --output       Specify output file, including directory" << std::endl
           << "  -d, --directory    Specify output directory (cannot be used with -o)" << std::endl
           << std::endl

@@ -73,7 +73,7 @@ struct cmdline
     }
     static bool param_verbosity(parse_state &state, iterator &arg, iterator const&)
     {
-      if(*arg == "-s")
+      if(*arg == "-s" || *arg == "--silent")
       {
         state.verbose = false;
         return true;
