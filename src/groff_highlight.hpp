@@ -78,8 +78,10 @@ namespace groff_detail
       highlight_impl(l, "(enum)", fmt::italic);
       highlight_impl(l, "(class)", fmt::italic);
       highlight_impl(l, "(class template)", fmt::italic);
+      highlight_impl(l, "(none)", fmt::italic);
       highlight_impl(l, "(function", ")", fmt::italic);
       highlight_impl(l, "(strong exception guarantee)", fmt::italic);
+      highlight_impl(l, "(deadlock detected)", fmt::italic);
 
       /* Overload numbers. */
       static size_t constexpr const max_overloads{ 43 };
