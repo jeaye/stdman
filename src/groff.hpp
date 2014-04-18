@@ -46,7 +46,8 @@ class groff
       groff_detail::highlight(state.lines);
 
       std::ofstream ofs{ state.output_file };
-      std::cout << "output: " << state.output_file << std::endl;
+      if(state.verbose)
+      { std::cout << "output: " << state.output_file << std::endl; }
       if(!ofs.is_open())
       { throw std::runtime_error("failed to open file for writing: " + state.output_file); }
       std::copy(std::begin(state.lines), std::end(state.lines),

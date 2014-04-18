@@ -11,6 +11,7 @@
 
 #include <string>
 #include <vector>
+#include <unistd.h>
 
 struct parse_state
 {
@@ -20,8 +21,10 @@ struct parse_state
 
   std::string prog;
   std::string input_file, output_file;
-  std::string tmp_file{ ".tmp.html" }, output_dir{ "./man/" };
+  std::string tmp_file{ "tmp/" + std::to_string(getpid()) + ".tmp.html" };
+  std::string output_dir{ "./man/" };
   std::string html;
   std::string plain;
   std::vector<std::string> lines;
+  bool verbose{ true };
 };

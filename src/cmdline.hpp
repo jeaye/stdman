@@ -40,6 +40,8 @@ struct cmdline
         if(!read)
         { read |= param_version(state, i, end); }
         if(!read)
+        { read |= param_verbosity(state, i, end); }
+        if(!read)
         { read |= param_output(state, i, end); }
         if(!read)
         { read |= param_input(state, i, end); }
@@ -50,7 +52,8 @@ struct cmdline
 
       if(state.input_file.empty())
       { throw helper{ state.prog }; }
-      std::cout << "input: " << state.input_file << std::endl;
+      if(state.verbose)
+      { std::cout << "input: " << state.input_file << std::endl; }
     }
   private:
     static bool param_help(parse_state &state, iterator &arg, iterator const&)
@@ -65,6 +68,15 @@ struct cmdline
       {
         std::cout << state.name << ":" << state.version << std::endl;
         throw early_exit{};
+      }
+      return false;
+    }
+    static bool param_verbosity(parse_state &state, iterator &arg, iterator const&)
+    {
+      if(*arg == "-s")
+      {
+        state.verbose = false;
+        return true;
       }
       return false;
     }
