@@ -15,6 +15,8 @@ namespace groff_detail
 
   void section(std::vector<std::string> &lines)
   {
+    /* The amount of characters allowed after a section name. */
+    static constexpr const size_t leniency{ 2 };
     for(auto &l : lines)
     {
       std::string tmp{ l };
@@ -23,7 +25,10 @@ namespace groff_detail
 
       auto const is_section(std::find_if(sections.begin(), sections.end(),
       [&](std::string const &s)
-      { return (found = tmp.find(s)) != std::string::npos; }));
+      {
+        found = tmp.find(s);
+        return (found != std::string::npos) && (tmp.size() - s.size()) < leniency;
+      }));
 
       if(is_section != sections.end() && found == 0)
       { l = ".SH " + str::ltrim(l); }
@@ -550,7 +555,7 @@ namespace groff_detail
     "Positioning",
     "POSIX-based character classes",
     "Possible implementation",
-    "Possible output", /* XXX: Manually added. */
+    "Possible output:", /* XXX: Manually added. */
     "Postconditions",
     "Power functions",
     "Precondition",
