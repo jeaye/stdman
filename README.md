@@ -2,6 +2,8 @@ C++ stdlib man pages
 ======
 stdman is a tool that parses archived HTML files from [cppreference](http://cppreference.com) and generates groff-formatted manual pages for Unix-based systems. The goal is to provide excellent formatting for easy readability. stdman has been tested on Linux and OS X.
 
+![Sample](res/sample.gif)
+
 ### Installation
 There's no need to compile stdman if you just want to install the man pages. Instead, just run:
 ```bash
