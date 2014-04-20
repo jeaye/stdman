@@ -13,7 +13,7 @@ sudo make install # sudo required for permission setting via install(1)
 If you need to pass options to configure, you can do so. See `./configure --help` for more updated information.  
 
 ### Not working! (no manual entry for std::foo or just getting libstdc++ pages)
-By default, stdman will install to `/usr/local`; on some systems (namely Arch Linux), the manpath does not look there first. To fix this, manage your `MANPATH` in your `~/.bashrc` (or similar):
+By default, stdman will install to `/usr/local`; on some systems (namely Arch Linux -- see [bug report](https://bugs.archlinux.org/task/39980)), the manpath does not look there first. To fix this, manage your `MANPATH` in your `~/.bashrc` (or similar):
 ```bash
 export MANPATH=/usr/local/share/man:/usr/share/man
 ```
