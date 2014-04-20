@@ -1,17 +1,19 @@
 .TH std::strstreambuf::underflow 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
 .SH Synopsis
    protected:
-   virtual streambuf<char>* setbuf(char* s, std::streamsize n);
+   virtual int_type underflow();
 
-   If s is a null pointer and n is zero, this function has no effect.
+   Reads the next character from the get area of the buffer.
 
-   Otherwise, the effect is implementation-defined: some implementations do nothing,
-   while some implementations deallocate the dynamic member array used as the buffer
-   and begin using the user-supplied character array of size n, whose first element is
-   pointed to by s.
+   If the input sequence has a read position available (gptr() < egptr(), returns
+   (unsigned char)(*gptr()).
 
-   This function is protected virtual, it may only be called through pubsetbuf() or
-   from member functions of a user-defined class derived from std::strstreambuf.
+   Otherwise, if pptr() is not null and pptr() > egptr() (there is a put area and it is
+   located after the get area), extends the end of the get area to include the
+   characters that were recently written into the put area by incrementing egptr() to
+   some value between gptr() and pptr(), and then returns (unsigned char)(*gptr()).
+
+   Otherwise, returns EOF to indicate failure.
 
 .SH Contents
 
@@ -22,44 +24,86 @@
 
 .SH Parameters
 
-   s - pointer to the first byte in the user-provided buffer
-   n - the number of bytes in the user-provided buffer
+   \fI(none)\fP
 
 .SH Return value
 
-   *this
+   The next character in the get area, (unsigned char)(*gptr()) on success, EOF on
+   failure
 
 .SH Example
-
-   Implementation test to check if setbuf() is supported on a dynamic strstream (output
-   obtained with Sun Studio)
 
    
 // Run this code
 
  #include <strstream>
  #include <iostream>
-  
+
+ struct mybuf : std::strstreambuf
+ {
+     int_type overflow(int_type c)
+     {
+         std::cout << "Before overflow(): size of the get area is " << egptr()-eback() << ' '
+                   << " size of the put area is " << epptr()-pbase() << '\\n';
+         int_type rc = std::strstreambuf::overflow(c);
+         std::cout << "After overflow(): size of the get area is " << egptr()-eback() << ' '
+                   << " size of the put area is " << epptr()-pbase() << '\\n';
+         return rc;
+     }
+
+     int_type underflow()
+     {
+         std::cout << "Before underflow(): size of the get area is " << egptr()-eback() << ' '
+                   << " size of the put area is " << epptr()-pbase() << '\\n';
+         int_type ch = std::strstreambuf::underflow();
+         std::cout << "After underflow(): size of the get area is " << egptr()-eback() << ' '
+                   << " size of the put area is " << epptr()-pbase() << '\\n';
+         if (ch == EOF) {
+             std::cout << "underflow() returns EOF\\n";
+         } else {
+             std::cout << "underflow() returns '" << char(ch) << "'\\n";
+         }
+         return ch;
+     }
+ };
+
  int main()
  {
-     char a[100] = {};
-     std::strstream str;
-     str.rdbuf()->pubsetbuf(a, sizeof a);
-     str << "Test string" << std::ends;
-     std::cout << "user-provided buffer holds '" << a << "'\\n";
+     mybuf sbuf; // read-write dynamic strstreambuf
+     std::iostream stream(&sbuf);
+
+     int n;
+     stream >> n;
+     stream.clear();
+     stream << "123";
+     stream >> n;
+     std::cout << n << '\\n';
  }
 
 .SH Possible output:
 
- user-provided buffer holds 'Test string'
+ Before underflow(): size of the get area is 0  size of the put area is 0
+ After underflow(): size of the get area is 0  size of the put area is 0
+ underflow() returns EOF
+ Before overflow(): size of the get area is 0  size of the put area is 0
+ After overflow(): size of the get area is 0  size of the put area is 32
+ Before underflow(): size of the get area is 0  size of the put area is 32
+ After underflow(): size of the get area is 3  size of the put area is 32
+ underflow() returns '1'
+ Before underflow(): size of the get area is 3  size of the put area is 32
+ After underflow(): size of the get area is 3  size of the put area is 32
+ underflow() returns EOF
+ 123
 
 .SH See also
 
-   pubsetbuf invokes setbuf()
-             \fI(public member function of std::basic_streambuf)\fP
-   setbuf    replaces the buffer with user-defined array, if permitted
+   underflow reads characters from the associated input sequence to the get area
    \fB[virtual]\fP \fI(virtual protected member function of std::basic_streambuf)\fP
-   setbuf    attempts to replace the controlled character sequence with an array
+   underflow returns the next character available in the input sequence
    \fB[virtual]\fP \fI(virtual protected member function of std::basic_stringbuf)\fP
-   setbuf    provides user-supplied buffer or turns this filebuf unbuffered
+   underflow reads from the associated file
    \fB[virtual]\fP \fI(virtual protected member function of std::basic_filebuf)\fP
+   sgetc     reads one character from the input sequence without advancing the sequence
+             \fI(public member function of std::basic_streambuf)\fP
+   get       extracts characters
+             \fI(public member function of std::basic_istream)\fP
