@@ -1,0 +1,92 @@
+.TH std::nested_exception 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <exception>
+   class nested_exception;        \fI(since C++11)\fP
+
+   std::nested_exceptions is a polymorphic mixin class which can capture and store the
+   current exception, making it possible to nest exceptions of arbitrary types within
+   each other.
+
+.SH Member functions
+
+   constructor    constructs a nested_exception
+                  \fI(public member function)\fP
+   destructor     destructs a nested exception
+   \fB[virtual]\fP      \fI(virtual public member function)\fP
+   operator=      replaces the contents of a nested_exception
+                  \fI(public member function)\fP
+   rethrow_nested throws the stored exception
+                  \fI(public member function)\fP
+   nested_ptr     obtains a pointer to the stored exception
+                  \fI(public member function)\fP
+
+.SH Example
+
+   Demonstrates construction and recursion through a nested exception object
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <stdexcept>
+ #include <exception>
+ #include <string>
+ #include <fstream>
+  
+ // prints the explanatory string of an exception. If the exception is nested,
+ // recurses to print the explanatory of the exception it holds
+ void print_exception(const std::exception& e, int level =  0)
+ {
+     std::cerr << std::string(level, ' ') << "exception: " << e.what() << '\\n';
+     try {
+         std::rethrow_if_nested(e);
+     } catch(const std::exception& e) {
+         print_exception(e, level+1);
+     } catch(...) {}
+ }
+  
+ // sample function that catches an exception and wraps it in a nested exception
+ void open_file(const std::string& s)
+ {
+     try {
+         std::ifstream file(s);
+         file.exceptions(std::ios_base::failbit);
+     } catch(...) {
+         std::throw_with_nested( std::runtime_error("Couldn't open " + s) );
+     }
+ }
+  
+ // sample function that catches an exception and wraps it in a nested exception
+ void run()
+ {
+     try {
+         open_file("nonexistent.file");
+     } catch(...) {
+         std::throw_with_nested( std::runtime_error("run() failed") );
+     }
+ }
+  
+ // runs the sample function above and prints the caught exception
+ int main()
+ {
+     try {
+         run();
+     } catch(const std::exception& e) {
+         print_exception(e);
+     }
+ }
+
+.SH Output:
+
+ exception: run() failed
+  exception: Couldn't open nonexistent.file
+   exception: basic_ios::clear
+
+.SH See also
+
+   exception_ptr     shared pointer type for handling exception objects
+   \fI(C++11)\fP           \fI(typedef)\fP
+   throw_with_nested throws its argument with std::nested_exception mixed in
+   \fI(C++11)\fP           \fI(function template)\fP
+   rethrow_if_nested throws the exception from a std::nested_exception
+   \fI(C++11)\fP           \fI(function template)\fP

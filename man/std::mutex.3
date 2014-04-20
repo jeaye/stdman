@@ -1,0 +1,107 @@
+.TH std::mutex 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <mutex>
+   class mutex;               \fI(since C++11)\fP
+
+   The mutex class is a synchronization primitive that can be used to protect shared
+   data from being simultaneously accessed by multiple threads.
+
+   mutex offers exclusive, non-recursive ownership semantics:
+
+     • A calling thread owns a mutex from the time that it successfully calls either
+       lock or try_lock until it calls unlock.
+     • When a thread owns a mutex, all other threads will block (for calls to lock) or
+       receive a false return value (for try_lock) if they attempt to claim ownership
+       of the mutex.
+     • A calling thread must not own the mutex prior to calling lock or try_lock.
+
+   The behavior of a program is undefined if a mutex is destroyed while still owned by
+   some thread. The mutex class satisfies all requirements of Mutex and
+   StandardLayoutType.
+
+.SH Contents
+
+     • 1 Member types
+     • 2 Member functions
+
+          • 2.1 Locking
+          • 2.2 Native handle
+
+     • 3 Notes
+     • 4 Example
+
+.SH Member types
+
+   Member type        Definition
+   native_handle_type implementation-defined
+
+.SH Member functions
+
+   constructor   constructs the mutex
+                 \fI(public member function)\fP
+   destructor    destroys the mutex
+                 \fI(public member function)\fP
+   operator=     not copy-assignable
+   [deleted]     \fI(public member function)\fP
+.SH Locking
+   lock          locks the mutex, blocks if the mutex is not available
+                 \fI(public member function)\fP
+   try_lock      tries to lock the mutex, returns if the mutex is not available
+                 \fI(public member function)\fP
+   unlock        unlocks the mutex
+                 \fI(public member function)\fP
+.SH Native handle
+   native_handle returns the underlying implementation-defined thread handle
+                 \fI(public member function)\fP
+
+.SH Notes
+
+   std::mutex is usually not accessed directly: std::unique_lock and std::lock_guard
+   are used to manage locking in exception-safe manner.
+
+.SH Example
+
+   This example shows how a mutex can be used to protect a std::map shared between two
+   threads.
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <map>
+ #include <string>
+ #include <chrono>
+ #include <thread>
+ #include <mutex>
+  
+ std::map<std::string, std::string> g_pages;
+ std::mutex g_pages_mutex;
+  
+ void save_page(const std::string &url)
+ {
+     // simulate a long page fetch
+     std::this_thread::sleep_for(std::chrono::seconds(2));
+     std::string result = "fake content";
+  
+     g_pages_mutex.lock(); // or, to be exception-safe, use std::lock_guard
+     g_pages[url] = result;
+     g_pages_mutex.unlock();
+ }
+  
+ int main()
+ {
+     std::thread t1(save_page, "http://foo");
+     std::thread t2(save_page, "http://bar");
+     t1.join();
+     t2.join();
+  
+     // safe to access g_pages without lock now, as the threads are joined
+     for (const auto &pair : g_pages) {
+         std::cout << pair.first << " => " << pair.second << '\\n';
+     }
+ }
+
+.SH Output:
+
+ http://bar => fake content
+ http://foo => fake content

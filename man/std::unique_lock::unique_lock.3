@@ -1,0 +1,160 @@
+.TH std::unique_lock::unique_lock 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   unique_lock();                                                     \fB(1)\fP \fI(since C++11)\fP
+   unique_lock( unique_lock&& other );                                \fB(2)\fP \fI(since C++11)\fP
+   explicit unique_lock( mutex_type& m );                             \fB(3)\fP \fI(since C++11)\fP
+   unique_lock( mutex_type& m, std::defer_lock_t t );                 \fB(4)\fP \fI(since C++11)\fP
+   unique_lock( mutex_type& m, std::try_to_lock_t t );                \fB(5)\fP \fI(since C++11)\fP
+   unique_lock( mutex_type& m, std::adopt_lock_t t );                 \fB(6)\fP \fI(since C++11)\fP
+   template< class Rep, class Period >
+
+   unique_lock( mutex_type& m,                                        \fB(7)\fP \fI(since C++11)\fP
+
+                const std::chrono::duration<Rep,Period>&
+   timeout_duration );
+   template< class Clock, class Duration >
+
+   unique_lock( mutex_type& m,                                        \fB(8)\fP \fI(since C++11)\fP
+
+                const std::chrono::time_point<Clock,Duration>&
+   timeout_time );
+
+   Constructs a unique_lock, optionally locking the supplied mutex.
+
+   1) Constructs a unique_lock with no associated mutex.
+   2) Move constructor. Initializes the unique_lock with the contents of other. Leaves
+   other with no associated mutex.
+   3-8) Constructs a unique_lock with m as the associated mutex. Additionally:
+   3) Locks the associated mutex by calling m.lock(). The behavior is undefined if the
+   current thread already owns the mutex except when the mutex is recursive.
+   4) Does not lock the associated mutex.
+   5) Tries to lock the associated mutex without blocking by calling m.try_lock(). The
+   behavior is undefined if the current thread already owns the mutex except when the
+   mutex is recursive.
+   6) Assumes the calling thread already owns m.
+   7) Tries to lock the associated mutex by calling m.try_lock_for(timeout_duration).
+   Blocks until specified timeout_duration has elapsed or the lock is acquired,
+   whichever comes first. May block for longer than timeout_duration.
+   8) Tries to lock the associated mutex by calling m.try_lock_until(timeout_time).
+   Blocks until specified timeout_time has been reached or the lock is acquired,
+   whichever comes first. May block for longer than until timeout_time has been
+   reached.
+
+.SH Parameters
+
+   other            - another unique_lock to initialize the state with
+   m                - mutex to associate with the lock and optionally acquire ownership
+                      of
+   t                - tag parameter used to select constructors with different locking
+                      strategies
+   timeout_duration - maximum duration to block for
+   timeout_time     - maximum time point to block until
+
+.SH Exceptions
+
+   1, 2, 4)
+   noexcept specification:  
+   noexcept
+     
+
+.SH Example
+
+   
+// Run this code
+
+ #include <cassert>
+ #include <iostream> // std::cout
+ #include <thread>
+ #include <vector>
+ #include <mutex>
+  
+ class Number;
+ std::ostream& operator<<(std::ostream& stream, const Number& number);
+  
+ class Number {
+  public:
+   Number() : v_(1) {}
+  
+   // thread-safe update of 'a' and 'b'
+   static void update(Number& a, Number& b, bool order) {
+     // do not lock 'mutex_' of 'a' and 'b' sequentially,
+     // two sequential lock may lead to deadlock,
+     // that's why 'std::lock' exists (see below)
+     GuardLock lock_a(a.mutex_, std::defer_lock);
+     GuardLock lock_b(b.mutex_, std::defer_lock);
+  
+     // mutexes is not locked
+     assert(!lock_a.owns_lock());
+     assert(!lock_b.owns_lock());
+  
+     // unspecified series of calls...
+     std::lock(lock_a, lock_b);
+  
+     // Result: 'a.mutex_' and 'b.mutex_' is in locked state
+     // 'a' and 'b' can be modified safety
+     assert(lock_a.owns_lock());
+     assert(lock_b.owns_lock());
+  
+     if (order) {
+       a.v_ += b.v_;
+       b.v_ += a.v_;
+  
+       std::cout << a << b;
+     }
+     else {
+       b.v_ += a.v_;
+       a.v_ += b.v_;
+  
+       std::cout << b << a;
+     }
+  
+     // 'lock_a' and 'lock_b' will be destroyed,
+     // unlocking 'a.mutex_' and 'b.mutex_'
+   }
+  
+   // not thread-safe; used before thread creation or in thread-safe 'update'
+   std::ostream& print(std::ostream& stream) const {
+     stream << v_ << " ";
+     return stream;
+   }
+  
+  private:
+   using Mutex = std::mutex;
+   using GuardLock = std::unique_lock<Mutex>;
+  
+   Mutex mutex_;
+   int v_;
+ };
+  
+ // not thread-safe; see 'Number::print'
+ std::ostream& operator<<(std::ostream& stream, const Number& number) {
+   return number.print(stream);
+ }
+  
+ int main() {
+   Number a, b;
+   std::cout << a << b;
+  
+   std::vector<std::thread> threads;
+  
+   for (unsigned i = 0; i < 4; ++i) {
+     // without 'std::lock' deadlock may occur in this situation:
+     //   thread #1 lock 'a.mutex_'
+     //   thread #2 lock 'b.mutex_'
+     //   thread #1 try to lock 'b.mutex_' and blocked (it's locked by #2)
+     //   thread #2 try to lock 'a.mutex_' and blocked (it's locked by #1)
+     //   ... deadlock
+     threads.emplace_back(Number::update, std::ref(a), std::ref(b), true); // #1
+     threads.emplace_back(Number::update, std::ref(b), std::ref(a), false); // #2
+   }
+  
+   for (auto& i: threads) {
+     i.join();
+   }
+  
+   std::cout << '\\n';
+ }
+
+.SH Output:
+
+ 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597 2584

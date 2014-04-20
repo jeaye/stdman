@@ -1,0 +1,159 @@
+.TH std::shared_ptr 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <memory>
+   template< class T > class shared_ptr;  \fI(since C++11)\fP
+
+   std::shared_ptr is a smart pointer that retains shared ownership of an object
+   through a pointer. Several shared_ptr objects may own the same object. The object is
+   destroyed and its memory deallocated when either of the following happens:
+
+     • the last remaining shared_ptr owning the object is destroyed.
+
+     • the last remaining shared_ptr owning the object is assigned another pointer via
+       operator= or reset().
+
+   The object is destroyed using delete-expression or a custom deleter that is supplied
+   to shared_ptr during construction.
+
+   A shared_ptr can share ownership of an object while storing a pointer to another
+   object. This feature can be used to point to member objects while owning the object
+   they belong to.
+
+   A shared_ptr may also own no objects, in which case it is called empty.
+
+   shared_ptr meets the requirements of CopyConstructible and CopyAssignable.
+
+   All member functions (including copy constructor and copy assignment) can be called
+   by multiple threads on different instances of shared_ptr without additional
+   synchronization even if these instances are copies and share ownership of the same
+   object.
+
+.SH Contents
+
+     • 1 Member types
+     • 2 Member functions
+
+          • 2.1 Modifiers
+          • 2.2 Observers
+
+     • 3 Non-member functions
+     • 4 Helper classes
+     • 5 Notes
+     • 6 Implementation notes
+
+.SH Member types
+
+   Member type  Definition
+   element_type T
+
+.SH Member functions
+
+   constructor   constructs new shared_ptr
+                 \fI(public member function)\fP
+   destructor    destructs the owned object if no more shared_ptrs link to it
+                 \fI(public member function)\fP
+   operator=     assigns the shared_ptr
+                 \fI(public member function)\fP
+.SH Modifiers
+   reset         replaces the managed object
+                 \fI(public member function)\fP
+   swap          swaps the managed objects
+                 \fI(public member function)\fP
+.SH Observers
+   get           returns a pointer to the managed object
+                 \fI(public member function)\fP
+   operator*     dereferences pointer to the managed object
+   operator->    \fI(public member function)\fP
+                 returns the number of shared_ptr objects referring to the same managed
+   use_count     object
+                 \fI(public member function)\fP
+                 checks whether the managed object is managed only by the current
+   unique        shared_ptr instance
+                 \fI(public member function)\fP
+   operator bool checks if there is associated managed object
+                 \fI(public member function)\fP
+   owner_before  provides owner-based ordering of shared pointers
+                 \fI(public member function)\fP
+
+.SH Non-member functions
+
+   make_shared                creates a shared pointer that manages a new object
+                              \fI(function template)\fP
+                              creates a shared pointer that manages a new object
+   allocate_shared            allocated using an allocator
+                              \fI(function template)\fP
+   static_pointer_cast        applies static_cast, dynamic_cast or const_cast to the
+   dynamic_pointer_cast       type of the managed object
+   const_pointer_cast         \fI(function template)\fP
+   get_deleter                returns the deleter of specified type, if owned
+                              \fI(function template)\fP
+   operator==
+   operator!=
+   operator<                  compares with another shared_ptr or with nullptr
+   operator<=                 \fI(function template)\fP
+   operator>
+   operator>=
+                              outputs the value of the managed pointer to an output
+   operator<<                 stream
+                              \fI(function template)\fP
+   std::swap(std::shared_ptr) specializes the std::swap algorithm
+   \fI(C++11)\fP                    \fI(function template)\fP
+
+   std::atomic_is_lock_free(std::shared_ptr)
+   std::atomic_load(std::shared_ptr)
+   std::atomic_load_explicit(std::shared_ptr)
+   std::atomic_store(std::shared_ptr)
+   std::atomic_store_explicit(std::shared_ptr)                   specializes atomic
+   std::atomic_exchange(std::shared_ptr)                         operations
+   std::atomic_exchange_explicit(std::shared_ptr)                \fI(function template)\fP
+   std::atomic_compare_exchange_weak(std::shared_ptr)
+   std::atomic_compare_exchange_strong(std::shared_ptr)
+   std::atomic_compare_exchange_weak_explicit(std::shared_ptr)
+   std::atomic_compare_exchange_strong_explicit(std::shared_ptr)
+
+.SH Helper classes
+
+   std::hash<std::shared_ptr> hash support for std::shared_ptr
+   \fI(C++11)\fP                    \fI(class template specialization)\fP
+
+.SH Notes
+
+   The ownership of an object can only be shared with another shared_ptr by copy
+   constructing or copy assigning its value to another shared_ptr. Constructing a new
+   shared_ptr using the raw underlying pointer owned by another shared_ptr leads to
+   undefined behavior.
+
+.SH Implementation notes
+
+   In a typical implementation, std::shared_ptr holds only two pointers:
+
+     • a pointer to the managed object
+     • a pointer to control block
+
+   The control block is a dynamically-allocated object that holds:
+
+     • either a pointer to the managed object or the managed object itself
+     • the deleter (type-erased)
+     • the allocator (type-erased)
+     • the number of shared_ptrs that own the managed object
+     • the number of weak_ptrs that refer to the managed object
+
+   When shared_ptr is created by calling std::make_shared or std::allocate_shared, the
+   memory for both the control block and the managed object is created with a single
+   allocation. The managed object is constructed in-place in a data member of the
+   control block. When shared_ptr is created via one of the shared_ptr constructors,
+   the managed object and the control block must be allocated separately. In this case,
+   the control block stores a pointer to the managed object.
+
+   The pointer held by the shared_ptr directly is the one returned by get(), while the
+   pointer/object held by the control block is the one that will be deleted when the
+   number of shared owners reaches zero. These pointers are not necessarily equal.
+
+   The destructor of shared_ptr decrements the number of shared owners of the control
+   block. If that counter reaches zero, the control block calls the destructor of the
+   managed object. The control block does not deallocate itself until the std::weak_ptr
+   counter reaches zero as well.
+
+   To satisfy thread safety requirements, the reference counters are typically
+   incremented and decremented using std::atomic::fetch_add with
+   std::memory_order_relaxed.

@@ -1,0 +1,96 @@
+.TH std::addressof 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <memory>
+   template< class T >         \fI(since C++11)\fP
+   T* addressof(T& arg);
+
+   Obtains the actual address of the object or function arg, even in presence of
+   overloaded operator&
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Possible implementation
+     • 5 Example
+     • 6 See also
+
+.SH Parameters
+
+   arg - lvalue object or function
+
+.SH Return value
+
+   Pointer to arg.
+
+.SH Exceptions
+
+   noexcept specification:  
+   noexcept
+     
+
+.SH Possible implementation
+
+   template< class T >
+   T* addressof(T& arg)
+   {
+       return reinterpret_cast<T*>(
+                  &const_cast<char&>(
+                     reinterpret_cast<const volatile char&>(arg)));
+   }
+
+.SH Example
+
+   operator& may be overloaded for a pointer wrapper class to obtain a pointer to
+   pointer:
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <memory>
+  
+ template<class T>
+ struct Ptr {
+     T* pad; // add pad to show difference between 'this' and 'data'
+     T* data;
+     Ptr(T* arg) : pad(nullptr), data(arg)
+     {
+         std::cout << "Ctor this = " << this << std::endl;
+     }
+  
+     ~Ptr() { delete data; }
+     T** operator&() { return &data; }
+ };
+  
+ template<class T>
+ void f(Ptr<T>* p)
+ {
+     std::cout << "Ptr   overload called with p = " << p << '\\n';
+ }
+  
+ void f(int** p)
+ {
+     std::cout << "int** overload called with p = " << p << '\\n';
+ }
+  
+ int main()
+ {
+     Ptr<int> p(new int(42));
+     f(&p);                 // calls int** overload
+     f(std::addressof(p));  // calls Ptr<int>* overload, (= this)
+ }
+
+.SH Possible output:
+
+ Ctor this = 0x7fff59ae6e88
+ int** overload called with p = 0x7fff59ae6e90
+ Ptr   overload called with p = 0x7fff59ae6e88
+
+.SH See also
+
+   allocator      the default allocator
+                  \fI(class template)\fP
+   pointer_traits provides information about pointer-like types
+   \fI(C++11)\fP        \fI(class template)\fP

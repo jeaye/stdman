@@ -1,0 +1,203 @@
+.TH std::atomic_compare_exchange_weak,std::atomic_compare_exchange_strong, 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+
+   Defined in header <atomic>
+   template< class T >
+
+   bool atomic_compare_exchange_weak(
+   std::atomic<T>* obj,
+
+                                      T*
+   expected, T desired );
+   template< class T >
+
+   bool atomic_compare_exchange_weak(
+   volatile std::atomic<T>* obj,
+
+                                      T*
+   expected, T desired );
+   template< class T >
+
+   bool atomic_compare_exchange_strong(
+   std::atomic<T>* obj,
+
+                                        T*
+   expected, T desired );
+   template< class T >
+
+   bool atomic_compare_exchange_strong(
+   volatile std::atomic<T>* obj,
+
+                                        T*
+   expected, T desired );
+   template< class T >
+
+   bool
+   atomic_compare_exchange_weak_explicit(
+   std::atomic<T>* obj,
+                                          
+       T* expected, T desired,
+                                          
+       std::memory_order succ,
+                                            \fB(1)\fP (since
+                                                C++11)
+       std::memory_order fail );
+   template< class T >
+
+   bool
+   atomic_compare_exchange_weak_explicit(
+   volatile std::atomic<T>* obj,                       \fB(2)\fP (since
+                                                           C++11)
+       T* expected, T desired,
+                                          
+       std::memory_order succ,
+
+                                          
+       std::memory_order fail );                                  \fB(3)\fP (since
+   template< class T >                                                C++11)
+
+   bool
+   atomic_compare_exchange_strong_explicit(
+   std::atomic<T>* obj,
+                                          
+         T* expected, T desired,
+                                          
+         std::memory_order succ,
+
+                                          
+         std::memory_order fail );                                           \fB(4)\fP (since
+   template< class T >                                                           C++11)
+
+   bool
+   atomic_compare_exchange_strong_explicit(
+   volatile std::atomic<T>* obj,
+                                          
+         T* expected, T desired,
+                                          
+         std::memory_order succ,
+
+                                          
+         std::memory_order fail );
+
+   Atomically compares the value pointed to by obj with the value pointed to by
+   expected, and if those are equal, replaces the former with desired (performs
+   read-modify-write operation). Otherwise, loads the actual value pointed to by obj
+   into *expected (performs load operation).
+
+   The memory models for the read-modify-write and load operations are succ and fail
+   respectively. The (1-2) versions use std::memory_order_seq_cst by default.
+
+   The weak forms (\fB(1)\fP and \fB(3)\fP) of the functions are allowed to fail spuriously, that
+   is, act as if *obj != *expected even if they are equal. When a compare-and-exchange
+   is in a loop, the weak version will yield better performance on some platforms. When
+   a weak compare-and-exchange would require a loop and a strong one would not, the
+   strong one is preferable.
+
+   These functions are defined in terms of member functions of std::atomic:
+
+   1) obj->compare_exchange_weak(*expected, desired)
+   2) obj->compare_exchange_strong(*expected, desired)
+   3) obj->compare_exchange_weak(*expected, desired, succ, fail)
+   4) obj->compare_exchange_strong(*expected, desired, succ, fail)
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Example
+     • 5 See also
+
+.SH Parameters
+
+   obj      - pointer to the atomic object to test and modify
+   expected - pointer to the value expected to be found in the atomic object
+   desired  - the value to store in the atomic object if it is as expected
+   succ     - the memory synchronization ordering for the read-modify-write operation
+              if the comparison succeeds. All values are permitted.
+              the memory synchronization ordering for the load operation if the
+   fail     - comparison fails. Cannot be std::memory_order_release or
+              std::memory_order_acq_rel and cannot specify stronger ordering than succ
+
+.SH Return value
+
+   The result of the comparison: true if *obj was equal to *exp, false otherwise.
+
+.SH Exceptions
+
+   noexcept specification:  
+   noexcept
+     
+
+.SH Example
+
+   compare and exchange operations are often used as basic building blocks of lockfree
+   data structures
+
+   
+// Run this code
+
+ #include <atomic>
+  
+ template<class T>
+ struct node
+ {
+     T data;
+     node* next;
+     node(const T& data) : data(data), next(nullptr) {}
+ };
+  
+ template<class T>
+ class stack
+ {
+     std::atomic<node<T>*> head;
+  public:
+     void push(const T& data)
+     {
+         node<T>* new_node = new node<T>(data);
+  
+         // put the current value of head into new_node->next
+         new_node->next = head.load(std::memory_order_relaxed);
+  
+         // now make new_node the new head, but if the head
+         // is no longer what's stored in new_node->next
+         // (some other thread must have inserted a node just now)
+         // then put that new head into new_node->next and try again
+         while(!std::atomic_compare_exchange_weak_explicit(
+                                 &head,
+                                 &new_node->next,
+                                 new_node,
+                                 std::memory_order_release,
+                                 std::memory_order_relaxed))
+                 ; // the body of the loop is empty
+     }
+ };
+  
+ int main()
+ {
+     stack<int> s;
+     s.push(1);
+     s.push(2);
+     s.push(3);
+ }
+
+.SH See also
+
+                                                        atomically compares the value
+                                                        of the atomic object with
+   compare_exchange_weak                                non-atomic argument and
+   compare_exchange_strong                              performs atomic exchange if
+                                                        equal or atomic load if not
+                                                        \fI\fI(public member\fP function of\fP
+                                                        std::atomic)
+   atomic_exchange                                      atomically replaces the value
+   atomic_exchange_explicit                             of the atomic object with
+   \fI(C++11)\fP                                              non-atomic argument and returns
+   \fI(C++11)\fP                                              the old value of the atomic
+                                                        \fI(function template)\fP
+   std::atomic_compare_exchange_weak(std::shared_ptr)   specializes atomic operations
+   std::atomic_compare_exchange_strong(std::shared_ptr) for std::shared_ptr
+                                                        \fI(function template)\fP
+   C documentation for
+   atomic_compare_exchange,
+   atomic_compare_exchange_explicit

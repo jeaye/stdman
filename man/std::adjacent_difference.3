@@ -1,0 +1,151 @@
+.TH std::adjacent_difference 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <numeric>
+   template< class InputIt, class OutputIt >
+
+   OutputIt adjacent_difference( InputIt first, InputIt last,       \fB(1)\fP
+
+                                       OutputIt d_first );
+   template< class InputIt, class OutputIt, class BinaryOperation >
+
+   OutputIt adjacent_difference( InputIt first, InputIt last,       \fB(2)\fP
+                                       OutputIt d_first,
+
+                                       BinaryOperation op );
+
+   Computes the differences between the second and the first of each adjacent pair of
+   elements of the range [first, last) and writes them to the range beginning at
+   d_first + 1. Unmodified copy of first is written to d_first. The first version uses
+   operator- to calculate the differences, the second version uses the given binary
+   function op.
+
+   Equivalent operation:
+
+ *(d_first)   = *first;
+ *(d_first+1) = (*first+1) - *(first);
+ *(d_first+2) = (*first+2) - *(first+1);
+ *(d_first+3) = (*first+3) - *(first+2);
+ ...
+
+   op must not have side effects.                                         \fI(until C++11)\fP
+   op must not invalidate any iterators, including the end iterators, or  \fI(since C++11)\fP
+   modify any elements of the ranges involved.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Complexity
+     • 4 Possible implementation
+     • 5 Example
+     • 6 See also
+
+.SH Parameters
+
+   first, last - the range of elements
+   d_first     - the beginning of the destination range
+                 binary operation function object that will be applied.
+
+                 The signature of the function should be equivalent to the following:
+
+                  Ret fun(const Type1 &a, const Type2 &b);
+   op          -
+                 The signature does not need to have const &.
+                 The types Type1 and Type2 must be such that an object of type
+                 iterator_traits<InputIt>::value_type can be implicitly converted to
+                 both of them. The type Ret must be such that an object of type
+                 OutputIt can be dereferenced and assigned a value of type Ret. 
+.SH Type requirements
+   -
+   InputIt must meet the requirements of InputIterator.
+   -
+   OutputIt must meet the requirements of OutputIterator.
+
+.SH Return value
+
+   It to the element past the last element written.
+
+.SH Complexity
+
+   Exactly (last - first) - 1 applications of the binary operation
+
+.SH Possible implementation
+
+.SH First version
+   template<class InputIt, class OutputIt>
+   OutputIt adjacent_difference(InputIt first, InputIt last,
+                                OutputIt d_first)
+   {
+       if (first == last) return d_first;
+    
+       typedef typename std::iterator_traits<InputIt>::value_type value_t;
+       value_t acc = *first;
+       *d_first = acc;
+       while (++first != last) {
+           value_t val = *first;
+           *++d_first = val - acc;
+           acc = std::move(val);
+       }
+       return ++d_first;
+   }
+.SH Second version
+   template<class InputIt, class OutputIt, class BinaryOperation>
+   OutputIt adjacent_difference(InputIt first, InputIt last,
+                                OutputIt d_first, BinaryOperation op)
+   {
+       if (first == last) return d_first;
+    
+       typedef typename std::iterator_traits<InputIt>::value_type value_t;
+       value_t acc = *first;
+       *d_first = acc;
+       while (++first != last) {
+           value_t val = *first;
+           *++d_first = op(val, acc);
+           acc = std::move(val);
+       }
+       return ++d_first;
+   }
+
+.SH Example
+
+   The following code converts a sequence of even numbers to repetitions of the number
+   2 and converts a sequence of ones to a sequence of Fibonacci numbers.
+
+   
+// Run this code
+
+ #include <numeric>
+ #include <vector>
+ #include <iostream>
+ #include <functional>
+  
+ int main()
+ {
+     std::vector<int> v{2, 4, 6, 8, 10, 12, 14, 16, 18, 20};
+     std::adjacent_difference(v.begin(), v.end(), v.begin());
+  
+     for (auto n : v) {
+         std::cout << n << ' ';
+     }
+     std::cout << '\\n';
+  
+     v = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+     std::adjacent_difference(v.begin(), v.end() - 1, v.begin() + 1, std::plus<int>());
+  
+     for (auto n : v) {
+         std::cout << n << ' ';
+     }
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ 2 2 2 2 2 2 2 2 2 2
+ 1 1 2 3 5 8 13 21 34 55
+
+.SH See also
+
+   partial_sum computes the partial sum of a range of elements
+               \fI(function template)\fP
+   accumulate  sums up a range of elements
+               \fI(function template)\fP

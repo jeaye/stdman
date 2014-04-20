@@ -1,0 +1,168 @@
+.TH std::bind 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <functional>
+   template< class F, class... Args >             \fB(1)\fP \fI(since C++11)\fP
+   /*unspecified*/ bind( F&& f, Args&&... args );
+   template< class R, class F, class... Args >    \fB(2)\fP \fI(since C++11)\fP
+   /*unspecified*/ bind( F&& f, Args&&... args );
+
+   The function template bind generates a forwarding call wrapper for f. Calling this
+   wrapper is equivalent to invoking f with some of its arguments bound to args.
+
+   Internally, the wrapper holds a member object of type std::decay<F>::type
+   constructed from std::forward<F>(f), and one object per each of args..., of type
+   std::decay<Arg_i>::type, similarly constructed from std::forward<Arg_i>(arg_i).
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3
+       std::bind return type
+
+          • 3.1 Member type result_type
+          • 3.2 Member function operator()
+          • 3.3 Exceptions
+          • 3.4 Notes
+          • 3.5 Example
+          • 3.6 See also
+
+.SH Parameters
+
+          invocable object \fI\fI(function\fP object, pointer to function, reference to\fP
+   f    - function, pointer to member function, or pointer to member data) that will be
+          bound to some arguments
+   args - list of arguments to bind, with the unbound arguments replaced by the
+          placeholders _1, _2, _3... of namespace std::placeholders
+
+.SH Return value
+
+   A function object of unspecified type T, for which std::is_bind_expression<T>::value
+   == true, and which can be stored in std::function. The object is movable if f and
+   all args are movable, and is copyable otherwise. The type defines the following
+   members:
+
+                                  std::bind return type
+
+.SH Member type result_type
+
+   1) If F is a pointer to function or a pointer to member function, result_type is the
+   return type of F. If F is a class type with nested typedef result_type, then
+   result_type is F::result_type. Otherwise no result_type is defined.
+
+   2) result_type is exactly R.
+
+.SH Member function operator()
+
+   Given an object g obtained from an earlier call to bind, when it is invoked in a
+   function call expression g(u1, u2, ... uM), an invocation of the stored object of
+   type std::decay<F>::type takes place, with arguments defined as follows:
+
+     • If the argument is of type std::reference_wrapper<T> (e.g. std::ref or
+       std::cref) was used in the initial call to bind, then the reference T& stored in
+       the bound argument is passed to the invocable object.
+     • If std::is_bind_expression<T>::value == true (i.e. another bind subexpression
+       was used as an argument in the initial call to bind), then that bind
+       subexpression is invoked immediately and its result is passed to the invocable
+       object. If the bind subexpression has any placeholder arguments, they are picked
+       from u1, u2, ....
+     • If std::is_placeholder<T>::value != 0 (i.e., std::placeholders::_1, _2, _3, ...
+       was used as the argument to the initial call to bind), then the argument
+       indicated by the placeholder (u1 for _1, u2 for _2, etc) is passed to the
+       invocable object as std::forward<Uj>(uj).
+     • Otherwise, the stored argument is passed to the invocable object as-is.
+
+   If some of the arguments that are supplied in the call to g() are not matched by any
+   placeholders stored in g, the unused arguments are evaluated and discarded.
+
+.SH Exceptions
+
+   Only throws if construction of std::decay<F>::type from std::forward<F>(f) throws,
+   or any of the constructors for std::decay<Arg_i>::type from the corresponding
+   std::forward<Arg_i>(arg_i) throws where Arg_i is the ith type and arg_i is the ith
+   argument in Args... args.
+
+.SH Notes
+
+   The arguments to bind are copied or moved, and are never passed by reference unless
+   wrapped in std::ref or std::cref.
+
+   Duplicate placeholders in the same bind expression (multiple _1's for example) are
+   allowed, but the results are only well defined if the corresponding argument (u1) is
+   an lvalue or non-movable rvalue.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <random>
+ #include <iostream>
+ #include <functional>
+  
+ void f(int n1, int n2, int n3, const int& n4, int n5)
+ {
+     std::cout << n1 << ' ' << n2 << ' ' << n3 << ' ' << n4 << ' ' << n5 << '\\n';
+ }
+  
+ int g(int n1)
+ {
+     return n1;
+ }
+  
+ struct Foo {
+     void print_sum(int n1, int n2)
+     {
+         std::cout << n1+n2 << '\\n';
+     }
+     int data = 10;
+ };
+  
+ int main()
+ {
+     using namespace std::placeholders;  // for _1, _2, _3...
+  
+     // demonstrates argument reordering and pass-by-reference
+     int n = 7;
+     // (_1 and _2 are from std::placeholders, and represent future
+     // arguments that will be passed to f1)
+     auto f1 = std::bind(f, _2, _1, 42, std::cref(n), n);
+     n = 10;
+     f1(1, 2, 1001); // 1 is bound by _1, 2 is bound by _2, 1001 is unused
+  
+     // nested bind subexpressions share the placeholders
+     auto f2 = std::bind(f, _3, std::bind(g, _3), _3, 4, 5);
+     f2(10, 11, 12);
+  
+     // common use case: binding a RNG with a distribution
+     std::default_random_engine e;
+     std::uniform_int_distribution<> d(0, 10);
+     std::function<int()> rnd = std::bind(d, e);
+     for(int n=0; n<10; ++n)
+         std::cout << rnd() << ' ';
+     std::cout << '\\n';
+  
+     // bind to a member function
+     Foo foo;
+     auto f3 = std::bind(&Foo::print_sum, &foo, 95, _1);
+     f3(5);
+  
+     // bind to member data
+     auto f4 = std::bind(&Foo::data, _1);
+     std::cout << f4(foo) << '\\n';
+ }
+
+.SH Output:
+
+ 2 1 42 10 7
+ 12 12 12 4 5
+ 1 5 0 2 0 8 2 2 10 8
+ 100
+ 10
+
+.SH See also
+
+   _1, _2, _3, _4, ... placeholders for the unbound arguments in a std::bind expression
+   \fI(C++11)\fP             (constant)
+   mem_fn              creates a function object out of a pointer to a member
+   \fI(C++11)\fP             \fI(function template)\fP

@@ -1,0 +1,91 @@
+.TH std::basic_filebuf::setbuf 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   protected:
+   virtual std::basic_streambuf<CharT, Traits>* setbuf( char_type* s, std::streamsize
+   n )
+
+   If s is a null pointer and n is zero, the filebuf becomes unbuffered for output,
+   meaning pbase() and pptr() are null and any output is immediately sent to file.
+
+   Otherwise, a call to setbuf() replaces the internal buffer (the controlled character
+   sequence) with the user-supplied character array whose first element is pointed to
+   by s and allows this std::basic_filebuf object to use up to n bytes in that array
+   for buffering.
+
+   This function is protected virtual, it may only be called through pubsetbuf() or
+   from member functions of a user-defined class derived from std::basic_filebuf.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Notes
+     • 4 Example
+     • 5 See also
+
+.SH Parameters
+
+   s - pointer to the first byte in the user-provided buffer or null
+   n - the number of bytes in the user-provided buffer or zero
+
+.SH Return value
+
+   *this, cast to the base class std::basic_streambuf.
+
+.SH Notes
+
+   The conditions when this function may be used and the way in which the provided
+   buffer is used is implementation-defined.
+
+     • GCC 4.6 libstdc++
+
+   setbuf() may only be called when the std::basic_filebuf is not associated with a
+   file (has no effect otherwise). With a user-provided buffer, reading from file reads
+   n-1 bytes at a time.
+
+     • Clang++3.0 libc++
+
+   setbuf() may be called after opening the file, but before any I/O (may crash
+   otherwise). With a user-provided buffer, reading from file reads largest multiples
+   of 4096 that fit in the buffer.
+
+     • Visual Studio 2010
+
+   setbuf() may be called at any time, even after some I/O took place. Current contents
+   of the buffer, if any, are lost.
+
+   The standard does not define any behavior for this function except that setbuf(0, 0)
+   called before any I/O has taken place is required to set unbuffered output.
+
+.SH Example
+
+   provide a 10k buffer for reading. On linux, the strace utility may be used to
+   observe the actual number of bytes read
+
+   
+// Run this code
+
+ #include <fstream>
+ #include <iostream>
+ #include <string>
+  
+ int main()
+ {
+         int cnt = 0;
+         std::ifstream file;
+         char buf[10241];
+  
+         file.rdbuf()->pubsetbuf(buf, sizeof buf);
+         file.open("/usr/share/dict/words");
+  
+         for (std::string line; getline(file, line); )
+                 ++cnt;
+         std::cout << cnt << '\\n';
+ }
+
+.SH See also
+
+   pubsetbuf invokes setbuf()
+             \fI(public member function of std::basic_streambuf)\fP
+   setvbuf   sets the buffer and its size for a file stream
+             \fI(function)\fP

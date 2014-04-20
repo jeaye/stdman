@@ -1,0 +1,136 @@
+.TH std::lexicographical_compare 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <algorithm>
+   template< class InputIt1, class InputIt2 >
+
+   bool lexicographical_compare( InputIt1 first1, InputIt1 last1,   \fB(1)\fP
+
+                                 InputIt2 first2, InputIt2 last2 );
+   template< class InputIt1, class InputIt2, class Compare >
+
+   bool lexicographical_compare( InputIt1 first1, InputIt1 last1,   \fB(2)\fP
+                                 InputIt2 first2, InputIt2 last2,
+
+                                 Compare comp );
+
+   Checks if the first range [first1, last1) is lexicographically less than the second
+   range [first2, last2). The first version uses operator< to compare the elements, the
+   second version uses the given comparison function comp.
+
+   Lexicographical comparison is a operation with the following properties:
+
+     • Two ranges are compared element by element.
+     • The first mismatching element defines which range is lexicographically less or
+       greater than the other.
+     • If one range is a prefix of another, the shorter range is lexicographically less
+       than the other.
+     • If two ranges have equivalent elements and are of the same length, then the
+       ranges are lexicographically equal.
+     • An empty range is lexicographically less than any non-empty range.
+     • Two empty ranges are lexicographically equal.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Complexity
+     • 4 Possible implementation
+     • 5 Example
+
+.SH Parameters
+
+   first1, last1 - the first range of elements to examine
+   first2, last2 - the second range of elements to examine
+                   comparison function object (i.e. an object that satisfies the
+                   requirements of Compare) which returns true if the first argument
+                   is less than the second.
+
+                   The signature of the comparison function should be equivalent to the
+                   following:
+   comp          -
+                    bool cmp(const Type1 &a, const Type2 &b);
+
+                   The signature does not need to have const &, but the function object
+                   must not modify the objects passed to it.
+                   The types Type1 and Type2 must be such that objects of types
+                   InputIt1 and InputIt2 can be dereferenced and then implicitly
+                   converted to Type1 and Type2 respectively. 
+.SH Type requirements
+   -
+   InputIt1, InputIt2 must meet the requirements of InputIterator.
+
+.SH Return value
+
+   true if the first range is lexicographically less than the second.
+
+.SH Complexity
+
+   At most 2·min(N1, N2) applications of the comparison operation, where N1 =
+   std::distance(first1, last1) and N2 = std::distance(first2, last2).
+
+.SH Possible implementation
+
+.SH First version
+   template<class InputIt1, class InputIt2>
+   bool lexicographical_compare(InputIt1 first1, InputIt1 last1,
+                                InputIt2 first2, InputIt2 last2)
+   {
+       for ( ; (first1 != last1) && (first2 != last2); first1++, first2++ ) {
+           if (*first1 < *first2) return true;
+           if (*first2 < *first1) return false;
+       }
+       return (first1 == last1) && (first2 != last2);
+   }
+.SH Second version
+   template<class InputIt1, class InputIt2, class Compare>
+   bool lexicographical_compare(InputIt1 first1, InputIt1 last1,
+                                InputIt2 first2, InputIt2 last2,
+                                Compare comp)
+   {
+       for ( ; (first1 != last1) && (first2 != last2); first1++, first2++ ) {
+           if (comp(*first1, *first2)) return true;
+           if (comp(*first2, *first1)) return false;
+       }
+       return (first1 == last1) && (first2 != last2);
+   }
+
+.SH Example
+
+   
+// Run this code
+
+ #include <algorithm>
+ #include <iostream>
+ #include <vector>
+ #include <cstdlib>
+ #include <ctime>
+  
+ int main()
+ {
+     std::vector<char> v1 {'a', 'b', 'c', 'd'};
+     std::vector<char> v2 {'a', 'b', 'c', 'd'};
+  
+     std::srand(std::time(0));
+     while (!std::lexicographical_compare(v1.begin(), v1.end(),
+                                          v2.begin(), v2.end())) {
+         for (auto c : v1) std::cout << c << ' ';
+         std::cout << ">= ";
+         for (auto c : v2) std::cout << c << ' ';
+         std::cout << '\\n';
+  
+         std::random_shuffle(v1.begin(), v1.end());
+         std::random_shuffle(v2.begin(), v2.end());
+     }
+  
+     for (auto c : v1) std::cout << c << ' ';
+     std::cout << "< ";
+     for (auto c : v2) std::cout << c << ' ';
+     std::cout << '\\n';
+ }
+
+.SH Possible output:
+
+ a b c d >= a b c d
+ d a b c >= c b d a
+ b d a c >= a d c b
+ a c d b < c d a b

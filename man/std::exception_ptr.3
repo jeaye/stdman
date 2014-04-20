@@ -1,0 +1,67 @@
+.TH std::exception_ptr 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <exception>
+   typedef /*unspecified*/ exception_ptr;  \fI(since C++11)\fP
+
+   std::exception_ptr is a nullable pointer-like type that manages an exception object
+   which has been thrown and captured with std::current_exception. An instance of
+   std::exception_ptr may be passed to another function, possibly on another thread,
+   where the exception may be rethrown and handled with a catch clause.
+
+   Default-constructed std::exception_ptr is a null pointer, it does not point to an
+   exception object.
+
+   Two instances of std::exception_ptr compare equal only if they are both null or both
+   point at the same exception object.
+
+   std::exception_ptr is not implicitly convertible to any arithmetic, enumeration, or
+   pointer type. It is convertible to bool.
+
+   The exception object referenced by an std::exception_ptr remains valid as long as
+   there remains at least one std::exception_ptr that is referencing it:
+   std::exception_ptr is a shared-ownership smart pointer.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <string>
+ #include <exception>
+ #include <stdexcept>
+  
+ void handle_eptr(std::exception_ptr eptr) // passing by value is ok
+ {
+     try {
+         if (eptr != std::exception_ptr()) {
+             std::rethrow_exception(eptr);
+         }
+     } catch(const std::exception& e) {
+         std::cout << "Caught exception \\"" << e.what() << "\\"\\n";
+     }
+ }
+  
+ int main()
+ {
+     std::exception_ptr eptr;
+     try {
+         std::string().at(1); // this generates an std::out_of_range
+     } catch(...) {
+         eptr = std::current_exception(); // capture
+     }
+     handle_eptr(eptr);
+ } // destructor for std::out_of_range called here, when the eptr is destructed
+
+.SH Output:
+
+ Caught exception "basic_string::at"
+
+.SH See also
+
+   make_exception_ptr creates an std::exception_ptr from an exception object
+   \fI(C++11)\fP            \fI(function template)\fP
+   current_exception  captures the current exception in a std::exception_ptr
+   \fI(C++11)\fP            \fI(function)\fP
+   rethrow_exception  throws the exception from an std::exception_ptr
+   \fI(C++11)\fP            \fI(function)\fP

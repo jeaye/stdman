@@ -1,0 +1,135 @@
+.TH std::partial_sum 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <numeric>
+   template< class InputIt, class OutputIt >                              \fB(1)\fP
+   OutputIt partial_sum( InputIt first, InputIt last, OutputIt d_first );
+   template< class InputIt, class OutputIt, class BinaryOperation >
+
+   OutputIt partial_sum( InputIt first, InputIt last, OutputIt d_first,   \fB(2)\fP
+
+                         BinaryOperation op );
+
+   Computes the partial sums of the elements in the subranges of the range [first,
+   last) and writes them to the range beginning at d_first. The first version uses
+   operator+ to sum up the elements, the second version uses the given binary function
+   op.
+
+   Equivalent operation:
+
+ *(d_first)   = *first;
+ *(d_first+1) = *first + *(first+1);
+ *(d_first+2) = *first + *(first+1) + *(first+2);
+ *(d_first+3) = *first + *(first+1) + *(first+2) + *(first+3);
+ ...
+
+   op must not have side effects.                                         \fI(until C++11)\fP
+   op must not invalidate any iterators, including the end iterators, or  \fI(since C++11)\fP
+   modify any elements of the ranges involved.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Complexity
+     • 4 Possible implementation
+     • 5 Example
+     • 6 See also
+
+.SH Parameters
+
+   first, last - the range of elements to sum
+   d_first     - the beginning of the destination range
+                 binary operation function object that will be applied.
+
+                 The signature of the function should be equivalent to the following:
+
+                  Ret fun(const Type1 &a, const Type2 &b);
+
+   op          - The signature does not need to have const &.
+                 The type Type1 must be such that an object of type
+                 iterator_traits<InputIt>::value_type can be implicitly converted to
+                 Type1. The type Type2 must be such that an object of type InputIt can
+                 be dereferenced and then implicitly converted to Type2. The type Ret
+                 must be such that an object of type
+                 iterator_traits<InputIt>::value_type can be assigned a value of type
+                 Ret. 
+.SH Type requirements
+   -
+   InputIt must meet the requirements of InputIterator.
+   -
+   OutputIt must meet the requirements of OutputIterator.
+
+.SH Return value
+
+   Iterator to the element past the last element written.
+
+.SH Complexity
+
+   Exactly (last - first) - 1 applications of the binary operation
+
+.SH Possible implementation
+
+.SH First version
+   template<class InputIt, class OutputIt>
+   OutputIt partial_sum(InputIt first, InputIt last,
+                              OutputIt d_first)
+   {
+       return std::partial_sum(first, last, d_first,
+                               std::plus<InputIt, InputIt>());
+   }
+.SH Second version
+   template<class InputIt, class OutputIt, class BinaryOperator>
+   OutputIt partial_sum(InputIt first, InputIt last,
+                              OutputIt d_first, BinaryOperation op)
+   {
+       if (first == last) return d_first;
+    
+       typename std::iterator_traits<InputIt>::value_type sum = *first;
+       *d_first = sum;
+    
+       while (++first != last) {
+          sum = op(sum, *first);
+          *++d_first = sum;
+       }
+       return ++d_first;
+   }
+
+.SH Example
+
+   
+// Run this code
+
+ #include <numeric>
+ #include <vector>
+ #include <iostream>
+ #include <iterator>
+ #include <functional>
+  
+ int main()
+ {
+     std::vector<int> v = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
+  
+     std::cout << "The first 10 even numbers are: ";
+     std::partial_sum(v.begin(), v.end(),
+                      std::ostream_iterator<int>(std::cout, " "));
+     std::cout << '\\n';
+  
+     std::partial_sum(v.begin(), v.end(), v.begin(), std::multiplies<int>());
+     std::cout << "The first 10 powers of 2 are: ";
+     for (auto n : v) {
+         std::cout << n << " ";
+     }
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ The first 10 even numbers are: 2 4 6 8 10 12 14 16 18 20
+ The first 10 powers of 2 are: 2 4 8 16 32 64 128 256 512 1024
+
+.SH See also
+
+   adjacent_difference computes the differences between adjacent elements in a range
+                       \fI(function template)\fP
+   accumulate          sums up a range of elements
+                       \fI(function template)\fP

@@ -1,0 +1,99 @@
+.TH std::weak_ptr 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <memory>
+   template< class T > class weak_ptr;  \fI(since C++11)\fP
+
+   std::weak_ptr is a smart pointer that holds a non-owning ("weak") reference to an
+   object that is managed by std::shared_ptr. It must be converted to std::shared_ptr
+   in order to access the referenced object.
+
+   std::weak_ptr models temporary ownership: when an object needs to be accessed only
+   if it exists, and it may be deleted at any time by someone else, std::weak_ptr is
+   used to track the object, and it is converted to std::shared_ptr to assume temporary
+   ownership. If the original std::weak_ptr is destroyed at this time, the object's
+   lifetime is extended until the temporary std::shared_ptr is destroyed as well.
+
+   In addition, std::weak_ptr is used to break circular references of std::shared_ptr.
+
+.SH Contents
+
+     • 1 Member types
+     • 2 Member functions
+
+          • 2.1 Modifiers
+          • 2.2 Observers
+
+     • 3 Non-member functions
+     • 4 Example
+
+.SH Member types
+
+   Member type  Definition
+   element_type T
+
+.SH Member functions
+
+   constructor   creates a new weak_ptr
+                 \fI(public member function)\fP
+   destructor    destroys a weak_ptr
+                 \fI(public member function)\fP
+   operator=     assigns the weak_ptr
+                 \fI(public member function)\fP
+.SH Modifiers
+   reset         releases the ownership of the managed object
+                 \fI(public member function)\fP
+   swap          swaps the managed objects
+                 \fI(public member function)\fP
+.SH Observers
+   use_count     returns the number of shared_ptr objects that manage the object
+                 \fI(public member function)\fP
+   expired       checks whether the referenced object was already deleted
+                 \fI(public member function)\fP
+   lock          creates a shared_ptr that manages the referenced object
+                 \fI(public member function)\fP
+   owner_before  provides owner-based ordering of weak pointers
+                 \fI(public member function)\fP
+
+.SH Non-member functions
+
+   std::swap(std::weak_ptr) specializes the std::swap algorithm
+   \fI(C++11)\fP                  \fI(function template)\fP
+
+.SH Example
+
+   Demonstrates how lock is used to ensure validity of the pointer.
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <memory>
+  
+ std::weak_ptr<int> gw;
+  
+ void f()
+ {
+     if (auto spt = gw.lock()) { // Has to be copied into a shared_ptr before usage
+         std::cout << *spt << "\\n";
+     }
+     else {
+         std::cout << "gw is expired\\n";
+     }
+ }
+  
+ int main()
+ {
+     {
+         auto sp = std::make_shared<int>(42);
+         gw = sp;
+  
+         f();
+     }
+  
+     f();
+ }
+
+.SH Output:
+
+ 42
+ gw is expired

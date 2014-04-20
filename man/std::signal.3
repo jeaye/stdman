@@ -1,0 +1,112 @@
+.TH std::signal 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <csignal>
+   void (*signal( int sig, void (*handler) (int))) (int);
+
+   Sets the error handler for signal sig. The signal handler can be set so that default
+   handling will occur, signal is ignored, or an user-defined function is called.
+
+   When signal handler is set to a function and a signal occurs, it is implementation
+   defined whether std::signal(sig, SIG_DFL) will be executed immediately before the
+   start of signal handler. Also, the implementation can prevent some
+   implementation-defined set of signals from occurring while the signal handler runs.
+
+   For some of the signals, the implementation may call std::signal(sig, SIG_IGN) at
+   the startup of the program. For the rest, the implementation must call
+   std::signal(sig, SIG_DFL).
+
+   If the user defined function returns when handling SIGFPE, SIGILL, SIGSEGV or any
+   other implementation-defined signal specifying a computational exception, the
+   behavior is undefined. In most implementations the program terminates.
+
+   If the signal handler is called otherwise than as a result of std::abort or
+   std::raise, the behavior is undefined if any of the following requirements is not
+   followed:
+
+     • the signal handler calls std::raise.
+     • the signal handler refers to an object of static storage duration which is not
+       declared as volatile std::sig_atomic_t.
+     • the signal handler calls any function within the standard library, except
+       std::abort, std::_Exit, or std::signal with the first argument not being the
+       number of the signal currently handled.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Notes
+     • 4 Example
+     • 5 See also
+
+.SH Parameters
+
+             the signal to set the signal handler to. It can be an
+             implementation-defined value or one of the following values:
+
+             SIGABRT
+   sig     - SIGFPE
+             SIGILL  defines signal types
+             SIGINT  (macro constant)
+             SIGSEGV
+             SIGTERM
+             the signal handler. This must be one of the following:
+
+               • SIG_DFL macro. The signal handler is set to default signal handler.
+   handler -   • SIG_IGN macro. The signal is ignored.
+               • pointer to a function. The signature of the function must be
+                 equivalent to the following:
+
+             void fun(int sig);
+
+.SH Return value
+
+   Previous signal handler on success or SIG_ERR on failure (setting a signal handler
+   can be disabled on some implementations).
+
+.SH Notes
+
+   Signal handlers are expected to have C linkage and, in general, only use the
+   features from the common subset of C and C++. It is implementation-defined if a
+   function with C++ linkage can be used as a signal handler.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <csignal>
+ #include <iostream>
+  
+ namespace
+ {
+   volatile sig_atomic_t gSignalStatus = 0;
+ }
+  
+ void signal_handler(int signal)
+ {
+   gSignalStatus = signal;
+ }
+  
+ int main()
+ {
+   // Install a signal handler
+   std::signal(SIGINT, signal_handler);
+  
+   std::cout << "SignalValue: " << gSignalStatus << '\\n';
+   std::cout << "Sending signal " << SIGINT << '\\n';
+   std::raise(SIGINT);
+   std::cout << "SignalValue: " << gSignalStatus << '\\n';
+ }
+
+.SH Possible output:
+
+ SignalValue: 0
+ Sending signal 2
+ SignalValue: 2
+
+.SH See also
+
+   raise runs the signal handler for particular signal
+         \fI(function)\fP
+   C documentation for
+   signal

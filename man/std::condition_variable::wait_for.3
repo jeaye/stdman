@@ -1,0 +1,131 @@
+.TH std::condition_variable::wait_for 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   template< class Rep, class Period >
+
+   std::cv_status wait_for( std::unique_lock<std::mutex>& lock,       \fB(1)\fP \fI(since C++11)\fP
+
+                            const std::chrono::duration<Rep, Period>&
+   rel_time);
+   template< class Rep, class Period, class Predicate >
+
+   bool wait_for( std::unique_lock<std::mutex>& lock,                 \fB(2)\fP \fI(since C++11)\fP
+                  const std::chrono::duration<Rep, Period>& rel_time,
+
+                  Predicate pred);
+
+   1) Atomically releases lock, blocks the current executing thread, and adds it to the
+   list of threads waiting on *this. The thread will be unblocked when notify_all() or
+   notify_one() is executed, or when the relative timeout rel_time expires. It may also
+   be unblocked spuriously. When unblocked, regardless of the reason, lock is
+   reacquired and wait_for() exits. If this function exits via exception, lock is also
+   reacquired.
+   2) Equivalent to
+
+ while (!pred()) {
+     if (wait_for(lock, rel_time) == std::cv_status::timeout) {
+         return pred();
+     }
+ }
+ return true;
+
+   This overload may be used to ignore spurious awakenings.
+
+   A steady clock is used to measure the duration. This function may block for longer
+   than timeout_duration due to scheduling or resource contention delays.
+
+   Calling this function if lock.mutex() is not locked by the current thread is
+   undefined behavior.
+
+   Calling this function if lock.mutex() is not the same mutex as the one used by all
+   other threads that are currently waiting on the same condition variable is undefined
+   behavior.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Example
+     • 5 See also
+
+.SH Parameters
+
+   lock     - an object of type std::unique_lock<std::mutex>, which must be locked by
+              the current thread
+   rel_time - an object of type std::chrono::duration representing the maximum time to
+              spend waiting
+              predicate which returns false if the waiting should be continued.
+
+   pred     - The signature of the predicate function should be equivalent to the
+              following:
+
+               bool pred();
+
+.SH Return value
+
+   1) std::cv_status::timeout if the relative timeout specified by rel_time expired,
+   std::cv_status::no_timeout overwise.
+   2) false if the predicate pred still evaluates to false after the rel_time timeout
+   expired, otherwise true.
+
+.SH Exceptions
+
+   May throw std::system_error, may also propagate exceptions thrown by lock.lock() or
+   lock.unlock().
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <atomic>
+ #include <condition_variable>
+ #include <thread>
+ #include <chrono>
+  
+ std::condition_variable cv;
+ std::mutex cv_m;
+ std::atomic<int> i{0};
+  
+ void waits(int idx)
+ {
+     std::unique_lock<std::mutex> lk(cv_m);
+     if(cv.wait_for(lk, std::chrono::milliseconds(idx*100), [](){return i == 1;}))
+         std::cerr << "Thread " << idx << " finished waiting. i == " << i << '\\n';
+     else
+         std::cerr << "Thread " << idx << " timed out. i == " << i << '\\n';
+ }
+  
+ void signals()
+ {
+     std::this_thread::sleep_for(std::chrono::milliseconds(120));
+     std::cerr << "Notifying...\\n";
+     cv.notify_all();
+     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+     i = 1;
+     std::cerr << "Notifying again...\\n";
+     cv.notify_all();
+ }
+  
+ int main()
+ {
+     std::thread t1(waits, 1), t2(waits, 2), t3(waits, 3), t4(signals);
+     t1.join(); t2.join(), t3.join(), t4.join();
+ }
+
+.SH Output:
+
+ Thread 1 timed out. i == 0
+ Notifying...
+ Thread 2 timed out. i == 0
+ Notifying again...
+ Thread 3 finished waiting. i == 1
+
+.SH See also
+
+   wait       blocks the current thread until the condition variable is woken up
+              \fI(public member function)\fP
+              blocks the current thread until the condition variable is woken up or
+   wait_until until specified time point has been reached
+              \fI(public member function)\fP

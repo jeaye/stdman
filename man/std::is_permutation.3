@@ -1,0 +1,138 @@
+.TH std::is_permutation 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <algorithm>
+   template< class ForwardIt1, class ForwardIt2 >
+
+   bool is_permutation( ForwardIt1 first1, ForwardIt1 last1,          \fB(1)\fP \fI(since C++11)\fP
+
+                        ForwardIt2 first2 );
+   template< class ForwardIt1, class ForwardIt2, class
+   BinaryPredicate >
+                                                                      \fB(2)\fP \fI(since C++11)\fP
+   bool is_permutation( ForwardIt1 first1, ForwardIt1 last1,
+
+                        ForwardIt2 first2, BinaryPredicate p );
+   template< class ForwardIt1, class ForwardIt2 >
+
+   bool is_permutation( ForwardIt1 first1, ForwardIt1 last1,          \fB(3)\fP \fI(since C++14)\fP
+
+                        ForwardIt2 first2, ForwardIt2 last2 );
+   template< class ForwardIt1, class ForwardIt2, class
+   BinaryPredicate >
+
+   bool is_permutation( ForwardIt1 first1, ForwardIt1 last2,          \fB(4)\fP \fI(since C++14)\fP
+                        ForwardIt2 first1, ForwardIt2 last2,
+
+                        BinaryPredicate p );
+
+   Returns true if there exists a permutation of the elements in the range [first1,
+   last1) that makes that range equal to the range [first2,last2), where last2 denotes
+   first2 + (last1 - first1) if it was not given. The overloads \fB(1)\fP and \fB(3)\fP use
+   operator== for equality, whereas the overloads \fB(2)\fP and \fB(4)\fP use the binary predicate
+   p.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Complexity
+     • 4 Possible implementation
+     • 5 Example
+     • 6 See also
+
+.SH Parameters
+
+   first1, last2 - the range of elements to compare
+   first2, last2 - the second range to compare
+                   binary predicate which returns true if the elements should be
+                   treated as equal.
+
+                   The signature of the predicate function should be equivalent to the
+                   following:
+
+                    bool pred(const Type1 &a, const Type2 &b);
+   p             -
+                   The signature does not need to have const &, but the function must
+                   not modify the objects passed to it.
+                   The types Type1 and Type2 must be such that objects of types
+                   ForwardIt1 and ForwardIt2 can be dereferenced and then implicitly
+                   converted to Type1 and Type2 respectively.
+
+                   
+.SH Type requirements
+   -
+   ForwardIt1, ForwardIt2 must meet the requirements of ForwardIterator.
+
+.SH Return value
+
+   true if the range [first1, last1) is a permutation of the range [first2, last2).
+
+.SH Complexity
+
+   At most O(N^2) applications of the predicate, or exactly N if the sequences are
+   already equal, where N=std::distance(first1, last1).
+
+   However if ForwardIt1 and ForwardIt2 meet the requirements of RandomAccessIterator
+   and std::distance(first1, last1) != std::distance(first2, last2) no applications of
+   the predicate are made.
+
+.SH Possible implementation
+
+   template<class ForwardIt1, class ForwardIt2>
+   bool is_permutation(ForwardIt1 first, ForwardIt1 last,
+                       ForwardIt2 d_first)
+   {
+      // skip common prefix
+      std::tie(first, d_first) = std::mismatch(first, last, d_first);
+      // iterate over the rest, counting how many times each element
+      // from [first, last) appears in [d_first, d_last)
+      if (first != last) {
+          ForwardIt2 d_last = d_first;
+          std::advance(d_last, std::distance(first, last));
+          for (ForwardIt1 i = first; i != last; ++i) {
+               if (i != std::find(first, i, *i)) continue; // already counted this *i
+    
+               auto m = std::count(d_first, d_last, *i);
+               if (m==0 || std::count(i, last, *i) != m) {
+                   return false;
+               }
+           }
+       }
+       return true;
+   }
+
+.SH Example
+
+   
+// Run this code
+
+ #include <algorithm>
+ #include <vector>
+ #include <iostream>
+ int main()
+ {
+     std::vector<int> v1{1,2,3,4,5};
+     std::vector<int> v2{3,5,4,1,2};
+     std::cout << "3,5,4,1,2 is a permutation of 1,2,3,4,5? "
+               << std::boolalpha
+               << std::is_permutation(v1.begin(), v1.end(), v2.begin()) << '\\n';
+  
+     std::vector<int> v3{3,5,4,1,1};
+     std::cout << "3,5,4,1,1 is a permutation of 1,2,3,4,5? "
+               << std::boolalpha
+               << std::is_permutation(v1.begin(), v1.end(), v3.begin()) << '\\n';
+ }
+
+.SH Output:
+
+ 3,5,4,1,2 is a permutation of 1,2,3,4,5? true
+ 3,5,4,1,1 is a permutation of 1,2,3,4,5? false
+
+.SH See also
+
+                    generates the next greater lexicographic permutation of a range of
+   next_permutation elements
+                    \fI(function template)\fP
+                    generates the next smaller lexicographic permutation of a range of
+   prev_permutation elements
+                    \fI(function template)\fP

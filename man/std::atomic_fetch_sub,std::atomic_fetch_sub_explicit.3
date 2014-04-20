@@ -1,0 +1,178 @@
+.TH std::atomic_fetch_sub,std::atomic_fetch_sub_explicit 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <atomic>
+   template< class Integral >
+   Integral atomic_fetch_sub(
+   std::atomic<Integral>* obj,
+   Integral arg );
+   template< class Integral >
+   Integral atomic_fetch_sub(
+   volatile std::atomic<Integral>*
+   obj, Integral arg );
+   template< class Integral >
+
+   Integral
+   atomic_fetch_sub_explicit(
+   std::atomic<Integral>* obj,
+   Integral arg,
+
+                                    
+     std::memory_order order );
+   template< class Integral >
+
+   Integral
+   atomic_fetch_sub_explicit(
+   volatile std::atomic<Integral>*
+   obj, Integral arg,
+
+                                      \fB(1)\fP (since
+     std::memory_order order);            C++11)
+   template< class T >
+   T* atomic_fetch_sub(
+   std::atomic<T*>* obj,                          \fB(2)\fP (since
+   std::ptrdiff_t arg );                              C++11)
+   template< class T >
+   T* atomic_fetch_sub( volatile
+   std::atomic<T*>* obj,
+   std::ptrdiff_t arg );
+   template< class T >
+
+   T* atomic_fetch_sub_explicit(
+   std::atomic<T*>* obj,                                      \fB(3)\fP (since
+   std::ptrdiff_t arg,                                            C++11)
+
+                                
+   std::memory_order order );                                             \fB(4)\fP (since
+   template< class T >                                                        C++11)
+
+   T* atomic_fetch_sub_explicit(
+   volatile std::atomic<T*>* obj,
+   std::ptrdiff_t arg,
+
+                                
+   std::memory_order order );
+
+   Performs atomic subtraction.
+
+   1-2) Atomically subtracts arg from the value pointed to by obj and returns the value
+   obj held previously. The operation is performed as if the following was executed:
+   1) obj->fetch_sub(arg)
+   2) obj->fetch_sub(arg, order)
+   3-4) Atomically decrements the pointer value, pointed to by obj, by arg, and returns
+   the value obj held previously. The operation is performed as if the following was
+   executed:
+   3) obj->fetch_sub(arg)
+   4) obj->fetch_sub(arg, order)
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Possible implementation
+     • 5 Example
+     • 6 See also
+
+.SH Parameters
+
+   obj   - pointer to the atomic object to modify
+   arg   - the value to subtract from the value stored in the atomic object
+   order - the memory sycnhronization ordering for this operation: all values are
+           permitted.
+
+.SH Return value
+
+   The value held previously by the atomic object pointed to by obj
+
+.SH Exceptions
+
+   noexcept specification:  
+   noexcept
+     
+
+.SH Possible implementation
+
+.SH First version
+template< class T >
+typename std::enable_if<std::is_integral<T>::value && !std::is_same<T, bool>::value, T>::type
+atomic_fetch_sub( std::atomic<T>* obj, T arg );
+{
+    return obj->fetch_sub(arg);
+}
+.SH Second version
+template< class T >
+T* atomic_fetch_sub( std::atomic<T*>* obj, std::ptrdiff_t arg)
+{
+    return obj->fetch_sub(arg);
+}
+
+.SH Example
+
+   Multiple threads may use fetch_sub to concurrently process an indexed container
+
+   
+// Run this code
+
+ #include <string>
+ #include <thread>
+ #include <vector>
+ #include <iostream>
+ #include <atomic>
+ #include <numeric>
+  
+ const int N = 10000;
+ std::atomic<int> cnt;
+ std::vector<int> data(N);
+  
+ void reader(int id)
+ {
+     for (;;) {
+         int idx = atomic_fetch_sub_explicit(&cnt, 1, std::memory_order_relaxed);
+         if (idx >= 0) {
+             std::cout << "reader " << std::to_string(id) << " processed item "
+                       << std::to_string(data[idx]) << '\\n';
+         } else {
+             std::cout << "reader " << std::to_string(id) << " done\\n";
+             break;
+         }
+     }
+ }
+  
+ int main()
+ {
+     std::iota(data.begin(), data.end(), 1);
+     cnt = data.size() - 1;
+  
+     std::vector<std::thread> v;
+     for (int n = 0; n < 10; ++n) {
+         v.emplace_back(reader, n);
+     }
+     for (auto& t : v) {
+         t.join();
+     }
+ }
+
+.SH Output:
+
+ reader 2 processed item 10000
+ reader 6 processed item 9994
+ reader 4 processed item 9996
+ reader 6 processed item 9992
+ <....>
+ reader 0 done
+ reader 5 done
+ reader 3 done
+ reader 9 done
+
+.SH See also
+
+   fetch_sub                 atomically subtracts the argument from the value stored in
+   \fI(C++11)\fP                   the atomic object and obtains the value held previously
+                             \fI(public member function of std::atomic)\fP
+   atomic_fetch_add          adds a non-atomic value to an atomic object and obtains
+   atomic_fetch_add_explicit the previous value of the atomic
+   \fI(C++11)\fP                   \fI(function template)\fP
+   \fI(C++11)\fP
+   C documentation for
+   atomic_fetch_sub,
+   atomic_fetch_sub_explicit

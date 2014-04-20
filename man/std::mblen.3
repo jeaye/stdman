@@ -1,0 +1,99 @@
+.TH std::mblen 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <cstdlib>
+   int mblen( const char* s, std::size_t n );
+
+   Determines the size, in bytes, of the multibyte character whose first byte is
+   pointed to by s.
+
+   If s is a null pointer, resets the global conversion state and determined whether
+   shift sequences are used.
+
+   This function is equivalent to the call std::mbtowc((wchar_t*)0, s, n), except that
+   conversion state of std::mbtowc is unaffected.
+
+.SH Contents
+
+     • 1 Notes
+     • 2 Parameters
+     • 3 Return value
+     • 4 Example
+     • 5 See also
+
+.SH Notes
+
+   Each call to mblen updates the internal global conversion state (a static object of
+   type std::mbstate_t, only known to this function). If the multibyte encoding uses
+   shift states, care must be taken to avoid backtracking or multiple scans. In any
+   case, multiple threads should not call mblen without synchronization: std::mbrlen
+   may be used instead.
+
+.SH Parameters
+
+   s - pointer to the multibyte character
+   n - limit on the number of bytes in s that can be examined
+
+.SH Return value
+
+   If s is not a null pointer, returns the number of bytes that are contained in the
+   multibyte character or -1 if the first bytes pointed to by s do not form a valid
+   multibyte character or 0 if s is pointing at the null charcter '\\0'.
+
+   If s is a null pointer, resets its internal conversion state to represent the
+   initial shift state and returns 0 if the current multibyte encoding is not
+   state-dependent (does not use shift sequences) or a non-zero value if the current
+   multibyte encoding is state-dependent (uses shift sequences).
+
+.SH Example
+
+   
+// Run this code
+
+ #include <clocale>
+ #include <string>
+ #include <iostream>
+ #include <cstdlib>
+ #include <stdexcept>
+  
+ // the number of characters in a multibyte string is the sum of mblen()'s
+ // note: the simpler approach is std::mbstowcs(NULL, s.c_str(), s.size())
+ std::size_t strlen_mb(const std::string& s)
+ {
+     std::size_t result = 0;
+     const char* ptr = s.data();
+     const char* end = ptr + s.size();
+     std::mblen(NULL, 0); // reset the conversion state
+     while (ptr < end) {
+         int next = std::mblen(ptr, end-ptr);
+         if (next == -1) {
+             throw std::runtime_error("strlen_mb(): conversion error");
+         }
+         ptr += next;
+         ++result;
+     }
+     return result;
+ }
+  
+ int main()
+ {
+     // allow mblen() to work with UTF-8 multibyte encoding
+     std::setlocale(LC_ALL, "en_US.utf8");
+     // UTF-8 narrow multibyte encoding
+     std::string str = u8"z\\u00df\\u6c34\\U0001d10b"; // or u8"zß水𝄋"
+                       // or "\\x7a\\xc3\\x9f\\xe6\\xb0\\xb4\\xf0\\x9d\\x84\\x8b";
+     std::cout << str << " is " << str.size() << " bytes, but only "
+               << strlen_mb(str) << " characters\\n";
+ }
+
+.SH Output:
+
+ zß水𝄋 is 10 bytes, but only 4 characters
+
+.SH See also
+
+   mbtowc converts the next multibyte character to wide character
+          \fI(function)\fP
+   mbrlen returns the number of bytes in the next multibyte character, given state
+          \fI(function)\fP
+   C documentation for
+   mblen

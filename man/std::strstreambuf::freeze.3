@@ -1,0 +1,91 @@
+.TH std::strstreambuf::freeze 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   void freeze(bool freezefl = true);
+
+   If the buffer uses dynamic allocation, sets the frozen status of the stream to
+   freezefl.
+
+   While the stream is frozen, overflow() will not reallocate the buffer and the
+   destructor will not deallocate the buffer (thereby causing a memory leak).
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Notes
+     • 4 Example
+     • 5 See also
+
+.SH Parameters
+
+   freezefl - new value to set the freeze status to
+
+.SH Return value
+
+   \fI(none)\fP
+
+.SH Notes
+
+   Every call to str() freezes the stream to preserve the validity of the pointer it
+   returns. To allow the destructor to deallocate the buffer, freeze(false) needs to be
+   called explicitly.
+
+.SH Example
+
+   in this example, initial allocation of the underlying array was for 16 bytes
+
+   
+// Run this code
+
+ #include <strstream>
+ #include <iostream>
+  
+ int main()
+ {
+     {
+         std::strstream dyn; // dynamically-allocated read/write buffer
+         dyn << "Test: " << 1.23;
+         std::cout << "dynamic buffer holds "
+                   << dyn.pcount() << " characters: '" << dyn.str() << "'\\n";
+         // the buffer is now frozen, further output will not make the buffer grow
+         dyn << "more output, hopefully enough to run out of the allocated space";
+         std::cout << "After more output, it holds "
+                   << dyn.pcount() << " characters: '" << dyn.str() << "'\\n";
+         dyn.freeze(false); // unfreeze before destructor
+     } // memory freed by the destructor
+  
+     {
+         char arr[20];
+         std::ostrstream st(arr, sizeof arr); // fixed-size buffer
+         st << 1.23;
+         std::cout << "static buffer holds "
+                   << st.pcount() << " characters: '";
+         std::cout.write(st.str(), st.pcount());
+         std::cout << "'\\n";
+         st << "more output, hopefully enough to run out of the allocated space";
+         std::cout << "static buffer holds "
+                   << st.pcount() << " characters: '";
+         std::cout.write(st.str(), st.pcount());
+         std::cout << "'\\n";
+     } // nothing to deallocate, no need to unfreeze,
+ }
+
+.SH Output:
+
+ dynamic buffer holds 10 characters: 'Test: 1.23'
+ After more output, it holds 16 characters: 'Test: 1.23more o'
+ static buffer holds 4 characters: '1.23'
+ static buffer holds 20 characters: '1.23more output, hop'
+
+.SH See also
+
+   freeze       disables/enables automatic reallocation
+                \fI(public member function of std::strstream)\fP
+   freeze       disables/enables automatic reallocation
+                \fI(public member function of std::ostrstream)\fP
+   destructor   destructs a strstreambuf object, optionally deallocating the character
+   \fB[virtual]\fP    array
+                \fI(virtual public member function)\fP
+   overflow     appends a character to the output sequence, may reallocate or initially
+   \fB[virtual]\fP    allocate the buffer if dynamic and not frozen
+                \fI(virtual protected member function)\fP

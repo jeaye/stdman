@@ -1,0 +1,102 @@
+.TH std::align 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <memory>
+   void* align( std::size_t alignment,
+
+                std::size_t size,       \fI(since C++11)\fP
+                void*& ptr,
+
+                std::size_t& space );
+
+   If it is possible to fit size bytes of storage aligned by alignment into the buffer
+   pointed to by ptr with length space, the function modifies ptr to point to the first
+   possible address of such aligned storage and decreases space by the number of bytes
+   used for alignment. If it is impossible (the buffer is too small), align does
+   nothing.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Example
+     • 4 See also
+
+.SH Parameters
+
+   alignment - the desired alignment
+   size      - the size of the storage to be aligned
+   ptr       - pointer to contiguous storage of at least space bytes
+   space     - the size of the buffer in which to operate
+
+.SH Return value
+
+   The adjusted value of ptr, or null pointer value if the space provided is too small.
+
+.SH Example
+
+   demonstrates the use of std::align to place objects of different type in memory
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <memory>
+  
+ template <std::size_t N>
+ struct MyAllocator
+ {
+     char data[N];
+     void* p;
+     std::size_t sz;
+     MyAllocator() : p(data), sz(N) {}
+     template <typename T>
+     T* aligned_alloc(std::size_t a = alignof(T))
+     {
+         if (std::align(a, sizeof(T), p, sz))
+         {
+             T* result = reinterpret_cast<T*>(p);
+             p = (char*)p + sizeof(T);
+             sz -= sizeof(T);
+             return result;
+         }
+         return nullptr;
+     }
+ };
+  
+ int main()
+ {
+     MyAllocator<64> a;
+  
+     // allocate a char
+     char* p1 = a.aligned_alloc<char>();
+     if (p1)
+         *p1 = 'a';
+     std::cout << "allocated a char at " << (void*)p1 << '\\n';
+  
+     // allocate an int
+     int* p2 = a.aligned_alloc<int>();
+     if (p2)
+         *p2 = 1;
+     std::cout << "allocated an int at " << (void*)p2 << '\\n';
+  
+     // allocate an int, aligned at 32-byte boundary
+     int* p3 = a.aligned_alloc<int>(32);
+     if (p3)
+         *p3 = 2;
+     std::cout << "allocated an int at " << (void*)p3 << " (32 byte alignment)\\n";
+ }
+
+.SH Possible output:
+
+ allocated a char at 0x2ff21a08
+ allocated an int at 0x2ff21a0c
+ allocated an int at 0x2ff21a20 (32 byte alignment)
+
+.SH See also
+
+   alignof operator  queries alignment requirements of a type \fI(since C++11)\fP
+   alignas specifier specifies that the storage for the variable should be aligned by
+                     specific amount \fI(C++11)\fP
+   aligned_storage   defines the type suitable for use as uninitialized storage for
+   \fI(C++11)\fP           types of given size
+                     \fI(class template)\fP

@@ -1,0 +1,81 @@
+.TH std::decay 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <type_traits>
+   template< class T >              \fI(since C++11)\fP
+   struct decay;
+
+   Applies lvalue-to-rvalue, array-to-pointer, and function-to-pointer implicit
+   conversions to the type T, removes cv-qualifiers, and defines the resulting type as
+   the member typedef type. This is the type conversion applied to all function
+   arguments when passed by value.
+
+.SH Contents
+
+     • 1 Member types
+     • 2 Helper types
+     • 3 Possible implementation
+     • 4 Example
+     • 5 See also
+
+.SH Member types
+
+   Name Definition
+   type the result of applying the decay type conversions to T
+
+.SH Helper types
+
+   template< class T >                       \fI(since C++14)\fP
+   using decay_t = typename decay<T>::type;
+
+.SH Possible implementation
+
+   template< class T >
+   struct decay {
+       typedef typename std::remove_reference<T>::type U;
+       typedef typename std::conditional<
+           std::is_array<U>::value,
+           typename std::remove_extent<U>::type*,
+           typename std::conditional<
+               std::is_function<U>::value,
+               typename std::add_pointer<U>::type,
+               typename std::remove_cv<U>::type
+           >::type
+       >::type type;
+   };
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <type_traits>
+  
+ template <typename T, typename U>
+ struct decay_equiv :
+     std::is_same<U, typename std::decay<T>::type>::type
+ {};
+  
+ int main()
+ {
+     std::cout << std::boolalpha << decay_equiv<int, int>::value << '\\n';
+     std::cout << std::boolalpha << decay_equiv<int&, int>::value << '\\n';
+     std::cout << std::boolalpha << decay_equiv<int&&, int>::value << '\\n';
+     std::cout << std::boolalpha << decay_equiv<const int&, int>::value << '\\n';
+     std::cout << std::boolalpha << decay_equiv<int[2], int*>::value << '\\n';
+     std::cout << std::boolalpha << decay_equiv<int(int), int(*)(int)>::value << '\\n';
+ }
+
+.SH Output:
+
+ true
+ true
+ true
+ true
+ true
+ true
+
+.SH See also
+
+   implicit conversion array-to-pointer, function-to-pointer, rvalue-to-lvalue
+                       conversions

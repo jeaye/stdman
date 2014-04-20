@@ -1,0 +1,89 @@
+.TH std::unitbuf,std::nounitbuf 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <ios>
+   std::ios_base& unitbuf( std::ios_base& str );   \fB(1)\fP
+   std::ios_base& nounitbuf( std::ios_base& str ); \fB(2)\fP
+
+   Enables or disables automatic flushing of the output stream after any output
+   operation. Has no effect on input.
+
+   1) enables the unitbuf flag in the stream str as if by calling
+   str.setf(std::ios_base::unitbuf)
+
+   2) disables the unitbuf flag in the stream str as if by calling
+   str.unsetf(std::ios_base::unitbuf)
+
+   This is an I/O manipulator, it may be called with an expression such as out <<
+   std::unitbuf for any out of type std::basic_ostream or with an expression such as in
+   >> std::unitbuf for any in of type std::basic_istream.
+
+.SH Contents
+
+     • 1 Notes
+     • 2 Parameters
+     • 3 Return value
+     • 4 Example
+     • 5 See also
+
+.SH Notes
+
+   Flushing is performed in the destructor of the std::basic_ostream::sentry object,
+   which calls str.rdbuf()->pubsync() if str.flags() & std::ios_base::unitbuf == true.
+
+   The standard output objects std::cerr and std::wcerr have their unitbuf bit set by
+   default.
+
+.SH Parameters
+
+   str - reference to I/O stream
+
+.SH Return value
+
+   str (reference to the stream after manipulation)
+
+.SH Example
+
+   Without std::unitbuf or another explicit flush, the output is the same, but does not
+   appear in real time.
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <chrono>
+  
+ template<typename Diff>
+ void log_progress(Diff d)
+ {
+     std::cout << "..("
+               << std::chrono::duration_cast<std::chrono::milliseconds>(d).count()
+               << " ms)..";
+ }
+  
+ int main()
+ {
+     volatile int sink = 0;
+     std::cout << std::unitbuf; // enable automatic flushing
+  
+     auto t1 = std::chrono::high_resolution_clock::now();
+     for (int j = 0; j < 5; ++j)
+     {
+         for (int n = 0; n < 10000; ++n)
+             for (int m = 0; m < 20000; ++m)
+                 sink += m * n; // do some work
+         auto now = std::chrono::high_resolution_clock::now();
+         log_progress(now - t1);
+     }
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ ..(450 ms)....(902 ms)....(1352 ms)....(1802 ms)....(2252 ms)..
+
+.SH See also
+
+   flush flushes the output stream
+         \fI(function template)\fP
+   endl  outputs '\\n' and flushes the output stream
+         \fI(function template)\fP

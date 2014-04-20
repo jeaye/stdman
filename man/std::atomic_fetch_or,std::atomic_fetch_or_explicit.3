@@ -1,0 +1,187 @@
+.TH std::atomic_fetch_or,std::atomic_fetch_or_explicit 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <atomic>
+   template< class Integral >
+   Integral atomic_fetch_or(
+   std::atomic<Integral>* obj, Integral arg );
+   template< class Integral >
+   Integral atomic_fetch_or( volatile
+   std::atomic<Integral>* obj, Integral arg );
+   template< class Integral >
+
+   Integral atomic_fetch_or_explicit(
+   std::atomic<Integral>* obj,
+                                      Integral
+   arg,                                           \fB(1)\fP \fI(since C++11)\fP
+
+                                    
+    std::memory_order order );                                      \fB(2)\fP \fI(since C++11)\fP
+   template< class Integral >
+
+   Integral atomic_fetch_or_explicit( volatile
+   std::atomic<Integral>* obj,
+                                      Integral
+   arg,
+
+                                    
+    std::memory_order order );
+
+   Atomically replaces the value pointed by arg with the result of bitwise OR between
+   the old value of obj and arg. Returns the value obj held previously.
+
+   The operation is performed as if the following is executed:
+
+   1) obj->fetch_or(arg)
+   2) obj->fetch_or(arg, order)
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Possible implementation
+     • 5 Example
+     • 6 See also
+
+.SH Parameters
+
+   obj   - pointer to the atomic object to modify
+   arg   - the value to bitwise OR to the value stored in the atomic object
+   order - the memory sycnhronization ordering for this operation: all values are
+           permitted.
+
+.SH Return value
+
+   The value held previously by the atomic object pointed to by obj
+
+.SH Exceptions
+
+   noexcept specification:  
+   noexcept
+     
+
+.SH Possible implementation
+
+template< class T >
+typename std::enable_if<std::is_integral<T>::value && !std::is_same<T, bool>::value, T>::type
+atomic_fetch_or( std::atomic<T>* obj, T arg );
+{
+    return obj->fetch_or(arg);
+}
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <atomic>
+ #include <thread>
+ #include <chrono>
+ #include <functional>
+  
+ // Binary semaphore for demonstrative purposes only
+ // This is a simple yet meaningful example: atomic operations
+ // are unnecessary without threads.
+ class Semaphore {
+     std::atomic_char m_signaled;
+   public:
+     Semaphore(bool initial = false)
+     {
+         m_signaled = initial;
+     }
+     // Block until semaphore is signaled
+     void take()
+     {
+         while (!std::atomic_fetch_and(&m_signaled, false)) {
+             std::this_thread::sleep_for(std::chrono::milliseconds(10));
+         }
+     }
+  
+     void put()
+     {
+         std::atomic_fetch_or(&m_signaled, true);
+     }
+ };
+  
+ class ThreadedCounter {
+     static const int N = 100;
+     static const int REPORT_INTERVAL = 10;
+     int m_count;
+     bool m_done;
+     Semaphore m_count_sem;
+     Semaphore m_print_sem;
+  
+     void count_up()
+     {
+         for (m_count = 1; m_count <= N; m_count++) {
+             if (m_count % REPORT_INTERVAL == 0) {
+                 if (m_count == N) m_done = true;
+                 m_print_sem.put(); // signal printing to occur
+                 m_count_sem.take(); // wait until printing is complete proceeding
+             }
+         }
+         std::cout << "count_up() done\\n";
+         m_done = true;
+         m_print_sem.put();
+     }
+  
+     void print_count()
+     {
+         do {
+             m_print_sem.take();
+             std::cout << m_count << '\\n';
+             m_count_sem.put();
+         } while (!m_done);
+         std::cout << "print_count() done\\n";
+     }
+  
+   public:
+     ThreadedCounter() : m_done(false) {}
+     void run()
+     {
+         auto print_thread = std::thread(&ThreadedCounter::print_count, this);
+         auto count_thread = std::thread(&ThreadedCounter::count_up, this);
+         print_thread.join();
+         count_thread.join();
+     }
+ };
+  
+ int main()
+ {
+     ThreadedCounter m_counter;
+     m_counter.run();
+ }
+
+.SH Output:
+
+ 10
+ 20
+ 30
+ 40
+ 50
+ 60
+ 70
+ 80
+ 90
+ 100
+ print_count() done
+ count_up() done
+
+.SH See also
+
+                             atomically performs bitwise OR between the argument and
+   fetch_or                  the value of the atomic object and obtains the value held
+   \fI(C++11)\fP                   previously
+                             \fI(public member function of std::atomic)\fP
+   atomic_fetch_and          replaces the atomic object with the result of logical AND
+   atomic_fetch_and_explicit with a non-atomic argument and obtains the previous value
+   \fI(C++11)\fP                   of the atomic
+   \fI(C++11)\fP                   \fI(function template)\fP
+   atomic_fetch_xor          replaces the atomic object with the result of logical XOR
+   atomic_fetch_xor_explicit with a non-atomic argument and obtains the previous value
+   \fI(C++11)\fP                   of the atomic
+   \fI(C++11)\fP                   \fI(function template)\fP
+   C documentation for
+   atomic_fetch_or,
+   atomic_fetch_or_explicit

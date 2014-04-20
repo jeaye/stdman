@@ -1,0 +1,117 @@
+.TH std::move_if_noexcept 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <utility>
+   template< class T >
+
+   typename std::conditional<  
+       !std::is_nothrow_move_constructible<T>::value &&                   \fI(since C++11)\fP
+   std::is_copy_constructible<T>::value,                                  \fI(until C++14)\fP
+       const T&,
+       T&&
+
+   >::type move_if_noexcept(T& x);
+   template< class T >
+
+   constexpr typename std::conditional<  
+       !std::is_nothrow_move_constructible<T>::value &&
+   std::is_copy_constructible<T>::value,                                  \fI(since C++14)\fP
+       const T&,
+       T&&
+
+   >::type move_if_noexcept(T& x);
+
+   move_if_noexcept obtains an rvalue reference to its argument if its move constructor
+   does not throw exceptions, otherwise obtains an lvalue reference to its argument. It
+   is typically used to combine move semantics with strong exception guarantee.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Notes
+     • 5 Example
+     • 6 Complexity
+     • 7 See also
+
+.SH Parameters
+
+   x - the object to be moved or copied
+
+.SH Return value
+
+   std::move(x) or x, depending on exception guarantees.
+
+.SH Exceptions
+
+   noexcept specification:  
+   noexcept
+     
+
+.SH Notes
+
+   This is used, for example, by std::vector::resize, which may have to allocate new
+   storage and then move or copy elements from old storage to new storage. If an
+   exception occurs during this operation, std::vector::resize undoes everything it did
+   to this point, which is only possible if std::move_if_noexcept was used to decide
+   whether to use move construction or copy construction. (unless copy constructor is
+   not available, in which case move constructor is used either way and the strong
+   exception guarantee may be waived)
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <utility>
+  
+ struct Bad
+ {
+     Bad() {}
+     Bad(Bad&&)  // may throw
+     {
+         std::cout << "Throwing move constructor called\\n";
+     }
+     Bad(const Bad&) // may throw as well
+     {
+         std::cout << "Throwing copy constructor called\\n";
+     }
+ };
+  
+ struct Good
+ {
+     Good() {}
+     Good(Good&&) noexcept // will NOT throw
+     {
+         std::cout << "Non-throwing move constructor called\\n";
+     }
+     Good(const Good&) noexcept // will NOT throw
+     {
+         std::cout << "Non-throwing copy constructor called\\n";
+     }
+ };
+  
+ int main()
+ {
+     Good g;
+     Bad b;
+     Good g2 = std::move_if_noexcept(g);
+     Bad b2 = std::move_if_noexcept(b);
+ }
+
+.SH Output:
+
+ Non-throwing move constructor called
+ Throwing copy constructor called
+
+.SH Complexity
+
+   Constant
+
+.SH See also
+
+   forward forwards a function argument
+   \fI(C++11)\fP \fI(function template)\fP
+   move    obtains an rvalue reference
+   \fI(C++11)\fP \fI(function template)\fP

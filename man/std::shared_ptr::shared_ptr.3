@@ -1,0 +1,195 @@
+.TH std::shared_ptr::shared_ptr 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   constexpr shared_ptr();                               \fB(1)\fP
+   template< class Y >                                   \fB(2)\fP
+   explicit shared_ptr( Y* ptr );
+   template< class Y, class Deleter >                    \fB(3)\fP
+   shared_ptr( Y* ptr, Deleter d );
+   template< class Y, class Deleter, class Alloc >       \fB(4)\fP
+   shared_ptr( Y* ptr, Deleter d, Alloc alloc );
+   constexpr shared_ptr( std::nullptr_t );               \fB(5)\fP
+   template< class Deleter >                             \fB(6)\fP
+   shared_ptr( std::nullptr_t, Deleter d );
+   template< class Deleter, class Alloc >                \fB(7)\fP
+   shared_ptr( std::nullptr_t, Deleter d, Alloc alloc );
+   template< class Y >                                   \fB(8)\fP
+   shared_ptr( const shared_ptr<Y>& r, T *ptr );
+   shared_ptr( const shared_ptr& r );                    \fB(9)\fP
+   template< class Y >                                   \fB(9)\fP
+   shared_ptr( const shared_ptr<Y>& r );
+   shared_ptr( shared_ptr&& r );                         \fB(10)\fP
+   template< class Y >                                   \fB(10)\fP
+   shared_ptr( shared_ptr<Y>&& r );
+   template< class Y >                                   \fB(11)\fP
+   explicit shared_ptr( const std::weak_ptr<Y>& r );
+   template< class Y >                                   \fB(12)\fP
+   shared_ptr( std::auto_ptr<Y>&& r );
+   template< class Y, class Deleter >                    \fB(13)\fP
+   shared_ptr( std::unique_ptr<Y,Deleter>&& r );
+
+   Constructs new shared_ptr from a variety of pointer types that refer to an object to
+   manage.
+
+   An optional deleter d can be supplied that is later used to destroy the object when
+   no shared_ptr objects own it. By default, a delete-expression for type Y is used as
+   the deleter.
+
+   1) Default constructor constructs a shared_ptr with no managed object, i.e. empty
+   shared_ptr
+   2-4) Constructs a shared_ptr with ptr as the pointer to the managed object. Y must
+   be a complete type and ptr must be convertible to T*. Additionally:
+   2) Uses the delete expression as the deleter. A valid delete expression must be
+   available, i.e. delete ptr must be well formed, have well-defined behavior and not
+   throw any exceptions.
+   3) Uses the specified deleter d as the deleter. Deleter must be callable for the
+   type T, i.e. d(ptr) must be well formed, have well-defined behavior and not throw
+   any exceptions. Deleter must be CopyConstructible. The copy constructor and the
+   destructor must not throw exceptions.
+   4) Same as \fB(3)\fP, but additionally uses a copy of alloc for allocation of data for
+   internal use. Alloc must be a Allocator. The copy constructor and destructor must
+   not throw exceptions.
+   5-7) Analogous to \fB(2)\fP, \fB(3)\fP, \fB(4)\fP respectively, but constructs a shared_ptr with no
+   managed object, i.e. empty shared_ptr.
+   8) Constructs a shared_ptr which shares ownership information with r, but holds an
+   unrelated and unmanaged pointer ptr. Even if this shared_ptr is the last of the
+   group to go out of scope, it will call the destructor for the object originally
+   managed by r. However, calling get() on this will always return a copy of ptr. It is
+   the responsibility of the programmer to make sure that this ptr remains valid as
+   long as this shared_ptr exists, such as in the typical use cases where ptr is a
+   member of the object managed by r or is an alias (e.g., downcast) of r.get()
+   9) Constructs a shared_ptr which shares ownership of the object managed by r. If r
+   manages no object, *this manages no object too. The templated overload doesn't
+   participate in the overload resolution if Y* is not implicitly convertible to T*.
+   10) Move-constructs a shared_ptr from r. After the construction, *this contains a
+   copy of the previous state of r, r is empty. The templated overload doesn't
+   participate in the overload resolution if Y* is not implicitly convertible to T*.
+   11) Constructs a shared_ptr which shares ownership of the object managed by r. Y*
+   must be convertible to T*. Note that r.lock() may be used for the same purpose: the
+   difference is that this constructor throws an exception if the argument is empty,
+   while std::weak_ptr<T>::lock() constructs an empty std::shared_ptr in that case.
+   12) Constructs a shared_ptr that stores and owns the object formerly owned by r. Y*
+   must be convertible to T*. After construction, r is empty.
+   13) Constructs a shared_ptr which manages the object currently managed by r. The
+   deleter associated to r is stored for future deletion of the managed object. r
+   manages no object after the call. Y* must be convertible to T*.
+
+.SH Contents
+
+     • 1 Notes
+     • 2 Parameters
+     • 3 Exceptions
+     • 4 Example
+     • 5 See also
+
+.SH Notes
+
+   When constructing a shared_ptr from a raw pointer to an object of a type derived
+   from std::enable_shared_from_this, the constructors of shared_ptr update the private
+   weak_ptr member of the std::enable_shared_from_this base so that future calls to
+   shared_from_this() would share ownership with the shared_ptr created by this raw
+   pointer constructor.
+
+   Constructing a shared_ptr using the raw pointer overload for an object that is
+   already managed by a shared_ptr leads to undefined behavior, even if the object is
+   of a type derived from std::enable_shared_from_this (in other words, raw pointer
+   overloads assume ownership of the pointed-to object).
+
+.SH Parameters
+
+   ptr   - a pointer to an object to manage
+   d     - a deleter to use to destroy the object
+   alloc - an allocator to use for allocations of data for internal use
+   r     - another smart pointer to share the ownership to or acquire the ownership
+           from
+
+.SH Exceptions
+
+   1)
+   noexcept specification:  
+   noexcept
+     
+   2) std::bad_alloc if required additional memory could not be obtained. May throw
+   implementation-defined exception for other errors. delete ptr is called if an
+   exception occurs.
+   3-4) std::bad_alloc if required additional memory could not be obtained. May throw
+   implementation-defined exception for other errors. d(ptr) is called if an exception
+   occurs.
+   5)
+   noexcept specification:  
+   noexcept
+     
+   6-7) std::bad_alloc if required additional memory could not be obtained. May throw
+   implementation-defined exception for other errors. If an exception is thrown, d(ptr)
+   is executed.
+   8-10)
+   noexcept specification:  
+   noexcept
+     
+   11) std::bad_weak_ptr if r.expired == true. The constructor has no effect in this
+   case.
+   12) std::bad_alloc if required additional memory could not be obtained. May throw
+   implementation-defined exception for other errors. This constructor has no effect if
+   an exception occurs.
+   13) If an exception is thrown, the constructor has no effects.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <memory>
+ #include <iostream>
+  
+ struct Foo {
+     Foo() { std::cout << "Foo...\\n"; }
+     ~Foo() { std::cout << "~Foo...\\n"; }
+ };
+  
+ struct D {
+     void operator()(Foo* p) const {
+         std::cout << "Call delete for Foo object...\\n";
+         delete p;
+     }
+ };
+  
+ int main()
+ {
+     {
+         std::cout << "constructor with no managed object\\n";
+         std::shared_ptr<Foo> sh1;
+     }
+  
+     {
+         std::cout << "constructor with object\\n";
+         std::shared_ptr<Foo> sh2(new Foo);
+         std::shared_ptr<Foo> sh3(sh2);
+         std::cout << sh2.use_count() << '\\n';
+         std::cout << sh3.use_count() << '\\n';
+     }
+  
+     {
+         std::cout << "constructor with object and deleter\\n";
+         std::shared_ptr<Foo> sh4(new Foo, D());
+     }
+ }
+
+.SH Output:
+
+ constructor with no managed object
+ constructor with object
+ Foo...
+ 2
+ 2
+ ~Foo...
+ constructor with object and deleter
+ Foo...
+ Call delete for Foo object...
+ ~Foo...
+
+.SH See also
+
+   make_shared     creates a shared pointer that manages a new object
+                   \fI(function template)\fP
+                   creates a shared pointer that manages a new object allocated using
+   allocate_shared an allocator
+                   \fI(function template)\fP

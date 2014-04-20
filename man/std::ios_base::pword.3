@@ -1,0 +1,113 @@
+.TH std::ios_base::pword 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   void*& pword( int index );
+
+   First, allocates or resizes the private storage (dynamic array of void* or another
+   indexable data structure) sufficiently to make index a valid index, then returns a
+   reference to the void* element of the private storage with the index index.
+
+   The reference may be invalidated by any operation on this ios_base object, including
+   another call to pword(), but the stored values are retained, so that reading from
+   pword(index) with the same index later will produce the same value (until the next
+   call to copyfmt()). The value can be used for any purpose. The index of the element
+   must be obtained by xalloc(), otherwise collisions with other users of this ios_base
+   may occur. New elements are initialized to NULL.
+
+   If allocation fails, calls std::basic_ios<>::setstate(badbit) which may throw
+   std::basic_ios::failure
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Notes
+     • 5 Example
+     • 6 See also
+
+.SH Parameters
+
+   index - index value of the element
+
+.SH Return value
+
+   A reference to the element.
+
+.SH Exceptions
+
+   May throw std::ios_base::failure when setting the badbit.
+
+.SH Notes
+
+   If the pointers stored in pword require management, register_callback() may be used
+   to install handlers that execute deep copy or deallocation as needed.
+
+.SH Example
+
+   Uses base class pword storage for runtime type identification of derived stream
+   objects.
+
+   
+// Run this code
+
+ #include <iostream>
+  
+ template<class charT, class traits = std::char_traits<charT> >
+ class mystream : public std::basic_ostream<charT, traits>
+ {
+  public:
+     static const int xindex;
+     mystream(std::basic_ostream<charT, traits>& ostr) :
+         std::basic_ostream<charT, traits>(ostr.rdbuf())
+     {
+          this->pword(xindex) = this;
+     }
+  
+     void myfn()
+     {
+         *this << "[special handling for mystream]";
+     }
+ };
+  
+ // each specialization of mystream obtains a unique index from xalloc()
+ template<class charT, class traits>
+ const int mystream<charT, traits>::xindex = std::ios_base::xalloc();
+  
+ // This I/O manipulator will be able to recognize ostreams that are mystreams
+ // by looking up the pointer stored in pword
+ template<class charT, class traits>
+ std::basic_ostream<charT,traits>& mymanip(std::basic_ostream<charT,traits>& os)
+ {
+  if (os.pword(mystream<charT,traits>::xindex) == &os)
+     static_cast<mystream<charT,traits>&>(os).myfn();
+  return os;
+ }
+  
+ int main()
+ {
+     std::cout << "cout, narrow-character test " << mymanip << '\\n';
+  
+     mystream<char> myout(std::cout);
+     myout << "myout, narrow-character test " << mymanip << '\\n';
+  
+     std::wcout << "wcout, wide-character test " << mymanip << '\\n';
+  
+     mystream<wchar_t> mywout(std::wcout);
+     mywout << "mywout, wide-character test " << mymanip << '\\n';
+ }
+
+.SH Output:
+
+ cout, narrow-character test
+ myout, narrow-character test [special handling for mystream]
+ wcout, wide-character test
+ mywout, wide-character test [special handling for mystream]
+
+.SH See also
+
+            resizes the private storage if necessary and access to the long element at
+   iword    the given index
+            \fI(public member function)\fP
+   xalloc   returns a program-wide unique integer that is safe to use as index to
+   \fB[static]\fP pword() and iword()
+            \fI(public static member function)\fP

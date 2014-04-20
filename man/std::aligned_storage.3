@@ -1,0 +1,116 @@
+.TH std::aligned_storage 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <type_traits>
+   template< std::size_t Len, std::size_t Align = /*default-alignment*/
+   >                                                                      \fI(since C++11)\fP
+   struct aligned_storage;
+
+   Provides the member typedef type, which is a POD type suitable for use as
+   uninitialized storage for any object whose size is at most Len and whose alignment
+   requirement is a divisor of Align. The default value of Align is the most stringent
+   (the largest) alignment requirement for any object whose size is at most Len.
+
+.SH Contents
+
+     • 1 Member types
+     • 2 Helper types
+     • 3 Notes
+     • 4 Possible implementation
+     • 5 Example
+     • 6 See also
+
+.SH Member types
+
+   Name Definition
+   type the POD type of at least size Len with alignment requirement Align
+
+.SH Helper types
+
+   template< std::size_t Len, std::size_t Align = /*default-alignment*/
+   >                                                                      \fI(since C++14)\fP
+   using aligned_storage_t = typename aligned_storage<Len,Align>::type;
+
+.SH Notes
+
+   The type defined by std::aligned_storage can be used to create uninitialized memory
+   blocks suitable to hold the objects of given type, optionally aligned stricter than
+   necessary, for example on a cache or page boundary.
+
+.SH Possible implementation
+
+   Except for default argument, aligned_storage is expressible in terms of alignas:
+
+   template<std::size_t Len, std::size_t Align>
+   struct aligned_storage {
+       struct type {
+           alignas(Align) unsigned char data[Len];
+       };
+   };
+
+.SH Example
+
+   A primitive static vector class, demonstrating creation, access, and destruction of
+   objects in aligned storage
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <type_traits>
+ #include <string>
+  
+ template<class T, std::size_t N>
+ class static_vector
+ {
+     // properly aligned uninitialized storage for N T's
+     typename std::aligned_storage<sizeof(T), std::alignment_of<T>::value>::type data[N];
+     std::size_t m_size;
+ public:
+  
+     static_vector() : m_size(0) {};
+     // Create an object in aligned storage
+     template<typename ...Args> void emplace_back(Args&&... args)
+     {
+         new(data+m_size) T(std::forward<Args>(args)...);
+         m_size++; // bounds check omitted
+     }
+  
+     // Access an object in aligned storage
+     const T& operator[](size_t pos) const
+     {
+         return *static_cast<const T*>(static_cast<const void*>(&data[pos]));
+     }
+     // Delete objects from aligned storage
+     ~static_vector()
+     {
+         for(std::size_t pos = 0; pos < m_size; ++pos) {
+             static_cast<const T*>(static_cast<const void*>(data+pos))->~T();
+         }
+     }
+ };
+  
+ int main()
+ {
+     static_vector<std::string, 10> v1;
+     v1.emplace_back(5, '*');
+     v1.emplace_back(10, '*');
+     std::cout << v1[0] << '\\n' << v1[1] << '\\n';
+ }
+
+.SH Output:
+
+ *****
+ **********
+
+.SH See also
+
+   alignas specifier specifies that the storage for the variable should be aligned by
+                     specific amount \fI(C++11)\fP
+   alignment_of      obtains the type's alignment requirements
+   \fI(C++11)\fP           \fI(class template)\fP
+   aligned_union     defines the type suitable for use as uninitialized storage for all
+   \fI(C++11)\fP           given types
+                     \fI(class template)\fP
+   max_align_t       POD type with alignment requirement as great as any other scalar
+   \fI(C++11)\fP           type
+                     \fI(typedef)\fP

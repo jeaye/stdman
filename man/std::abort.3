@@ -1,0 +1,107 @@
+.TH std::abort 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <cstdlib>
+                void abort();   \fI(until C++11)\fP
+   [[noreturn]] void abort();   \fI(since C++11)\fP
+
+   Causes abnormal program termination unless SIGABRT is being caught by a signal
+   handler passed to signal and the handler does not return.
+
+   Destructors of variables with automatic, thread local and static storage durations
+   are not called. Functions passed to std::atexit() are also not called. Whether open
+   resources such as files are closed is implementation defined. Implementation defined
+   status is returned to the host environment that indicates unsuccessful execution.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Example
+     • 5 See also
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   \fI(none)\fP
+
+.SH Exceptions
+
+   \fI(none)\fP                    \fI(until C++11)\fP
+   noexcept specification:  
+   noexcept                  \fI(since C++11)\fP
+     
+
+.SH Example
+
+   
+// Run this code
+
+ #include <cassert> // assert
+ #include <csignal> // std::signal
+ #include <iostream> // std::cout
+  
+ class Tester {
+  public:
+   Tester() {
+     std::cout << "Tester ctor\\n";
+   }
+  
+   ~Tester() {
+     std::cout << "Tester dtor\\n";
+   }
+ };
+  
+ // Destructor not called
+ Tester static_tester;
+  
+ void signal_handler(int signal) {
+   if (signal == SIGABRT) {
+     std::cerr << "SIGABRT received\\n";
+   }
+   else {
+     std::cerr << "Unexpected signal " << signal << " received\\n";
+   }
+   std::_Exit(EXIT_FAILURE);
+ }
+  
+ int main() {
+   // Destructor not called
+   Tester automatic_tester;
+  
+   // Setup handler
+   const auto previous_handler = std::signal(SIGABRT, signal_handler);
+   if (previous_handler == SIG_ERR) {
+     std::cerr << "Setup failed\\n";
+     return EXIT_FAILURE;
+   }
+  
+   // Raise SIGABRT
+   assert(false);
+  
+   std::cout << "This code is unreachable\\n";
+   return EXIT_SUCCESS;
+ }
+
+.SH Output:
+
+ Tester ctor
+ Tester ctor
+ Assertion failed: (false), function main, file ..., line 41.
+ SIGABRT received
+
+.SH See also
+
+   exit       causes normal program termination with cleaning up
+              \fI(function)\fP
+   atexit     registers a function to be called on std::exit() invocation
+              \fI(function)\fP
+   quick_exit causes normal program termination without completely cleaning up
+   \fI(C++11)\fP    \fI(function)\fP
+   signal     sets a signal handler for particular signal
+              \fI(function)\fP
+   C documentation for
+   abort

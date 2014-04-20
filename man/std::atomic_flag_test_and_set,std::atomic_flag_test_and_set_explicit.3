@@ -1,0 +1,123 @@
+.TH std::atomic_flag_test_and_set,std::atomic_flag_test_and_set_explicit 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <atomic>
+   bool atomic_flag_test_and_set( volatile std::atomic_flag*
+   p );
+   bool atomic_flag_test_and_set( std::atomic_flag* p );
+   bool atomic_flag_test_and_set_explicit( volatile
+   std::atomic_flag* p,                                           (since
+                                           std::memory_order  \fB(1)\fP C++11)
+   order );                                                               \fB(2)\fP (since
+   bool atomic_flag_test_and_set_explicit( std::atomic_flag*                  C++11)
+   p,
+                                           std::memory_order
+   order );
+
+   Atomically changes the state of a std::atomic_flag pointed to by p to set (true) and
+   returns the value it held before.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Possible implementation
+     • 5 Example
+     • 6 See also
+
+.SH Parameters
+
+   p     - pointer to std::atomic_flag to access
+   order - the memory synchronization order for this operation
+
+.SH Return value
+
+   The value previously held by the flag pointed to by p
+
+.SH Exceptions
+
+   noexcept specification:  
+   noexcept
+     
+
+.SH Possible implementation
+
+.SH First version
+   bool atomic_flag_test_and_set(volatile std::atomic_flag* p)
+   {
+       return p->test_and_set();
+   }
+.SH Second version
+   bool atomic_flag_test_and_set(std::atomic_flag* p)
+   {
+       return p->test_and_set();
+   }
+                               Third version
+   bool atomic_flag_test_and_set_explicit(volatile std::atomic_flag* p,
+                                          std::memory_order order)
+   {
+       return p->test_and_set(order);
+   }
+                              Fourth version
+   bool atomic_flag_test_and_set_explicit(std::atomic_flag* p,
+                                          std::memory_order order)
+   {
+       return p->test_and_set(order);
+   }
+
+.SH Example
+
+   A spinlock mutex can be implemented in userspace using an atomic_flag
+
+   
+// Run this code
+
+ #include <thread>
+ #include <vector>
+ #include <iostream>
+ #include <atomic>
+  
+ std::atomic_flag lock = ATOMIC_FLAG_INIT;
+  
+ void f(int n)
+ {
+     for (int cnt = 0; cnt < 100; ++cnt) {
+         while(std::atomic_flag_test_and_set_explicit(&lock, std::memory_order_acquire))
+              ; // spin until the lock is acquired
+         std::cout << "Output from thread " << n << '\\n';
+         std::atomic_flag_clear_explicit(&lock, std::memory_order_release);
+     }
+ }
+  
+ int main()
+ {
+     std::vector<std::thread> v;
+     for (int n = 0; n < 10; ++n) {
+         v.emplace_back(f, n);
+     }
+     for (auto& t : v) {
+         t.join();
+     }
+ }
+
+.SH Output:
+
+ Output from thread 2
+ Output from thread 6
+ Output from thread 7
+ ...<exactly 1000 lines>...
+
+.SH See also
+
+   atomic_flag                the lock-free boolean atomic type
+   \fI(C++11)\fP                    \fI(class)\fP
+   atomic_flag_clear
+   atomic_flag_clear_explicit atomically sets the value of the flag to false
+   \fI(C++11)\fP                    \fI(function)\fP
+   \fI(C++11)\fP
+   memory_order               defines memory ordering constraints for the given atomic
+   \fI(C++11)\fP                    operation
+                              \fI(typedef)\fP
+   C documentation for
+   atomic_flag_test_and_set,
+   atomic_flag_test_and_set_explicit

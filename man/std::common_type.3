@@ -1,0 +1,136 @@
+.TH std::common_type 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <type_traits>
+   template< class... T >           \fI(since C++11)\fP
+   struct common_type;
+
+   Determines the common type among all types T..., that is the type all T... can be
+   implicitly converted to.
+
+     • std::common_type may be specialized for custom types, e.g.
+       std::chrono::time_point.
+     • For non-specialized std::common_type, the rules for determining the common type
+       between every pair T1, T2 are exactly the rules for determining the return type
+       of the ternary conditional operator where T1 and T2 are the types of its second
+       and the third operands.
+     • For arithmetic types, the common type may also be viewed as the type of the
+       (possibly mixed-mode) arithmetic expression such as T0() + T1() + ... + Tn().
+
+.SH Contents
+
+     • 1 Member types
+     • 2 Helper types
+     • 3 Specializations
+     • 4 Possible implementation
+     • 5 Examples
+
+.SH Member types
+
+   Name Definition
+   type the common type for all T...
+
+.SH Helper types
+
+   template< class... T >                                   \fI(since C++14)\fP
+   using common_type_t = typename common_type<T...>::type;
+
+.SH Specializations
+
+   Custom specializations of the type trait std::common_type are allowed. The following
+   specializations are already provided by the standard library:
+
+   std::common_type<std::chrono::duration>   specializes the std::common_type trait
+                                             \fI(class template specialization)\fP
+   std::common_type<std::chrono::time_point> specializes the std::common_type trait
+                                             \fI(class template specialization)\fP
+
+.SH Possible implementation
+
+   template <class ...T> struct common_type;
+    
+   template <class T>
+   struct common_type<T> {
+       typedef decay_t<T> type;
+   };
+    
+   template <class T, class U>
+   struct common_type<T, U> {
+       typedef decay_t<decltype(true ? declval<T>() : declval<U>())> type;
+   };
+    
+   template <class T, class U, class... V>
+   struct common_type<T, U, V...> {
+       typedef common_type_t<common_type_t<T, U>, V...> type;
+   };
+
+.SH Examples
+
+   Demonstrates mixed-mode arithmetic on a user-defined class
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <type_traits>
+  
+ template <class T>
+ struct Number { T n; };
+  
+ template <class T, class U>
+ Number<typename std::common_type<T, U>::type> operator+(const Number<T>& lhs,
+                                                         const Number<U>& rhs)
+ {
+     return {lhs.n + rhs.n};
+ }
+  
+ int main()
+ {
+     Number<int> i1 = {1}, i2 = {2};
+     Number<double> d1 = {2.3}, d2 = {3.5};
+     std::cout << "i1i2: " << (i1 + i2).n << "\\ni1d2: " << (i1 + d2).n << '\\n'
+               << "d1i2: " << (d1 + i2).n << "\\nd1d2: " << (d1 + d2).n << '\\n';
+ }
+
+.SH Output:
+
+ i1i2: 3
+ i1d2: 4.5
+ d1i2: 4.3
+ d1d2: 5.8
+
+   Demonstrates the use as the identity template
+
+   
+// Run this code
+
+ #include <type_traits>
+ #include <vector>
+ #include <iostream>
+  
+ template <size_t N>
+ void fun(const int (&a)[N])
+ {
+     std::cout << "Array overload: ";
+     for (int n: a)
+         std::cout << n << ' ';
+     std::cout << '\\n';
+ }
+  
+ void fun(const std::vector<int>& v)
+ {
+     std::cout << "Vector overload: ";
+     for (int n: v)
+         std::cout << n << ' ';
+     std::cout << '\\n';
+ }
+  
+ int main()
+ {
+     fun( {1, 2, 3} ); // calls the vector overload
+     fun( std::common_type<int[]>::type {1, 2, 3} ); // calls the array overload
+ }
+
+.SH Output:
+
+ Vector overload: 1 2 3
+ Array overload: 1 2 3

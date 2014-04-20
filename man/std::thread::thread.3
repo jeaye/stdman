@@ -1,0 +1,155 @@
+.TH std::thread::thread 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   thread();                                        \fB(1)\fP \fI(since C++11)\fP
+   thread( thread&& other );                        \fB(2)\fP \fI(since C++11)\fP
+   template< class Function, class... Args >        \fB(3)\fP \fI(since C++11)\fP
+   explicit thread( Function&& f, Args&&... args );
+   thread(const thread&) = delete;                  \fB(4)\fP \fI(since C++11)\fP
+
+   Constructs new thread object.
+
+   1) Creates new thread object which does not represent a thread.
+   2) Move constructor. Constructs the thread object to represent the thread of
+   execution that was represented by other. After this call other no longer represents
+   a thread of execution.
+   3) Creates new std::thread object and associates it with a thread of execution.
+   First the constructor copies/moves all arguments args... to thread-accessible
+   storage as if by the function:
+
+ template <class T>
+ typename decay<T>::type decay_copy(T&& v) {
+     return std::forward<T>(v);
+ }
+
+   Any exceptions thrown during evaluation and copying/moving of the arguments are
+   thrown in the current thread, not the new thread.
+   The code that will be run in the new thread is defined as follows. Let's refer to
+   value_args as t1, t2, ..., tN, where N is sizeof...(value_args)and value_args is the
+   result of calling decay_copy as defined above. The following code will be run in the
+   new thread:
+
+     • If f is pointer to a member function of class T, then it is called. The return
+       value is ignored. Effectively, the following code is executed:
+
+     • (t1.*f)(t2, ..., tN) if the type of t1 is either T, reference to T or reference
+       to type derived from T.
+     • ((*t1).*f)(t2, ..., tN) otherwise.
+
+     • If N == 1 and f is pointer to a member data object of a class, then it is
+       accessed. The value of the object is ignored. Effectively, the following code is
+       executed:
+
+     • t1.*f if and the type of t1 is either T, reference to T or reference to type
+       derived from T.
+     • (*t1).*f otherwise.
+
+     • f is called as a pointer to a non-member function in all other cases. The return
+       value is ignored. Effectively, f(t1, t2, ..., tN) is executed.
+
+   \fI(C++14)\fP This constructor does not participate in overload resolution if
+   std::decay<Function>::type is the same type as std::thread.
+   4) The copy constructor is deleted; threads are not copyable. No two std::thread
+   objects may represent the same thread of execution.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Postconditions
+     • 3 Exceptions
+     • 4 Notes
+     • 5 Example
+     • 6 References
+
+.SH Parameters
+
+   other   - another thread object to construct this thread object with
+   f       - function to execute in the new thread
+   args... - arguments to pass to the new function
+
+.SH Postconditions
+
+   1) get_id() equal to std::thread::id() (i.e. joinable is false)
+   2) other.get_id() equal to std::thread::id() and get_id() returns the value of
+   other.get_id() prior to the start of construction
+   3) get_id() not equal to std::thread::id() (i.e. joinable is true)
+
+.SH Exceptions
+
+   1-2)
+   noexcept specification:  
+   noexcept
+     
+   3) std::system_error if the thread could not be started. The exception may represent
+   the error condition std::errc::resource_unavailable_try_again or another
+   implementation-specific error condition.
+
+.SH Notes
+
+   The arguments to the thread function are copied by value. If a reference argument
+   needs to be passed to the thread function, it has to be wrapped (e.g. with std::ref
+   or std::cref).
+
+   Any return value from the function is ignored. If the function throws an exception,
+   std::terminate is called. In order to pass return values or exceptions back to the
+   calling thread, std::promise or std::async may be used.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <utility>
+ #include <thread>
+ #include <chrono>
+ #include <functional>
+ #include <atomic>
+  
+ void f1(int n)
+ {
+     for (int i = 0; i < 5; ++i) {
+         std::cout << "Thread 1 executing\\n";
+         std::this_thread::sleep_for(std::chrono::milliseconds(10));
+     }
+ }
+  
+ void f2(int& n)
+ {
+     for (int i = 0; i < 5; ++i) {
+         std::cout << "Thread 2 executing\\n";
+         ++n;
+         std::this_thread::sleep_for(std::chrono::milliseconds(10));
+     }
+ }
+  
+ int main()
+ {
+     int n = 0;
+     std::thread t1; // t1 is not a thread
+     std::thread t2(f1, n + 1); // pass by value
+     std::thread t3(f2, std::ref(n)); // pass by reference
+     std::thread t4(std::move(t3)); // t4 is now running f2(). t3 is no longer a thread
+     t2.join();
+     t4.join();
+     std::cout << "Final value of n is " << n << '\\n';
+ }
+
+.SH Possible output:
+
+ Thread 1 executing
+ Thread 2 executing
+ Thread 1 executing
+ Thread 2 executing
+ Thread 1 executing
+ Thread 2 executing
+ Thread 1 executing
+ Thread 2 executing
+ Thread 1 executing
+ Thread 2 executing
+ Final value of n is 5
+
+.SH References
+
+     • C++11 standard (ISO/IEC 14882:2011):
+
+     • 30.3.1.2 thread constructors [thread.thread.constr]

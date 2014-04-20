@@ -1,0 +1,128 @@
+.TH std::packaged_task 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <future>
+   template< class > class packaged_task; //not defined \fB(1)\fP \fI(since C++11)\fP
+   template< class R, class ...Args >                   \fB(2)\fP \fI(since C++11)\fP
+   class packaged_task<R(Args...)>;
+
+   The class template std::packaged_task wraps any callable target \fI\fI(function\fP, lambda\fP
+   expression, bind expression, or another function object) so that it can be invoked
+   asynchronously. Its return value or exception thrown is stored in a shared state
+   which can be accessed through std::future objects.
+
+   Just like std::function, std::packaged_task is a polymorphic, allocator-aware
+   container: the stored callable target may be allocated on heap or with a provided
+   allocator.
+
+.SH Contents
+
+     • 1 Member functions
+
+          • 1.1 Getting the result
+          • 1.2 Execution
+
+     • 2 Non-member functions
+     • 3 Helper classes
+     • 4 Example
+     • 5 See also
+
+.SH Member functions
+
+   constructor               constructs the task object
+                             \fI(public member function)\fP
+   destructor                destructs the task object
+                             \fI(public member function)\fP
+   operator=                 moves the task object
+                             \fI(public member function)\fP
+   valid                     checks if the task object has a valid function
+                             \fI(public member function)\fP
+   swap                      swaps two task objects
+                             \fI(public member function)\fP
+.SH Getting the result
+   get_future                returns a std::future associated with the promised result
+                             \fI(public member function)\fP
+.SH Execution
+   operator()                executes the function
+                             \fI(public member function)\fP
+                             executes the function ensuring that the result is ready
+   make_ready_at_thread_exit only once the current thread exits
+                             \fI(public member function)\fP
+                             resets the state abandoning any stored results of previous
+   reset                     executions
+                             \fI(public member function)\fP
+
+.SH Non-member functions
+
+   std::swap(std::packaged_task) specializes the std::swap algorithm
+   \fI(C++11)\fP                       \fI(function template)\fP
+
+.SH Helper classes
+
+   std::uses_allocator<std::packaged_task> specializes the std::uses_allocator type
+   \fI(C++11)\fP                                 trait
+                                           \fI(class template specialization)\fP
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <cmath>
+ #include <thread>
+ #include <future>
+ #include <functional>
+  
+ // unique function to avoid disambiguating the std::pow overload set
+ int f(int x, int y) { return std::pow(x,y); }
+  
+ void task_lambda()
+ {
+     std::packaged_task<int(int,int)> task([](int a, int b) {
+         return std::pow(a, b);
+     });
+     std::future<int> result = task.get_future();
+  
+     task(2, 9);
+  
+     std::cout << "task_lambda:\\t" << result.get() << '\\n';
+ }
+  
+ void task_bind()
+ {
+     std::packaged_task<int()> task(std::bind(f, 2, 11));
+     std::future<int> result = task.get_future();
+  
+     task();
+  
+     std::cout << "task_bind:\\t" << result.get() << '\\n';
+ }
+  
+ void task_thread()
+ {
+     std::packaged_task<int(int,int)> task(f);
+     std::future<int> result = task.get_future();
+  
+     std::thread task_td(std::move(task), 2, 10);
+     task_td.join();
+  
+     std::cout << "task_thread:\\t" << result.get() << '\\n';
+ }
+  
+ int main()
+ {
+     task_lambda();
+     task_bind();
+     task_thread();
+ }
+
+.SH Output:
+
+ task_lambda: 512
+ task_bind:   2048
+ task_thread: 1024
+
+.SH See also
+
+   future  waits for a value that is set asynchronously
+   \fI(C++11)\fP \fI(class template)\fP

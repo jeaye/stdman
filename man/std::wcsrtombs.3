@@ -1,0 +1,97 @@
+.TH std::wcsrtombs 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <cwchar>
+   std::size_t wcsrtombs( char* dst,
+
+                          const wchar_t** src,
+                          std::size_t len,
+
+                          std::mbstate_t* ps );
+
+   Converts a sequence of wide characters from the array whose first element is pointed
+   to by *src to its narrow multibyte representation that begins in the conversion
+   state described by *ps. If dst is not null, converted characters are stored in the
+   successive elements of the char array pointed to by dst. No more than len bytes are
+   written to the destination array.
+
+   Each character is converted as if by a call to std::wcrtomb. The conversion stops
+   if:
+
+     • The null character was converted and stored. src is set to NULL and *ps
+       represents the initial shift state.
+     • A wchar_t was found that does not correspond to a valid character in the current
+       C locale. src is set to point at the first unconverted wide character.
+     • the next multibyte character to be stored would exceed len. src is set to point
+       at the first unconverted wide character. This condition is not checked if
+       dst==NULL.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Example
+     • 4 See also
+
+.SH Parameters
+
+   dst - pointer to narrow character array where the multibyte characters will be
+         stored
+   src - pointer to pointer to the first element of a null-terminated wide string
+   len - number of bytes available in the array pointed to by dst
+   ps  - pointer to the conversion state object
+
+.SH Return value
+
+   On success, returns the number of bytes (including any shift sequences, but
+   excluding the terminating '\\0') written to the character array whose first element
+   is pointed to by dst. If dst==NULL, returns the number of bytes that would have been
+   written.
+
+   On conversion error (if invalid wide character was encountered), returns
+   static_cast<std::size_t>(-1), stores EILSEQ in errno, and leaves *ps in unspecified
+   state.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <vector>
+ #include <clocale>
+ #include <string>
+ #include <cwchar>
+  
+ void print_wide(const wchar_t* wstr)
+ {
+     std::mbstate_t state = std::mbstate_t();
+     int len = 1 + std::wcsrtombs(NULL, &wstr, 0, &state);
+     std::vector<char> mbstr(len);
+     std::wcsrtombs(&mbstr[0], &wstr, mbstr.size(), &state);
+     std::cout << "multibyte string: " << &mbstr[0] << '\\n'
+               << "Length, including '\\\\0': " << mbstr.size() << '\\n';
+ }
+  
+ int main()
+ {
+     std::setlocale(LC_ALL, "en_US.utf8");
+     // UTF-8 narrow multibyte encoding
+     const wchar_t* wstr = L"z\\u00df\\u6c34\\U0001d10b"; // or L"zß水𝄋"
+     print_wide(wstr);
+ }
+
+.SH Output:
+
+ multibyte string: zß水𝄋
+ Length, including '\\0': 11
+
+.SH See also
+
+   wcrtomb   converts a wide character to its multibyte representation, given state
+             \fI(function)\fP
+   mbsrtowcs converts a narrow multibyte character string to wide string, given state
+             \fI(function)\fP
+   do_out    converts a string from internT to externT, such as when writing to file
+   \fB[virtual]\fP \fI(virtual protected member function of std::codecvt)\fP
+   C documentation for
+   wcsrtombs

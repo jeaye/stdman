@@ -1,0 +1,94 @@
+.TH std::enable_shared_from_this 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <memory>
+   template< class T > class enable_shared_from_this;  \fI(since C++11)\fP
+
+   std::enable_shared_from_this allows an object t that is currently managed by a
+   std::shared_ptr named pt to safely generate additional std::shared_ptr instances
+   pt1, pt2, ... that all share ownership of t with pt.
+
+   Inheriting from std::enable_shared_from_this<T> provides the type T with a member
+   function shared_from_this. If an object t of type T is managed by a
+   std::shared_ptr<T> named pt, then calling T::shared_from_this will return a new
+   std::shared_ptr<T> that shares ownership of t with pt.
+
+   Note that prior to calling shared_from_this on an object t, there must be a
+   std::shared_ptr that owns t.
+
+   Also note that enable_shared_from_this provides an alternative to an expression like
+   std::shared_ptr<T>(this), which is likely to result in this being destructed more
+   than once by multiple owners that are unaware of each other.
+
+.SH Contents
+
+     • 1 Member functions
+     • 2 Notes
+     • 3 Example
+     • 4 See also
+
+.SH Member functions
+
+   constructor      constructs an enabled_shared_from_this object
+                    \fI(protected member function)\fP
+   destructor       destroys an enable_shared_from_this object
+                    \fI(protected member function)\fP
+   operator=        returns a reference to this
+                    \fI(protected member function)\fP
+   shared_from_this returns a shared_ptr which shares ownership of *this
+                    \fI(public member function)\fP
+
+.SH Notes
+
+   A common implementation for enable_shared_from_this is to hold a weak reference
+   (such as std::weak_ptr) to this. The constructors of std::shared_ptr can detect
+   presence of a enable_shared_from_this base and share ownership with the existing
+   std::shared_ptrs, instead of assuming the pointer is not managed by anyone else.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <memory>
+ #include <iostream>
+  
+ struct Good: std::enable_shared_from_this<Good>
+ {
+     std::shared_ptr<Good> getptr() {
+         return shared_from_this();
+     }
+ };
+  
+ struct Bad
+ {
+     std::shared_ptr<Bad> getptr() {
+         return std::shared_ptr<Bad>(this);
+     }
+     ~Bad() { std::cout << "Bad::~Bad() called\\n"; }
+ };
+  
+ int main()
+ {
+     // Good: the two shared_ptr's share the same object
+     std::shared_ptr<Good> gp1(new Good);
+     std::shared_ptr<Good> gp2 = gp1->getptr();
+     std::cout << "gp2.use_count() = " << gp2.use_count() << '\\n';
+  
+     // Bad, each shared_ptr thinks it's the only owner of the object
+     std::shared_ptr<Bad> bp1(new Bad);
+     std::shared_ptr<Bad> bp2 = bp1->getptr();
+     std::cout << "bp2.use_count() = " << bp2.use_count() << '\\n';
+ } // UB: double-delete of Bad
+
+.SH Output:
+
+ gp2.use_count() = 2
+ bp2.use_count() = 1
+ Bad::~Bad() called
+ Bad::~Bad() called
+ *** glibc detected *** ./test: double free or corruption
+
+.SH See also
+
+   shared_ptr smart pointer with shared object ownership semantics
+   \fI(C++11)\fP    \fI(class template)\fP

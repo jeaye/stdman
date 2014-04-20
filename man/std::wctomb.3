@@ -1,0 +1,92 @@
+.TH std::wctomb 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <cstdlib>
+   int wctomb( char *s, wchar_t wc );
+
+   Converts a wide character wc to multibyte encoding and stores it (including any
+   shift sequences) in the char array whose first element is pointed to by s. No more
+   than MB_CUR_MAX characters are stored.
+
+   If wc is the null character, the null byte is written to s, preceded by any shift
+   sequences necessary to restore the initial shift state.
+
+   If s is a null pointer, resets the global conversion state and determines whether
+   shift sequences are used.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Notes
+     • 4 Example
+     • 5 See also
+
+.SH Parameters
+
+   s  - pointer to the character array for output
+   wc - wide character to convert
+
+.SH Return value
+
+   If s is not a null pointer, returns the number of bytes that are contained in the
+   multibyte representation of wc or -1 if wc is not a valid character.
+
+   If s is a null pointer, resets its internal conversion state to represent the
+   initial shift state and returns 0 if the current multibyte encoding is not
+   state-dependent (does not use shift sequences) or a non-zero value if the current
+   multibyte encoding is state-dependent (uses shift sequences).
+
+.SH Notes
+
+   Each call to wctomb updates the internal global conversion state (a static object of
+   type std::mbstate_t, only known to this function). If the multibyte encoding uses
+   shift states, this function is not reentrant. In any case, multiple threads should
+   not call wctomb without synchronization: std::wcrtomb may be used instead.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <clocale>
+ #include <string>
+ #include <cstdlib>
+  
+ void print_wide(const std::wstring& wstr)
+ {
+     bool shifts = std::wctomb(NULL, 0); // reset the conversion state
+     std::cout << "shift sequences " << (shifts ? "are" : "not" ) << " used\\n";
+     for (wchar_t wc : wstr) {
+         std::string mb(MB_CUR_MAX, '\\0');
+         int ret = std::wctomb(&mb[0], wc);
+         std::cout << "multibyte char " << mb << " is " << ret << " bytes\\n";
+     }
+ }
+  
+ int main()
+ {
+     std::setlocale(LC_ALL, "en_US.utf8");
+     // UTF-8 narrow multibyte encoding
+     std::wstring wstr = L"z\\u00df\\u6c34\\U0001d10b"; // or L"zß水𝄋"
+     print_wide(wstr);
+ }
+
+.SH Output:
+
+ shift sequences not used
+ multibyte char z is 1 bytes
+ multibyte char ß is 2 bytes
+ multibyte char 水 is 3 bytes
+ multibyte char 𝄋 is 4 bytes
+
+.SH See also
+
+   mbtowc    converts the next multibyte character to wide character
+             \fI(function)\fP
+   wcrtomb   converts a wide character to its multibyte representation, given state
+             \fI(function)\fP
+   do_out    converts a string from internT to externT, such as when writing to file
+   \fB[virtual]\fP \fI(virtual protected member function of std::codecvt)\fP
+   C documentation for
+   wctomb

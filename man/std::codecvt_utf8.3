@@ -1,0 +1,217 @@
+.TH std::codecvt_utf8 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <codecvt>
+   template<
+
+       class Elem,
+       unsigned long Maxcode = 0x10ffff,
+       std::codecvt_mode Mode = (std::codecvt_mode)0
+
+   > class codecvt_utf8 : public std::codecvt<Elem, char, std::mbstate_t>;
+
+   std::codecvt_utf8 is a std::codecvt facet which encapsulates conversion between a
+   UTF-8 encoded byte string and UCS2 or UCS4 character string (depending on the type
+   of Elem). This codecvt facet can be used to read and write UTF-8 files, both text
+   and binary.
+
+.SH Contents
+
+     • 1 Template Parameters
+     • 2 Member functions
+     • 3
+       std::codecvt_utf8::codecvt_utf8
+
+          • 3.1 Parameters
+
+     • 4
+       std::codecvt_utf8::~codecvt_utf8
+
+          • 4.1 Inherited from
+            std::codecvt
+
+               • 4.1.1 Member types
+               • 4.1.2 Member objects
+               • 4.1.3 Member functions
+               • 4.1.4 Protected member functions
+
+          • 4.2 Inherited from
+            std::codecvt_base
+
+               • 4.2.1 Example
+               • 4.2.2 See also
+
+.SH Template Parameters
+
+   Elem    - either char16_t, char32_t, or wchar_t
+   Maxcode - the largest value of Elem that this facet will read or write without error
+   Mode    - a constant of type std::codecvt_mode
+
+.SH Member functions
+
+   constructor   constructs a new codecvt_utf8 facet
+                 \fI(public member function)\fP
+   destructor    destroys a codecvt_utf8 facet
+                 \fI(public member function)\fP
+
+                             std::codecvt_utf8::codecvt_utf8
+
+   explicit codecvt_utf8( std::size_t refs = 0 );
+
+   Constructs a new std::codecvt_utf8 facet, passes the initial reference counter refs
+   to the base class.
+
+.SH Parameters
+
+   refs - the number of references that link to the facet
+
+                             std::codecvt_utf8::~codecvt_utf8
+
+   ~codecvt_utf8();
+
+   Destroys the facet. Unlike the locale-managed facets, this facet's destructor is
+   public.
+
+Inherited from std::codecvt
+
+.SH Member types
+
+   Member type Definition
+   intern_type internT
+   extern_type externT
+   state_type  stateT
+
+.SH Member objects
+
+   Member name Type
+   id (static) std::locale::id
+
+.SH Member functions
+
+   out           invokes do_out
+                 \fI(public member function of std::codecvt)\fP
+   in            invokes do_in
+                 \fI(public member function of std::codecvt)\fP
+   unshift       invokes do_unshift
+                 \fI(public member function of std::codecvt)\fP
+   encoding      invokes do_encoding
+                 \fI(public member function of std::codecvt)\fP
+   always_noconv invokes do_always_noconv
+                 \fI(public member function of std::codecvt)\fP
+   length        invokes do_length
+                 \fI(public member function of std::codecvt)\fP
+   max_length    invokes do_max_length
+                 \fI(public member function of std::codecvt)\fP
+
+.SH Protected member functions
+
+   do_out           converts a string from internT to externT, such as when writing to
+   \fB[virtual]\fP        file
+                    \fI(virtual protected member function of std::codecvt)\fP
+   do_in            converts a string from externT to internT, such as when reading
+   \fB[virtual]\fP        from file
+                    \fI(virtual protected member function of std::codecvt)\fP
+   do_unshift       generates the termination character sequence of externT characters
+   \fB[virtual]\fP        for incomplete conversion
+                    \fI(virtual protected member function of std::codecvt)\fP
+   do_encoding      returns the number of externT characters necessary to produce one
+   \fB[virtual]\fP        internT character, if constant
+                    \fI(virtual protected member function of std::codecvt)\fP
+   do_always_noconv tests if the facet encodes an identity conversion for all valid
+   \fB[virtual]\fP        argument values
+                    \fI(virtual protected member function of std::codecvt)\fP
+   do_length        calculates the length of the externT string that would be consumed
+   \fB[virtual]\fP        by conversion into given internT buffer
+                    \fI(virtual protected member function of std::codecvt)\fP
+   do_max_length    returns the maximum number of externT characters that could be
+   \fB[virtual]\fP        converted into a single internT character
+                    \fI(virtual protected member function of std::codecvt)\fP
+
+Inherited from std::codecvt_base
+
+   Member type                                 Definition
+   enum result { ok, partial, error, noconv }; Unscoped enumeration type
+
+   Enumeration constant Definition
+   ok                   conversion was completed with no error
+   partial              not all source characters were converted
+   error                encountered an invalid character
+   noconv               no conversion required, input and output types are the same
+
+.SH Example
+
+   The following example demonstrates the difference between UCS2/UTF-8 and
+   UTF-16/UTF-8 conversions: the third character in the string is not a valid UCS2
+   character.
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <string>
+ #include <locale>
+ #include <codecvt>
+  
+ int main()
+ {
+     // UTF-8 data. The character U+1d10b, musical sign segno, does not fit in UCS2
+     std::string utf8 = u8"z\\u6c34\\U0001d10b";
+  
+     // the UTF-8 / UTF-16 standard conversion facet
+     std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> utf16conv;
+     std::u16string utf16 = utf16conv.from_bytes(utf8);
+     std::cout << "UTF16 conversion produced " << utf16.size() << " code points:\\n";
+     for (char16_t c : utf16)
+         std::cout << std::hex << std::showbase << c << '\\n';
+  
+     // the UTF-8 / UCS2 standard conversion facet
+     std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> ucs2conv;
+     try {
+         std::u16string ucs2 = ucs2conv.from_bytes(utf8);
+     } catch(const std::range_error& e) {
+         std::u16string ucs2 = ucs2conv.from_bytes(utf8.substr(0, ucs2conv.converted()));
+         std::cout << "UCS2 failed after producing " << std::dec << ucs2.size()<<" characters:\\n";
+         for (char16_t c : ucs2)
+             std::cout << std::hex << std::showbase << c << '\\n';
+     }
+ }
+
+.SH Output:
+
+ UTF16 conversion produced 4 code points:
+ 0x7a
+ 0x6c34
+ 0xd834
+ 0xdd0b
+ UCS2 failed after producing 2 characters:
+ 0x7a
+ 0x6c34
+
+.SH See also
+
+    Character  narrow multibyte              UTF-8                      UTF-16
+   conversions      (char)                  (char)                    (char16_t)
+                                codecvt<char16_t, char,
+               mbrtoc16 /       mbstate_t>
+     UTF-16    c16rtomb         codecvt_utf8_utf16<char16_t>    N/A
+                                codecvt_utf8_utf16<char32_t>
+                                codecvt_utf8_utf16<wchar_t>
+      UCS2     No               codecvt_utf8<char16_t>          codecvt_utf16<char16_t>
+   UTF-32/UCS4 mbrtoc32 /       codecvt<char32_t, char,
+   (char32_t)  c32rtomb         mbstate_t>                      codecvt_utf16<char32_t>
+                                codecvt_utf8<char32_t>
+    UCS2/UCS4  No               codecvt_utf8<wchar_t>           codecvt_utf16<wchar_t>
+    (wchar_t)
+               codecvt<wchar_t,
+      wide     char, mbstate_t> No                              No
+    (wchar_t)  mbsrtowcs /
+               wcsrtombs
+
+                      converts between character encodings, including UTF-8, UTF-16,
+   codecvt            UTF-32
+                      \fI(class template)\fP
+   codecvt_mode       tags to alter behavior of the standard codecvt facets
+   \fI(C++11)\fP            \fI(enum)\fP
+   codecvt_utf16      converts between UTF-16 and UCS2/UCS4
+   \fI(C++11)\fP            \fI(class template)\fP
+   codecvt_utf8_utf16 converts between UTF-8 and UTF-16
+   \fI(C++11)\fP            \fI(class template)\fP

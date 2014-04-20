@@ -1,0 +1,107 @@
+.TH std::future 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <future>
+   template< class T > class future;       \fB(1)\fP \fI(since C++11)\fP
+   template< class T > class future<T&>;   \fB(2)\fP \fI(since C++11)\fP
+   template<>          class future<void>; \fB(3)\fP \fI(since C++11)\fP
+
+   The class template std::future provides a mechanism to access the result of
+   asynchronous operations:
+
+     • An asynchronous operation (created via std::async, std::packaged_task, or
+       std::promise) can provide a std::future object to the creator of that
+       asynchronous operation.
+
+     • The creator of the asynchronous operation can then use a variety of methods to
+       query, wait for, or extract a value from the std::future. These methods may
+       block if the asynchronous operation has not yet provided a value.
+
+     • When the asynchronous operation is ready to send a result to the creator, it can
+       do so by modifying shared state (e.g. std::promise::set_value) that is linked to
+       the creator's std::future.
+
+   Note that std::future references shared state that is not shared with any other
+   asynchronous return objects (as opposed to std::shared_future).
+
+.SH Contents
+
+     • 1 Member functions
+
+          • 1.1 Getting the result
+          • 1.2 State
+
+     • 2 Example
+     • 3 See also
+
+.SH Member functions
+
+   constructor   constructs the future object
+                 \fI(public member function)\fP
+   destructor    destructs the future object
+                 \fI(public member function)\fP
+   operator=     moves the future object
+                 \fI(public member function)\fP
+                 transfers the shared state from *this to a shared_future and returns
+   share         it
+                 \fI(public member function)\fP
+.SH Getting the result
+   get           returns the result
+                 \fI(public member function)\fP
+.SH State
+   valid         checks if the future has a shared state
+                 \fI(public member function)\fP
+   wait          waits for the result to become available
+                 \fI(public member function)\fP
+                 waits for the result, returns if it is not available for the specified
+   wait_for      timeout duration
+                 \fI(public member function)\fP
+                 waits for the result, returns if it is not available until specified
+   wait_until    time point has been reached
+                 \fI(public member function)\fP
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <future>
+ #include <thread>
+  
+ int main()
+ {
+     // future from a packaged_task
+     std::packaged_task<int()> task([](){ return 7; }); // wrap the function
+     std::future<int> f1 = task.get_future();  // get a future
+     std::thread(std::move(task)).detach(); // launch on a thread
+  
+     // future from an async()
+     std::future<int> f2 = std::async(std::launch::async, [](){ return 8; });
+  
+     // future from a promise
+     std::promise<int> p;
+     std::future<int> f3 = p.get_future();
+     std::thread( [](std::promise<int> p){ p.set_value_at_thread_exit(9); },
+                  std::move(p) ).detach();
+  
+     std::cout << "Waiting..." << std::flush;
+     f1.wait();
+     f2.wait();
+     f3.wait();
+     std::cout << "Done!\\nResults are: "
+               << f1.get() << ' ' << f2.get() << ' ' << f3.get() << '\\n';
+ }
+
+.SH Output:
+
+ Waiting...Done!
+ Results are: 7 8 9
+
+.SH See also
+
+   async         runs a function asynchronously (potentially in a new thread) and
+   \fI(C++11)\fP       returns a std::future that will hold the result
+                 \fI(function template)\fP
+   shared_future waits for a value (possibly referenced by other futures) that is set
+   \fI(C++11)\fP       asynchronously
+                 \fI(class template)\fP

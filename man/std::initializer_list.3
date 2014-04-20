@@ -1,0 +1,131 @@
+.TH std::initializer_list 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <initializer_list>
+   template< class T >                   \fI(since C++11)\fP
+   class initializer_list;
+
+   An object of type std::initializer_list<T> is a lightweight proxy object that
+   provides access to an array of objects of type T.
+
+   A std::initializer_list object is automatically constructed when:
+
+     • a braced-init-list is used in list-initialization, including function-call list
+       initialization and assignment expressions (not to be confused with constructor
+       initializer lists)
+     • a braced-init-list is bound to auto, including in a ranged for loop
+
+   Initializer lists may be implemented as a pair of pointers or pointer and length.
+   Copying a std::initializer_list does not copy the underlying objects. The underlying
+   array is not guaranteed to exist after the lifetime of the original initializer list
+   object has ended. The storage for std::initializer_list is unspecified (i.e. it
+   could be automatic, temporary, or static read-only memory, depending on the
+   situation).
+
+.SH Contents
+
+     • 1 Member types
+     • 2 Member functions
+
+          • 2.1 Capacity
+          • 2.2 Iterators
+
+     • 3 Non-member functions
+     • 4 Example
+
+.SH Member types
+
+   Member type     Definition
+   value_type      T
+   reference       const T&
+   const_reference const T&
+   size_type       size_t
+   iterator        const T*
+   const_iterator  const T*
+
+.SH Member functions
+
+   constructor   creates an empty initializer list
+                 \fI(public member function)\fP
+.SH Capacity
+   size          returns the number of elements in the initializer list
+                 \fI(public member function)\fP
+.SH Iterators
+   begin         returns a pointer the first element
+                 \fI(public member function)\fP
+   end           returns a pointer to one past the last element
+                 \fI(public member function)\fP
+
+.SH Non-member functions
+
+   std::begin(std::initializer_list) specializes std::begin
+   \fI(C++11)\fP                           \fI(function template)\fP
+   std::end(std::initializer_list)   specializes std::end
+   \fI(C++11)\fP                           \fI(function template)\fP
+   Defined in header <iterator>
+   rbegin(std::initializer_list)     specializes std::rbegin
+   \fI(C++14)\fP                           \fI(function)\fP
+   rend(std::initializer_list)       specializes std::rend
+   \fI(C++14)\fP                           \fI(function)\fP
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <vector>
+ #include <initializer_list>
+  
+ template <class T>
+ struct S {
+     std::vector<T> v;
+     S(std::initializer_list<T> l) : v(l) {
+          std::cout << "constructed with a " << l.size() << "-element list\\n";
+     }
+     void append(std::initializer_list<T> l) {
+         v.insert(v.end(), l.begin(), l.end());
+     }
+     std::pair<const T*, std::size_t> c_arr() const {
+         return {&v[0], v.size()};  // list-initialization in return statement
+                                    // this is NOT a use of std::initializer_list
+     }
+ };
+  
+ template <typename T>
+ void templated_fn(T) {}
+  
+ int main()
+ {
+     S<int> s = {1, 2, 3, 4, 5}; // direct list-initialization
+     s.append({6, 7, 8});      // list-initialization in function call
+  
+     std::cout << "The vector size is now " << s.c_arr().second << " ints:\\n";
+  
+     for (auto n : s.v) std::cout << ' ' << n;
+  
+     std::cout << '\\n';
+  
+     std::cout << "range-for over brace-init-list: \\n";
+  
+     for (int x : {-1, -2, -3}) // the rule for auto makes this ranged for work
+         std::cout << x << ' ';
+     std::cout << '\\n';
+  
+     auto al = {10, 11, 12};   // special rule for auto
+  
+     std::cout << "The list bound to auto has size() = " << al.size() << '\\n';
+  
+ //    templated_fn({1, 2, 3}); // compiler error! "{1, 2, 3}" is not an expression,
+                              // it has no type, and so T cannot be deduced
+     templated_fn<std::initializer_list<int>>({1, 2, 3}); // OK
+     templated_fn<std::vector<int>>({1, 2, 3});           // also OK
+ }
+
+.SH Output:
+
+ constructed with a 5-element list
+ The vector size is now 8 ints:
+  1 2 3 4 5 6 7 8
+ range-for over brace-init-list:
+ -1 -2 -3
+ The list bound to auto has size() = 3

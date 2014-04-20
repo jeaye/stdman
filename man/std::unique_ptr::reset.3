@@ -1,0 +1,112 @@
+.TH std::unique_ptr::reset 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   void reset( pointer ptr = pointer() ); \fB(1)\fP \fI(since C++11)\fP
+   template< class U >                        \fI(since C++11)\fP
+   void reset( U ) = delete;              \fB(2)\fP (member of specialization unique_ptr<T[]>
+                                              only)
+                                              \fI(since C++11)\fP
+   void reset( std::nullptr_t p );        \fB(3)\fP (member of specialization unique_ptr<T[]>
+                                              only)
+
+   Replaces the managed object.
+
+   1) Given current_ptr, the pointer that was managed by *this, performs the following
+   actions, in this order:
+
+    1. Saves a copy of the current pointer old_ptr = current_ptr
+    2. Overwrites the current pointer with the argument current_ptr = ptr
+    3. If the old pointer was non-empty, deletes the previously managed object
+       if(old_ptr != nullptr) get_deleter()(old_ptr).
+
+   2) In the specialization for dynamic arrays, std::unique_ptr<T[]>, this template
+   member is provided to prevent using reset() with a pointer to derived (which would
+   result in undefined behavior with arrays).
+   3) In the specialization for dynamic arrays, std::unique_ptr<T[]>, the third
+   overload is necessary to allow reset to nullptr (which would otherwise be prohibited
+   by the template overload). Equivalent to reset(pointer())
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Notes
+     • 5 Example
+     • 6 See also
+
+.SH Parameters
+
+   ptr - pointer to a new object to manage
+
+.SH Return value
+
+   \fI(none)\fP
+
+.SH Exceptions
+
+   noexcept specification:  
+   noexcept
+     
+
+.SH Notes
+
+   To replace the managed object while supplying a new deleter as well, move assignment
+   operator may be used.
+
+   A test for self-reset, i.e. whether ptr points to an object already managed by
+   *this, is not performed, except where provided as a compiler extension or as a
+   debugging assert. Note that code such as p.reset(p.release()) does not involve
+   self-reset, only code like p.reset(p.get()) does.
+
+   Visual Studio's implementation of reset is currently (in VC10 and VC11) broken and
+   non-conforming to the C++11 standard. It deletes the managed object before resetting
+   the pointer to the owned object.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <memory>
+  
+ struct Foo {
+     Foo() { std::cout << "Foo...\\n"; }
+     ~Foo() { std::cout << "~Foo...\\n"; }
+ };
+  
+ struct D {
+     void operator() (Foo* p) {
+         std::cout << "Calling delete for Foo object... \\n";
+         delete p;
+     }
+ };
+  
+ int main()
+ {
+     std::cout << "Creating new Foo...\\n";
+     std::unique_ptr<Foo, D> up(new Foo(), D());  // up owns the Foo pointer (deleter D)
+  
+     std::cout << "Replace owned Foo with a new Foo...\\n";
+     up.reset(new Foo());  // calls deleter for the old one
+  
+     std::cout << "Release and delete the owned Foo...\\n";
+     up.reset(nullptr);
+ }
+
+.SH Output:
+
+ Creating new Foo...
+ Foo...
+ Replace owned Foo with a new Foo...
+ Foo...
+ Calling delete for Foo object...
+ ~Foo...
+ Release and delete the owned Foo...
+ Calling delete for Foo object...
+ ~Foo...
+
+.SH See also
+
+   release returns a pointer to the managed object and releases the ownership
+           \fI(public member function)\fP

@@ -1,0 +1,107 @@
+.TH std::notify_all_at_thread_exit 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <condition_variable>
+   void notify_all_at_thread_exit( std::condition_variable& cond,      \fI(since C++11)\fP
+                                   std::unique_lock<std::mutex> lk );
+
+   notify_all_at_thread_exit provides a mechanism to notify other threads that a given
+   thread has completely finished, including destroying all thread_local objects. It
+   operates as follows:
+
+     • Ownership of the previously acquired lock lk is transferred to internal storage.
+
+     • The execution environment is modified such that when the current thread exits,
+       after the destructors for all objects with thread local storage duration are
+       called, the condition variable cond is notified as if by:
+
+   lk.unlock();
+   cond.notify_all();
+
+   An equivalent effect may be achieved with the facilities provided by std::promise or
+   std::packaged_task.
+
+.SH Contents
+
+     • 1 Notes
+     • 2 Parameters
+     • 3 Return value
+     • 4 Example
+     • 5 See also
+
+.SH Notes
+
+   Calling this function if lock.mutex() is not locked by the current thread is
+   undefined behavior.
+
+   Calling this function if lock.mutex() is not the same mutex as the one used by all
+   other threads that are currently waiting on the same condition variable is undefined
+   behavior.
+
+   The supplied lock lk is held until the thread exits. Once this function has been
+   called, no more threads may acquire the same lock in order to wait on cond. If some
+   thread is waiting on this condition variable, it should not attempt to release and
+   reacquire the lock when it wakes up spuriously.
+
+   In typical use cases, this function is the last thing called by a detached thread.
+
+.SH Parameters
+
+   cond - the condition variable to notify at thread exit
+   lk   - the lock associated with the condition variable cond
+
+.SH Return value
+
+   \fI(none)\fP
+
+.SH Example
+
+   This partial code fragment illustrates how notify_all_at_thread_exit can be used to
+   avoid accessing data that depends on thread locals while those thread locals are in
+   the process of being destructed:
+
+   
+// Run this code
+
+ #include <mutex>
+ #include <thread>
+ #include <condtion_variable>
+  
+ std::mutex m;
+ std::condition_variable cv;
+  
+ bool ready = false;
+ ComplexType result;  // some arbitrary type
+  
+ void thread_func()
+ {
+     std::unique_lock<std::mutex> lk(m);
+     // assign a value to result using thread_local data
+     result = function_that_uses_thread_locals();
+     ready = true;
+     std::notify_all_at_thread_exit(cv, std::move(lk));
+ } // 1. destroy thread_locals, 2. unlock mutex, 3. notify cv
+  
+ int main()
+ {
+     std::thread t(thread_func);
+     t.detach();
+  
+     // do other work
+     // ...
+  
+     // wait for the detached thread
+     std::unique_lock<std::mutex> lk(m);
+     while(!ready) {
+         cv.wait(lk);
+     }
+     process(result); // result is ready and thread_local destructors have finished
+ }
+
+.SH See also
+
+                             sets the result to specific value while delivering the
+   set_value_at_thread_exit  notification only at thread exit
+                             \fI(public member function of std::promise)\fP
+                             executes the function ensuring that the result is ready
+   make_ready_at_thread_exit only once the current thread exits
+                             \fI(public member function of std::packaged_task)\fP

@@ -1,0 +1,145 @@
+.TH std::integer_sequence 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <utility>
+   template< class T, T... Ints >  \fI(since C++14)\fP
+   class integer_sequence;
+
+   The class template std::integer_sequence represents a compile-time sequence of
+   integers. When used as an argument to a function template, the parameter pack Ints
+   can be deduced and used in pack expansion.
+
+.SH Contents
+
+     • 1 Template parameters
+     • 2 Member types
+     • 3 Member functions
+     • 4
+       std::integer_sequence::size
+
+          • 4.1 Parameters
+          • 4.2 Return value
+          • 4.3 Exceptions
+          • 4.4 Helper types
+          • 4.5 Example
+
+.SH Template parameters
+
+   T       - an integer type to use for the elements of the sequence
+   ...Ints - a non-type parameter pack representing the sequence
+
+.SH Member types
+
+   Member type Definition
+   value_type  T
+
+.SH Member functions
+
+   size     returns the number of elements in Ints
+   \fB[static]\fP \fI(public static member function)\fP
+
+                               std::integer_sequence::size
+
+   static constexpr std::size_t size();
+
+   Returns the number of elements in Ints. Equivalent to sizeof...(Ints)
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   The number of elements in Ints.
+
+.SH Exceptions
+
+   noexcept specification:  
+   noexcept
+     
+
+.SH Helper types
+
+   A helper alias template with T equal to std::size_t is defined.
+
+   template<std::size_t... Ints>
+   using index_sequence = std::integer_sequence<std::size_t, Ints...>;
+
+   A helper alias templates are defined to simplify creation of integer_sequence and
+   index_sequence types with 0, 1, 2, ..., N-1 as Ints:
+
+   template<class T, T N>
+   using make_integer_sequence = std::integer_sequence<T, /* a sequence 0, 1, 2, ...,
+   N-1 */ >;
+   template<std::size_t N>
+   using make_index_sequence = make_integer_sequence<std::size_t, N>;
+
+   The behavior is undefined if N is negative. If N is zero, the indicated type is
+   integer_sequence<T>.
+
+   Another helper alias template std::index_sequence_for is defined to convert any type
+   parameter pack into an index sequence of the same length
+
+   template<class... T>
+   using index_sequence_for = std::make_index_sequence<sizeof...(T)>;
+
+.SH Example
+
+   
+// Run this code
+
+ #include <tuple>
+ #include <iostream>
+ #include <array>
+ #include <utility>
+  
+ // Convert array into to tuple
+ template<typename Array, std::size_t... I>
+ auto a2t_impl(const Array& a, std::index_sequence<I...>)
+     -> decltype(std::make_tuple(a[I]...))
+ {
+     return std::make_tuple(a[I]...);
+ }
+  
+ template<typename T, std::size_t N, typename Indices = std::make_index_sequence<N>>
+ auto a2t(const std::array<T, N>& a)
+     -> decltype(a2t_impl(a, Indices()))
+ {
+     return a2t_impl(a, Indices());
+ }
+  
+ // pretty-print a tuple (from http://stackoverflow.com/a/6245777/273767 )
+  
+ template<class Ch, class Tr, class Tuple, std::size_t... Is>
+ void print_tuple_impl(std::basic_ostream<Ch,Tr>& os,
+                       const Tuple & t,
+                       std::index_sequence<Is...>)
+ {
+     using swallow = int[];
+     (void)swallow{0, (void(os << (Is == 0? "" : ", ") << std::get<Is>(t)), 0)...};
+ }
+  
+ template<class Ch, class Tr, class... Args>
+ auto operator<<(std::basic_ostream<Ch, Tr>& os, const std::tuple<Args...>& t)
+    -> std::basic_ostream<Ch, Tr>&
+ {
+     os << "(";
+     print_tuple_impl(os, t, std::index_sequence_for<Args...>{});
+     return os << ")";
+ }
+  
+ int main()
+ {
+     std::array<int, 4> array = {1,2,3,4};
+  
+     // convert an array into a tuple
+     auto tuple = a2t(array);
+     static_assert(std::is_same<decltype(tuple),
+                                std::tuple<int, int, int, int>>::value, "");
+  
+     // print it to cout
+     std::cout << tuple << '\\n';
+ }
+
+.SH Output:
+
+ (1, 2, 3, 4)

@@ -1,0 +1,137 @@
+.TH std::condition_variable_any::wait 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   template< class Lock >                   \fB(1)\fP \fI(since C++11)\fP
+   void wait( Lock& lock );
+   template< class Lock, class Predicate >  \fB(2)\fP \fI(since C++11)\fP
+   void wait( Lock& lock, Predicate pred );
+
+   wait causes the current thread to block until the condition variable is notified or
+   a spurious wakeup occurs, optionally looping until some predicate is satisfied.
+
+   1) Atomically releases lock, blocks the current executing thread, and adds it to the
+   list of threads waiting on *this. The thread will be unblocked when notify_all() or
+   notify_one() is executed. It may also be unblocked spuriously. When unblocked,
+   regardless of the reason, lock is reacquired and wait exits. If this function exits
+   via exception, lock is also reacquired.
+
+   2) Equivalent to
+
+ while (!pred()) {
+     wait(lock);
+ }
+
+   This overload may be used to ignore spurious awakenings while waiting for a specific
+   condition to become true. Note that before enter to this method lock must be
+   acquired, after wait(lock) exits it is also reacquired, i.e. lock can be used as a
+   guard to pred() access.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Notes
+     • 5 Example
+     • 6 See also
+
+.SH Parameters
+
+   lock - an object of type Lock that meets the BasicLockable requirements, which must
+          be locked by the current thread
+          predicate which returns false if the waiting should be continued.
+
+   pred - The signature of the predicate function should be equivalent to the
+          following:
+
+           bool pred();
+
+.SH Return value
+
+   \fI(none)\fP
+
+.SH Exceptions
+
+   May throw std::system_error, may also propagate exceptions thrown by lock.lock() or
+   lock.unlock().
+
+.SH Notes
+
+   Calling this function if lock.mutex() is not locked by the current thread is
+   undefined behavior.
+
+   Calling this function if lock.mutex() is not the same mutex as the one used by all
+   other threads that are currently waiting on the same condition variable is undefined
+   behavior.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <condition_variable>
+ #include <thread>
+ #include <chrono>
+  
+ std::condition_variable_any cv;
+ std::mutex cv_m; // This mutex is used for three purposes:
+                  // 1) to synchronize accesses to i
+                  // 2) to synchronize accesses to std::cerr
+                  // 3) for the condition variable cv
+ int i = 0;
+  
+ void waits()
+ {
+     std::unique_lock<std::mutex> lk(cv_m);
+     std::cerr << "Waiting... \\n";
+     cv.wait(lk, []{return i == 1;});
+     std::cerr << "...finished waiting. i == 1\\n";
+ }
+  
+ void signals()
+ {
+     std::this_thread::sleep_for(std::chrono::seconds(1));
+     {
+         std::lock_guard<std::mutex> lk(cv_m);
+         std::cerr << "Notifying...\\n";
+     }
+     cv.notify_all();
+  
+     std::this_thread::sleep_for(std::chrono::seconds(1));
+  
+     {
+         std::lock_guard<std::mutex> lk(cv_m);
+         i = 1;
+         std::cerr << "Notifying again...\\n";
+     }
+     cv.notify_all();
+ }
+  
+ int main()
+ {
+     std::thread t1(waits), t2(waits), t3(waits), t4(signals);
+     t1.join();
+     t2.join();
+     t3.join();
+     t4.join();
+ }
+
+.SH Possible output:
+
+ Waiting...
+ Waiting...
+ Waiting...
+ Notifying...
+ Notifying again...
+ ...finished waiting. i == 1
+ ...finished waiting. i == 1
+ ...finished waiting. i == 1
+
+.SH See also
+
+              blocks the current thread until the condition variable is woken up or
+   wait_for   after the specified timeout duration
+              \fI(public member function)\fP
+              blocks the current thread until the condition variable is woken up or
+   wait_until until specified time point has been reached
+              \fI(public member function)\fP

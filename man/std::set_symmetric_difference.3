@@ -1,0 +1,162 @@
+.TH std::set_symmetric_difference 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <algorithm>
+   template< class InputIt1, class InputIt2, class OutputIt >
+
+   OutputIt set_symmetric_difference( InputIt1 first1, InputIt1 last1,  \fB(1)\fP
+                                      InputIt2 first2, InputIt2 last2,
+
+                                      OutputIt d_first );
+   template< class InputIt1, class InputIt2,
+
+             class OutputIt, class Compare >
+   OutputIt set_symmetric_difference( InputIt1 first1, InputIt1 last1,  \fB(2)\fP
+                                      InputIt2 first2, InputIt2 last2,
+
+                                      OutputIt d_first, Compare comp );
+
+   Computes symmetric difference of two sorted ranges: the elements that are found in
+   either of the ranges, but not in both of them are copied to the range beginning at
+   d_first. The resulting range is also sorted.
+
+   The first version expects both input ranges to be sorted with operator<, the second
+   version expects them to be sorted with the given comparison function comp. If some
+   element is found m times in [first1, last1) and n times in [first2, last2), it will
+   be copied to d_first exactly std::abs(m-n) times. If m>n, then the last m-n of those
+   elements are copied from [first1,last1), otherwise the last n-m elements are copied
+   from [first2,last2). The resulting range cannot overlap with either of the input
+   ranges.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Complexity
+     • 4 Possible implementation
+     • 5 Example
+     • 6 See also
+
+.SH Parameters
+
+   first1, last1 - the first sorted range of elements
+   first2, last2 - the second sorted range of elements
+                   comparison function object (i.e. an object that satisfies the
+                   requirements of Compare) which returns true if the first argument
+                   is less (i.e. is ordered before) the second element.
+
+                   The signature of the comparison function should be equivalent to the
+                   following:
+   comp          -
+                    bool cmp(const Type1 &a, const Type2 &b);
+
+                   The signature does not need to have const &, but the function object
+                   must not modify the objects passed to it.
+                   The types Type1 and Type2 must be such that objects of types
+                   InputIt1 and InputIt2 can be dereferenced and then implicitly
+                   converted to Type1 and Type2 respectively. 
+.SH Type requirements
+   -
+   InputIt1 must meet the requirements of InputIterator.
+   -
+   InputIt2 must meet the requirements of InputIterator.
+   -
+   OutputIt must meet the requirements of OutputIterator.
+
+.SH Return value
+
+   Iterator past the end of the constructed range.
+
+.SH Complexity
+
+   At most 2·(N[1]+N[2]-1) comparisons, where N[1] = std::distance(first1, last1) and
+   N[2] = std::distance(first2, last2).
+
+.SH Possible implementation
+
+.SH First version
+   template<class InputIt1, class InputIt2, class OutputIt>
+   OutputIt set_difference(InputIt1 first1, InputIt1 last1,
+                           InputIt2 first2, InputIt2 last2,
+                           OutputIt d_first)
+   {
+       while (first1 != last1) {
+           if (first2 == last2) return std::copy(first1, last1, d_first);
+    
+           if (*first1 < *first2) {
+               *d_first++ = *first1++;
+           } else {
+               if (*first2 < *first1) {
+                   *d_first++ = *first2;
+               } else {
+                   ++first1;
+               }
+               ++first2;
+           }
+       }
+       return std::copy(first2, last2, d_first);
+   }
+.SH Second version
+   template<class InputIt1, class InputIt2,
+            class OutputIt, class Compare>
+   OutputIt set_difference(InputIt1 first1, InputIt1 last1,
+                           InputIt2 first2, InputIt2 last2,
+                           OutputIt d_first, Compare comp)
+   {
+       while (first1 != last1) {
+           if (first2 == last2) return std::copy(first1, last1, d_first);
+    
+           if (comp(*first1, *first2)) {
+               *d_first++ = *first1++;
+           } else {
+               if (comp(*first2, *first1)) {
+                   *d_first++ = *first2;
+               } else {
+                   ++first1;
+               }
+               ++first2;
+           }
+       }
+       return std::copy(first2, last2, d_first);
+   }
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <vector>
+ #include <algorithm>
+ #include <iterator>
+ int main()
+ {
+     std::vector<int> v1{1,2,3,4,5,6,7,8     };
+     std::vector<int> v2{        5,  7,  9,10};
+     std::sort(v1.begin(), v1.end());
+     std::sort(v2.begin(), v2.end());
+  
+     std::vector<int> v_intersection;
+  
+     std::set_symmetric_difference(
+         v1.begin(), v1.end(),
+         v2.begin(), v2.end(),
+         std::back_inserter(v_intersection));
+  
+     for(int n : v_intersection)
+         std::cout << n << ' ';
+ }
+
+.SH Output:
+
+ 1 2 3 4 6 8 9 10
+
+.SH See also
+
+   includes         returns true if one set is a subset of another
+                    \fI(function template)\fP
+   set_difference   computes the difference between two sets
+                    \fI(function template)\fP
+   set_union        computes the union of two sets
+                    \fI(function template)\fP
+   set_intersection computes the intersection of two sets
+                    \fI(function template)\fP

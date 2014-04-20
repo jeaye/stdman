@@ -1,0 +1,175 @@
+.TH std::gslice 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <valarray>
+   class gslice;
+
+   std::gslice is the selector class that identifies a subset of std::valarray indices
+   defined by a multi-level set of strides and sizes. Objects of type std::gslice can
+   be used as indices with valarray's operator[] to select, for example, columns of a
+   multidimensional array represented as a valarray.
+
+   Given the starting value s, a list of strides i
+   j and a list of sizes d
+   j, a std::gslice constructed from these values selects the set of indices k
+   j=s+Σ
+   j(i
+   jd
+   j).
+
+   For example, a gslice with starting index 3, strides {19,4,1} and lengths {2,4,3}
+   generates the following set of indices:
+
+   3 + 0*19 + 0*4 + 0*1 = 3,
+   3 + 0*19 + 0*4 + 1*1 = 4,
+   3 + 0*19 + 0*4 + 2*1 = 5,
+   3 + 0*19 + 1*4 + 0*1 = 7,
+   3 + 0*19 + 1*4 + 1*1 = 8,
+   ...
+   3 + 1*19 + 3*4 + 2*1 = 36
+
+   It is possible to construct std::gslice objects that select some indices more than
+   once: if the above example used the strides {1,1,1} , the indices would have been
+   {3, 4, 5, 4, 5, 6, ...} . Such gslices may only be used as arguments to the const
+   version of std::valarray::operator[], otherwise the behavior is undefined.
+
+.SH Contents
+
+     • 1 Member functions
+     • 2
+       std::gslice::gslice
+
+          • 2.1 Parameters
+
+     • 3
+       std::slice::start, size, stride
+
+          • 3.1 Parameters
+          • 3.2 Return value
+          • 3.3 Complexity
+          • 3.4 Example
+          • 3.5 See also
+
+.SH Member functions
+
+   constructor   constructs a generic slice
+                 \fI(public member function)\fP
+   start         returns the parameters of the slice
+   size          \fI(public member function)\fP
+   stride
+
+                                   std::gslice::gslice
+
+   gslice()
+   gslice( std::size_t start, const std::valarray<std::size_t>& sizes,
+                              const std::valarray<std::size_t>& strides );
+   gslice( const gslice& other );
+
+   Constructs a new generic slice.
+
+   1) Default constructor. Equivalent to gslice(0, std::valarray<std::size_t>(),
+   std::valarray<std::size_t>()). This constructor exists only to allow construction of
+   arrays of slices.
+   2) Constructs a new slice with parameters start, sizes, strides.
+   3) Constructs a copy of other.
+
+.SH Parameters
+
+   start   - the position of the first element
+   sizes   - an array that defines the number of elements in each dimension
+   strides - an array that defines the number of positions between successive elements
+             in each dimension
+   other   - another slice to copy
+
+                             std::slice::start, size, stride
+
+   std::size_t start() const;                 \fB(1)\fP
+   std::valarray<std::size_t> size() const;   \fB(2)\fP
+   std::valarray<std::size_t> stride() const; \fB(3)\fP
+
+   Returns the parameters passed to the slice on construction - start, sizes and
+   strides respectively.
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   The parameters of the slice -- start, sizes and strides respectively.
+
+.SH Complexity
+
+   Constant.
+
+.SH Example
+
+   demonstrates the use of gslices to address columns of a 3D array
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <valarray>
+ void test_print(std::valarray<int>& v, int rows, int cols, int planes)
+ {
+     for(int r=0; r<rows; ++r) {
+         for(int c=0; c<cols; ++c) {
+             for(int z=0; z<planes; ++z)
+                 std::cout << v[r*cols*planes + c*planes + z] << ' ';
+             std::cout << '\\n';
+         }
+         std::cout << '\\n';
+     }
+ }
+ int main()
+ {
+     std::valarray<int> v = // 3d array: 2 x 4 x 3 elements
+     { 111,112,113 , 121,122,123 , 131,132,133 , 141,142,143,
+       211,212,213 , 221,222,223 , 231,232,233 , 241,242,243};
+     // int ar3d[2][4][3]
+     std::cout << "Initial 2x4x3 array:\\n";
+     test_print(v, 2, 4, 3);
+  
+     // update every value in the first columns of both planes
+     v[std::gslice(0, {2, 4}, {4*3, 3})] = 1; // two level one strides of 12 elements
+                                              // then four level two strides of 3 elements
+  
+     // subtract the third column from the second column in the 1st plane
+     v[std::gslice(1, {1, 4}, {4*3, 3})] -= v[std::gslice(2, {1, 4}, {4*3, 3})];
+  
+     std::cout << "After column operations: \\n";
+     test_print(v, 2, 4, 3);
+ }
+
+.SH Output:
+
+ Initial 2x4x3 array:
+ 111 112 113
+ 121 122 123
+ 131 132 133
+ 141 142 143
+  
+ 211 212 213
+ 221 222 223
+ 231 232 233
+ 241 242 243
+  
+ After column operations:
+ 1 -1 113
+ 1 -1 123
+ 1 -1 133
+ 1 -1 143
+  
+ 1 212 213
+ 1 222 223
+ 1 232 233
+ 1 242 243
+
+.SH See also
+
+   operator[]   get/set valarray element, slice, or mask
+                \fI(public member function)\fP
+   slice        BLAS-like slice of a valarray: starting index, length, stride
+                \fI(class)\fP
+   gslice_array proxy to a subset of a valarray after applying a gslice
+                \fI(class template)\fP

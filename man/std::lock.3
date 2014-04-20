@@ -1,0 +1,96 @@
+.TH std::lock 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <mutex>
+   template< class Lockable1, class Lockable2, class LockableN... >       \fI(since C++11)\fP
+   void lock( Lockable1& lock1, Lockable2& lock2, LockableN& lockn... );
+
+   Locks the given Lockable objects lock1, lock2, ..., lockn using a deadlock avoidance
+   algorithm to avoid deadlock.
+
+   The objects are locked by an unspecified series of calls to lock, try_lock, unlock.
+   If a call to lock or unlock results in an exception, unlock is called for any locked
+   objects before rethrowing.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Notes
+     • 4 Example
+     • 5 See also
+
+.SH Parameters
+
+   lock1, lock2, ... , lockn - the Lockable objects to lock
+
+.SH Return value
+
+   \fI(none)\fP
+
+.SH Notes
+
+   Boost provides a version of this function that takes a sequence of Lockable objects
+   defined by a pair of iterators.
+
+.SH Example
+
+   The following example uses std::lock to lock pairs of mutexes without deadlock.
+
+   
+// Run this code
+
+ #include <mutex>
+ #include <thread>
+ #include <iostream>
+ #include <vector>
+ #include <functional>
+ #include <chrono>
+  
+ struct Employee {
+     Employee(int id) : id(id) {}
+     int id;
+     std::vector<int> lunch_partners;
+     std::mutex m;
+ };
+  
+ void send_mail(Employee &e1, Employee &e2)
+ {
+     // simulate a time-consuming messaging operation
+     std::this_thread::sleep_for(std::chrono::seconds(1));
+ }
+  
+ void assign_lunch_partner(Employee &e1, Employee &e2)
+ {
+     // use std::lock to acquire two locks without worrying about
+     // other calls to assign_lunch_partner deadlocking us
+     std::lock(e1.m, e2.m);
+  
+     e1.lunch_partners.push_back(e2.id);
+     e2.lunch_partners.push_back(e1.id);
+  
+     e1.m.unlock();
+     e2.m.unlock();
+  
+     send_mail(e1, e2);
+     send_mail(e2, e1);
+ }
+  
+ int main()
+ {
+     Employee alice(0), bob(1), christina(2), dave(3);
+  
+     // assign in parallel threads because mailing users about lunch assignments
+     // takes a long time
+     std::vector<std::thread> threads;
+     threads.emplace_back(assign_lunch_partner, std::ref(alice), std::ref(bob));
+     threads.emplace_back(assign_lunch_partner, std::ref(christina), std::ref(bob));
+     threads.emplace_back(assign_lunch_partner, std::ref(christina), std::ref(alice));
+     threads.emplace_back(assign_lunch_partner, std::ref(dave), std::ref(bob));
+  
+     for (auto &thread : threads) thread.join();
+ }
+
+.SH See also
+
+   try_lock attempts to obtain ownership of mutexes via repeated calls to try_lock
+   \fI(C++11)\fP  \fI(function template)\fP

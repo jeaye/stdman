@@ -1,0 +1,208 @@
+.TH std::mem_fn 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <functional>
+   template< class R, class T >                                    \fB(1)\fP \fI(since C++11)\fP
+   /*unspecified*/ mem_fn(R T::* pm);
+   template< class R, class T, class... Args >
+
+   /*unspecified*/ mem_fn(R (T::* pm)(Args...));
+   template< class R, class T, class... Args >
+   /*unspecified*/ mem_fn(R (T::* pm)(Args...) const);
+   template< class R, class T, class... Args >
+   /*unspecified*/ mem_fn(R (T::* pm)(Args...) volatile);
+   template< class R, class T, class... Args >
+   /*unspecified*/ mem_fn(R (T::* pm)(Args...) const volatile);
+   template< class R, class T, class... Args >
+   /*unspecified*/ mem_fn(R (T::* pm)(Args...) &);
+   template< class R, class T, class... Args >
+   /*unspecified*/ mem_fn(R (T::* pm)(Args...) const &);           \fB(2)\fP \fI(since C++11)\fP
+   template< class R, class T, class... Args >                         \fI(until C++14)\fP
+   /*unspecified*/ mem_fn(R (T::* pm)(Args...) volatile &);
+   template< class R, class T, class... Args >
+   /*unspecified*/ mem_fn(R (T::* pm)(Args...) const volatile &);
+   template< class R, class T, class... Args >
+   /*unspecified*/ mem_fn(R (T::* pm)(Args...) &&);
+   template< class R, class T, class... Args >
+   /*unspecified*/ mem_fn(R (T::* pm)(Args...) const &&);
+   template< class R, class T, class... Args >
+   /*unspecified*/ mem_fn(R (T::* pm)(Args...) volatile &&);
+   template< class R, class T, class... Args >
+
+   /*unspecified*/ mem_fn(R (T::* pm)(Args...) const volatile &&);
+
+   Function template std::mem_fn generates wrapper objects for pointers to members,
+   which can store, copy, and invoke a pointer to member. Both references and pointers
+   (including smart pointers) to an object can be used when invoking a std::mem_fn.
+
+   The overloads \fB(2)\fP were introduced in C++11 but removed in C++14 as defect #2048
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3
+       std::mem_fn Return type
+
+          • 3.1 Member types
+          • 3.2 Member function
+          • 3.3 Exceptions
+          • 3.4 Example 1
+          • 3.5 Example 2
+          • 3.6 Example 3
+          • 3.7 See also
+
+.SH Parameters
+
+   pm - pointer to member that will be wrapped
+
+.SH Return value
+
+   std::mem_fn returns a call wrapper of unspecified type that has the following
+   members:
+
+                                 std::mem_fn Return type
+
+.SH Member types
+
+   type                 definition
+   result_type          the return type of pm if pm is a pointer to member function,
+                        not defined for pointer to member object
+   argument_type        T*, possibly cv-qualified, if pm is a pointer to member
+                        function taking no arguments
+   first_argument_type  T* if pm is a pointer to member function taking one argument
+   second_argument_type T1 if pm is a pointer to member function taking one argument of
+                        type T1
+
+.SH Member function
+
+   operator() invokes the target on a specified object, with optional parameters
+              \fI(public member function)\fP
+
+.SH Exceptions
+
+   None.
+
+.SH Example 1
+
+   Use mem_fn to store and execute a member function and a member object:
+
+   
+// Run this code
+
+ #include <functional>
+ #include <iostream>
+  
+ struct Foo {
+     void display_greeting() {
+         std::cout << "Hello, world.\\n";
+     }
+     void display_number(int i) {
+         std::cout << "number: " << i << '\\n';
+     }
+     int data = 7;
+ };
+  
+ int main() {
+     Foo f;
+  
+     auto greet = std::mem_fn(&Foo::display_greeting);
+     greet(f);
+  
+     auto print_num = std::mem_fn(&Foo::display_number);
+     print_num(f, 42);
+  
+     auto access_data = std::mem_fn(&Foo::data);
+     std::cout << "data: " << access_data(f) << '\\n';
+ }
+
+.SH Output:
+
+ Hello, world.
+ number: 42
+ data: 7
+
+.SH Example 2
+
+   Pass a member function to std::transform to create a sequence of numbers:
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <functional>
+ #include <iterator>
+ #include <memory>
+ #include <string>
+ #include <vector>
+ #include <algorithm>
+  
+ int main()
+ {
+     std::vector<std::string> words = {"This", "is", "a", "test"};
+     std::vector<std::unique_ptr<std::string>> words2;
+     words2.emplace_back(new std::string("another"));
+     words2.emplace_back(new std::string("test"));
+  
+     std::vector<std::size_t> lengths;
+     std::transform(words.begin(),
+                    words.end(),
+                    std::back_inserter(lengths),
+                    std::mem_fn(&std::string::size)); // uses references to strings
+     std::transform(words2.begin(),
+                    words2.end(),
+                    std::back_inserter(lengths),
+                    std::mem_fn(&std::string::size)); // uses unique_ptr to strings
+  
+     std::cout << "The string lengths are ";
+     for(auto n : lengths) std::cout << n << ' ';
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ The string lengths are 4 2 1 4 7 4
+
+.SH Example 3
+
+   Demonstrates the effect of the C++14 changes to the specification of std::mem_fn
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <functional>
+  
+ struct X {
+     int x;
+  
+     int&       easy()      {return x;}
+     int&       get()       {return x;}
+     const int& get() const {return x;}
+ };
+  
+  
+ int main(void)
+ {
+     auto a = std::mem_fn        (&X::easy); // no problem at all
+ //  auto b = std::mem_fn<int&  >(&X::get ); // no longer works in C++14
+     auto c = std::mem_fn<int&()>(&X::get ); // works with both C++11 and C++14
+     auto d = [] (X& x) {return x.get();};   // another approach to overload resolution
+  
+     X x = {33};
+     std::cout << "a() = " << a(x) << '\\n';
+     std::cout << "c() = " << c(x) << '\\n';
+     std::cout << "d() = " << d(x) << '\\n';
+ }
+
+.SH Output:
+
+ a() = 33
+ c() = 33
+ d() = 33
+
+.SH See also
+
+   function wraps callable object of any type with specified function call signature
+   \fI(C++11)\fP  \fI(class template)\fP
+   bind     binds one or more arguments to a function object
+   \fI(C++11)\fP  \fI(function template)\fP

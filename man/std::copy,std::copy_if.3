@@ -1,0 +1,152 @@
+.TH std::copy,std::copy_if 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <algorithm>
+   template< class InputIt, class OutputIt >                       \fB(1)\fP
+   OutputIt copy( InputIt first, InputIt last, OutputIt d_first );
+   template< class InputIt, class OutputIt, class UnaryPredicate >
+
+   OutputIt copy_if( InputIt first, InputIt last,                  \fB(2)\fP \fI(since C++11)\fP
+                     OutputIt d_first,
+
+                     UnaryPredicate pred );
+
+   Copies the elements in the range, defined by [first, last), to another range
+   beginning at d_first. The second function only copies the elements for which the
+   predicate pred returns true.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Complexity
+     • 4 Notes
+     • 5 Possible implementation
+     • 6 Example
+     • 7 See also
+
+.SH Parameters
+
+   first, last - the range of elements to copy
+   d_first     - the beginning of the destination range. If d_first is within [first,
+                 last), std::copy_backward must be used instead of std::copy.
+                 unary predicate which returns true for the required elements.
+
+                 The signature of the predicate function should be equivalent to the
+                 following:
+
+   pred        -  bool pred(const Type &a);
+
+                 The signature does not need to have const &, but the function must not
+                 modify the objects passed to it.
+                 The type Type must be such that an object of type InputIt can be
+                 dereferenced and then implicitly converted to Type. 
+.SH Type requirements
+   -
+   InputIt must meet the requirements of InputIterator.
+   -
+   OutputIt must meet the requirements of OutputIterator.
+   -
+   UnaryPredicate must meet the requirements of Predicate.
+
+.SH Return value
+
+   Output iterator to the element in the destination range, one past the last element
+   copied.
+
+.SH Complexity
+
+   1) Exactly last - first assignments
+
+   2) Exactly last - first applications of the predicate
+
+.SH Notes
+
+   In practice, implementations of std::copy avoid multiple assignments and use bulk
+   copy functions such as std::memmove if the value type is TriviallyCopyable
+
+   When copying overlapping ranges, std::copy is appropriate when copying to the left
+   (beginning of the destination range is outside the source range) while
+   std::copy_backward is appropriate when copying to the right (end of the destination
+   range is outside the source range).
+
+.SH Possible implementation
+
+.SH First version
+   template<class InputIt, class OutputIt>
+   OutputIt copy(InputIt first, InputIt last,
+                 OutputIt d_first)
+   {
+       while (first != last) {
+           *d_first++ = *first++;
+       }
+       return d_first;
+   }
+.SH Second version
+   template<class InputIt, class OutputIt, class UnaryPredicate>
+   OutputIt copy_if(InputIt first, InputIt last,
+                    OutputIt d_first, UnaryPredicate pred)
+   {
+       while (first != last) {
+           if (pred(*first))
+               *d_first++ = *first;
+           first++;
+       }
+       return d_first;
+   }
+
+   If you do not have C++11, an equivalent to std::copy_if is to use
+   std::remove_copy_if with the negated predicate.
+
+   template<class InputIt, class OutputIt, class UnaryPredicate>
+   OutputIt copy_if(InputIt first, InputIt last,
+                    OutputIt d_first, UnaryPredicate pred)
+   {
+       return std::remove_copy_if(first, last, d_first, std::not1(pred));
+   }
+
+.SH Example
+
+   The following code uses copy to both copy the contents of one vector to another and
+   to display the resulting vector:
+
+   
+// Run this code
+
+ #include <algorithm>
+ #include <iostream>
+ #include <vector>
+ #include <iterator>
+ #include <numeric>
+  
+ int main()
+ {
+     std::vector<int> from_vector(10);
+     std::iota(from_vector.begin(), from_vector.end(), 0);
+  
+     std::vector<int> to_vector;
+     std::copy(from_vector.begin(), from_vector.end(),
+               std::back_inserter(to_vector));
+ // or, alternatively,
+ //  std::vector<int> to_vector(from_vector.size());
+ //  std::copy(from_vector.begin(), from_vector.end(), to_vector.begin());
+ // either way is equivalent to
+ //  std::vector<int> to_vector = from_vector;
+  
+     std::cout << "to_vector contains: ";
+  
+     std::copy(to_vector.begin(), to_vector.end(),
+               std::ostream_iterator<int>(std::cout, " "));
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ to_vector contains: 0 1 2 3 4 5 6 7 8 9
+
+.SH See also
+
+   copy_backward  copies a range of elements in backwards order
+                  \fI(function template)\fP
+   remove_copy    copies a range of elements omitting those that satisfy specific
+   remove_copy_if criteria
+                  \fI(function template)\fP

@@ -1,0 +1,104 @@
+.TH std::endl 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <ostream>
+   template< class CharT, class Traits >
+   std::basic_ostream<charT,traits>& endl( std::basic_ostream<CharT, Traits>& os );
+
+   Inserts a endline character into the output sequence os and flushes it as if by
+   calling os.put(os.widen('\\n')) followed by os.flush().
+
+   This is an output-only I/O manipulator, it may be called with an expression such as
+   out << std::endl for any out of type std::basic_ostream.
+
+.SH Contents
+
+     • 1 Notes
+     • 2 Parameters
+     • 3 Return value
+     • 4 Example
+     • 5 See also
+
+.SH Notes
+
+   This manipulator may be used to produce a line of output immediately, e.g. when
+   displaying output from a long-running process, logging activity of multiple threads
+   or logging activity of a program that may crash unexpectedly. An explicit flush of
+   std::cout is also necessary before a call to std::system, if the spawned process
+   performs any screen I/O (a common example is std::system("pause") on Windows). In
+   most other usual interactive I/O scenarios, std::endl is redundant when used with
+   std::cout because any input from std::cin, output to std::cerr, or program
+   termination forces a call to std::cout.flush(). Use of std::endl in place of '\\n',
+   encouraged by some sources, may significantly degrade output performance.
+
+   In many implementations, standard output is line-buffered, and writing '\\n' causes a
+   flush anyway, unless std::cout.sync_with_stdio(false) was executed. In those
+   situations, unnecessary endl only degrades the performance of file output, not
+   standard output.
+
+   The code samples on this wiki follow Bjarne Stroustrup in flushing the standard
+   output only where necessary.
+
+   When an incomplete line of output needs to be flushed, the std::flush manipulator
+   may be used.
+
+   When every character of output needs to be flushed, the std::unitbuf manipulator may
+   be used.
+
+.SH Parameters
+
+   os - reference to output stream
+
+.SH Return value
+
+   os (reference to the stream after manipulation)
+
+.SH Example
+
+   With \\n instead of endl, the output would be the same, but may not appear in real
+   time.
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <chrono>
+  
+ template<typename Diff>
+ void log_progress(Diff d)
+ {
+     std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(d).count()
+               << " ms passed" << std::endl;
+ }
+  
+ int main()
+ {
+     std::cout.sync_with_stdio(false); // on some platforms, stdout flushes on \\n
+     volatile int sink = 0;
+  
+     auto t1 = std::chrono::high_resolution_clock::now();
+     for (int j=0; j<5; ++j)
+     {
+         for (int n=0; n<10000; ++n)
+             for (int m=0; m<20000; ++m)
+                 sink += m*n; // do some work
+         auto now = std::chrono::high_resolution_clock::now();
+         log_progress(now - t1);
+     }
+ }
+
+.SH Output:
+
+ 487 ms passed
+ 974 ms passed
+ 1470 ms passed
+ 1965 ms passed
+ 2455 ms passed
+
+.SH See also
+
+   unitbuf   controls whether output is flushed after each operation
+   nounitbuf \fI(function)\fP
+   flush     flushes the output stream
+             \fI(function template)\fP
+   flush     synchronizes with the underlying storage device
+             \fI(public member function of std::basic_ostream)\fP

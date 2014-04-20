@@ -1,0 +1,58 @@
+.TH std::wstring_convert::wstring_convert 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   explicit wstring_convert( Codecvt* pcvt = new Codecvt );           \fB(1)\fP
+   wstring_convert( Codecvt* pcvt, state_type state);                 \fB(2)\fP
+   explicit wstring_convert( const byte_string& byte_err,
+                             const wide_string& wide_err =            \fB(3)\fP
+   wide_string() );
+   wstring_convert(const std::wstring_convert&) = delete;             \fB(4)\fP \fI(since C++14)\fP
+
+   1) Constructs the wstring_convert object with a specified conversion facet, using
+   default-constructed values for the shift state and the error strings
+   2) Constructs the wstring_convert object with a specified conversion facet and
+   specified shift state, using default-constructed values for the error strings
+   3) Constructs the wstring_convert object with specified error strings, using new
+   Codecvt as the conversion facet and the default-constructed state_type as shift
+   state.
+   4) The copy constructor is deleted, wstring_convert is not CopyConstructible
+
+.SH Parameters
+
+   pcvt     - pointer to the conversion facet of type Codecvt (behavior is undefined if
+              this pointer is null)
+   state    - initial value of the conversion shift state
+   byte_err - narrow string to display on errors
+   wide_err - wide string to display on errors
+
+.SH Example
+
+   
+// Run this code
+
+ #include <locale>
+ #include <utility>
+ #include <codecvt>
+  
+ // utility wrapper to adapt locale-bound facets for wstring/wbuffer convert
+ template<class Facet>
+ struct deletable_facet : Facet
+ {
+     template<class ...Args>
+     deletable_facet(Args&& ...args) : Facet(std::forward<Args>(args)...) {}
+     ~deletable_facet() {}
+ };
+  
+ int main()
+ {
+     // UTF-16le / UCS4 conversion
+     std::wstring_convert<
+          std::codecvt_utf16<char32_t, 0x10ffff, std::little_endian>
+     > u16to32;
+  
+     // UTF-8 / wide string conversion with custom messages
+     std::wstring_convert<std::codecvt_utf8<wchar_t>> u8towide("Error!", L"Error!");
+  
+     // GB18030 / wide string conversion facet
+     typedef deletable_facet<std::codecvt_byname<wchar_t, char, std::mbstate_t>> F;
+     std::wstring_convert<F> gbtowide(new F("zh_CN.gb18030"));
+ }

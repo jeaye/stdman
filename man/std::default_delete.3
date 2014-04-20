@@ -1,0 +1,112 @@
+.TH std::default_delete 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <memory>
+   template< class T > struct default_delete      \fB(1)\fP \fI(since C++11)\fP
+   template< class T > struct default_delete<T[]> \fB(2)\fP \fI(since C++11)\fP
+
+   std::default_delete is the default destruction policy used by std::unique_ptr when
+   no deleter is specified.
+
+   1) The non-specialized default_delete uses delete to deallocate memory for a single
+   object.
+
+   2) A partial specialization for array types that uses delete[] is also provided.
+
+.SH Contents
+
+     • 1 Member functions
+     • 2
+       std::default_delete::default_delete
+
+          • 2.1 Parameters
+          • 2.2 Exceptions
+
+     • 3
+       std::default_delete::operator()
+
+          • 3.1 Parameters
+          • 3.2 Exceptions
+          • 3.3 Example
+          • 3.4 See also
+
+.SH Member functions
+
+   constructor   constructs a default_delete object
+                 \fI(public member function)\fP
+   operator()    deletes the object or array
+                 \fI(public member function)\fP
+
+                           std::default_delete::default_delete
+
+   constexpr default_delete = default;           \fB(1)\fP \fI(since C++11)\fP
+   template <class U>                            \fB(2)\fP \fI(since C++11)\fP
+   default_delete( const default_delete<U>& d );
+
+   1) Constructs a std::default_delete object.
+   2) Constructs a std::default_delete object from another std::default_delete object.
+   This constructor will only participate in overload resolution if U* is implicitly
+   convertible to T*.
+
+.SH Parameters
+
+   d - a deleter to copy from
+
+.SH Exceptions
+
+   noexcept specification:  
+   noexcept
+     
+
+                             std::default_delete::operator()
+
+   void operator()(T *ptr) const;  \fI(since C++11)\fP
+
+   Calls either delete or delete[] on ptr.
+
+.SH Parameters
+
+   ptr - an object or array to delete
+
+.SH Exceptions
+
+   No exception guarantees.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <memory>
+ #include <vector>
+ #include <algorithm>
+  
+ int main()
+ {
+ //    {
+ //        std::shared_ptr<int> shared_bad(new int[10]);
+ //    } // the destructor calls delete, undefined behavior
+  
+     {
+         std::shared_ptr<int> shared_good(new int[10], std::default_delete<int[]>
+ ());
+     } // the destructor calls delete[], ok
+  
+     {
+         std::unique_ptr<int> ptr(new int(5));
+     } // unique_ptr<int> uses default_delete<int>
+  
+     {
+         std::unique_ptr<int[]> ptr(new int[10]);
+     } // unique_ptr<int[]> uses default_delete<int[]>
+  
+    // default_delete can be used anywhere a delete functor is needed
+    std::vector<int*> v;
+    for(int n = 0; n < 100; ++n)
+       v.push_back(new int(n));
+    std::for_each(v.begin(), v.end(), std::default_delete<int>());
+ }
+
+.SH See also
+
+   unique_ptr smart pointer with unique object ownership semantics
+   \fI(C++11)\fP    \fI(class template)\fP

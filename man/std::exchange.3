@@ -1,0 +1,123 @@
+.TH std::exchange 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <utility>
+   template< class T, class U = T >      \fI(since C++14)\fP
+   T exchange( T& obj, U&& new_value );
+
+   Replaces the value of obj with new_value and returns the old value of obj.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Possible implementation
+     • 5 Example
+     • 6 See also
+
+.SH Parameters
+
+   obj                   -             object whose value to replace
+   new_value             -             the value to assign to obj
+.SH Type requirements
+   -
+   T must meet the requirements of MoveAssignable. Also, it must be possible to
+   move-assign objects of type U to objects of type T
+
+.SH Return value
+
+   The old value of obj
+
+.SH Exceptions
+
+   \fI(none)\fP
+
+.SH Possible implementation
+
+   template<class T, class U = T>
+   T exchange(T& obj, U&& new_value)
+   {
+       T old_value = std::move(obj);
+       obj = std::forward<U>(new_value);
+       return old_value;
+   }
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <utility>
+ #include <vector>
+ #include <iterator>
+  
+ class stream
+ {
+   public:
+  
+    using flags_type = int;
+  
+   public:
+  
+     flags_type flags() const
+     { return flags_; }
+  
+     ///Replaces flags_ by newf, and returns the old value.
+     flags_type flags(flags_type newf)
+     { return std::exchange(flags_, newf); }
+  
+   private:
+  
+     flags_type flags_ = 0;
+ };
+  
+ void f() { std::cout << "f()"; }
+  
+ int main()
+ {
+    stream s;
+  
+    std::cout << s.flags() << '\\n';
+    std::cout << s.flags(12) << '\\n';
+    std::cout << s.flags() << "\\n\\n";
+  
+    std::vector<int> v;
+  
+    //Since the second template parameter has a default value, it is possible
+    //to use a braced-init-list as second argument. The expression below
+    //is equivalent to std::exchange(v, std::vector<int>{1,2,3,4});
+  
+    std::exchange(v, {1,2,3,4});
+  
+    std::copy(begin(v),end(v), std::ostream_iterator<int>(std::cout,", "));
+  
+    std::cout << "\\n\\n";
+  
+    void (*fun)();
+  
+    //the default value of template parameter also makes possible to use a
+    //normal function as second argument. The expression below is equivalent to
+    //std::exchange(fun, std::static_cast<void(*)()>(f))
+    std::exchange(fun,f);
+    fun();
+ }
+
+.SH Output:
+
+ 0
+ 0
+ 12
+  
+ 1, 2, 3, 4,
+  
+ f()
+
+.SH See also
+
+   swap                     swaps the values of two objects
+                            \fI(function template)\fP
+   atomic_exchange          atomically replaces the value of the atomic object with
+   atomic_exchange_explicit non-atomic argument and returns the old value of the atomic
+   \fI(C++11)\fP                  \fI(function template)\fP
+   \fI(C++11)\fP

@@ -1,0 +1,98 @@
+.TH std::ios_base::iword 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   long& iword( int index );
+
+   First, allocates or resizes the private storage (dynamic array of long or another
+   indexable data structure) sufficiently to make index a valid index, then returns a
+   reference to the long element of the private storage with the index index.
+
+   The reference may be invalidated by any operation on this ios_base object, including
+   another call to iword(), but the stored values are retained, so that reading from
+   iword(index) with the same index later will produce the same value (until the next
+   call to std::basic_ios::copyfmt()). The value can be used for any purpose. The index
+   of the element must be obtained by xalloc(), otherwise collisions with other users
+   of this ios_base may occur. New elements are initialized to 0.
+
+   If allocation fails, calls std::basic_ios<>::setstate(badbit) which may throw
+   std::basic_ios::failure
+
+.SH Contents
+
+     • 1 Notes
+     • 2 Parameters
+     • 3 Return value
+     • 4 Exceptions
+     • 5 Example
+     • 6 See also
+
+.SH Notes
+
+   Typical use of iword storage is to pass information (e.g. custom formatting flags)
+   from user-defined I/O manipulators to user-defined operator<< and operator>> or to
+   user-defined formatting facets imbued into standard streams.
+
+.SH Parameters
+
+   index - index value of the element
+
+.SH Return value
+
+   A reference to the element.
+
+.SH Exceptions
+
+   May throw std::ios_base::failure when setting the badbit.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <string>
+  
+ struct Foo {
+     static int foo_xalloc;
+     std::string data;
+     Foo(const std::string& s) : data(s) {}
+ };
+  
+ // allocates the iword storage for use with Foo objects
+ int Foo::foo_xalloc = std::ios_base::xalloc();
+  
+ // This user-defined operator<< prints the string in reverse if the iword holds 1
+ std::ostream& operator<<(std::ostream& os, Foo& f)
+ {
+     if(os.iword(Foo::foo_xalloc) == 1)
+         return os << std::string(f.data.rbegin(), f.data.rend());
+     else
+         return os << f.data;
+ }
+  
+ // This I/O manipulator flips the number stored in iword between 0 and 1
+ std::ios_base& rev(std::ios_base& os)
+ {
+     os.iword(Foo::foo_xalloc) = !os.iword(Foo::foo_xalloc);
+     return os;
+ }
+  
+ int main()
+ {
+     Foo f("example");
+     std::cout << f << '\\n' << rev << f << '\\n' << rev << f << '\\n';
+ }
+
+.SH Output:
+
+ example
+ elpmaxe
+ example
+
+.SH See also
+
+            resizes the private storage if necessary and access to the void* element at
+   pword    the given index
+            \fI(public member function)\fP
+   xalloc   returns a program-wide unique integer that is safe to use as index to
+   \fB[static]\fP pword() and iword()
+            \fI(public static member function)\fP

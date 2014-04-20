@@ -1,0 +1,100 @@
+.TH std::quoted 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <iomanip>
+   template< class CharT >
+
+   /*unspecified*/ quoted(const CharT* s,                             \fB(1)\fP \fI(since C++14)\fP
+
+                          CharT delim=CharT(’"’), CharT
+   escape=CharT(’\\\\’));
+   template< class CharT, class Traits, class Allocator >
+
+   /*unspecified*/ quoted(const std::basic_string<CharT, Traits,
+   Allocator>& s,                                                     \fB(2)\fP \fI(since C++14)\fP
+
+                          CharT delim=CharT(’"’), CharT
+   escape=CharT(’\\\\’));
+   template< class CharT, class Traits, class Allocator >
+
+   /*unspecified*/ quoted(std::basic_string<CharT, Traits,
+   Allocator>& s,                                                     \fB(3)\fP \fI(since C++14)\fP
+
+                          CharT delim=CharT(’"’), CharT
+   escape=CharT(’\\\\’));
+
+   Allows insertion and extraction of quoted strings, such as the ones found in CSV or
+.SH XML.
+
+   1,2) When used in an expression out << quoted(s, delim, escape), inserts into the
+   output stream out the following characters (using appropriate operator<< overloads):
+   a) The character delim
+   b) Every character from s, except if the next character to output equals delim or
+   equals escape (as determined by operator==), then first outputs an extra copy of
+   escape
+   c) In the end, outputs delim once more
+   3) When used in an expression in >> quoted(s, delim, escape), extracts characters
+   from the input stream in, using std::basic_istream::operator>>, according to the
+   following rules:
+   a) If the first character extracted does not equal delim (as determined by
+   operator==), then simply performs in >> s.
+   b) Otherwise (if the first character is the delimiter):
+   1) Turns off the skipws flag on the input stream
+   2) Empties the destination string by calling s.clear()
+   3) Extracts characters from in and appends them to s, except that whenever an escape
+   character is extracted, it is ignored and the next character is appended to s.
+   Extraction stops when !in==true or when an unescaped delim character is found.
+   4) Discards the final (unescaped) delim character.
+   5) Restores the skipws flag on the input stream to its original value.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Example
+     • 5 See also
+
+.SH Parameters
+
+   s      - the string to insert or extract
+   delim  - the character to use as the delimiter, defaults to "
+   escape - the character to use as the escape character, defaults to \\
+
+.SH Return value
+
+   Returns an object of unspecified type such that the described behavior takes place.
+
+.SH Exceptions
+
+   Throws std::ios_base::failure if operator>> or operator<< throws.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <iomanip>
+ #include <sstream>
+  
+ int main()
+ {
+     std::stringstream ss;
+     std::string in = "String with spaces, and embedded \\"quotes\\" too";
+     std::string out;
+  
+     ss << std::quoted(in);
+     std::cout << "in:  '" << in << "'\\n"
+               << "stored as '" << ss.str() << "'\\n";
+  
+     ss >> std::quoted(out);
+     std::cout << "out: '" << out << "'\\n";
+ }
+
+.SH Output:
+
+ in:  'String with spaces, and embedded "quotes" too'
+ stored as '"String with spaces, and embedded \\"quotes\\" too"'
+ out:  'String with spaces, and embedded "quotes" too'
+
+.SH See also

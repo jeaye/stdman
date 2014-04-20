@@ -1,0 +1,105 @@
+.TH std::move 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <algorithm>
+   template< class InputIt, class OutputIt >                        \fI(since C++11)\fP
+   OutputIt move( InputIt first, InputIt last, OutputIt d_first );
+
+   Moves the elements in the range [first, last), to another range beginning at
+   d_first. After this operation the elements in the moved-from range will still
+   contain valid values of the appropriate type, but not necessarily the same values as
+   before the move.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Complexity
+     • 4 Possible implementation
+     • 5 Notes
+     • 6 Example
+     • 7 See also
+
+.SH Parameters
+
+   first, last - the range of elements to move
+   d_first     - the beginning of the destination range. If d_first is within [first,
+                 last), std::move_backward must be used instead of std::move.
+.SH Type requirements
+   -
+   InputIt must meet the requirements of InputIterator.
+   -
+   OutputIt must meet the requirements of OutputIterator.
+
+.SH Return value
+
+   Output iterator to the element past the last element moved (d_first + (last -
+   first))
+
+.SH Complexity
+
+   Exactly last - first move assignments.
+
+.SH Possible implementation
+
+   template<class InputIt, class OutputIt>
+   OutputIt move(InputIt first, InputIt last, OutputIt d_first)
+   {
+       while (first != last) {
+           *d_first++ = std::move(*first++);
+       }
+       return d_first;
+   }
+
+.SH Notes
+
+   When moving overlapping ranges, std::move is appropriate when moving to the left
+   (beginning of the destination range is outside the source range) while
+   std::move_backward is appropriate when moving to the right (end of the destination
+   range is outside the source range).
+
+.SH Example
+
+   The following code moves thread objects (which themselves are not copyable) from one
+   container to another.
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <vector>
+ #include <list>
+ #include <iterator>
+ #include <thread>
+ #include <chrono>
+  
+ void f(int n)
+ {
+     std::this_thread::sleep_for(std::chrono::seconds(n));
+     std::cout << "thread " << n << " ended" << '\\n';
+ }
+  
+ int main()
+ {
+     std::vector<std::thread> v;
+     v.emplace_back(f, 1);
+     v.emplace_back(f, 2);
+     v.emplace_back(f, 3);
+     std::list<std::thread> l;
+     // copy() would not compile, because std::thread is noncopyable
+  
+     std::move(v.begin(), v.end(), std::back_inserter(l));
+     for (auto& t : l) t.join();
+ }
+
+.SH Output:
+
+ thread 1 ended
+ thread 2 ended
+ thread 3 ended
+
+.SH See also
+
+   move_backward moves a range of elements to a new location in backwards order
+   \fI(C++11)\fP       \fI(function template)\fP
+   move          obtains an rvalue reference
+   \fI(C++11)\fP       \fI(function template)\fP

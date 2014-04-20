@@ -1,0 +1,144 @@
+.TH std::inner_product 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <numeric>
+   template< class InputIt1, class InputIt2, class T >
+
+   T inner_product( InputIt1 first1, InputIt1 last1,   \fB(1)\fP
+
+                    InputIt2 first2, T value );
+   template<
+
+       class InputIt1,
+       class InputIt2,
+       class T,
+       class BinaryOperation1,                         \fB(2)\fP
+       class BinaryOperation2
+   > T inner_product( InputIt1 first1, InputIt1 last1,
+                      InputIt2 first2, T value,
+                      BinaryOperation1 op1,
+
+                      BinaryOperation2 op2 );
+
+   Computes inner product (i.e. sum of products) of the range [first1, last1) and
+   another range beginning at first2. The first version uses operator* to compute
+   product of the element pairs and operator+ to sum up the products, the second
+   version uses op2 and op1 for these tasks respectively.
+
+   op1 and op2 must not have side effects.                                \fI(until C++11)\fP
+   op1 and op2 must not invalidate any iterators, including the end       \fI(since C++11)\fP
+   iterators, or modify any elements of the ranges involved.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Possible implementation
+     • 4 Example
+     • 5 See also
+
+.SH Parameters
+
+   first1, last1 - the first range of elements
+   first2        - the beginning of the second range of elements
+   value         - initial value of the sum of the products
+                   binary operation function object that will be applied. This "sum"
+                   function takes a value returned by op2 and the current value of the
+                   accumulator and produces a new value to be stored in the
+                   accumulator.
+
+                   The signature of the function should be equivalent to the following:
+   op1           -
+                    Ret fun(const Type1 &a, const Type2 &b);
+
+                   The signature does not need to have const &.
+                   The types Type1 and Type2 must be such that objects of types T and
+                   Type3 can be implicitly converted to Type1 and Type2 respectively.
+                   The type Ret must be such that an object of type T can be assigned a
+                   value of type Ret. 
+                   binary operation function object that will be applied. This
+                   "product" function takes one value from each range and produces a
+                   new value.
+
+                   The signature of the function should be equivalent to the following:
+
+   op2           -  Ret fun(const Type1 &a, const Type2 &b);
+
+                   The signature does not need to have const &.
+                   The types Type1 and Type2 must be such that objects of types
+                   InputIt1 and InputIt2 can be dereferenced and then implicitly
+                   converted to Type1 and Type2 respectively. The type Ret must be such
+                   that an object of type Type3 can be assigned a value of type Ret. 
+.SH Type requirements
+   -
+   InputIt1, InputIt2 must meet the requirements of InputIterator.
+   -
+   T must meet the requirements of CopyAssignable and CopyConstructible.
+
+.SH Return value
+
+   The inner product of two ranges.
+
+.SH Possible implementation
+
+.SH First version
+   template<class InputIt1, class InputIt2, class T>
+   T inner_product(InputIt1 first1, InputIt1 last1,
+                   InputIt2 first2, T value)
+   {
+       while (first1 != last1) {
+            value = value + *first1 * *first2;
+            ++first1;
+            ++first2;
+       }
+       return value;
+   }
+.SH Second version
+   template<class InputIt1, class InputIt2,
+            class T,
+            class BinaryOperation1, class BinaryOperation2>
+   T inner_product(InputIt1 first1, InputIt1 last1,
+                   InputIt2 first2, T value,
+                   BinaryOperation1 op1
+                   BinaryOperation2 op2)
+   {
+       while (first1 != last1) {
+            value = op1(value, op2(*first1, *first2));
+            ++first1;
+            ++first2;
+       }
+       return value;
+   }
+
+.SH Example
+
+   
+// Run this code
+
+ #include <numeric>
+ #include <iostream>
+ #include <vector>
+ #include <functional>
+ int main()
+ {
+     std::vector<int> a{0, 1, 2, 3, 4};
+     std::vector<int> b{5, 4, 2, 3, 1};
+  
+     int r1 = std::inner_product(a.begin(), a.end(), b.begin(), 0);
+     std::cout << "Inner product of a and b: " << r1 << '\\n';
+  
+     int r2 = std::inner_product(a.begin(), a.end(), b.begin(), 0,
+                                 std::plus<int>(), std::equal_to<int>());
+     std::cout << "Number of pairwise matches between a and b: " <<  r2 << '\\n';
+ }
+
+.SH Output:
+
+ Inner product of a and b: 21
+ Number of pairwise matches between a and b: 2
+
+.SH See also
+
+   accumulate  sums up a range of elements
+               \fI(function template)\fP
+   partial_sum computes the partial sum of a range of elements
+               \fI(function template)\fP

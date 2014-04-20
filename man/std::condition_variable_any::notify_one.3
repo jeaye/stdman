@@ -1,0 +1,103 @@
+.TH std::condition_variable_any::notify_one 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   void notify_one();  \fI(since C++11)\fP
+
+   If any threads are waiting on *this, calling notify_one unblocks one of the waiting
+   threads.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Notes
+     • 5 Example
+     • 6 See also
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   \fI(none)\fP
+
+.SH Exceptions
+
+   noexcept specification:  
+   noexcept
+     
+
+.SH Notes
+
+   The effects of notify_one()/notify_all() and wait()/wait_for()/wait_until() take
+   place in a single total order, so it's impossible for notify_one() to, for example,
+   be delayed and unblock a thread that started waiting just after the call to
+   notify_one() was made.
+
+   The notifying thread does not need to hold the lock on the same mutex as the one
+   held by the waiting thread(s); in fact doing so is a pessimization, since the
+   notified thread would immediately block again, waiting for the notifying thread to
+   release the lock.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <condition_variable>
+ #include <thread>
+ #include <chrono>
+  
+ std::condition_variable_any cv;
+ std::mutex cv_m;
+ int i = 0;
+ bool done = false;
+  
+ void waits()
+ {
+     std::unique_lock<std::mutex> lk(cv_m);
+     std::cout << "Waiting... \\n";
+     cv.wait(lk, []{return i == 1;});
+     std::cout << "...finished waiting. i == 1\\n";
+     done = true;
+ }
+  
+ void signals()
+ {
+     std::this_thread::sleep_for(std::chrono::seconds(1));
+     std::cout << "Notifying falsely...\\n";
+     cv.notify_one();
+    //Most probably, the waiting thread is awaken unnecessarily.
+  
+     std::unique_lock<std::mutex> lk(cv_m);
+     i = 1;
+     while (!done)
+     {
+         std::cout << "Notifying true change...\\n";
+         lk.unlock(); //It is a good idea unlock before notifying.
+         cv.notify_one();
+         std::this_thread::sleep_for(std::chrono::seconds(1));
+         lk.lock();
+     }
+ }
+  
+ int main()
+ {
+     std::thread t1(waits), t2(signals);
+     t1.join();
+     t2.join();
+ }
+
+.SH Possible output:
+
+ Waiting...
+ Notifying falsely...
+ Notifying true change...
+ ...finished waiting. i == 1
+
+.SH See also
+
+   notify_all notifies all waiting threads
+              \fI(public member function)\fP

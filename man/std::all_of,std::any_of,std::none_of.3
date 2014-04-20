@@ -1,0 +1,124 @@
+.TH std::all_of,std::any_of,std::none_of 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <algorithm>
+   template< class InputIt, class UnaryPredicate >                \fB(1)\fP \fI(since C++11)\fP
+   bool all_of( InputIt first, InputIt last, UnaryPredicate p );
+   template< class InputIt, class UnaryPredicate >                \fB(2)\fP \fI(since C++11)\fP
+   bool any_of( InputIt first, InputIt last, UnaryPredicate p );
+   template< class InputIt, class UnaryPredicate >                \fB(3)\fP \fI(since C++11)\fP
+   bool none_of( InputIt first, InputIt last, UnaryPredicate p );
+
+   1) Checks if unary predicate p returns true for all elements in the range [first,
+   last).
+   2) Checks if unary predicate p returns true for at least one element in the range
+   [first, last).
+   3) Checks if unary predicate p returns true for no elements in the range [first,
+   last).
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Complexity
+     • 4 Possible implementation
+     • 5 Example
+
+.SH Parameters
+
+   first, last - the range of elements to examine
+                 unary predicate .
+
+                 The signature of the predicate function should be equivalent to the
+                 following:
+
+   p           -  bool pred(const Type &a);
+
+                 The signature does not need to have const &, but the function must not
+                 modify the objects passed to it.
+                 The type Type must be such that an object of type InputIt can be
+                 dereferenced and then implicitly converted to Type. 
+.SH Type requirements
+   -
+   InputIt must meet the requirements of InputIterator.
+   -
+   UnaryPredicate must meet the requirements of Predicate.
+
+.SH Return value
+
+   1) true if unary predicate returns true for all elements in the range, false
+   otherwise. Returns true if the range is empty.
+   2) true if unary predicate returns true for at least one element in the range, false
+   otherwise. Returns false if the range is empty.
+   3) true if unary predicate returns true for no elements in the range, false
+   otherwise. Returns true if the range is empty.
+
+.SH Complexity
+
+   At most last - first applications of the predicate
+
+.SH Possible implementation
+
+.SH First version
+   template< class InputIt, class UnaryPredicate >
+   bool all_of(InputIt first, InputIt last, UnaryPredicate p)
+   {
+       return std::find_if_not(first, last, p) == last;
+   }
+.SH Second version
+   template< class InputIt, class UnaryPredicate >
+   bool any_of(InputIt first, InputIt last, UnaryPredicate p)
+   {
+       return std::find_if(first, last, p) != last;
+   }
+                          Third version
+   template< class InputIt, class UnaryPredicate >
+   bool none_of(InputIt first, InputIt last, UnaryPredicate p)
+   {
+       return std::find_if(first, last, p) == last;
+   }
+
+.SH Example
+
+   
+// Run this code
+
+ #include <vector>
+ #include <numeric>
+ #include <algorithm>
+ #include <iterator>
+ #include <iostream>
+ #include <functional>
+  
+ int main()
+ {
+     std::vector<int> v(10, 2);
+     std::partial_sum(v.cbegin(), v.cend(), v.begin());
+     std::cout << "Among the numbers: ";
+     std::copy(v.cbegin(), v.cend(), std::ostream_iterator<int>(std::cout, " "));
+     std::cout << '\\n';
+  
+     if (std::all_of(v.cbegin(), v.cend(), [](int i){ return i % 2 == 0; })) {
+         std::cout << "All numbers are even\\n";
+     }
+     if (std::none_of(v.cbegin(), v.cend(), std::bind(std::modulus<int>(),
+                                                      std::placeholders::_1, 2))) {
+         std::cout << "None of them are odd\\n";
+     }
+     struct DivisibleBy
+     {
+         const int d;
+         DivisibleBy(int n) : d(n) {}
+         bool operator()(int n) const { return n % d == 0; }
+     };
+  
+     if (std::any_of(v.cbegin(), v.cend(), DivisibleBy(7))) {
+         std::cout << "At least one number is divisible by 7\\n";
+     }
+ }
+
+.SH Output:
+
+ Among the numbers: 2 4 6 8 10 12 14 16 18 20
+ All numbers are even
+ None of them are odd
+ At least one number is divisible by 7

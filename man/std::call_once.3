@@ -1,0 +1,137 @@
+.TH std::call_once 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <mutex>
+   template< class Function, class... Args >                              \fI(since C++11)\fP
+   void call_once( std::once_flag& flag, Function&& f, Args&&... args );
+
+   Executes the function f exactly once, even if called from several threads.
+
+   Each group of call_once invocations that receives the same std::once_flag object
+   will meet the following requirements:
+
+     • Exactly one execution of exactly one of the functions (passed as f to the
+       invocations in the group) is performed. It is undefined which function will be
+       selected for execution. The selected function runs in the same thread as the
+       call_once invocation it was passed to.
+
+     • No invocation in the group returns before the abovementioned execution of the
+       selected function is completed successfully, that is, doesn't exit via an
+       exception.
+
+     • If the selected function exits via exception, it is propagated to the caller.
+       Another function is then selected and executed.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Example
+     • 5 Example
+     • 6 See also
+
+.SH Parameters
+
+   flag    - an object, for which exactly one function gets executed
+   f       - function to call
+   args... - arguments to pass to the function
+
+.SH Return value
+
+   \fI(none)\fP
+
+.SH Exceptions
+
+     • std::system_error if any condition prevents calls to call_once from executing as
+       specified
+     • any exception thrown by f
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <thread>
+ #include <mutex>
+  
+ std::once_flag flag;
+  
+ void do_once()
+ {
+     std::call_once(flag, [](){ std::cout << "Called once" << std::endl; });
+ }
+  
+ int main()
+ {
+     std::thread t1(do_once);
+     std::thread t2(do_once);
+     std::thread t3(do_once);
+     std::thread t4(do_once);
+  
+     t1.join();
+     t2.join();
+     t3.join();
+     t4.join();
+ }
+
+.SH Output:
+
+ Called once
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <thread>
+ #include <mutex>
+  
+ std::once_flag flag;
+  
+ inline void may_throw_function(bool do_throw)
+ {
+   // only one instance of this function can be run simultaneously
+   if (do_throw) {
+     std::cout << "throw\\n"; // this message may be printed from 0 to 3 times
+     // if function exits via exception, another function selected
+     throw std::exception();
+   }
+  
+   std::cout << "once\\n"; // printed exactly once, it's guaranteed that
+       // there are no messages after it
+ }
+  
+ inline void do_once(bool do_throw)
+ {
+   try {
+     std::call_once(flag, may_throw_function, do_throw);
+   }
+   catch (...) {
+   }
+ }
+  
+ int main()
+ {
+     std::thread t1(do_once, true);
+     std::thread t2(do_once, true);
+     std::thread t3(do_once, false);
+     std::thread t4(do_once, true);
+  
+     t1.join();
+     t2.join();
+     t3.join();
+     t4.join();
+ }
+
+.SH Possible output:
+
+ throw
+ throw
+ once
+
+.SH See also
+
+   once_flag helper object to ensure that call_once invokes the function only once
+   \fI(C++11)\fP   \fI(class)\fP

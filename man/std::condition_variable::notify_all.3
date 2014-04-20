@@ -1,0 +1,109 @@
+.TH std::condition_variable::notify_all 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   void notify_all();  \fI(since C++11)\fP
+
+   Unblocks all threads currently waiting for *this.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Notes
+     • 5 Example
+     • 6 See also
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   \fI(none)\fP
+
+.SH Exceptions
+
+   noexcept specification:  
+   noexcept
+     
+
+.SH Notes
+
+   The effects of notify_one()/notify_all() and wait()/wait_for()/wait_until() take
+   place in a single total order, so it's impossible for notify_one() to, for example,
+   be delayed and unblock a thread that started waiting just after the call to
+   notify_one() was made.
+
+   The notifying thread does not need to hold the lock on the same mutex as the one
+   held by the waiting thread(s); in fact doing so is a pessimization, since the
+   notified thread would immediately block again, waiting for the notifying thread to
+   release the lock.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <condition_variable>
+ #include <thread>
+ #include <chrono>
+  
+ std::condition_variable cv;
+ std::mutex cv_m; // This mutex is used for three purposes:
+                  // 1) to synchronize accesses to i
+                  // 2) to synchronize accesses to std::cerr
+                  // 3) for the condition variable cv
+ int i = 0;
+  
+ void waits()
+ {
+     std::unique_lock<std::mutex> lk(cv_m);
+     std::cerr << "Waiting... \\n";
+     cv.wait(lk, []{return i == 1;});
+     std::cerr << "...finished waiting. i == 1\\n";
+ }
+  
+ void signals()
+ {
+     std::this_thread::sleep_for(std::chrono::seconds(1));
+     {
+         std::lock_guard<std::mutex> lk(cv_m);
+         std::cerr << "Notifying...\\n";
+     }
+     cv.notify_all();
+  
+     std::this_thread::sleep_for(std::chrono::seconds(1));
+  
+     {
+         std::lock_guard<std::mutex> lk(cv_m);
+         i = 1;
+         std::cerr << "Notifying again...\\n";
+     }
+     cv.notify_all();
+ }
+  
+ int main()
+ {
+     std::thread t1(waits), t2(waits), t3(waits), t4(signals);
+     t1.join();
+     t2.join();
+     t3.join();
+     t4.join();
+ }
+
+.SH Possible output:
+
+ Waiting...
+ Waiting...
+ Waiting...
+ Notifying...
+ Notifying again...
+ ...finished waiting. i == 1
+ ...finished waiting. i == 1
+ ...finished waiting. i == 1
+
+.SH See also
+
+   notify_one notifies one waiting thread
+              \fI(public member function)\fP

@@ -1,0 +1,129 @@
+.TH std::result_of 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <type_traits>
+   template< class >                      \fB(1)\fP \fI(since C++11)\fP
+   class result_of; //not defined
+   template< class F, class... ArgTypes > \fB(2)\fP \fI(since C++11)\fP
+   class result_of<F(ArgTypes...)>;
+
+   Deduces the return type of a function call expression at compile time.
+
+   F must be a callable type, reference to function, or reference to
+   callable type. Invoking F with ArgTypes... must be a well-formed       \fI(since C++11)\fP
+   expression
+   F and all types in ArgTypes can be any complete type, array of unknown \fI(since C++14)\fP
+   bound, or (cv-qualified) void
+
+.SH Contents
+
+     • 1 Member types
+     • 2 Helper types
+     • 3 Possible implementation
+     • 4 Notes
+     • 5 Examples
+     • 6 See also
+
+.SH Member types
+
+   Member type Definition
+               the return type of the callable type F if invoked with the arguments
+               ArgTypes....
+   type        Only defined if F can be called with the arguments ArgTypes... in
+               unevaluated context.
+               \fI(since C++14)\fP
+
+.SH Helper types
+
+   template< class T >                               \fI(since C++14)\fP
+   using result_of_t = typename result_of<T>::type;
+
+.SH Possible implementation
+
+   template<class>
+   struct result_of;
+    
+   // C++11 implementation, does not satisfy C++14 requirements
+   template<class F, class... ArgTypes>
+   struct result_of<F(ArgTypes...)>
+   {
+       typedef decltype(
+                        std::declval<F>()(std::declval<ArgTypes>()...)
+                       ) type;
+   };
+
+.SH Notes
+
+   As formulated in C++11, std::result_of would fail to compile when F(ArgTypes...) is
+   ill-formed (e.g. when F is not a callable type at all). C++14 changes that to a
+   SFINAE (when F is not callable, std::result_of<F(Args...)> simply doesn't have the
+   type member).
+
+.SH Examples
+
+   std::result_of can be used to determine the result of invoking a functor, in
+   particular if the result type is different for different sets of arguments:
+
+   
+// Run this code
+
+ #include <type_traits>
+  
+ struct S {
+     double operator()(char, int&);
+     float operator()(int);
+ };
+  
+ struct C {
+     double Func(char, int&);
+ };
+  
+ int main()
+ {
+     // the result of invoking S with char and int& arguments is double
+     std::result_of<S(char, int&)>::type f = 3.14; // f has type double
+     static_assert(std::is_same<decltype(f), double>::value, "");
+  
+     // the result of invoking S with int argument is float
+     std::result_of<S(int)>::type d = 3.14; // f has type float
+     static_assert(std::is_same<decltype(d), float>::value, "");
+  
+     // result_of can be used with a pointer to member function as follows
+     std::result_of<decltype(&C::Func)(C, char, int&)>::type g = 3.14;
+     static_assert(std::is_same<decltype(g), double>::value, "");
+ }
+
+   demonstrates the C++14 changes to result_of requirements
+
+   
+// Run this code
+
+ #include <type_traits>
+ #include <iostream>
+  
+ template<class T>
+ typename std::result_of<T(int)>::type
+ f(T& t)
+ {
+     std::cout << "overload of f for callable T\\n";
+     return t(0);
+ }
+  
+ template<class T, class U>
+ int f(U u)
+ {
+     std::cout << "overload of f for non-callable T\\n";
+     return u;
+ }
+  
+ struct S {};
+  
+ int main() {
+   f<S>(1); // fails to compile in C++11, calls the non-callable overload in C++14
+ }
+ output=
+ overload of f for non-callable T
+
+.SH See also
+
+   declval obtains the type of expression in unevaluated context
+   \fI(C++11)\fP \fI(function template)\fP

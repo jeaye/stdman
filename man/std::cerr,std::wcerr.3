@@ -1,0 +1,66 @@
+.TH std::cerr,std::wcerr 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <iostream>
+   extern std::ostream cerr;    \fB(1)\fP
+   extern std::wostream wcerr;  \fB(2)\fP
+
+   The global objects std::cerr and std::wcerr control output to a stream buffer of
+   implementation-defined type (derived from std::streambuf and std::wstreambuf,
+   respectively), associated with the standard C error output stream stderr.
+
+   These objects are guaranteed to be initialized during or before the first time an
+   object of type std::ios_base::Init is constructed and are available for use in the
+   constructors and destructors of static objects (as long as <iostream> is included).
+
+   Unless sync_with_stdio(false) has been issued, it is safe to concurrently access
+   these objects from multiple threads for both formatted and unformatted output.
+
+   Once initialized, (std::cerr.flags() & unitbuf) != 0 (same for wcerr) meaning that
+   any output sent to these stream objects is immediately flushed to the OS (via
+   std::basic_ostream::sentry's destructor).
+
+   In addition, std::cerr.tie() returns &std::cout (same for wcerr and wcout), meaning
+   that any output operation on std::cerr first executes std::cout.flush() (via
+   std::basic_ostream::sentry's constructor) \fI(since C++11)\fP
+
+.SH Example
+
+   output to stderr via cerr flushes out the pending output on cout, while output to
+   stderr via clog does not
+
+   
+// Run this code
+
+ #include <thread>
+ #include <iostream>
+ #include <chrono>
+ void f()
+ {
+     std::cout << "Output from thread...";
+     std::this_thread::sleep_for(std::chrono::seconds(2));
+     std::cout << "...thread calls flush()" << std::endl;
+ }
+  
+ int main()
+ {
+     std::thread t1(f);
+     std::this_thread::sleep_for(std::chrono::seconds(1));
+     std::clog << "This output from main is not tie()'d to cout\\n";
+     std::cerr << "This output is tie()'d to cout\\n";
+     t1.join();
+ }
+
+.SH Output:
+
+ This output from main is not tie()'d to cout
+ Output from thread...This output is tie()'d to cout
+ ...thread calls flush()
+
+.SH See also
+
+   Init  initializes standard stream objects
+         \fI(public member class of std::ios_base)\fP
+   clog  writes to the standard C error stream stderr
+   wclog (global object)
+   cout  writes to the standard C output stream stdout
+   wcout (global object)

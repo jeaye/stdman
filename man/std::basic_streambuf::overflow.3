@@ -1,0 +1,135 @@
+.TH std::basic_streambuf::overflow 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   virtual int_type overflow( int_type ch = traits::eof() );
+
+   Ensures that there is space at the put area for at least one character by saving
+   some initial subsequence of characters starting at pbase() to the output sequence
+   and updating the pointers to the output area (if needed). If ch is not Traits::eof()
+   (i.e. Traits::eq_int_type(ch, Traits::eof()) != true), it is either put to the
+   output area or directly saved to the output sequence.
+
+   The function may update pptr, epptr and pback pointers to define the location to
+   write more data. On failure, the function ensures that either pptr() == nullptr or
+   pptr() == epptr.
+
+   The base class version of the function does nothing. The derived classes may
+   override this function to allow updates to the put area in the case of exhaustion.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Note
+     • 4 Example
+     • 5 See also
+
+.SH Parameters
+
+   ch - the character to store in the put area
+
+.SH Return value
+
+   Returns unspecified value not equal to Traits::eof() on success, Traits::eof() on
+   failure.
+
+   The base class version of the function returns Traits::eof().
+
+.SH Note
+
+   The sputc() and sputn() call this function in case of an overflow (pptr() == nullptr
+   or pptr() >= epptr()).
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <array>
+  
+ // Buffer for std::ostream implemented by std::array
+ template<std::size_t SIZE, class CharT = char>
+ class ArrayedStreamBuffer : public std::basic_streambuf<CharT> {
+ public:
+  
+     using Base = std::basic_streambuf<CharT>;
+     using char_type = typename Base::char_type;
+     using int_type = typename Base::int_type;
+  
+     ArrayedStreamBuffer() : buffer_{} // value-initialize buffer_ to all zeroes
+     {
+         Base::setp(buffer_.begin(), buffer_.end()); // set std::basic_streambuf
+             // put area pointers to work with 'buffer_'
+     }
+  
+     int_type overflow(int_type ch)
+     {
+         std::cout << "overflow\\n";
+         return Base::overflow(ch);
+     }
+  
+     void print_buffer()
+     {
+         for (const auto& i: buffer_) {
+             if (i == 0) {
+                 std::cout << "NULL";
+             } else {
+                 std::cout << i;
+             }
+             std::cout << " ";
+         }
+         std::cout << "\\n";
+     }
+  
+ private:
+     std::array<char_type, SIZE> buffer_;
+ };
+  
+ int main()
+ {
+     ArrayedStreamBuffer<10> streambuf;
+     std::ostream stream(&streambuf);
+  
+     stream << "hello";
+     streambuf.print_buffer();
+     if (stream.good()) {
+         std::cout << "stream is good\\n";
+     }
+  
+     stream << "world";
+     streambuf.print_buffer();
+     if (stream.good()) {
+         std::cout << "stream is good\\n";
+     }
+  
+     stream << "!";
+     streambuf.print_buffer();
+     if (!stream.good()) {
+         std::cout << "stream is not good\\n";
+     }
+ }
+
+.SH Output:
+
+ h e l l o NULL NULL NULL NULL NULL
+ stream is good
+ h e l l o w o r l d
+ stream is good
+ overflow
+ h e l l o w o r l d
+ stream is not good
+
+.SH See also
+
+   uflow     reads characters from the associated input sequence to the get area and
+   \fB[virtual]\fP advances the next pointer
+             \fI(virtual protected member function)\fP
+   underflow reads characters from the associated input sequence to the get area
+   \fB[virtual]\fP \fI(virtual protected member function)\fP
+   overflow  writes characters to the associated file from the put area
+   \fB[virtual]\fP \fI(virtual protected member function of std::basic_filebuf)\fP
+   overflow  appends a character to the output sequence
+   \fB[virtual]\fP \fI(virtual protected member function of std::basic_stringbuf)\fP
+   overflow  appends a character to the output sequence, may reallocate or initially
+   \fB[virtual]\fP allocate the buffer if dynamic and not frozen
+             \fI(virtual protected member function of std::strstreambuf)\fP

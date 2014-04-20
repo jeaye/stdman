@@ -1,0 +1,101 @@
+.TH std::clock 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <ctime>
+   std::clock_t clock();
+
+   Returns the approximate processor time used by the process since the beginning of an
+   implementation-defined era related to the program's execution. To convert result
+   value to seconds divide it by CLOCKS_PER_SEC.
+
+   Only the difference between two values returned by different calls to std::clock is
+   meaningful, as the beginning of the std::clock era does not have to coincide with
+   the start of the program. std::clock time may advance faster or slower than the wall
+   clock, depending on the execution resources given to the program by the operating
+   system. For example, if the CPU is shared by other processes, std::clock time may
+   advance slower than wall clock. On the other hand, if the current process is
+   multithreaded and more than one execution core is available, std::clock time may
+   advance faster than wall clock.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Notes
+     • 5 Example
+     • 6 See also
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   Processor time used by the program so far or (clock_t)(-1) if that information is
+   unavailable.
+
+.SH Exceptions
+
+   \fI(none)\fP
+
+.SH Notes
+
+   On POSIX-compatible systems, clock_gettime with clock id CLOCK_PROCESS_CPUTIME_ID
+   offers better resolution.
+
+   The value returned by clock() may wrap around on some implementations. For example,
+   on a machine with 32-bit std::clock_t, it wraps after 2147 seconds or 36 minutes.
+
+.SH Example
+
+   This example demonstrates the difference between clock() time and real time
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <chrono>
+ #include <ctime>
+ #include <thread>
+  
+ // the function f() does some time-consuming work
+ void f()
+ {
+     volatile double d;
+     for(int n=0; n<10000; ++n)
+        for(int m=0; m<10000; ++m)
+            d += d*n*m;
+ }
+  
+ int main()
+ {
+     std::clock_t c_start = std::clock();
+     auto t_start = std::chrono::high_resolution_clock::now();
+     std::thread t1(f);
+     std::thread t2(f); // f() is called on two threads
+     t1.join();
+     t2.join();
+     std::clock_t c_end = std::clock();
+     auto t_end = std::chrono::high_resolution_clock::now();
+  
+     std::cout << "CPU time used: "
+               << 1000.0 * (c_end-c_start) / CLOCKS_PER_SEC
+               << " ms\\n";
+     std::cout << "Wall clock time passed: "
+               << std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count()
+               << " ms\\n";
+ }
+
+.SH Output:
+
+ CPU time used: 1520 ms
+ Wall clock time passed: 769 ms
+
+.SH See also
+
+   ctime converts a time_t object to a textual representation
+         \fI(function)\fP
+   time  returns the current time of the system as time since epoch
+         \fI(function)\fP
+   C documentation for
+   clock

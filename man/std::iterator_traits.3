@@ -1,0 +1,140 @@
+.TH std::iterator_traits 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <iterator>
+   template< class Iterator>
+   struct iterator_traits;
+   template< class T >
+   struct iterator_traits<T*>;
+   template< class T >
+   struct iterator_traits<const T*>;
+
+   std::iterator_traits is the type trait class that provides uniform interface to the
+   properties of iterator types. This makes it possible to implement algorithms only in
+   terms of iterators.
+
+   The class defines the following types that correspond to the typedefs provided by
+   std::iterator:
+
+     • difference_type - a type that can be used to identify distance between iterators
+     • value_type - the type of the values that can be obtained by dereferencing the
+       iterator. This type is void for output iterators.
+     • pointer - defines a pointer to the type iterated over (value_type)
+     • reference - defines a reference to the type iterated over (value_type)
+     • iterator_category - the category of the iterator. Must be one of iterator
+       category tags.
+
+   The template can be specialized for user-defined iterators so that the information
+   about the iterator can be retrieved even if the type does not provide the usual
+   typedefs.
+
+.SH Contents
+
+     • 1 Template parameters
+     • 2 Member types
+     • 3 Specializations
+
+          • 3.1 T* specialization member types
+          • 3.2 const T* specialization member types
+
+     • 4 Example
+     • 5 See also
+
+.SH Template parameters
+
+   Iterator - the iterator type to retrieve properties for
+
+.SH Member types
+
+   Member type       Definition
+   difference_type   Iterator::difference_type
+   value_type        Iterator::value_type
+   pointer           Iterator::pointer
+   reference         Iterator::reference
+   iterator_category Iterator::iterator_category
+
+.SH Specializations
+
+   This type trait may be specialized for user-provided types that may be used as
+   iterators. The standard library provides two partial specializations for pointer
+   types T*, which makes it possible to use all iterator-based algorithms with raw
+   pointers.
+
+.SH T* specialization member types
+
+   Member type       Definition
+   difference_type   std::ptrdiff_t
+   value_type        T
+   pointer           T*
+   reference         T&
+   iterator_category std::random_access_iterator_tag
+
+.SH const T* specialization member types
+
+   Member type       Definition
+   difference_type   std::ptrdiff_t
+   value_type        T
+   pointer           const T*
+   reference         const T&
+   iterator_category std::random_access_iterator_tag
+
+.SH Example
+
+   The following example shows a general-purpose reverse() implementation for
+   bidirectional iterators
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <iterator>
+ #include <vector>
+ #include <list>
+  
+ template<class BidirIt>
+ void my_reverse(BidirIt first, BidirIt last)
+ {
+     typename std::iterator_traits<BidirIt>::difference_type n = std::distance(first, last);
+     --n;
+     while(n > 0) {
+         typename std::iterator_traits<BidirIt>::value_type tmp = *first;
+         *first++ = *--last;
+         *last = tmp;
+         n -= 2;
+     }
+ }
+  
+ int main()
+ {
+     std::vector<int> v{1, 2, 3, 4, 5};
+     my_reverse(v.begin(), v.end());
+     for (int n : v) {
+         std::cout << n << ' ';
+     }
+     std::cout << '\\n';
+  
+     std::list<int> l{1, 2, 3, 4, 5};
+     my_reverse(l.begin(), l.end());
+     for (auto n : l) {
+         std::cout << n << ' ';
+     }
+     std::cout << '\\n';
+  
+ //    std::istreambuf_iterator<char> i1(std::cin), i2;
+ //    my_reverse(i1, i2); // compilation error
+  
+ }
+
+.SH Output:
+
+ 5 4 3 2 1
+ 5 4 3 2 1
+
+.SH See also
+
+   iterator                   the basic iterator
+                              \fI(class template)\fP
+   input_iterator_tag
+   output_iterator_tag        empty class types used to indicate iterator categories
+   forward_iterator_tag       \fI(class)\fP
+   bidirectional_iterator_tag
+   random_access_iterator_tag

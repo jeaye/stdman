@@ -1,0 +1,118 @@
+.TH std::atomic_exchange,std::atomic_exchange_explicit 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <atomic>
+   template< class T >
+   T atomic_exchange( std::atomic<T>* obj, T desr
+   );
+   template< class T >
+   T atomic_exchange( volatile std::atomic<T>*
+   obj, T desr );
+   template< class T >
+
+   T atomic_exchange_explicit( std::atomic<T>*
+   obj, T desr,                                   \fB(1)\fP \fI(since C++11)\fP
+
+                               std::memory_order
+   order );                                                         \fB(2)\fP \fI(since C++11)\fP
+   template< class T >
+
+   T atomic_exchange_explicit( volatile
+   std::atomic<T>* obj, T desr,
+
+                               std::memory_order
+   order );
+
+   1) Atomically replaces the value pointed to by obj with the value of desr and
+   returns the value obj held previously, as if by obj->exchange(desr)
+   2) Atomically replaces the value pointed to by obj with the value of desr and
+   returns the value obj held previously, as if by obj->exchange(desr, order)
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Example
+     • 5 See also
+
+.SH Parameters
+
+   obj   - pointer to the atomic object to modify
+   desr  - the value to store in the atomic object
+   order - the memory synchronization ordering for this operation: all values are
+           permitted.
+
+.SH Return value
+
+   The value held previously by the atomic object pointed to by obj
+
+.SH Exceptions
+
+   noexcept specification:  
+   noexcept
+     
+
+.SH Example
+
+   A spinlock mutex can be implemented in userspace using an atomic exchange operation,
+   similar to std::atomic_flag_test_and_set:
+
+   
+// Run this code
+
+ #include <thread>
+ #include <vector>
+ #include <iostream>
+ #include <atomic>
+  
+ std::atomic<bool> lock(false); // holds true when locked
+                                // holds false when unlocked
+  
+ void f(int n)
+ {
+     for (int cnt = 0; cnt < 100; ++cnt) {
+         while(std::atomic_exchange_explicit(&lock, true, std::memory_order_acquire))
+              ; // spin until acquired
+         std::cout << "Output from thread " << n << '\\n';
+         std::atomic_store_explicit(&lock, false, std::memory_order_release);
+     }
+ }
+ int main()
+ {
+     std::vector<std::thread> v;
+     for (int n = 0; n < 10; ++n) {
+         v.emplace_back(f, n);
+     }
+     for (auto& t : v) {
+         t.join();
+     }
+ }
+
+.SH Output:
+
+ Output from thread 2
+ Output from thread 6
+ Output from thread 7
+ ...<exactly 1000 lines>...
+
+.SH See also
+
+                                                  atomically replaces the value of the
+   exchange                                       atomic object and obtains the value
+   \fI(C++11)\fP                                        held previously
+                                                  \fI\fI(public member\fP function of\fP
+                                                  std::atomic)
+   atomic_compare_exchange_weak
+   atomic_compare_exchange_weak_explicit          atomically compares the value of the
+   atomic_compare_exchange_strong                 atomic object with non-atomic
+   atomic_compare_exchange_strong_explicit        argument and performs atomic exchange
+   \fI(C++11)\fP                                        if equal or atomic load if not
+   \fI(C++11)\fP                                        \fI(function template)\fP
+   \fI(C++11)\fP
+   \fI(C++11)\fP
+   std::atomic_exchange(std::shared_ptr)          specializes atomic operations for
+   std::atomic_exchange_explicit(std::shared_ptr) std::shared_ptr
+                                                  \fI(function template)\fP
+   C documentation for
+   atomic_exchange,
+   atomic_exchange_explicit

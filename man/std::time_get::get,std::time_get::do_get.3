@@ -1,0 +1,297 @@
+.TH std::time_get::get,std::time_get::do_get 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <locale>
+   public:
+
+   iter_type get(iter_type beg, iter_type end, std::ios_base& str,
+                 std::ios_base::iostate& err, std::tm* t,             \fB(1)\fP \fI(since C++11)\fP
+
+                 const char_type* fmtbeg, const char_type* fmtend)
+   const;
+   protected:
+
+   virtual iter_type do_get(iter_type neg, iter_type end,
+   std::ios_base& str,                                                \fB(2)\fP \fI(since C++11)\fP
+                            std::ios_base::iostate& err, std::tm *t,
+
+                            char format, char modifier) const;
+
+   1) Parses the date and time from the input character sequence [beg, end) according
+   to the format provided in the character sequence [fmtbeg, fmtend). The format is
+   expected to follow the format described below, although actual processing of each
+   format specifier can be customized by overriding do_get. The get function performs
+   the following: First, clears the error bits in err by executing err =
+   std::ios_base::goodbit. Then enters a loop, which terminates whenever any of the
+   following conditions becomes true (checked in this order):
+   a) All characters have been read from the format string (fmtbeg == fmtend)
+   b) There was a parsing error (err != std::ios_base::goodbit)
+   c) All characters have been read from the input sequence (beg == end. If this
+   condition terminates the loop, the function sets both eofbit and failbit in err
+
+   In the body of the loop, the following steps take place:
+   a) if the next character in the format string is '%', followed by one or two
+   characters that form a valid std::get_time conversion specifier (see below), these
+   characters are used in the call do_get(beg, end, str, err, t, format, modifier),
+   where format is the primary conversion specifier character, and modifier is the
+   optional modifier (which appears between % and the format character, if present). If
+   there is no modifier, the value '\\0' is used. If the format string is ambiguous or
+   ends too early to determine the conversion specifier after '%', eofbit is set in err
+   and the loop is terminated. If, after the call to do_get, no error bits are set in
+   err, the function increments fmtbeg to point right after the conversion specifier
+   and continues the loop.
+   b) If the next character is whitespace, as indicated by the locale provided in the
+   stream str (i.e. std::isspace(*fmtbeg, str.getloc()) == true, the function keeps
+   incrementing fmtbeg until it either becomes equal to fmtend or points to a
+   non-whitespace character.
+   c) If the next character in the format string is equivalent to the next character in
+   the input stream according to case-insensitive comparison, the function advances
+   both sequences by one character ++fmtbeg, ++beg; and continues the loop, Otherwise,
+   it sets the failbit in err.
+   2) Parses one conversion specifier from the input sequence [beg, end) and updates
+   the std::tm structure pointed to by t accordingly.
+
+   First, clears the error bits in err by executing err = std::ios_base::goodbit. Then
+   reads characters from the input sequence [beg, end) that are expected by the
+   std::time_get format specifier formed by combining '%', modifier (if not '\\0'), and
+   format. If the characters do not combine to form a valid conversion specifier, sets
+   failbit in err. If the end of the input stream is reached after reading a character,
+   sets eofbit in err. If the input string was parsed successfully, updates the
+   corresponding fields of *t.
+
+   For complex conversion specifiers, such as '%x' or '%c', or the directives that use
+   the modifiers 'E' and 'O', the function may fail to determine some of the values to
+   store in *t. In such case, it sets eofbit in err and leaves these fields in
+   unspecified state.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Notes
+     • 4 Example
+     • 5 See also
+
+.SH Parameters
+
+   beg      - iterator designating the start of the sequence to parse
+   end      - one past the end iterator for the sequence to parse
+              a stream object that this function uses to obtain locale facets when
+   str      - needed, e.g. std::ctype to skip whitespace or std::collate to compare
+              strings
+   err      - stream error flags object that is modified by this function to indicate
+              errors
+   t        - pointer to the std::tm object that will hold the result of this function
+              call
+              pointer to the first character of a sequence of char_type characters
+              specifying the conversion format
+
+              The format string consists of zero or more conversion specifiers,
+              whitespace characters, and ordinary characters (except %). Each ordinary
+              character is expected to match one character in the input stream in
+              case-insensitive comparison. Each whitespace character matches arbitrary
+              whitespace in the input string. Each conversion specification begins with
+              % character, optionally followed by E or O modifier (ignored if
+              unsupported by the locale), followed by the character that determines the
+              behavior of the specifier. The format specifiers match the POSIX function
+              strptime():
+
+              Conversion                 Explanation                  Writes to fields
+              specifier
+                  %      matches a literal %. The full conversion     \fI(none)\fP
+                         specification must be %%.
+                  t      matches any whitespace.                      \fI(none)\fP
+                  n      matches any whitespace.                      \fI(none)\fP
+                                                Year
+                         parses full year as a 4 digit decimal
+                  Y      number, leading zeroes permitted but not     tm_year
+                         required
+                         parses year in the alternative
+                  EY     representation, e.g.平成23年 (year Heisei    tm_year
+                         23) which writes 2011 to tm_year in ja_JP
+                         locale
+                         parses last 2 digits of year as a decimal
+                  y      number. Range [69,99] results in values 1969 tm_year
+                         to 1999, range [00,68] results in 2000-2068
+                         parses last 2 digits of year using the
+                  Oy     alternative numeric system, e.g. 十一 is     tm_year
+                         parsed as 11 in ja_JP locale
+                  Ey     parses year as offset from locale's          tm_year
+                         alternative calendar period %EC
+                  C      parses the first 2 digits of year as a       tm_year
+                         decimal number (range [00,99])
+                         parses the name of the base year (period) in
+                  EC     the locale's alternative representation,     tm_year
+                         e.g. 平成 (Heisei era) in ja_JP
+                                                Month
+                  b      parses the month name, either full or        tm_mon
+                         abbreviated, e.g. Oct
+                  h      synonym of b                                 tm_mon
+                  B      synonym of b                                 tm_mon
+                         parses the month as a decimal number (range
+                  m      [01,12]), leading zeroes permitted but not   tm_mon
+                         required
+                         parses the month using the alternative
+                  Om     numeric system, e.g. 十二 parses as 12 in    tm_mon
+                         ja_JP locale
+                                                Week
+                         parses the week of the year as a decimal
+                  U      number (Sunday is the first day of the week) tm_year, tm_wday,
+                         (range [00,53]), leading zeroes permitted    tm_yday
+                         but not required
+                         parses the week of the year, as by %U, using tm_year, tm_wday,
+                  OU     the alternative numeric system, e.g. 五十二  tm_yday
+                         parses as 52 in ja_JP locale
+                         parses the week of the year as a decimal
+                  W      number (Monday is the first day of the week) tm_year, tm_wday,
+                         (range [00,53]), leading zeroes permitted    tm_yday
+                         but not required
+                         parses the week of the year, as by %W, using tm_year, tm_wday,
+                  OW     the alternative numeric system, e.g. 五十二  tm_yday
+                         parses as 52 in ja_JP locale
+                                        Day of the year/month
+                         parses day of the year as a decimal number
+                  j      (range [001,366]), leading zeroes permitted  tm_yday
+   fmtbeg   -            but not required
+                         parses the day of the month as a decimal
+                  d      number (range [01,31]), leading zeroes       tm_mday
+                         permitted but not required
+                         parses the day of the month using the
+                  Od     alternative numeric system, e.g 二十七       tm_mday
+                         parses as 23 in ja_JP locale, leading zeroes
+                         permitted but not required
+                  e      synonym of d                                 tm_mday
+                  Oe     synonym of Od                                tm_mday
+                                           Day of the week
+                  a      parses the name of the day of the week,      tm_wday
+                         either full or abbreviated, e.g. Fri
+                  A      synonym of a                                 tm_wday
+                  w      parses weekday as a decimal number, where    tm_wday
+                         Sunday is 0 (range [0-6])
+                         parses weekday as a decimal number, where
+                  Ow     Sunday is 0, using the alternative numeric   tm_wday
+                         system, e.g. 二 parses as 2 in ja_JP locale
+                                        Hour, minute, second
+                         parses the hour as a decimal number, 24 hour
+                  H      clock (range [00-23]), leading zeroes        tm_hour
+                         permitted but not required
+                         parses hour from 24-hour clock using the
+                  OH     alternative numeric system, e.g. 十八 parses tm_hour
+                         as 18 in ja_JP locale
+                         parses hour as a decimal number, 12 hour
+                  I      clock (range [01,12]), leading zeroes        tm_hour
+                         permitted but not required
+                         parses hour from 12-hour clock using the
+                  OI     alternative numeric system, e.g. 六 reads as tm_hour
+                         06 in ja_JP locale
+                         parses minute as a decimal number (range
+                  M      [00,59]), leading zeroes permitted but not   tm_min
+                         required
+                         parses minute using the alternative numeric
+                  OM     system, e.g. 二十五 parses as 25 in ja_JP    tm_min
+                         locale
+                         parses second as a decimal number (range
+                  S      [00,60]), leading zeroes permitted but not   tm_sec
+                         required
+                         parses second using the alternative numeric
+                  OS     system, e.g. 二十四 parses as 24 in ja_JP    tm_sec
+                         locale
+.SH Other
+                         parses the locale's standard date and time
+                  c      string format, e.g. Sun Oct 17 04:41:13 2010 all
+                         (locale dependent)
+                         parses the locale's alternative date and
+                  Ec     time string format, e.g. expecting 平成23年  all
+                         (year Heisei 23) instead of 2011年 (year
+                         2011) in ja_JP locale
+                  x      parses the locale's standard date            all
+                         representation
+                         parses the locale's alternative date
+                  Ex     representation, e.g. expecting 平成23年      all
+                         (year Heisei 23) instead of 2011年 (year
+                         2011) in ja_JP locale
+                  X      parses the locale's standard time            all
+                         representation
+                  EX     parses the locale's alternative time         all
+                         representation
+                  D      equivalent to "%m / %d / %y "                tm_mon, tm_mday,
+                                                                      tm_year
+                  r      parses locale's standard 12-hour clock time  tm_hour, tm_min,
+                         (in POSIX, "%I : %M : %S %p")                tm_sec
+                  R      equivalent to "%H : %M"                      tm_hour, tm_min
+                  T      equivalent to "%H : %M : %S"                 tm_hour, tm_min,
+                                                                      tm_sec
+                  p      parses the locale's equivalent of a.m. or    tm_hour
+                         p.m.
+   fmtend   - pointer one past the last character of a sequence of char_type characters
+              specifying the conversion format
+   format   - the character that names a conversion specifier
+   modifier - the optional modifier that may appear between % and the conversion
+              specifier
+
+.SH Return value
+
+   Iterator pointing one past the last character in [beg, end) that was parsed
+   successfully.
+
+.SH Notes
+
+   The case-insensitive comparison for the non-whitespace non-'%' characters in the
+   format string, the std::collate facet of the locale provided by str is typically,
+   but not necessarily, used.
+
+   If a parsing error is encountered, many implementations of this function leave *t
+   completely untouched.
+
+   It's unspecified if these functions zero out the fields in *t that they do not set
+   directly: portable programs should initialize every field to zero before calling
+   get().
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <sstream>
+ #include <locale>
+ #include <iomanip>
+  
+ int main()
+ {
+     std::istringstream ss("2011-Februar-18 23:12:34");
+     ss.imbue(std::locale("de_DE"));
+  
+     auto& f = std::use_facet<std::time_get<char>>(std::locale("de_DE"));
+     std::tm t{};
+     std::string s = "%Y-%b-%d %H:%M:%S";
+     std::ios_base::iostate err = std::ios_base::goodbit;
+     std::istreambuf_iterator<char> ret = f.get(std::istreambuf_iterator<char>(ss),
+                                                std::istreambuf_iterator<char>(),
+                                                ss, err, &t, &s[0], &s[0] + s.size());
+     ss.setstate(err);
+  
+     if(ss) {
+         std::cout << "Successfully parsed as " << std::put_time(&t, "%c");
+         if(ret != std::istreambuf_iterator<char>()) {
+             std::cout << " Remaining content: ";
+             std::copy(ret, std::istreambuf_iterator<char>(),
+                            std::ostreambuf_iterator<char>(std::cout));
+         } else {
+                 std::cout << " The input was fully consumed";
+         }
+     } else {
+             std::cout << "Parse failed. Unparsed string: ";
+             std::copy(ret, std::istreambuf_iterator<char>(),
+                            std::ostreambuf_iterator<char>(std::cout));
+     }
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ Successfully parsed, as Sun Feb 18 23:12:34 2011 The input was fully consumed
+
+.SH See also
+
+   get_time parses a date/time value of specified format
+   \fI(C++11)\fP  \fI(function template)\fP

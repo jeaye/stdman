@@ -1,0 +1,214 @@
+.TH std::codecvt 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <locale>
+   template<
+
+       class InternT,
+       class ExternT,
+       class State
+
+   > class codecvt;
+
+   Class std::codecvt encapsulates conversion of character strings, including wide and
+   multibyte, from one encoding to another. All file I/O operations performed through
+   std::basic_fstream<CharT> use the std::codecvt<CharT, char, std::mbstate_t> facet of
+   the locale imbued in the stream.
+
+   std-codecvt-inheritance.svg
+   About this image
+
+                                   Inheritance diagram
+
+   Four standalone (locale-independent) specializations are provided by the standard
+   library:
+
+   Defined in header <locale>
+   std::codecvt<char, char, std::mbstate_t>     identity conversion
+   std::codecvt<char16_t, char, std::mbstate_t> conversion between UTF-16 and UTF-8
+                                                \fI(since C++11)\fP
+   std::codecvt<char32_t, char, std::mbstate_t> conversion between UTF-32 and UTF-8
+                                                \fI(since C++11)\fP
+   std::codecvt<wchar_t, char, std::mbstate_t>  conversion between the system's native
+                                                wide and multibyte encodings
+
+   In addition, every locale object constructed in a C++ program implements its own
+   (locale-specific) versions of these four specializations.
+
+.SH Contents
+
+     • 1 Member types
+     • 2 Member functions
+     • 3 Member objects
+     • 4 Protected member functions
+     • 5 Inherited from
+       std::codecvt_base
+
+          • 5.1 Example
+          • 5.2 See also
+
+.SH Member types
+
+   Member type Definition
+   intern_type InternT
+   extern_type ExternT
+   state_type  State
+
+.SH Member functions
+
+   constructor   constructs a new codecvt facet
+                 \fI(public member function)\fP
+   destructor    destructs a codecvt facet
+                 \fI(protected member function)\fP
+   out           invokes do_out
+                 \fI(public member function)\fP
+   in            invokes do_in
+                 \fI(public member function)\fP
+   unshift       invokes do_unshift
+                 \fI(public member function)\fP
+   encoding      invokes do_encoding
+                 \fI(public member function)\fP
+   always_noconv invokes do_always_noconv
+                 \fI(public member function)\fP
+   length        invokes do_length
+                 \fI(public member function)\fP
+   max_length    invokes do_max_length
+                 \fI(public member function)\fP
+
+.SH Member objects
+
+   Member name Type
+   id (static) std::locale::id
+
+.SH Protected member functions
+
+   do_out           converts a string from internT to externT, such as when writing to
+   \fB[virtual]\fP        file
+                    \fI(virtual protected member function)\fP
+   do_in            converts a string from externT to internT, such as when reading
+   \fB[virtual]\fP        from file
+                    \fI(virtual protected member function)\fP
+   do_unshift       generates the termination character sequence of externT characters
+   \fB[virtual]\fP        for incomplete conversion
+                    \fI(virtual protected member function)\fP
+   do_encoding      returns the number of externT characters necessary to produce one
+   \fB[virtual]\fP        internT character, if constant
+                    \fI(virtual protected member function)\fP
+   do_always_noconv tests if the facet encodes an identity conversion for all valid
+   \fB[virtual]\fP        argument values
+                    \fI(virtual protected member function)\fP
+   do_length        calculates the length of the externT string that would be consumed
+   \fB[virtual]\fP        by conversion into given internT buffer
+                    \fI(virtual protected member function)\fP
+   do_max_length    returns the maximum number of externT characters that could be
+   \fB[virtual]\fP        converted into a single internT character
+                    \fI(virtual protected member function)\fP
+
+Inherited from std::codecvt_base
+
+   Member type                                 Definition
+   enum result { ok, partial, error, noconv }; Unscoped enumeration type
+
+   Enumeration constant Definition
+   ok                   conversion was completed with no error
+   partial              not all source characters were converted
+   error                encountered an invalid character
+   noconv               no conversion required, input and output types are the same
+
+.SH Example
+
+   The following examples reads a UTF-8 file using a locale which implements UTF-8
+   conversion in codecvt<wchar_t, char, mbstate_t> and converts a UTF-8 string to
+   UTF-16 using one of the standard specializations of std::codecvt
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <fstream>
+ #include <string>
+ #include <locale>
+ #include <iomanip>
+ #include <string>
+ #include <codecvt>
+  
+ // utility wrapper to adapt locale-bound facets for wstring/wbuffer convert
+ template<class Facet>
+ struct deletable_facet : Facet
+ {
+     template<class ...Args>
+     deletable_facet(Args&& ...args) : Facet(std::forward<Args>(args)...) {}
+     ~deletable_facet() {}
+ };
+  
+ int main()
+ {
+     // UTF-8 narrow multibyte encoding
+     std::string data = u8"z\\u00df\\u6c34\\U0001f34c";
+                        // or u8"zß水🍌"
+                        // or "\\x7a\\xc3\\x9f\\xe6\\xb0\\xb4\\xf0\\x9f\\x8d\\x8c";
+  
+     std::ofstream("text.txt") << data;
+  
+     // using system-supplied locale's codecvt facet
+     std::wifstream fin("text.txt");
+     // reading from wifstream willl use codecvt<wchar_t, char, mbstate_t>
+     // this locale's codecvt converts UTF-8 to UCS4 (on systems such as Linux)
+     fin.imbue(std::locale("en_US.UTF-8"));
+     std::cout << "The UTF-8 file contains the following UCS4 code points: \\n";
+     for (wchar_t c; fin >> c; )
+         std::cout << "U+" << std::hex << std::setw(4) << std::setfill('0') << c << '\\n';
+  
+     // using standard (locale-independent) codecvt facet
+     std::wstring_convert<
+         deletable_facet<std::codecvt<char16_t, char, std::mbstate_t>>, char16_t> conv16;
+     std::u16string str16 = conv16.from_bytes(data);
+  
+     std::cout << "The UTF-8 file contains the following UTF-16 code points: \\n";
+     for (char16_t c : str16)
+         std::cout << "U+" << std::hex << std::setw(4) << std::setfill('0') << c << '\\n';
+ }
+
+.SH Output:
+
+ The UTF-8 file contains the following UCS4 code points:
+ U+007a
+ U+00df
+ U+6c34
+ U+1f34c
+ The UTF-8 file contains the following UTF-16 code points:
+ U+007a
+ U+00df
+ U+6c34
+ U+d83c
+ U+df4c
+
+.SH See also
+
+    Character  narrow multibyte              UTF-8                      UTF-16
+   conversions      (char)                  (char)                    (char16_t)
+                                codecvt<char16_t, char,
+               mbrtoc16 /       mbstate_t>
+     UTF-16    c16rtomb         codecvt_utf8_utf16<char16_t>    N/A
+                                codecvt_utf8_utf16<char32_t>
+                                codecvt_utf8_utf16<wchar_t>
+      UCS2     No               codecvt_utf8<char16_t>          codecvt_utf16<char16_t>
+   UTF-32/UCS4 mbrtoc32 /       codecvt<char32_t, char,
+   (char32_t)  c32rtomb         mbstate_t>                      codecvt_utf16<char32_t>
+                                codecvt_utf8<char32_t>
+    UCS2/UCS4  No               codecvt_utf8<wchar_t>           codecvt_utf16<wchar_t>
+    (wchar_t)
+               codecvt<wchar_t,
+      wide     char, mbstate_t> No                              No
+    (wchar_t)  mbsrtowcs /
+               wcsrtombs
+
+   codecvt_base       defines character conversion errors
+                      \fI(class template)\fP
+   codecvt_byname     creates a codecvt facet for the named locale
+                      \fI(class template)\fP
+   codecvt_utf8       converts between UTF-8 and UCS2/UCS4
+   \fI(C++11)\fP            \fI(class template)\fP
+   codecvt_utf16      converts between UTF-16 and UCS2/UCS4
+   \fI(C++11)\fP            \fI(class template)\fP
+   codecvt_utf8_utf16 converts between UTF-8 and UTF-16
+   \fI(C++11)\fP            \fI(class template)\fP

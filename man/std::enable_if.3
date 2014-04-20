@@ -1,0 +1,113 @@
+.TH std::enable_if 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <type_traits>
+   template< bool B, class T = void >  \fI(since C++11)\fP
+   struct enable_if;
+
+   If B is true, std::enable_if has a public member typedef type, equal to T;
+   otherwise, there is no member typedef.
+
+   This metafunction is used to conditionally remove functions and classes from
+   overload resolution based on type traits and to provide separate function overloads
+   and specializations for different type traits. std::enable_if can be used as an
+   additional function argument (not applicable to operator overloads), as a return
+   type (not applicable to constructors and destructors), or as a class template or
+   function template parameter.
+
+.SH Contents
+
+     • 1 Member types
+     • 2 Helper types
+     • 3 Possible implementation
+     • 4 Example
+     • 5 See also
+
+.SH Member types
+
+   Type Definition
+   type either T or no such member, depending on the value of B
+
+.SH Helper types
+
+   template< bool B, class T = void >                  \fI(since C++14)\fP
+   using enable_if_t = typename enable_if<B,T>::type;
+
+.SH Possible implementation
+
+   template<bool B, class T = void>
+   struct enable_if {};
+    
+   template<class T>
+   struct enable_if<true, T> { typedef T type; };
+
+.SH Example
+
+   
+// Run this code
+
+ #include <type_traits>
+ #include <iostream>
+  
+ // foo1 overloads are enabled via the return type
+ template<class T>
+ typename std::enable_if<std::is_floating_point<T>::value, T>::type
+     foo1(T t)
+ {
+     std::cout << "foo1: float\\n";
+     return t;
+ }
+  
+ template<class T>
+ std::enable_if_t<std::is_integral<T>::value, T> //Using helper type
+     foo1(T t)
+ {
+     std::cout << "foo1: int\\n";
+     return t;
+ }
+  
+ // foo2 overload is enabled via a parameter
+ template<class T>
+ T foo2(T t, typename std::enable_if<std::is_integral<T>::value >::type* = 0)
+ {
+     return t;
+ }
+  
+ // foo3 overload is enabled via a template parameter
+ template<class T ,
+          class = typename std::enable_if<std::is_integral<T>::value>::type >
+ T foo3(T t) // note, function signature is unmodified
+ {
+     return t;
+ }
+  
+ // A is enabled via a template parameter
+ template<class T, class Enable = void>
+ class A; // undefined
+  
+ template<class T>
+ class A<T, typename std::enable_if<std::is_floating_point<T>::value >::type> {
+ };
+  
+ int main()
+ {
+     foo1(1.2); // OK, calls the first version of foo1()
+     foo1(10); // OK, calls the second version of foo1()
+  
+ //  foo2(0.1); // compile-time error
+     foo2(7); // OK
+  
+ //  foo3(1.2); // compile-time error
+     foo3(34); // OK
+  
+ //  A<int> a1; // compile-time error
+     A<double> a1; // OK
+ }
+
+.SH Output:
+
+ foo1: float
+ foo1: int
+
+.SH See also
+
+     • static_assert

@@ -1,0 +1,111 @@
+.TH std::timed_mutex::try_lock_for 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   template< class Rep, class Period >
+   bool try_lock_for( const std::chrono::duration<Rep,Period>&            \fI(since C++11)\fP
+   timeout_duration );
+
+   Tries to lock the mutex. Blocks until specified timeout_duration has elapsed or the
+   lock is acquired, whichever comes first. On successful lock acquisition returns
+   true, otherwise returns false.
+
+   If timeout_duration is less or equal timeout_duration.zero(), the function behaves
+   like try_lock().
+
+   A steady clock is used to measure the duration. This function may block for longer
+   than timeout_duration due to scheduling or resource contention delays.
+
+   As with try_lock(), this function is allowed to fail spuriously and return false
+   even if the mutex was not locked by any other thread at some point during
+   timeout_duration.
+
+   Prior unlock() operation on the same mutex synchronizes-with (as defined in
+   std::memory_order) this operation if it returns true.
+
+   If try_lock_for is called by a thread that already owns the mutex, the behavior is
+   undefined.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Example
+     • 5 See also
+
+.SH Parameters
+
+   timeout_duration - maximum duration to block for
+
+.SH Return value
+
+   true if the lock was acquired successfully, otherwise false.
+
+.SH Exceptions
+
+   Any exception thrown by clock, time_point, or duration during the execution (clocks,
+   time points, and durations provided by the standard library never throw)
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <mutex>
+ #include <thread>
+ #include <vector>
+ #include <sstream>
+  
+ std::mutex cout_mutex; // control access to std::cout
+ std::timed_mutex mutex;
+  
+ void job(int id)
+ {
+     using Ms = std::chrono::milliseconds;
+     std::ostringstream stream;
+  
+     for (int i = 0; i < 3; ++i) {
+         if (mutex.try_lock_for(Ms(100))) {
+             stream << "success ";
+             std::this_thread::sleep_for(Ms(100));
+             mutex.unlock();
+         } else {
+             stream << "failed ";
+         }
+         std::this_thread::sleep_for(Ms(100));
+     }
+  
+     std::lock_guard<std::mutex> lock(cout_mutex);
+     std::cout << "[" << id << "] " << stream.str() << "\\n";
+ }
+  
+ int main()
+ {
+     std::vector<std::thread> threads;
+     for (int i = 0; i < 4; ++i) {
+         threads.emplace_back(job, i);
+     }
+  
+     for (auto& i: threads) {
+         i.join();
+     }
+ }
+
+.SH Possible output:
+
+ [0] failed failed failed
+ [3] failed failed success
+ [2] failed success failed
+ [1] success failed success
+
+.SH See also
+
+   lock           locks the mutex, blocks if the mutex is not available
+                  \fI(public member function)\fP
+   try_lock       tries to lock the mutex, returns if the mutex is not available
+                  \fI(public member function)\fP
+                  tries to lock the mutex, returns if the mutex has been
+   try_lock_until unavailable until specified time point has been reached
+                  \fI(public member function)\fP
+   unlock         unlocks the mutex
+                  \fI(public member function)\fP

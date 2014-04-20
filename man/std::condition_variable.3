@@ -1,0 +1,131 @@
+.TH std::condition_variable 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <condition_variable>
+   class condition_variable;               \fI(since C++11)\fP
+
+   The condition_variable class is a synchronization primitive that can be used to
+   block a thread, or multiple threads at the same time, until:
+
+     • a notification is received from another thread
+     • a timeout expires, or
+     • a spurious wakeup occurs
+
+   Any thread that intends to wait on std::condition_variable has to acquire a
+   std::unique_lock first. The wait operations atomically release the mutex and suspend
+   the execution of the thread. When the condition variable is notified, the thread is
+   awakened, and the mutex is reacquired.
+
+   The class std::condition_variable is a StandardLayoutType. It is not
+   CopyConstructible, MoveConstructible, CopyAssignable, MoveAssignable.
+
+.SH Contents
+
+     • 1 Member types
+     • 2 Member functions
+
+          • 2.1 Notification
+          • 2.2 Waiting
+          • 2.3 Native handle
+
+     • 3 Example
+
+.SH Member types
+
+   Member type        Definition
+   native_handle_type implementation-defined
+
+.SH Member functions
+
+   constructor   constructs the object
+                 \fI(public member function)\fP
+   destructor    destructs the object
+                 \fI(public member function)\fP
+   operator=     not copy-assignable
+   [deleted]     \fI(public member function)\fP
+.SH Notification
+   notify_one    notifies one waiting thread
+                 \fI(public member function)\fP
+   notify_all    notifies all waiting threads
+                 \fI(public member function)\fP
+.SH Waiting
+   wait          blocks the current thread until the condition variable is woken up
+                 \fI(public member function)\fP
+                 blocks the current thread until the condition variable is woken up or
+   wait_for      after the specified timeout duration
+                 \fI(public member function)\fP
+                 blocks the current thread until the condition variable is woken up or
+   wait_until    until specified time point has been reached
+                 \fI(public member function)\fP
+.SH Native handle
+   native_handle returns the native handle
+                 \fI(public member function)\fP
+
+.SH Example
+
+   condition_variable is typically used in combination with a std::mutex to facilitate
+   inter-thread communication
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <string>
+ #include <thread>
+ #include <mutex>
+ #include <condition_variable>
+  
+ std::mutex m;
+ std::condition_variable cv;
+ std::string data;
+ bool ready = false;
+ bool processed = false;
+  
+ void worker_thread()
+ {
+     // Wait until main() sends data
+     std::unique_lock<std::mutex> lk(m);
+     cv.wait(lk, []{return ready;});
+  
+     //after the wait, we own the lock.
+     std::cout << "Worker thread is processing data\\n";
+     data += " after processing";
+  
+     // Send data back to main()
+     processed = true;
+     std::cout << "Worker thread signals data processing completed\\n";
+  
+     // Manual unlocking is done before notifying, to avoid
+     // that the waiting thread gets blocked again.
+     lk.unlock();
+     cv.notify_one();
+ }
+  
+ int main()
+ {
+     std::thread worker(worker_thread);
+  
+     data = "Example data";
+     // send data to the worker thread
+     {
+         std::lock_guard<std::mutex> lk(m);
+         ready = true;
+         std::cout << "main() signals data ready for processing\\n";
+     }
+     cv.notify_one();
+  
+     // wait for the worker
+     {
+         std::unique_lock<std::mutex> lk(m);
+         cv.wait(lk, []{return processed;});
+     }
+     std::cout << "Back in main(), data = " << data << '\\n';
+  
+     worker.join();
+ }
+
+.SH Output:
+
+ main() signals data ready for processing
+ Worker thread is processing data
+ Worker thread signals data processing completed
+ Back in main(), data = Example data after processing

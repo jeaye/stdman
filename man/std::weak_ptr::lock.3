@@ -1,0 +1,88 @@
+.TH std::weak_ptr::lock 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   std::shared_ptr<T> lock() const  \fI(since C++11)\fP
+
+   Creates a new shared_ptr that shares ownership of the managed object. If there is no
+   managed object, i.e. *this is empty, then the returned shared_ptr also is empty.
+
+   Effectively returns expired() ? shared_ptr<T>() : shared_ptr<T>(*this).
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Notes
+     • 5 Example
+     • 6 See also
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   A shared_ptr which shares ownership of the owned object.
+
+.SH Exceptions
+
+   noexcept specification:  
+   noexcept
+     
+
+.SH Notes
+
+   Both this function and the constructor of shared_ptr may be used to acquire
+   temporary ownership of the managed object. The difference is that the constructor of
+   std::shared_ptr<T> throws an exception when the std::weak_ptr argument is empty,
+   while std::weak_ptr<T>::lock() constructs an empty std::shared_ptr<T>.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <memory>
+ #include <thread>
+  
+ void observe(std::weak_ptr<int> weak)
+ {
+     std::shared_ptr<int> observe(weak.lock());
+     if (observe) {
+         std::cout << "\\tobserve() able to lock weak_ptr<>, value=" << *observe << "\\n";
+     } else {
+         std::cout << "\\tobserve() unable to lock weak_ptr<>\\n";
+     }
+ }
+  
+ int main()
+ {
+     std::weak_ptr<int> weak;
+     std::cout << "weak_ptr<> not yet initialized\\n";
+     observe(weak);
+  
+     {
+         std::shared_ptr<int> shared(new int(42));
+         weak = shared;
+         std::cout << "weak_ptr<> initialized with shared_ptr.\\n";
+         observe(weak);
+     }
+  
+     std::cout << "shared_ptr<> has been destructed due to scope exit.\\n";
+     observe(weak);
+ }
+
+.SH Output:
+
+ weak_ptr<> not yet initialized
+         observe() unable to lock weak_ptr<>
+ weak_ptr<> initialized with shared_ptr.
+         observe() able to lock weak_ptr<>, value=42
+ shared_ptr<> has been destructed due to scope exit.
+         observe() unable to lock weak_ptr<>
+
+.SH See also
+
+   expired checks whether the referenced object was already deleted
+           \fI(public member function)\fP

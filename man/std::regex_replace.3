@@ -1,0 +1,167 @@
+.TH std::regex_replace 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <regex>
+   template< class OutputIt, class BidirIt,
+
+             class Traits, class CharT,
+             class STraits, class SAlloc >
+   OutputIt regex_replace( OutputIt out, BidirIt first, BidirIt last,
+                           const std::basic_regex<CharT,Traits>& re,  \fB(1)\fP \fI(since C++11)\fP
+                           const
+   std::basic_string<CharT,STraits,SAlloc>& fmt,
+                           std::regex_constants::match_flag_type
+   flags =
+
+                               std::regex_constants::match_default );
+   template< class OutputIt, class BidirIt,
+
+             class Traits, class CharT >
+   OutputIt regex_replace( OutputIt out, BidirIt first, BidirIt last,
+                           const std::basic_regex<CharT,Traits>& re,  \fB(2)\fP \fI(since C++11)\fP
+                           const CharT* fmt,
+                           std::regex_constants::match_flag_type
+   flags =
+
+                               std::regex_constants::match_default );
+   template< class Traits, class CharT,
+
+             class STraits, class SAlloc,
+             class FTraits, class FAlloc >
+   std::basic_string<CharT,STraits,SAlloc>
+       regex_replace( const std::basic_string<CharT,STraits,SAlloc>&
+   s,                                                                 \fB(3)\fP \fI(since C++11)\fP
+                      const std::basic_regex<CharT,Traits>& re,
+                      const std::basic_string<CharT,FTraits,FAlloc>&
+   fmt,
+                      std::regex_constants::match_flag_type flags =
+
+                          std::regex_constants::match_default );
+   template< class Traits, class CharT,
+
+             class STraits, class SAlloc >
+   std::basic_string<CharT,STraits,SAlloc>
+       regex_replace( const std::basic_string<CharT,STraits,SAlloc>&
+   s,                                                                 \fB(4)\fP \fI(since C++11)\fP
+                      const std::basic_regex<CharT,Traits>& re,
+                      const CharT* fmt,
+                      std::regex_constants::match_flag_type flags =
+
+                          std::regex_constants::match_default );
+   template< class Traits, class CharT,
+
+             class STraits, class SAlloc >
+   std::basic_string<CharT>
+       regex_replace( const CharT* s,
+                      const std::basic_regex<CharT,Traits>& re,       \fB(5)\fP \fI(since C++11)\fP
+                      const std::basic_string<CharT,STraits,SAlloc>&
+   fmt,
+                      std::regex_constants::match_flag_type flags =
+
+                          std::regex_constants::match_default );
+   template< class Traits, class CharT >
+
+   std::basic_string<CharT>
+       regex_replace( const CharT* s,
+                      const std::basic_regex<CharT,Traits>& re,       \fB(6)\fP \fI(since C++11)\fP
+                      const CharT* fmt,
+                      std::regex_constants::match_flag_type flags =
+
+                          std::regex_constants::match_default );
+
+   regex_replace uses a regular expression to perform substitution on a sequence of
+   characters:
+
+   1) Copies characters in the range [first,last) to out, replacing any sequences that
+   match re with characters formatted by fmt. In other words:
+
+     • Constructs a std::regex_iterator object i as if by std::regex_iterator<BidirIt,
+       CharT, traits> i(first, last, re, flags), and uses it to step through every
+       match of re within the sequence [first,last).
+     • For each such match m, copies the non-matched subsequence (m.prefix()) into out
+       as-is and then replaces the matched subsequence with the formatted replacement
+       string as if by calling m.format(out, fmt, flags).
+     • When no more matches are found, copies the remaining non-matched characters to
+       out.
+     • If there are no matches, copies the entire sequence into out as-is.
+     • If flags contains std::regex_constants::format_no_copy, the non-matched
+       subsequences are not copied into out.
+     • If flags contains std::regex_constants::format_first_only, only the first match
+       is replaced.
+
+   2) same as 1), but the formatted replacement is performed as if by calling
+   m.format(out, fmt, fmt + char_traits<charT>::length(fmt), flags)
+   3-4) Constructs an empty string result of type std::basic_string<CharT, ST, SA> and
+   calls std::regex_replace(std::back_inserter(result), s.begin(), s.end(), re, fmt,
+   flags).
+   5-6) Constructs an empty string result of type std::basic_string<CharT> and calls
+   std::regex_replace(std::back_inserter(result), s, s +
+   std::char_traits<CharT>::length(s), re, fmt, flags).
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Example
+     • 5 See also
+
+.SH Parameters
+
+   first, last - the input character sequence, represented as a pair of iterators
+   s           - the input character sequence, represented as std::basic_string or
+                 character array
+   re          - the std::basic_regex that will be matched against the input sequence
+   flags       - the match flags of type std::regex_constants::match_flag_type
+   fmt         - the regex replacement format string, exact syntax depends on the value
+                 of flags
+   out         - output iterator to store the result of the replacement
+.SH Type requirements
+   -
+   OutputIt must meet the requirements of OutputIterator.
+   -
+   BidirIt must meet the requirements of BidirectionalIterator.
+
+.SH Return value
+
+   1-2) Returns a copy of the output iterator out.
+   3-6) Returns the string result which contains the output.
+
+.SH Exceptions
+
+   May throw std::regex_error to indicate an error condition.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <iterator>
+ #include <regex>
+ #include <string>
+  
+ int main()
+ {
+    std::string text = "Quick brown fox";
+    std::regex vowel_re("a|e|i|o|u");
+  
+    // write the results to an output iterator
+    std::regex_replace(std::ostreambuf_iterator<char>(std::cout),
+                       text.begin(), text.end(), vowel_re, "*");
+  
+    // construct a string holding the results
+    std::cout << '\\n' << std::regex_replace(text, vowel_re, "[$&]") << '\\n';
+ }
+
+.SH Output:
+
+ Q**ck br*wn f*x
+ Q[u][i]ck br[o]wn f[o]x
+
+.SH See also
+
+   regex_search    attempts to match a regular expression to any part of a character
+   \fI(C++11)\fP         sequence
+                   \fI(function template)\fP
+   match_flag_type options specific to matching
+   \fI(C++11)\fP         \fI(typedef)\fP

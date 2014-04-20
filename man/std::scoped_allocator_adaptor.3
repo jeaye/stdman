@@ -1,0 +1,111 @@
+.TH std::scoped_allocator_adaptor 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <scoped_allocator>
+   template< class OuterAlloc, class... InnerAlloc >    \fI(since C++11)\fP
+   class scoped_allocator_adaptor : public OuterAlloc;
+
+   The std::scoped_allocator_adaptor class template is an allocator which can be used
+   with multilevel containers (vector of sets of lists of tuples of maps, etc). It is
+   instantiated with one outer allocator type OuterAlloc and zero or more inner
+   allocator types InnerAlloc.... A container constructed directly with a
+   scoped_allocator_adaptor uses OuterAlloc to allocate its elements, but if an element
+   is itself a container, it uses the first inner allocator. The elements of that
+   container, if they are themselves containers, use the second inner allocator, etc.
+   If there are more levels to the container than there are inner allocators, the last
+   inner allocator is reused for all further nested containers.
+
+   For the purpose of scoped_allocator_adaptor, if the next inner allocator is A, any
+   class T for which std::uses_allocator<T,A>::value == true participates in the
+   recursion as if it was a container. Additionally, std::pair is treated as such a
+   container by specific overloads of scoped_allocator_adaptor::construct.
+
+   Typical implementation holds an instance of a
+   std::scoped_allocator_adaptor<InnerAllocs...> as a member object.
+
+.SH Contents
+
+     • 1 Member types
+     • 2 Member functions
+     • 3 Non-member functions
+     • 4 See also
+
+.SH Member types
+
+   Type                      Definition
+   outer_allocator_type      OuterAlloc
+                             scoped_allocator_adaptor<InnerAllocs...> or, if
+   inner_allocator_type      sizeof...(InnerAllocs) == 0,
+                             scoped_allocator_adaptor<OuterAlloc>
+   value_type                std::allocator_traits<OuterAlloc>::value_type
+   size_type                 std::allocator_traits<OuterAlloc>::size_type
+   difference_type           std::allocator_traits<OuterAlloc>::difference_type
+   pointer                   std::allocator_traits<OuterAlloc>::pointer
+   const_pointer             std::allocator_traits<OuterAlloc>::const_pointer
+   void_pointer              std::allocator_traits<OuterAlloc>::void_pointer
+   const_void_pointer        std::allocator_traits<OuterAlloc>::const_void_pointer
+   propagate_on_container_copy_assignment
+
+   std::true_type if
+   std::allocator_traits<A>::propagate_on_container_copy_assignment::value is true for
+   at least one allocator A among OuterAlloc and InnerAlloc...
+   propagate_on_container_move_assignment
+
+   std::true_type if
+   std::allocator_traits<A>::propagate_on_container_move_assignment::value is true for
+   at least one allocator A among OuterAlloc and InnerAlloc...
+   propagate_on_container_swap
+
+   std::true_type if std::allocator_traits<A>::propagate_on_container_swap::value is
+   true for at least one allocator A among OuterAlloc and InnerAlloc...
+   rebind
+
+   template< class T >
+   struct rebind {
+       typedef scoped_allocator_adaptor<
+           std::allocator_traits<OuterAlloc>::template rebind_alloc<T>,
+           InnerAllocs...
+       > other;
+   };
+
+.SH Member functions
+
+                                         creates a new scoped_allocator_adaptor
+   constructor                           instance
+                                         \fI(public member function)\fP
+   destructor                            destructs a scoped_allocator_adaptor instance
+                                         \fI(public member function)\fP
+   inner_allocator                       obtains an inner_allocator reference
+                                         \fI(public member function)\fP
+   outer_allocator                       obtains an outer_allocator reference
+                                         \fI(public member function)\fP
+                                         allocates uninitialized storage using the
+   allocate                              outer allocator
+                                         \fI(public member function)\fP
+   deallocate                            allocates storage using the outer allocator
+                                         \fI(public member function)\fP
+                                         returns the largest allocation size supported
+   max_size                              by the outer allocator
+                                         \fI(public member function)\fP
+                                         constructs an object in allocated storage,
+   construct                             passing the inner allocator to its constructor
+                                         if appropriate
+                                         \fI(public member function)\fP
+   destroy                               desrtucts an object in allocated storage
+                                         \fI(public member function)\fP
+                                         copies the state of scoped_allocator_adaptor
+   select_on_container_copy_construction and all its allocators
+                                         \fI(public member function)\fP
+
+.SH Non-member functions
+
+   operator== compares two scoped_allocator_adaptor instances
+   operator!= \fI(public member function)\fP
+
+.SH See also
+
+   allocator_traits provides information about allocator types
+   \fI(C++11)\fP          \fI(class template)\fP
+   uses_allocator   checks if the specified type supports uses-allocator construction
+   \fI(C++11)\fP          \fI(class template)\fP
+   allocator        the default allocator
+                    \fI(class template)\fP

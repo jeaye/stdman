@@ -1,0 +1,71 @@
+.TH std::thread::native_handle 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   native_handle_type native_handle();  \fI(since C++11)\fP
+
+   Returns the implementation defined underlying thread handle.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Exceptions
+     • 4 Example
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   implementation defined handle type representing the thread.
+
+.SH Exceptions
+
+   \fI(none)\fP
+
+.SH Example
+
+   Uses native_handle to enable realtime scheduling of C++ threads on a POSIX system
+
+   
+// Run this code
+
+ #include <thread>
+ #include <mutex>
+ #include <iostream>
+ #include <chrono>
+ #include <cstring>
+ #include <pthread.h>
+  
+ std::mutex iomutex;
+ void f(int num)
+ {
+     std::this_thread::sleep_for(std::chrono::seconds(1));
+  
+    sched_param sch;
+    int policy;
+    pthread_getschedparam(pthread_self(), &policy, &sch);
+    std::lock_guard<std::mutex> lk(iomutex);
+    std::cout << "Thread " << num << " is executing at priority "
+              << sch.sched_priority << '\\n';
+ }
+  
+ int main()
+ {
+     std::thread t1(f, 1), t2(f, 2);
+  
+     sched_param sch;
+     int policy;
+     pthread_getschedparam(t1.native_handle(), &policy, &sch);
+     sch.sched_priority = 20;
+     if(pthread_setschedparam(t1.native_handle(), SCHED_FIFO, &sch)) {
+         std::cout << "Failed to setschedparam: " << std::strerror(errno) << '\\n';
+     }
+  
+     t1.join(); t2.join();
+ }
+
+.SH Output:
+
+ Thread 2 is executing at priority 0
+ Thread 1 is executing at priority 20

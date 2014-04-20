@@ -1,0 +1,206 @@
+.TH std::regex_match 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <regex>
+   template< class BidirIt,
+
+             class Alloc, class CharT, class Traits >
+   bool regex_match( BidirIt first, BidirIt last,                               (since
+                     std::match_results<BidirIt,Alloc>& m,                  \fB(1)\fP C++11)
+                     const std::basic_regex<CharT,Traits>& e,
+                     std::regex_constants::match_flag_type flags =
+
+                         std::regex_constants::match_default );
+   template< class BidirIt,
+
+             class CharT, class Traits >
+   bool regex_match( BidirIt first, BidirIt last,                           \fB(2)\fP (since
+                     const std::basic_regex<CharT,Traits>& e,                   C++11)
+                     std::regex_constants::match_flag_type flags =
+
+                         std::regex_constants::match_default );
+   template< class CharT, class Alloc, class Traits >
+
+   bool regex_match( const CharT* str,
+                     std::match_results<const CharT*,Alloc>& m,             \fB(3)\fP (since
+                     const std::basic_regex<CharT,Traits>& e,                   C++11)
+                     std::regex_constants::match_flag_type flags =
+
+                         std::regex_constants::match_default );
+   template< class STraits, class SAlloc,
+
+             class Alloc, class CharT, class Traits >
+   bool regex_match( const std::basic_string<CharT,STraits,SAlloc>& s,
+                     std::match_results<
+                         typename                                               (since
+   std::basic_string<CharT,STraits,SAlloc>::const_iterator,                 \fB(4)\fP C++11)
+                         Alloc
+                     >& m,
+                     const std::basic_regex<CharT,Traits>& e,
+                     std::regex_constants::match_flag_type flags =
+
+                         std::regex_constants::match_default );
+   template< class CharT, class Traits >
+
+   bool regex_match( const CharT* str,                                          (since
+                     const std::basic_regex<CharT,Traits>& e,               \fB(5)\fP C++11)
+                     std::regex_constants::match_flag_type flags =
+
+                         std::regex_constants::match_default );
+   template< class STraits, class SAlloc,
+
+             class CharT, class Traits >
+   bool regex_match( const std::basic_string<CharT, STraits, SAlloc>& s,    \fB(6)\fP (since
+                     const std::basic_regex<CharT,Traits>& e,                   C++11)
+                     std::regex_constants::match_flag_type flags =
+
+                         std::regex_constants::match_default );
+
+   Determines if the regular expression el matches the given target.
+
+   1) Determines if there is a match between the regular expression e and the entire
+   target character sequence [first,last), taking into account the effect of flags.
+   Match results are returned in m.
+   2) Behaves as \fB(1)\fP above, omitting the match results.
+   3) Returns std::regex_match(str, str + std::char_traits<charT>::length(str), m, e,
+   flags).
+   4) Returns std::regex_match(s.begin(), s.end(), m, e, flags).
+   5) Returns std::regex_match(str, str + std::char_traits<charT>::length(str), e,
+   flags).
+   6) Returns std::regex_match(s.begin(), s.end(), e, flags).
+
+   Note that regex_match will only successfully match a regular expression to an entire
+   character sequence, whereas std::regex_search will successfully match subsequences.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Example
+     • 4 See also
+
+.SH Parameters
+
+   first, last - the target character range to apply the regex to, given as iterators
+   m           - the match results
+   str         - the target string, given as a null-terminated C-style string
+   s           - the target string, given as a std::basic_string
+   e           - the regular expression
+   flags       - flags used to determine how the match will be performed
+.SH Type requirements
+   -
+   BidirIt must meet the requirements of BidirectionalIterator.
+
+.SH Return value
+
+   Returns true if a match exists, false otherwise. In either case, the object m is
+   updated, as follows:
+
+   If the match does not exist:
+
+   m.ready() == true
+   m.empty() == true
+   m.size() == 0
+
+   If the match exists:
+
+   m.ready()          true
+   m.empty()          false
+   m.size()           number of subexpressions plus 1, that is, 1+e.mark_count()
+   m.prefix().first   first
+   m.prefix().second  first
+   m.prefix().matched false (the match prefix is empty)
+   m.suffix().first   last
+   m.suffix().second  last
+   m.suffix().matched false (the match suffix is empty)
+   m[0].first         first
+   m[0].second        last
+   m[0].matched       true (the entire sequence is matched)
+   m[n].first         the start of the sequence that matched sub-expression n, or last
+                      if the subexpression did not participate in the match
+   m[n].second        the end of the sequence that matched sub-expression n, or last if
+                      the subexpression did not participate in the match
+   m[n].matched       true if sub-expression n participated in the match, false
+                      otherwise
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <string>
+ #include <regex>
+  
+ int main()
+ {
+     // Simple regular expression matching
+     std::string fnames[] = {"foo.txt", "bar.txt", "baz.dat", "zoidberg"};
+     std::regex txt_regex("[a-z]+\\\\.txt");
+  
+     for (const auto &fname : fnames) {
+         std::cout << fname << ": " << std::regex_match(fname, txt_regex) << '\\n';
+     }
+  
+     // Extraction of a sub-match
+     std::regex base_regex("([a-z]+)\\\\.txt");
+     std::smatch base_match;
+  
+     for (const auto &fname : fnames) {
+         if (std::regex_match(fname, base_match, base_regex)) {
+             // The first sub_match is the whole string; the next
+             // sub_match is the first parenthesized expression.
+             if (base_match.size() == 2) {
+                 std::ssub_match base_sub_match = base_match[1];
+                 std::string base = base_sub_match.str();
+                 std::cout << fname << " has a base of " << base << '\\n';
+             }
+         }
+     }
+  
+     // Extraction of several sub-matches
+     std::regex pieces_regex("([a-z]+)\\\\.([a-z]+)");
+     std::smatch pieces_match;
+  
+     for (const auto &fname : fnames) {
+         if (std::regex_match(fname, pieces_match, pieces_regex)) {
+             std::cout << fname << '\\n';
+             for (size_t i = 0; i < pieces_match.size(); ++i) {
+                 std::ssub_match sub_match = pieces_match[i];
+                 std::string piece = sub_match.str();
+                 std::cout << "  submatch " << i << ": " << piece << '\\n';
+             }
+         }
+     }
+ }
+
+.SH Output:
+
+ foo.txt: 1
+ bar.txt: 1
+ baz.dat: 0
+ zoidberg: 0
+ foo.txt has a base of foo
+ bar.txt has a base of bar
+ foo.txt
+   submatch 0: foo.txt
+   submatch 1: foo
+   submatch 2: txt
+ bar.txt
+   submatch 0: bar.txt
+   submatch 1: bar
+   submatch 2: txt
+ baz.dat
+   submatch 0: baz.dat
+   submatch 1: baz
+   submatch 2: dat
+
+.SH See also
+
+   basic_regex   regular expression object
+   \fI(C++11)\fP       \fI(class template)\fP
+   match_results identifies one regular expression match, including all sub-expression
+   \fI(C++11)\fP       matches
+                 \fI(class template)\fP
+   regex_search  attempts to match a regular expression to any part of a character
+   \fI(C++11)\fP       sequence
+                 \fI(function template)\fP

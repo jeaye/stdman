@@ -1,0 +1,135 @@
+.TH std::remove,std::remove_if 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <algorithm>
+   template< class ForwardIt, class T >                                      \fB(1)\fP
+   ForwardIt remove( ForwardIt first, ForwardIt last, const T& value );
+   template< class ForwardIt, class UnaryPredicate >                         \fB(2)\fP
+   ForwardIt remove_if( ForwardIt first, ForwardIt last, UnaryPredicate p );
+
+   Removes all elements satisfying specific criteria from the range [first, last) and
+   returns a past-the-end iterator for the new end of the range.
+
+   The first version removes all elements that are equal to value, the second version
+   removes all elements for which predicate p returns true.
+
+   Removing is done by shifting the elements in the range in such a way that elements
+   to be erased are overwritten. Relative order of the elements that remain is
+   preserved and the physical size of the container is unchanged. Iterators pointing to
+   an element between the new logical end and the physical end of the range are still
+   dereferenceable, but the elements themselves have unspecified values. A call to
+   remove is typically followed by a call to a container's erase method, which erases
+   the unspecified values and reduces the physical size of the container to match its
+   new logical size.
+
+.SH Contents
+
+     • 1 Parameters
+     • 2 Return value
+     • 3 Complexity
+     • 4 Notes
+     • 5 Possible implementation
+     • 6 Examples
+     • 7 See also
+
+.SH Parameters
+
+   first, last - the range of elements to process
+   value       - the value of elements to remove
+                 unary predicate which returns true if the element should be removed.
+
+                 The signature of the predicate function should be equivalent to the
+                 following:
+
+   p           -  bool pred(const Type &a);
+
+                 The signature does not need to have const &, but the function must not
+                 modify the objects passed to it.
+                 The type Type must be such that an object of type ForwardIt can be
+                 dereferenced and then implicitly converted to Type. 
+.SH Type requirements
+   -
+   ForwardIt must meet the requirements of ForwardIterator.
+   -
+   The type of dereferenced ForwardIt must meet the requirements of MoveAssignable.
+   -
+   UnaryPredicate must meet the requirements of Predicate.
+
+.SH Return value
+
+   Iterator to the new end of the range
+
+.SH Complexity
+
+   Exactly std::distance(first, last) applications of the predicate.
+
+.SH Notes
+
+   The similarly-named container member functions list::remove, list::remove_if,
+   forward_list::remove, and forward_list::remove_if erase the removed elements.
+
+.SH Possible implementation
+
+.SH First version
+   template< class ForwardIt, class T >
+   ForwardIt remove(ForwardIt first, ForwardIt last, const T& value)
+   {
+       first = std::find(first, last, value);
+       if (first != last)
+           for(ForwardIt i = first; ++i != last; )
+               if (!(*i == value))
+                   *first++ = std::move(*i);
+       return first;
+   }
+.SH Second version
+   template<class ForwardIt, class UnaryPredicate>
+   ForwardIt remove_if(ForwardIt first, ForwardIt last, UnaryPredicate p)
+   {
+       first = std::find_if(first, last, p);
+       if (first != last)
+           for(ForwardIt i = first; ++i != last; )
+               if (!p(*i))
+                   *first++ = std::move(*i);
+       return first;
+   }
+
+.SH Examples
+
+   The following code removes all spaces from a string by shifting all non-space
+   characters to the left and then erasing the extra. This is an example of
+   erase-remove idiom.
+
+   
+// Run this code
+
+ #include <algorithm>
+ #include <string>
+ #include <iostream>
+ #include <cctype>
+  
+ int main()
+ {
+     std::string str1 = "Text with some   spaces";
+     str1.erase(std::remove(str1.begin(), str1.end(), ' '),
+                str1.end());
+     std::cout << str1 << '\\n';
+  
+     std::string str2 = "Text\\n with\\tsome \\t  whitespaces\\n\\n";
+     str2.erase(std::remove_if(str2.begin(),
+                               str2.end(),
+                               [](char x){return std::isspace(x);}),
+                str2.end());
+     std::cout << str2 << '\\n';
+ }
+
+.SH Output:
+
+ Textwithsomespaces
+ Textwithsomewhitespaces
+
+.SH See also
+
+   remove_copy    copies a range of elements omitting those that satisfy specific
+   remove_copy_if criteria
+                  \fI(function template)\fP
+   unique         removes consecutive duplicate elements in a range
+                  \fI(function template)\fP
