@@ -11,6 +11,7 @@ There's no need to compile stdman if you just want to install the man pages. Ins
 sudo make install # sudo required for permission setting via install(1)
 ```
 If you need to pass options to configure, you can do so. See `./configure --help` for more updated information.
+**NOTE:** By default, stdman will replace the libstdc++ man pages at /usr/share/man; to have both installed, use `./configure --prefix=/usr/local` and manage your MANPATH in your ~/.bashrc (or similar) `export MANPATH=/usr/local/share/man:/usr/share/man`
 
 ### Building/Generating
 Should you want to build the source to make modifications and/or generate your own man pages, simply:

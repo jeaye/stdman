@@ -40,13 +40,13 @@ else
 fi
 
 # Colors
-COLOR_OFF=$(tput sgr0)
-COLOR_RED=$(tput setaf 1)
-COLOR_YELLOW=$(tput setaf 3)
-COLOR_GREEN=$(tput setaf 2)
+COLOR_OFF="$(tput sgr0)"
+COLOR_RED="$(tput setaf 1)"
+COLOR_YELLOW="$(tput setaf 3)"
+COLOR_GREEN="$(tput setaf 2)"
 
 # Output colorizing
-ECHO_PREFIX=$COLOR_GREEN"»»»"$COLOR_OFF
+ECHO_PREFIX="$COLOR_GREEN»»»$COLOR_OFF"
 if [ "$UNAME" = "Linux" ];
 then
   ECHO="echo -e $ECHO_PREFIX"
@@ -61,7 +61,9 @@ log_end() { echo "$@" 1>&2; }
 PROJECT=stdman
 log "Configuring ${PROJECT}"
 
-PREFIX=/usr/share/man/man3
+PREFIX=/usr
+DATAROOTDIR=$PREFIX/share
+MANDIR=$DATAROOTDIR/man
 REFERENCE=./reference/en/cpp
 TMP_MAN=./man
 THREADS=8
@@ -86,6 +88,17 @@ do
   case $i in
     --prefix=*)
       PREFIX="${i#*=}"
+      DATAROOTDIR=$PREFIX/share
+      MANDIR=$DATAROOTDIR/man
+      shift
+      ;;
+    --datarootdir=*)
+      DATAROOTDIR="${i#*=}"
+      MANDIR=$DATAROOTDIR/man
+      shift
+      ;;
+    --mandir=*)
+      MANDIR="${i#*=}"
       shift
       ;;
     --reference=*)
@@ -104,7 +117,9 @@ do
       log "Usage: ./configure [OPTION...]"
       log
       log "  --help                              Show this help message"
-      log "  --prefix=[/usr/share/man/man3]      Set installation prefix"
+      log "  --prefix=[/usr]                     Set installation prefix"
+      log "  --datarootdir=[/usr/local/share]    Set data root prefix"
+      log "  --mandir=[/usr/local/share/man]     Set man prefix"
       log "  --reference=[./reference/en/cpp]    Set input prefix"
       log "  --tmp-man=[./man]                   Set temporary output prefix"
       log "  --threads=[8]                       Set number of threads to use"
@@ -120,7 +135,9 @@ done
 # Update after params
 log
 log "Reference location: $REFERENCE"
-log "Install location: $PREFIX"
+log "Install prefix: $PREFIX"
+log "Install data prefix: $DATAROOTDIR"
+log "Install man prefix: $MANDIR"
 log "Temporary man location: $TMP_MAN"
 log "Generation will be on $THREADS threads"
 log
@@ -135,9 +152,12 @@ rm -f Makefile
 sed "s#%CXX_PLATFORM_FLAGS_IN%#${CXX_PLATFORM_FLAGS}#" ./Makefile.in > ./Makefile.tmp1
 sed "s#%LD_PLATFORM_LIBS_IN%#${LD_PLATFORM_LIBS}#" ./Makefile.tmp1 > ./Makefile.tmp2
 sed "s#%PREFIX%#${PREFIX}#" ./Makefile.tmp2 > ./Makefile.tmp1
+sed "s#%DATAROOTDIR%#${DATAROOTDIR}#" ./Makefile.tmp1 > ./Makefile.tmp2
+sed "s#%MANDIR%#${MANDIR}#" ./Makefile.tmp2 > ./Makefile.tmp1
 sed "s#%REFERENCE%#${REFERENCE}#" ./Makefile.tmp1 > ./Makefile.tmp2
 sed "s#%TMP_MAN%#${TMP_MAN}#" ./Makefile.tmp2 > ./Makefile.tmp1
 sed "s#%THREADS%#${THREADS}#" ./Makefile.tmp1 > ./Makefile
+rm -f Makefile.tmp1 Makefile.tmp2
 
 log "Done configuring ${PROJECT}"
 log
