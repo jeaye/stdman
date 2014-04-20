@@ -22,7 +22,7 @@ namespace str
     for(size_t start_pos{}; (start_pos = str.find(from, start_pos)) != std::string::npos; )
     {
       str.replace(start_pos, from.length(), to);
-      start_pos += to.length(); /* In case 'to' contains 'from', like replacing 'x' with 'yx'. */
+      start_pos += to.length();
     }
   }
 

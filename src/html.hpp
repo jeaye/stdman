@@ -46,6 +46,7 @@ class html
 
       /* Add some extra line breaks in these spans. */
       str::replace(html, "<span>", "<span><br/>");
+      str::replace(html, "\u00a0", " "); /* NBSP sucks */
 
       std::ofstream ofs{ state.tmp_file };
       if(!ofs.is_open())
