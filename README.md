@@ -15,7 +15,7 @@ If you need to pass options to configure, you can do so. See `./configure --help
 ### Building/Generating
 Should you want to build the source to make modifications and/or generate your own man pages, simply:
 ```bash
-make generate # will build and generate
+make generate # will build stdman and generate man pages
 ```
 **NOTE**: `make generate` expects sources will be in the `./reference/en/cpp` directory by default. See `./configure --help` to modify this.
 
