@@ -12,8 +12,8 @@ sudo make install # sudo required for permission setting via install(1)
 ```
 If you need to pass options to configure, you can do so. See `./configure --help` for more updated information.  
 
-### Not working! ('no manual entry for std::foo' or just getting libstdc++ pages)
-By default, stdman will install to `/usr/local`; on some systems, the manpath does not look there first. To fix this, you have two options:
+### Troubleshooting
+If you're getting 'no manual entry for std::foo' or you're seeing the libstdc++ man pages (characterized by a huge list of typedefs when you run `man std::string`), see the following. By default, stdman will install to `/usr/local`; on some systems, the manpath does not look there first. To fix this, you have two options:
 1. Install to `/usr/share`:
 ```bash
 ./configure --prefix=/usr # will replace existing libstdc++ pages if they exist
@@ -21,7 +21,7 @@ sudo make install
 ```
 2. Manage your `MANPATH` in your `~/.bashrc` (or similar):
 ```bash
-export MANPATH=/usr/local/share/man:/usr/share/man
+export MANPATH=/usr/local/man:/usr/local/share/man:/usr/share/man:/usr/man
 ```
 
 ### Building/Generating
