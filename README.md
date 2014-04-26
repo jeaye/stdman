@@ -17,7 +17,7 @@ If you're getting 'no manual entry for std::foo' or you're seeing the libstdc++ 
 * Install to `/usr/share`:
 ```bash
 ./configure --prefix=/usr # will replace existing libstdc++ pages
-sudo make install
+make install
 ```
 * Manage your `MANPATH` in your `~/.bashrc` (or similar):
 ```bash
