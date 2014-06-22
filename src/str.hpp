@@ -14,7 +14,7 @@
 
 namespace str
 {
-  void replace(std::string &str, std::string const &from, std::string const &to)
+  inline void replace(std::string &str, std::string const &from, std::string const &to)
   {
     if(from.empty() || str.empty())
     { return; }
@@ -26,7 +26,7 @@ namespace str
     }
   }
 
-  static std::string& ltrim(std::string &s)
+  inline std::string& ltrim(std::string &s)
   {
     auto const found(std::find_if_not(s.begin(), s.end(), [](char const c)
     { return std::isspace(c); }));
@@ -34,7 +34,8 @@ namespace str
     s.erase(s.begin(), found);
     return s;
   }
-  static std::string& rtrim(std::string &s)
+
+  inline std::string& rtrim(std::string &s)
   {
     auto const found(std::find_if_not(s.rbegin(), s.rend(), [](char const c)
     { return std::isspace(c); }));
@@ -42,6 +43,22 @@ namespace str
     s.erase(found.base(), s.end());
     return s;
   }
-  static std::string& trim(std::string &s)
+
+  inline std::string& trim(std::string &s)
   { return rtrim(ltrim(s)); }
+
+  inline size_t find(std::string const &s, std::string const &term)
+  {
+    auto const it(s.find(term));
+    if(it == std::string::npos)
+    { throw std::runtime_error("malformed data: " + term); }
+    return it;
+  }
+
+  inline void erase(std::string &s, std::string const &begin, std::string const &end)
+  {
+    auto const it(find(s, begin));
+    auto const it2(find(s, end));
+    s.erase(s.begin() + it, s.begin() + it2);
+  }
 }

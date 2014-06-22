@@ -45,6 +45,22 @@ class groff
       groff_detail::section(state.lines);
       groff_detail::highlight(state.lines);
 
+      /* Remove the contents section entirely */
+      auto const contents(std::find_if(state.lines.begin(), state.lines.end(),
+      [](std::string const &l)
+      { return l.find(".SH Contents") != std::string::npos; }));
+      if(contents != state.lines.end())
+      {
+        auto const next_section(std::find_if(contents + 1, state.lines.end(), 
+        [](std::string const &l)
+        { return l.find(".SH") != std::string::npos; }));
+        if(next_section != state.lines.end())
+        { state.lines.erase(contents, next_section); }
+        else
+        { state.lines.erase(contents, state.lines.end()); }
+      }
+
+
       std::ofstream ofs{ state.output_file };
       if(state.verbose)
       { std::cout << "output: " << state.output_file << std::endl; }
