@@ -1,0 +1,199 @@
+.TH std::equal_range 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <algorithm>
+   template< class ForwardIt, class T >
+
+   std::pair<ForwardIt,ForwardIt>                      \fB(1)\fP
+       equal_range( ForwardIt first, ForwardIt last,
+
+                    const T& value );
+   template< class ForwardIt, class T, class Compare >
+
+   std::pair<ForwardIt,ForwardIt>                      \fB(2)\fP
+       equal_range( ForwardIt first, ForwardIt last,
+
+                    const T& value, Compare comp );
+
+   Returns a range containing all elements equivalent to value in the range [first,
+   last).
+
+   The range [first, last) must be partitioned with respect to comparison with value,
+   i.e. it must satisfy all of the following requirements:
+
+     * partitioned with respect to element < value or comp(element, value)
+     * partitioned with respect to !(value < element) or !comp(value, element)
+     * for all elements, if element < value or comp(element, value) is true then
+       !(value < element) or !comp(value, element) is also true
+
+   A fully-sorted range meets these criteria, as does a range resulting from a call to
+   std::partition.
+
+   The returned range is defined by two iterators, one pointing to the first element
+   that is not less than value and another pointing to the first element greater than
+   value. The first iterator may be alternatively obtained with std::lower_bound(), the
+   second - with std::upper_bound().
+
+   The first version uses operator< to compare the elements, the second version uses
+   the given comparison function comp.
+
+.SH Parameters
+
+   first, last - the range of elements to examine
+   value       - value to compare the elements to
+                 comparison function which returns true if the first argument is less
+                 than the second.
+
+                 The signature of the comparison function should be equivalent to the
+                 following:
+   comp        -
+                 bool cmp(const Type1 &a, const Type2 &b);
+
+                 The signature does not need to have const &, but the function must not
+                 modify the objects passed to it.
+                 cmp will be called as both cmp(value, *iterator) and cmp(*iterator,
+                 value).
+.SH Type requirements
+   -
+   ForwardIt must meet the requirements of ForwardIterator.
+
+.SH Return value
+
+   std::pair containing a pair of iterators defining the wanted range, the first
+   pointing to the first element that is not less than value and the second pointing to
+   the first element greater than value.
+
+   If there are no elements not less than value, last is returned as the first element.
+   Similarly if there are no elements greater than value, last is returned as the
+   second element
+
+.SH Complexity
+
+   Logarithmic in the distance between first and last
+
+.SH Possible implementation
+
+.SH First version
+   template<class ForwardIt, class T>
+   std::pair<ForwardIt,ForwardIt>
+       equal_range(ForwardIt first, ForwardIt last,
+                   const T& value)
+   {
+       return std::make_pair(std::lower_bound(first, last, value),
+                             std::upper_bound(first, last, value));
+   }
+.SH Second version
+   template<class ForwardIt, class T, class Compare>
+   std::pair<ForwardIt,ForwardIt>
+       equal_range(ForwardIt first, ForwardIt last,
+                   const T& value, Compare comp);
+   {
+       return std::make_pair(std::lower_bound(first, last, value, comp),
+                             std::upper_bound(first, last, value, comp));
+   }
+
+.SH Example
+
+   
+// Run this code
+
+ #include <algorithm>
+ #include <vector>
+ #include <iostream>
+  
+ struct S
+ {
+     int number;
+     char name;
+  
+     S ( int number, char name  )
+         : number ( number ), name ( name )
+     {}
+  
+     // only the number is relevant with this comparison
+     bool operator< ( const S& s ) const
+     {
+         return number < s.number;
+     }
+ };
+  
+  
+ int main()
+ {
+     // note: not ordered, only partitioned w.r.t. S defined below
+     std::vector<S> vec = { {1,'A'}, {2,'B'}, {2,'C'}, {2,'D'}, {4,'G'}, {3,'F'} };
+  
+     S value ( 2, '?' );
+  
+     auto p = std::equal_range(vec.begin(),vec.end(),value);
+  
+     for ( auto i = p.first; i != p.second; ++i )
+         std::cout << i->name << ' ';
+ }
+
+.SH Output:
+
+ B C D
+
+.SH Example With Comparator
+
+   
+// Run this code
+
+ #include <algorithm>
+ #include <vector>
+ #include <iostream>
+  
+ struct S
+ {
+     int number;
+     char name;
+  
+     S ( int number, char name  )
+         : number ( number ), name ( name )
+     {}
+  
+     // only the number is relevant with this comparison
+     bool operator< ( const S& s ) const
+     {
+         return number < s.number;
+     }
+ };
+  
+ struct Comp
+ {
+     bool operator() ( const S& s, int i )
+     {
+         return s.number < i;
+     }
+  
+     bool operator() ( int i, const S& s )
+     {
+         return i < s.number;
+     }
+ };
+  
+ int main()
+ {
+     // note: not ordered, only partitioned w.r.t. S defined below
+     std::vector<S> vec = { {1,'A'}, {2,'B'}, {2,'C'}, {2,'D'}, {4,'G'}, {3,'F'} };
+  
+     auto p = std::equal_range(vec.begin(),vec.end(),2,Comp());
+  
+     for ( auto i = p.first; i != p.second; ++i )
+         std::cout << i->name << ' ';
+ }
+
+.SH Output:
+
+ B C D
+
+.SH See also
+
+   lower_bound   returns an iterator to the first element not less than the given value
+                 \fI(function template)\fP 
+   upper_bound   returns an iterator to the first element greater than a certain value
+                 \fI(function template)\fP 
+   binary_search determines if an element exists in a certain range
+                 \fI(function template)\fP 
+   partition     divides a range of elements into two groups
+                 \fI(function template)\fP 

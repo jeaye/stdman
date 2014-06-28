@@ -28,7 +28,7 @@ class render
                             + state.tmp_file);
 
       /* Cleanup a bit. */
-      str::replace(state.plain, "[edit] ", "");
+      str::replace(state.plain, "[edit]", "");
       str::replace(state.plain, "Run this code", "\n// Run this code");
       str::replace(state.plain, "\u200b", ""); /* I don't know why these show up... */
       str::replace(state.plain, "•", "*");

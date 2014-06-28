@@ -1,4 +1,4 @@
-.TH std::signal 3 "Apr 19 2014" "1.0.0" "C++ Standard Libary"
+.TH std::signal 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <csignal>
    void (*signal( int sig, void (*handler) (int))) (int);
@@ -15,29 +15,6 @@
    the startup of the program. For the rest, the implementation must call
    std::signal(sig, SIG_DFL).
 
-   If the user defined function returns when handling SIGFPE, SIGILL, SIGSEGV or any
-   other implementation-defined signal specifying a computational exception, the
-   behavior is undefined. In most implementations the program terminates.
-
-   If the signal handler is called otherwise than as a result of std::abort or
-   std::raise, the behavior is undefined if any of the following requirements is not
-   followed:
-
-     * the signal handler calls std::raise.
-     * the signal handler refers to an object of static storage duration which is not
-       declared as volatile std::sig_atomic_t.
-     * the signal handler calls any function within the standard library, except
-       std::abort, std::_Exit, or std::signal with the first argument not being the
-       number of the signal currently handled.
-
-.SH Contents
-
-     * 1 Parameters
-     * 2 Return value
-     * 3 Notes
-     * 4 Example
-     * 5 See also
-
 .SH Parameters
 
              the signal to set the signal handler to. It can be an
@@ -46,7 +23,7 @@
              SIGABRT
    sig     - SIGFPE
              SIGILL  defines signal types
-             SIGINT  (macro constant)
+             SIGINT  (macro constant) 
              SIGSEGV
              SIGTERM
              the signal handler. This must be one of the following:
@@ -63,7 +40,45 @@
    Previous signal handler on success or SIG_ERR on failure (setting a signal handler
    can be disabled on some implementations).
 
+   Signal handler
+
+   The following limitations are imposed on the user-defined function that is installed
+   as a signal handler.
+
+   If the user defined function returns when handling SIGFPE, SIGILL, SIGSEGV or any
+   other implementation-defined signal specifying a computational exception, the
+   behavior is undefined.
+
+   If the signal handler is called as a result of std::abort or std::raise, the
+   behavior is undefined if the signal handler calls std::raise.
+
+   If the signal handler is called NOT as a result of std::abort or std::raise, the
+   behavior is undefined if
+
+     * the signal handler calls any function within the standard library, except
+       std::abort, std::_Exit, std::quick_exit, or std::signal with the first argument
+       not being the number of the signal currently handled.
+     * the signal handler refers to any object with static or thread-local\fI(since C++11)\fP
+       storage duration that is not std::atomic\fI(since C++11)\fP or volatile
+       std::sig_atomic_t.
+
+   On entry to the signal handler, the state of the floating-point environment and the
+   values of all objects is unspecified, except for
+
+     * objects of type volatile std::sig_atomic_t
+     * objects of std::atomic types \fI(since C++11)\fP
+     * side effects made visible through std::atomic_signal_fence \fI(since C++11)\fP
+
+   On return from a signal handler, the value of any object modified by the signal
+   handler that is not volatile std::sig_atomic_t or std::atomic is undefined.
+
+   The behavior is undefined if std::signal is used in a multithreaded program. It is
+   not required to be thread-safe.
+
 .SH Notes
+
+   POSIX requires that signal is thread-safe, and specifies a list of async-signal-safe
+   library functions that may be called from any signal handler.
 
    Signal handlers are expected to have C linkage and, in general, only use the
    features from the common subset of C and C++. It is implementation-defined if a
@@ -76,22 +91,22 @@
 
  #include <csignal>
  #include <iostream>
-
+  
  namespace
  {
    volatile sig_atomic_t gSignalStatus = 0;
  }
-
+  
  void signal_handler(int signal)
  {
    gSignalStatus = signal;
  }
-
+  
  int main()
  {
    // Install a signal handler
    std::signal(SIGINT, signal_handler);
-
+  
    std::cout << "SignalValue: " << gSignalStatus << '\\n';
    std::cout << "Sending signal " << SIGINT << '\\n';
    std::raise(SIGINT);
@@ -106,7 +121,10 @@
 
 .SH See also
 
-   raise runs the signal handler for particular signal
-         \fI(function)\fP
+   raise               runs the signal handler for particular signal
+                       \fI(function)\fP 
    C documentation for
    signal
+   atomic_signal_fence fence between a thread and a signal handler executed in the same
+   \fI(C++11)\fP             thread
+                       \fI(function)\fP 

@@ -38,8 +38,8 @@ class groff
 
       /* First two lines are always the same. */
       state.lines[0] = ".TH " + name + " 3 "
-                       "\"" + state.creation_date + "\" \"" + state.version + "\" "
-                       "\"C++ Standard Libary | http://cppreference.com\"";
+                       "\"" + state.creation_date + "\" \"" + state.version + " | http://cppreference.com\" "
+                       "\"C++ Standard Libary\"";
       state.lines[1] = "Synopsis";
 
       groff_detail::section(state.lines);

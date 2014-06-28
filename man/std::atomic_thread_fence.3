@@ -1,0 +1,67 @@
+.TH std::atomic_thread_fence 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <atomic>
+   extern "C" void atomic_thread_fence( std::memory_order order );  \fI(since C++11)\fP
+
+   Establishes memory synchronization ordering of non-atomic and relaxed atomic
+   accesses, as instructed by order, without an associated atomic operation. For
+   example, all non-atomic and relaxed atomic stores that happen before a
+   std::memory_order_release fence in thread A will be synchronized with non-atomic and
+   relaxed atomic loads from the same locations made in thread B after an
+   std::memory_order_acquire fence.
+
+.SH Parameters
+
+   order - the memory ordering executed by this fence
+
+.SH Return value
+
+   \fI(none)\fP
+
+.SH Exceptions
+
+   noexcept specification:  
+   noexcept
+     
+
+.SH Notes
+
+   atomic_thread_fence imposes stronger synchronization constraints than an atomic
+   store operation with the same std::memory_order. While an atomic store-release
+   operation prevents all preceding writes from moving past the store-release, an
+   atomic_thread_fence with memory_order_release ordering prevents all preceding writes
+   from moving past all subsequent stores.
+
+.SH Examples
+
+   Scan an array of mailboxes, and process only the ones intended for us, without
+   unnecessary synchronization.
+
+   
+// Run this code
+
+ const int num_mailboxes = 32;
+ std::atomic<int> mailbox[num_mailboxes];
+  
+ // The writer threads update non-atomic shared data and then update mailbox[i] as follows
+  std::atomic_store_explicit(&mailbox[i], std::memory_order_release);
+  
+ // Reader thread needs to check all mailbox[i], but only needs to sync with one
+  for (int i = 0; i < num_mailboxes; ++i) {
+     if (std::atomic_load_explicit(&mailbox[i],  std::memory_order_relaxed) == my_id) {
+         std::atomic_thread_fence(std::memory_order_acquire); // synchronize with just one writer
+         do_work(i); // guaranteed to observe everything done in the writer thread before
+                     // the atomic_store_explicit()
+     }
+  }
+
+.SH See also
+
+   memory_order        defines memory ordering constraints for the given atomic
+   \fI(C++11)\fP             operation
+                       \fI(typedef)\fP 
+   atomic_signal_fence fence between a thread and a signal handler executed in the same
+   \fI(C++11)\fP             thread
+                       \fI(function)\fP 
+   C documentation for
+   atomic_thread_fence
