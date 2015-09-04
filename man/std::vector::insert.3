@@ -1,4 +1,4 @@
-.TH std::vector::insert 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::vector::insert 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    iterator insert( iterator pos, const T& value );             (until
                                                                 C++11)
@@ -19,13 +19,19 @@
    iterator insert( const_iterator pos,                                 \fB(5)\fP     (since
    std::initializer_list<T> ilist );                                            C++11)
 
-   Inserts elements at specified location in the container.
+   Inserts elements at the specified location in the container.
 
-   1-2) inserts value before the location pointed to by pos
-   3) inserts count copies of the value before the location pointed to by pos
-   4) inserts elements from range [first, last) before the location pointed to by pos.
+   1-2) inserts value before pos
+   3) inserts count copies of the value before pos
+   4) inserts elements from range [first, last) before pos.
+
+   This overload has the same effect as overload \fB(3)\fP if InputIt is an     \fI(until C++11)\fP
+   integral type.
+   This overload only participates in overload resolution if InputIt      \fI(since C++11)\fP
+   qualifies as InputIterator, to avoid ambiguity with the overload \fB(3)\fP.
+
    The behavior is undefined if first and last are iterators into *this.
-   5) inserts elements from initializer list ilist.
+   5) inserts elements from initializer list ilist before pos.
 
    Causes reallocation if the new size() is greater than the old capacity(). If the new
    size() is greater than capacity(), all iterators and references are invalidated.
@@ -34,15 +40,31 @@
 
 .SH Parameters
 
-   pos         - iterator to the location before which the content will be inserted.
-                 pos may be the end() iterator
-   value       - element value to insert
-   first, last - the range of elements to insert, can't be iterators into container for
-                 which insert is called
-   ilist       - initializer list to insert the values from
+   pos                   -          iterator before which the content will be inserted.
+                                    pos may be the end() iterator
+   value                 -          element value to insert
+   first, last           -          the range of elements to insert, can't be iterators
+                                    into container for which insert is called
+   ilist                 -          initializer list to insert the values from
 .SH Type requirements
    -
-   InputIt must meet the requirements of InputIterator.
+   T must meet the requirements of CopyAssignable and CopyInsertable in order to use
+   overload \fB(1)\fP.
+   -
+   T must meet the requirements of MoveAssignable and MoveInsertable in order to use
+   overload \fB(2)\fP.
+   -
+   T must meet the requirements of CopyAssignable and CopyInsertable in order to use
+   overload \fB(3)\fP.
+   -
+   T must meet the requirements of EmplaceConstructible in order to use overload (4,5).
+   -
+   T must meet the requirements of MoveAssignable and MoveInsertable in order to use
+   overload \fB(4)\fP. required only if InputIt satisfies InputIterator but not
+   ForwardIterator. (until C++17)
+   -
+   T must meet the requirements of Swappable, MoveAssignable, MoveConstructible and
+   MoveInsertable in order to use overload (4,5). (since C++17)
 
 .SH Return value
 
@@ -60,6 +82,12 @@
    5) Linear in ilist.size() plus linear in the distance between pos and end of the
    container.
 
+.SH Exceptions
+
+   If an exception is thrown when inserting a single element at the end, and T is
+   CopyInsertable or std::is_nothrow_move_constructible<T>::value is true, there are no
+   effects \fI(strong exception guarantee)\fP.
+
 .SH Example
 
    
@@ -67,7 +95,7 @@
 
  #include <iostream>
  #include <vector>
-  
+
  void print_vec(const std::vector<int>& vec)
  {
      for (auto x: vec) {
@@ -75,26 +103,26 @@
      }
      std::cout << '\\n';
  }
-  
+
  int main ()
  {
      std::vector<int> vec(3,100);
      print_vec(vec);
-  
+
      auto it = vec.begin();
      it = vec.insert(it, 200);
      print_vec(vec);
-  
+
      vec.insert(it,2,300);
      print_vec(vec);
-  
+
      // "it" no longer valid, get a new one:
      it = vec.begin();
-  
+
      std::vector<int> vec2(2,400);
      vec.insert(it+2, vec2.begin(), vec2.end());
      print_vec(vec);
-  
+
      int arr[] = { 501,502,503 };
      vec.insert(vec.begin(), arr, arr+3);
      print_vec(vec);
@@ -111,6 +139,6 @@
 .SH See also
 
    emplace   constructs element in-place
-   \fI(C++11)\fP   \fI(public member function)\fP 
+   \fI(C++11)\fP   \fI(public member function)\fP
    push_back adds elements to the end
-             \fI(public member function)\fP 
+             \fI(public member function)\fP

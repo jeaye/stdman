@@ -1,16 +1,15 @@
-.TH std::strtol,std::strtoll 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::strtol,std::strtoll 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <cstdlib>
-   long      strtol( const char *str, char **str_end, int base );
+   long strtol( const char *str, char **str_end, int base );
    long long strtoll( const char *str, char **str_end, int base );  \fI(since C++11)\fP
 
    Interprets an integer value in a byte string pointed to by str.
 
-   Function discards any whitespace characters (as identified by calling isspace())
-   until first non-whitespace character is found. Then it takes as many characters as
-   possible to form a valid base-n (where n=base) integer number representation and
-   converts them to an integer value. The valid integer value consists of the following
-   parts:
+   Discards any whitespace characters (as identified by calling isspace()) until the
+   first non-whitespace character is found, then takes as many characters as possible
+   to form a valid base-n (where n=base) integer number representation and converts
+   them to an integer value. The valid integer value consists of the following parts:
 
      * (optional) plus or minus sign
      * (optional) prefix \fB(0)\fP indicating octal base (applies only when the base is 8 or
@@ -22,11 +21,16 @@
    The set of valid digits for base-2 integer is 01, for base-3 integer is 012, and so
    on. For bases larger than 10, valid digits include alphabetic characters, starting
    from Aa for base-11 integer, to Zz for base-36 integer. The case of the characters
-   is ignored. In non-default locales, additional numeric formats may be accepted.
+   is ignored.
+
+   Additional numeric formats may be accepted by the currently installed C locale.
 
    If the value of base is 0, the numeric base is auto-detected: if the prefix is 0,
    the base is octal, if the prefix is 0x or 0X, the base is hexadecimal, otherwise the
    base is decimal.
+
+   If the minus sign was part of the input sequence, the numeric value calculated from
+   the sequence of digits is negated in the result type.
 
    The functions sets the pointer pointed to by str_end to point to the character past
    the last character interpreted. If str_end is NULL, it is ignored.
@@ -46,26 +50,59 @@
      * If successful, an integer value corresponding to the contents of str is
        returned.
      * If the converted value falls out of range of corresponding return type, a range
-       error occurs (setting [[cpp/error/errno|errno]] to ERANGE) and LONG_MAX,
-       LONG_MIN, LLONG_MAX or LLONG_MIN is returned.
+       error occurs (setting errno to ERANGE) and LONG_MAX, LONG_MIN, LLONG_MAX or
+       LLONG_MIN is returned.
      * If no conversion can be performed, 0 is returned.
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+   
+// Run this code
+
+ #include <iostream>
+ #include <string>
+ #include <errno.h>
+ #include <cstdlib>
+
+ int main()
+ {
+     const char* p = "10 200000000000000000000000000000 30 -40";
+     char *end;
+     std::cout << "Parsing '" << p << "':\\n";
+     for (long i = std::strtol(p, &end, 10);
+          p != end;
+          i = std::strtol(p, &end, 10))
+     {
+         std::cout << "'" << std::string(p, end-p) << "' -> ";
+         p = end;
+         if (errno == ERANGE){
+             std::cout << "range error, got ";
+             errno = 0;
+         }
+         std::cout << i << '\\n';
+     }
+ }
+
+.SH Output:
+
+ Parsing '10 200000000000000000000000000000 30 -40':
+ '10' -> 10
+ ' 200000000000000000000000000000' -> range error, got 9223372036854775807
+ ' 30' -> 30
+ ' -40' -> -40
 
 .SH See also
 
    atoi     converts a byte string to an integer value
-   atol     \fI(function)\fP 
+   atol     \fI(function)\fP
    atoll
    strtoul  converts a byte string to an unsigned integer value
-   strtoull \fI(function)\fP 
+   strtoull \fI(function)\fP
+   wcstol   converts a wide string to an integer value
+   wcstoll  \fI(function)\fP
+   strtof   converts a byte string to a floating point value
+   strtod   \fI(function)\fP
+   strtold
    C documentation for
    strtol,
    strtoll
-
-.SH Category:
-
-     * Todo no example

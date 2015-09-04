@@ -1,4 +1,4 @@
-.TH std::atomic_compare_exchange_weak,std::atomic_compare_exchange_strong, 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::atomic_compare_exchange_weak,std::atomic_compare_exchange_strong, 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
 
    Defined in header <atomic>
@@ -7,91 +7,71 @@
    bool atomic_compare_exchange_weak(
    std::atomic<T>* obj,
 
-                                      T*
-   expected, T desired );
+   T* expected, T desired );
    template< class T >
 
    bool atomic_compare_exchange_weak(
    volatile std::atomic<T>* obj,
 
-                                      T*
-   expected, T desired );
+   T* expected, T desired );
    template< class T >
 
    bool atomic_compare_exchange_strong(
    std::atomic<T>* obj,
 
-                                        T*
-   expected, T desired );
+   T* expected, T desired );
    template< class T >
 
    bool atomic_compare_exchange_strong(
    volatile std::atomic<T>* obj,
 
-                                        T*
-   expected, T desired );
+   T* expected, T desired );
    template< class T >
 
    bool
    atomic_compare_exchange_weak_explicit(
    std::atomic<T>* obj,
-                                          
-       T* expected, T desired,
-                                          
-       std::memory_order succ,
-                                            \fB(1)\fP (since
-                                                C++11)
-       std::memory_order fail );
+   T* expected, T desired,                  \fB(1)\fP (since
+   std::memory_order succ,                      C++11)
+
+   std::memory_order fail );
    template< class T >
 
-   bool
-   atomic_compare_exchange_weak_explicit(
-   volatile std::atomic<T>* obj,                       \fB(2)\fP (since
-                                                           C++11)
-       T* expected, T desired,
-                                          
-       std::memory_order succ,
+   bool                                                \fB(2)\fP (since
+   atomic_compare_exchange_weak_explicit(                  C++11)
+   volatile std::atomic<T>* obj,
+   T* expected, T desired,
+   std::memory_order succ,
 
-                                          
-       std::memory_order fail );                                  \fB(3)\fP (since
+   std::memory_order fail );                                      \fB(3)\fP (since
    template< class T >                                                C++11)
 
    bool
    atomic_compare_exchange_strong_explicit(
    std::atomic<T>* obj,
-                                          
-         T* expected, T desired,
-                                          
-         std::memory_order succ,
+   T* expected, T desired,
+   std::memory_order succ,
 
-                                          
-         std::memory_order fail );                                           \fB(4)\fP (since
+   std::memory_order fail );                                                 \fB(4)\fP (since
    template< class T >                                                           C++11)
 
    bool
    atomic_compare_exchange_strong_explicit(
    volatile std::atomic<T>* obj,
-                                          
-         T* expected, T desired,
-                                          
-         std::memory_order succ,
+   T* expected, T desired,
+   std::memory_order succ,
 
-                                          
-         std::memory_order fail );
+   std::memory_order fail );
 
-   Atomically compares the value pointed to by obj with the value pointed to by
-   expected, and if those are equal, replaces the former with desired (performs
-   read-modify-write operation). Otherwise, loads the actual value pointed to by obj
-   into *expected (performs load operation).
+   Atomically compares the object representation of the object pointed to by obj with
+   the object representation of the object pointed to by expected, as if by
+   std::memcmp, and if those are bitwise-equal, replaces the former with desired
+   (performs read-modify-write operation). Otherwise, loads the actual value pointed to
+   by obj into *expected (performs load operation). Copying is performed as if by
+   std::memcpy.
 
    The memory models for the read-modify-write and load operations are succ and fail
    respectively. The (1-2) versions use std::memory_order_seq_cst by default.
-
-   The weak forms (\fB(1)\fP and \fB(3)\fP) of the functions are allowed to fail spuriously, that
-   is, act as if *obj != *expected even if they are equal. When a compare-and-exchange
-   is in a loop, the weak version will yield better performance on some platforms. When
-   a weak compare-and-exchange would require a loop and a strong one would not, the
-   strong one is preferable.
 
    These functions are defined in terms of member functions of std::atomic:
 
@@ -113,13 +93,24 @@
 
 .SH Return value
 
-   The result of the comparison: true if *obj was equal to *exp, false otherwise.
+   The result of the comparison: true if *obj was equal to *expected, false otherwise.
 
 .SH Exceptions
 
-   noexcept specification:  
+   noexcept specification:
    noexcept
-     
+
+.SH Notes
+
+   The weak forms (\fB(1)\fP and \fB(3)\fP) of the functions are allowed to fail spuriously, that
+   is, act as if *obj != *expected even if they are equal. When a compare-and-exchange
+   is in a loop, the weak version will yield better performance on some platforms.
+
+   When a weak compare-and-exchange would require a loop and a strong one would not,
+   the strong one is preferable unless the object representation of T may include
+   padding bits, trap bits, or offers multiple object representations for the same
+   value (e.g. floating-point NaN). In those cases, weak compare-and-exchange typically
+   works because it quickly converges on some stable object representation.
 
 .SH Example
 
@@ -130,7 +121,7 @@
 // Run this code
 
  #include <atomic>
-  
+
  template<class T>
  struct node
  {
@@ -138,7 +129,7 @@
      node* next;
      node(const T& data) : data(data), next(nullptr) {}
  };
-  
+
  template<class T>
  class stack
  {
@@ -147,25 +138,27 @@
      void push(const T& data)
      {
          node<T>* new_node = new node<T>(data);
-  
+
          // put the current value of head into new_node->next
-         node<T>* old_head = (new_node->next = head.load(std::memory_order_relaxed));
-  
+         new_node->next = head.load(std::memory_order_relaxed);
+
          // now make new_node the new head, but if the head
          // is no longer what's stored in new_node->next
          // (some other thread must have inserted a node just now)
          // then put that new head into new_node->next and try again
-         while(!std::atomic_compare_exchange_weak_explicit( &head
-                                                          , &old_head
-                                                          , new_node
-                                                          , std::memory_order_release
-                                                          , std::memory_order_relaxed))
-         {
-             new_node->next = old_head;
-         }
+         while(!std::atomic_compare_exchange_weak_explicit(
+                                 &head,
+                                 &new_node->next,
+                                 new_node,
+                                 std::memory_order_release,
+                                 std::memory_order_relaxed))
+                 ; // the body of the loop is empty
+ // note: the above loop is not thread-safe in at least
+ // GCC prior to 4.8.3 (bug 60272), clang prior to 2014-05-05 (bug 18899)
+ // MSVC prior to 2014-03-17 (bug 819819). See member function version for workaround
      }
  };
-  
+
  int main()
  {
      stack<int> s;
@@ -182,15 +175,19 @@
    compare_exchange_strong                              performs atomic exchange if
                                                         equal or atomic load if not
                                                         \fI\fI(public member\fP function of\fP
-                                                        std::atomic) 
+                                                        std::atomic)
    atomic_exchange                                      atomically replaces the value
    atomic_exchange_explicit                             of the atomic object with
    \fI(C++11)\fP                                              non-atomic argument and returns
    \fI(C++11)\fP                                              the old value of the atomic
-                                                        \fI(function template)\fP 
+                                                        \fI(function template)\fP
    std::atomic_compare_exchange_weak(std::shared_ptr)   specializes atomic operations
    std::atomic_compare_exchange_strong(std::shared_ptr) for std::shared_ptr
                                                         \fI(function template)\fP
    C documentation for
    atomic_compare_exchange,
    atomic_compare_exchange_explicit
+
+.SH Category:
+
+     * unconditionally noexcept

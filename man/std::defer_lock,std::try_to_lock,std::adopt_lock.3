@@ -1,8 +1,9 @@
-.TH std::defer_lock,std::try_to_lock,std::adopt_lock 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::defer_lock,std::try_to_lock,std::adopt_lock 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
-   constexpr std::defer_lock_t defer_lock = std::defer_lock_t();     \fI(since C++11)\fP
-   constexpr std::try_to_lock_t try_to_lock = std::try_to_lock_t();  \fI(since C++11)\fP
-   constexpr std::adopt_lock_t adopt_lock = std::adopt_lock_t();     \fI(since C++11)\fP
+   Defined in header <mutex>
+   constexpr std::defer_lock_t defer_lock {};    \fI(since C++11)\fP
+   constexpr std::try_to_lock_t try_to_lock {};  \fI(since C++11)\fP
+   constexpr std::adopt_lock_t adopt_lock {};    \fI(since C++11)\fP
 
    std::defer_lock, std::try_to_lock and std::adopt_lock are instances of empty struct
    tag types std::defer_lock_t, std::try_to_lock_t and std::adopt_lock_t respectively.
@@ -18,41 +19,42 @@
 .SH Example
 
    
-   
 // Run this code
 
  #include <mutex>
  #include <thread>
-  
+
  struct bank_account {
      explicit bank_account(int balance) : balance(balance) {}
      int balance;
      std::mutex m;
  };
-  
+
  void transfer(bank_account &from, bank_account &to, int amount)
  {
-     // attempt to lock both mutexes without deadlock
+     // lock both mutexes without deadlock
      std::lock(from.m, to.m);
-  
-     // make sure both already-locked mutexes are unlocked when
-     // we're done; if we just used the lock_guard without std::lock
-     // and std::adopt_lock, we might deadlock with other calls to transfer
+     // make sure both already-locked mutexes are unlocked at the end of scope
      std::lock_guard<std::mutex> lock1(from.m, std::adopt_lock);
      std::lock_guard<std::mutex> lock2(to.m, std::adopt_lock);
-  
+
+ // equivalent approach:
+ //    std::lock_guard<std::mutex> lock1(from.m, std::defer_lock);
+ //    std::lock_guard<std::mutex> lock2(to.m, std::defer_lock);
+ //    std::lock(lock1, lock2);
+
      from.balance -= amount;
      to.balance += amount;
  }
-  
+
  int main()
  {
      bank_account my_account(100);
      bank_account your_account(50);
-  
+
      std::thread t1(transfer, std::ref(my_account), std::ref(your_account), 10);
      std::thread t2(transfer, std::ref(your_account), std::ref(my_account), 5);
-  
+
      t1.join();
      t2.join();
  }
@@ -62,10 +64,10 @@
    defer_lock_t
    try_to_lock_t
    adopt_lock_t  tag type used to specify locking strategy
-   \fI(C++11)\fP       \fI(class)\fP 
+   \fI(C++11)\fP       \fI(class)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
    constructor   constructs a lock_guard, optionally locking the given mutex
-                 \fI(public member function of std::lock_guard)\fP 
+                 \fI(public member function of std::lock_guard)\fP
    constructor   constructs a unique_lock, optionally locking the supplied mutex
-                 \fI(public member function of std::unique_lock)\fP 
+                 \fI(public member function of std::unique_lock)\fP

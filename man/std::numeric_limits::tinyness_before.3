@@ -1,4 +1,4 @@
-.TH std::numeric_limits::tinyness_before 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::numeric_limits::tinyness_before 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    static const bool tinyness_before;      \fI(until C++11)\fP
    static constexpr bool tinyness_before;  \fI(since C++11)\fP
@@ -32,19 +32,21 @@
 
 .SH Notes
 
-   Standard-compliant IEEE 754 floating-point implementations may detect the
-   floating-point underflow at three predefined moments:
+   Standard-compliant IEEE 754 floating-point implementations are required to detect
+   the floating-point underflow, and have two alternative situations where this can be
+   done
 
-   1) after computation of a result with absolute value smaller than
-   std::numeric_limits<T>::min(), such implementation detects tinyness before rounding
-   (e.g. UltraSparc)
-
-   2) after rounding of the result to std::numeric_limits<T>::digits bits, if the
-   result is tiny, such implementation detects tinyness after rounding (e.g.
-   SuperSparc)
-
-   3) if the conversion of the rounded tiny result to subnormal form resulted in the
-   loss of precision, such implementation detects denorm loss.
+   1) Underflow occurs (and FE_UNDERFLOW may be raised) if a computation produces a
+   result whose absolute value, computed as though both the exponent range and the
+   precision were unbounded, is smaller than std::numeric_limits<T>::min(). Such
+   implementation detects tinyness before rounding (e.g. UltraSparc, POWER).
+   2) Underflow occurs (and FE_UNDERFLOW may be raised) if after the rounding of the
+   result to the target floating-point type (that is, rounding to
+   std::numeric_limits<T>::digits bits), the result's absolute value is smaller than
+   std::numeric_limits<T>::min(). Formally, the absolute value of a nonzero result
+   computed as though the exponent range were unbounded is smaller than
+   std::numeric_limits<T>::min(). Such implementation detects tinyness after rounding
+   (e.g. SuperSparc)
 
 .SH Example
 
@@ -64,19 +66,17 @@
  {
      std::cout << "Tinyness before: " << std::boolalpha
                << std::numeric_limits<double>::tinyness_before << '\\n';
-  
+
      double denorm_max = std::nextafter(std::numeric_limits<double>::min(), 0);
      double multiplier = 1 + std::numeric_limits<double>::epsilon();
-  
+
      std::feclearexcept(FE_ALL_EXCEPT);
-  
+
      double result = denorm_max*multiplier; // Underflow only if tinyness_before
-  
+
      if(std::fetestexcept(FE_UNDERFLOW))
          std::cout << "Underflow detected\\n";
-     else if (std::fetestexcept(FE_INEXACT))
-         std::cout << "Inexact result detected\\n";
-  
+
      std::cout << std::hexfloat << denorm_max << " x " << multiplier  <<  " = "
                << result << '\\n';
  }
@@ -91,6 +91,6 @@
 
    has_denorm_loss identifies the floating-point types that detect loss of precision as
    \fB[static]\fP        denormalization loss rather than inexact result
-                   \fI(public static member constant)\fP 
+                   \fI(public static member constant)\fP
    has_denorm      identifies the denormalization style used by the floating-point type
-   \fB[static]\fP        \fI(public static member constant)\fP 
+   \fB[static]\fP        \fI(public static member constant)\fP

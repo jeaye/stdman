@@ -1,16 +1,16 @@
-.TH std::unique_copy 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::unique_copy 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <algorithm>
    template< class InputIt, class OutputIt >
 
    OutputIt unique_copy( InputIt first, InputIt last,               \fB(1)\fP
 
-                          OutputIt d_first );
+   OutputIt d_first );
    template< class InputIt, class OutputIt, class BinaryPredicate >
 
    OutputIt unique_copy( InputIt first, InputIt last,               \fB(2)\fP
 
-                          OutputIt d_first, BinaryPredicate p );
+   OutputIt d_first, BinaryPredicate p );
 
    Copies the elements from the range [first, last), to another range beginning at
    d_first in such a way that there are no consecutive equal elements. Only the first
@@ -19,79 +19,56 @@
 
 .SH Parameters
 
-   first, last - the range of elements to process
-   d_first     - the beginning of the destination range
-                 binary predicate which returns true if the elements should be treated
-                 as equal.
+   first, last          -          the range of elements to process
+   d_first              -          the beginning of the destination range
+                                   binary predicate which returns true if the elements
+                                   should be treated as equal.
 
-                 The signature of the predicate function should be equivalent to the
-                 following:
+                                   The signature of the predicate function should be
+                                   equivalent to the following:
 
-                  bool pred(const Type1 &a, const Type2 &b);
-   p           -
-                 The signature does not need to have const &, but the function must not
-                 modify the objects passed to it.
-                 The types Type1 and Type2 must be such that an object of type
-                 ForwardIt can be dereferenced and then implicitly converted to both of
-                 them.
+                                   bool pred(const Type1 &a, const Type2 &b);
+   p                    -
+                                   The signature does not need to have const &, but the
+                                   function must not modify the objects passed to it.
+                                   The types Type1 and Type2 must be such that an
+                                   object of type InputIt can be dereferenced and then
+                                   implicitly converted to both of them.
 
-                 
+                                   
 .SH Type requirements
    -
    InputIt must meet the requirements of InputIterator.
    -
    OutputIt must meet the requirements of OutputIterator.
    -
-   The type of dereferenced InputIt must meet the requirements of CopyAssignable.
+   The type of dereferenced InputIt must meet the requirements of CopyAssignable. if
+   InputIt does not satisfy ForwardIterator
    -
    The type of dereferenced InputIt must meet the requirements of CopyConstructible. if
-   neither InputIt nor OutputIt satisfies ForwardIterator
+   neither InputIt nor OutputIt satisfies ForwardIterator, or if InputIt does not
+   satisfy ForwardIterator and the value type of InputIt differs from that of OutputIt
 
 .SH Return value
 
    Output iterator to the element past the last written element
 
-.SH Possible implementation
+.SH Complexity
 
-.SH First version
-   template<class ForwardIt, class OutputIt>
-   ForwardIt unique_copy(ForwardIt first, ForwardIt last,
-                         OutputIt d_first)
-   {
-    
-       if (first == last)
-           return d_first;
-    
-       *d_first = *first;
-        while (++first != last) {
-           if (!(*d_first == *first)) {
-               *(++d_first) = *first;
-           }
-       }
-       return ++d_first;
-   }
-.SH Second version
-   template<class ForwardIt, class OutputIt, class BinaryPredicate>
-   ForwardIt unique_copy(ForwardIt first, ForwardIt last,
-                               OutputIt d_first, BinaryPredicate p)
-   {
-    
-       if (first == last)
-           return d_first;
-    
-       *d_first = *first;
-       while (++first != last) {
-           if (!p(*result, *first)) {
-               *(++d_first) = *first;
-           }
-       }
-       return ++d_first;
-   }
+   For nonempty ranges, exactly std::distance(first, last) - 1 applications of the
+   corresponding comparator.
+
+.SH Notes
+
+   If InputIt satisfies ForwardIterator, this function rereads the input in order to
+   detect duplicates.
+
+   Otherwise, if OutputIt satisfies ForwardIterator, and the value type of InputIt is
+   the same as that of OutputIt, this function compare *d_first to *first.
+
+   Otherwise, this function compares *first to a local element copy.
 
 .SH Example
-
-   The following program trims all multiple consecutive spaces in a const string and
-   prints the result
 
    
 // Run this code
@@ -100,16 +77,16 @@
  #include <iostream>
  #include <algorithm>
  #include <iterator>
-  
+
  int main()
  {
      std::string s1 = "The      string    with many       spaces!";
      std::cout << "before: " << s1 << '\\n';
-  
+
      std::string s2;
      std::unique_copy(s1.begin(), s1.end(), std::back_inserter(s2),
                       [](char c1, char c2){ return c1 == ' ' && c2 == ' '; });
-  
+
      std::cout << "after:  " << s2 << '\\n';
  }
 
@@ -118,14 +95,13 @@
  before: The      string    with many       spaces!
  after:  The string with many spaces!
 
-.SH Complexity
-
-   linear in the distance between first and last
-
 .SH See also
 
-                 finds two identical (or some other relationship) items adjacent to
-   adjacent_find each other
-                 \fI(function template)\fP 
-   unique        removes consecutive duplicate elements in a range
-                 \fI(function template)\fP 
+                                            finds the first two adjacent items that are
+   adjacent_find                            equal (or satisfy a given predicate)
+                                            \fI(function template)\fP
+                                            removes consecutive duplicate elements in a
+   unique                                   range
+                                            \fI(function template)\fP
+   std::experimental::parallel::unique_copy parallelized version of std::unique_copy
+   (parallelism TS)                         \fI(function template)\fP

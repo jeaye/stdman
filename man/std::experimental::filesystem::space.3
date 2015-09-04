@@ -1,0 +1,77 @@
+.TH std::experimental::filesystem::space 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <experimental/filesystem>
+   space_info space(const path& p);                           (filesystem TS)
+   space_info space(const path& p, error_code& ec) noexcept;
+
+   Determines the information about the filesystem on which the pathname p is located,
+   as if by POSIX statvfs
+
+   Populates and returns an object of type space_info, set from the members of the
+   POSIX struct statvfs as follows
+
+     * space_info.capacity is set as if by f_blocks*f_frsize
+     * space_info.free is set to f_bfree*f_frsize
+     * space_info.available is set to f_bavail*f_frsize
+     * Any member that could not be determined is set to static_cast<uintmax_t>(-1)
+
+   The non-throwing overload sets all members to static_cast<uintmax_t>(-1) on error.
+
+.SH Parameters
+
+   p  - path to examine
+   ec - out-parameter for error reporting in the non-throwing overload
+
+.SH Return value
+
+   The filesystem information (a space_info object)
+
+.SH Exceptions
+
+   The overload that does not take a error_code& parameter throws filesystem_error on
+   underlying OS API errors, constructed with p as the first argument and the OS error
+   code as the error code argument. std::bad_alloc may be thrown if memory allocation
+   fails. The overload taking a error_code& parameter sets it to the OS API error code
+   if an OS API call fails, and executes ec.clear() if no errors occur. This overload
+   has
+   noexcept specification:
+   noexcept
+
+.SH Notes
+
+   space_info.available may be less than space_info.free
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <experimental/filesystem>
+ namespace fs = std::experimental::filesystem;
+ int main()
+ {
+     fs::space_info devi = fs::space("/dev/null");
+     fs::space_info tmpi = fs::space("/tmp");
+
+     std::cout << ".        Capacity       Free      Available\\n"
+               << "/dev:   " << devi.capacity << "   "
+               << devi.free << "   " << devi.available  << '\\n'
+               << "/tmp: " << tmpi.capacity << " "
+               << tmpi.free << " " << tmpi.available  << '\\n';
+ }
+
+.SH Possible output:
+
+ .         Capacity       Free      Available
+ /dev:   4175114240   4175110144   4175110144
+ /tmp: 420651237376 411962273792 390570749952
+
+.SH See also
+
+   space_info information about free and available space on the filesystem
+              \fI(class)\fP
+
+.SH Category:
+
+     * unconditionally noexcept

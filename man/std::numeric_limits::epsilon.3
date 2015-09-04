@@ -1,4 +1,4 @@
-.TH std::numeric_limits::epsilon 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::numeric_limits::epsilon 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    static T epsilon();            \fI(until C++11)\fP
    static constexpr T epsilon();  \fI(since C++11)\fP
@@ -32,14 +32,14 @@
 
 .SH Exceptions
 
-   \fI(none)\fP                    \fI(until C++11)\fP
-   noexcept specification:  
-   noexcept                  \fI(since C++11)\fP
-     
+   \fI(none)\fP                  \fI(until C++11)\fP
+   noexcept specification: \fI(since C++11)\fP
+   noexcept
 
 .SH Example
 
-   Demonstrates the simplistic use of machine epsilon to compare floating-point values.
+   Demonstrates the use of machine epsilon to compare floating-point values for
+   equality
 
    
 // Run this code
@@ -49,27 +49,28 @@
  #include <iomanip>
  #include <iostream>
  #include <type_traits>
-  
+ #include <algorithm>
+
  template<class T>
  typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type
      almost_equal(T x, T y, int ulp)
  {
-     // the machine epsilon has to be scaled to the magnitude of the larger value
+     // the machine epsilon has to be scaled to the magnitude of the values used
      // and multiplied by the desired precision in ULPs (units in the last place)
-     return std::abs(x-y) <=   std::numeric_limits<T>::epsilon()
-                             * std::max(std::abs(x), std::abs(y))
-                             * ulp;
+     return std::abs(x-y) < std::numeric_limits<T>::epsilon() * std::abs(x+y) * ulp
+     // unless the result is subnormal
+            || std::abs(x-y) < std::numeric_limits<T>::min();
  }
  int main()
  {
      double d1 = 0.2;
      double d2 = 1 / std::sqrt(5) / std::sqrt(5);
-  
+
      if(d1 == d2)
              std::cout << "d1 == d2\\n";
      else
              std::cout << "d1 != d2\\n";
-  
+
      if(almost_equal(d1, d2, 2))
              std::cout << "d1 almost equals d2\\n";
      else
@@ -85,5 +86,9 @@
 
    nextafter
    nexttoward next representable floating point value towards the given value
-   \fI(C++11)\fP    \fI(function)\fP 
+   \fI(C++11)\fP    \fI(function)\fP
    \fI(C++11)\fP
+
+.SH Category:
+
+     * unconditionally noexcept

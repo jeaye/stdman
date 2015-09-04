@@ -1,4 +1,4 @@
-.TH std::malloc 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::malloc 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <cstdlib>
    void* malloc( std::size_t size );
@@ -6,7 +6,7 @@
    Allocates size bytes of uninitialized storage.
 
    If allocation succeeds, returns a pointer to the lowest (first) byte in the
-   allocated memory block that is suitably aligned for any object type.
+   allocated memory block that is suitably aligned for any scalar type.
 
    If size is zero, the behavior is implementation defined (null pointer may be
    returned, or some non-null pointer may be returned that may not be used to access
@@ -18,51 +18,57 @@
 
 .SH Return value
 
-   Pointer to the beginning of newly allocated memory or null pointer if error has
-   occurred. The pointer must be deallocated with std::free().
+   On success, returns the pointer to the beginning of newly allocated memory. The
+   returned pointer must be deallocated with std::free() or std::realloc().
+
+   On failure, returns a null pointer.
 
 .SH Notes
 
-   This function does not call constructors or initialize memory in any way. Thus
-   preferred method of memory allocation is new expression.
+   This function does not call constructors or initialize memory in any way. There are
+   no ready-to-use smart pointers that could guarantee that the matching deallocation
+   function is called. The preferred method of memory allocation in C++ is using
+   RAII-ready functions std::make_unique, std::make_shared, container constructors,
+   etc, and, in low-level library code, new-expression.
 
 .SH Example
 
    
 // Run this code
 
- #include <cstdlib>
  #include <iostream>
-  
+ #include <cstdlib>
+
  int main()
  {
-     // Allocate an array of 4 integers
-     int *array = static_cast<int *>(std::malloc(4 * sizeof(int)));
-  
-     if (array != nullptr) {
-         for (int arrayIdx = 0; arrayIdx < 4; ++arrayIdx) {
-             array[arrayIdx] = 2 * ( arrayIdx + 1 );
-         }
-  
-         for (int arrayIdx = 0; arrayIdx < 4; ++arrayIdx) {
-             std::cout << "Array item " << ( arrayIdx + 1 ) << " = " << array[arrayIdx] << '\\n';
-         }
-         std::free(array);
+     int* p1 = (int*)std::malloc(4*sizeof(int));  // allocates enough for an array of 4 int
+     int* p2 = (int*)std::malloc(sizeof(int[4])); // same, naming the type directly
+     int* p3 = (int*)std::malloc(4*sizeof *p3);   // same, without repeating the type name
+
+     if(p1) {
+         for(int n=0; n<4; ++n) // populate the array
+             p1[n] = n*n;
+         for(int n=0; n<4; ++n) // print it back out
+             std::cout << "p1[" << n << "] == " << p1[n] << '\\n';
      }
+
+     std::free(p1);
+     std::free(p2);
+     std::free(p3);
  }
 
-.SH Possible output:
+.SH Output:
 
- Array item 1 = 2
- Array item 2 = 4
- Array item 3 = 6
- Array item 4 = 8
+ p1[0] == 0
+ p1[1] == 1
+ p1[2] == 4
+ p1[3] == 9
 
 .SH See also
 
    operator new         allocation functions
-   operator new[]       \fI(function)\fP 
+   operator new[]       \fI(function)\fP
    get_temporary_buffer obtains uninitialized storage
-                        \fI(function template)\fP 
+                        \fI(function template)\fP
    C documentation for
    malloc

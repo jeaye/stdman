@@ -1,23 +1,241 @@
-.TH std::hash 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::hash 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
-   template<class T> struct hash<shared_ptr<T>>;  \fI(since C++11)\fP
+   Defined in header <functional>
+   template< class Key >           \fI(since C++11)\fP
+   struct hash;
 
-   The template specialization of std::hash for std::shared_ptr<T> allows users to
-   obtain hashes of objects of type std::shared_ptr<T>.
+   The hash template defines a function object that implements a hash function.
+   Instances of this function object satisfy Hash. In particular, they define an
+   operator() that:
 
-   For a given std::shared_ptr<T> p, this specialization ensures that
-   std::hash<std::shared_ptr<T>>()(p) == std::hash<T*>()(p.get()).
+   1. Accepts a single parameter of type Key.
 
-.SH Example
+   2. Returns a value of type size_t that represents the hash value of the parameter.
 
-    This section is incomplete
-    Reason: no example
+   3. Does not throw exceptions when called.
 
-.SH See also
+   4. For two parameters k1 and k2 that are equal, std::hash<Key>()(k1) ==
+   std::hash<Key>()(k2).
 
-   hash    hash function object
-   \fI(C++11)\fP \fI(class template)\fP 
+   5. For two different parameters k1 and k2 that are not equal, the probability that
+   std::hash<Key>()(k1) == std::hash<Key>()(k2) should be very small, approaching
+   1.0/std::numeric_limits<size_t>::max().
 
-.SH Category:
+   The hash template is DefaultConstructible, CopyAssignable, Swappable and
+   Destructible.
 
-     * Todo no example
+   The unordered associative containers std::unordered_set, std::unordered_multiset,
+   std::unordered_map, std::unordered_multimap use specializations of the template
+   std::hash as the default hash function.
+
+.SH Notes
+
+   The actual hash functions are implementation-dependent and are not required to
+   fulfill any other quality criteria except those specified above. Notably, some
+   implementations use trivial (identity) hash functions which map an integer to
+   itself. In other words, these hash functions are designed to work with unordered
+   associative containers, but not as cryptographic hashes, for example.
+
+   Hash functions are only required to produce the same result for the
+   same input within a single execution of a program; this allows salted  \fI(since C++14)\fP
+   hashes that prevent collision DoS attacks.
+
+   There is no specialization for C strings. std::hash<const char*> produces a hash of
+   the value of the pointer (the memory address), it does not examine the contents of
+   any character array.
+
+.SH Member types
+
+   Member type   Definition
+   argument_type Key
+   result_type   std::size_t
+
+.SH Member functions
+
+   constructor   constructs a hash function object
+                 \fI(public member function)\fP
+   operator()    calculate the hash of the argument
+                 \fI(public member function)\fP
+
+.SH Standard specializations for basic types
+
+   Defined in header <functional>
+   template<> struct hash<bool>;
+
+   template<> struct hash<char>;
+   template<> struct hash<signed char>;
+   template<> struct hash<unsigned char>;
+   template<> struct hash<char16_t>;
+   template<> struct hash<char32_t>;
+   template<> struct hash<wchar_t>;
+   template<> struct hash<short>;
+   template<> struct hash<unsigned short>;
+   template<> struct hash<int>;
+   template<> struct hash<unsigned int>;
+   template<> struct hash<long>;
+   template<> struct hash<long long>;
+   template<> struct hash<unsigned long>;
+   template<> struct hash<unsigned long long>;
+   template<> struct hash<float>;
+   template<> struct hash<double>;
+   template<> struct hash<long double>;
+
+   template< class T > struct hash<T*>;
+
+   In addition to the above, standard library provides specializations
+   for all (scoped and unscoped) enumeration types (which are not         \fI(since C++14)\fP
+   required, but usually are implemented as
+   std::hash<std::underlying_type<Enum>::type>)
+
+.SH Standard specializations for library types
+
+   std::hash<std::string>
+   std::hash<std::u16string>
+   std::hash<std::u32string>
+   std::hash<std::wstring>      hash support for strings
+   \fI(C++11)\fP                      \fI(class template specialization)\fP
+   \fI(C++11)\fP
+   \fI(C++11)\fP
+   \fI(C++11)\fP
+   std::hash<std::error_code>   hash support for std::error_code
+   \fI(C++11)\fP                      \fI(class template specialization)\fP
+   std::hash<std::bitset>       hash support for std::bitset
+   \fI(C++11)\fP                      \fI(class template specialization)\fP
+   std::hash<std::unique_ptr>   hash support for std::unique_ptr
+   \fI(C++11)\fP                      \fI(class template specialization)\fP
+   std::hash<std::shared_ptr>   hash support for std::shared_ptr
+   \fI(C++11)\fP                      \fI(class template specialization)\fP
+   std::hash<std::type_index>   hash support for std::type_index
+   \fI(C++11)\fP                      \fI(class template specialization)\fP
+   std::hash<std::vector<bool>> hash support for std::vector<bool>
+   \fI(C++11)\fP                      \fI(class template specialization)\fP
+   std::hash<std::thread::id>   hash support for std::thread::id
+   \fI(C++11)\fP                      \fI(class template specialization)\fP
+
+   Note: additional specializations for std::pair and the standard container types, as
+   well as utility functions to compose hashes are available in boost.hash
+
+.SH Examples
+
+   Demonstrates the computation of a hash for std::string, a type that already has a
+   hash specialization.
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <functional>
+ #include <string>
+
+ int main()
+ {
+     std::string str = "Meet the new boss...";
+     std::hash<std::string> hash_fn;
+     std::size_t str_hash = hash_fn(str);
+
+     std::cout << str_hash << '\\n';
+ }
+
+.SH Possible output:
+
+ 391070135
+
+   Demonstrates creation of a hash function for a user defined type. Using this as a
+   template parameter for std::unordered_map, std::unordered_set, etc. also requires
+   specialization of std::equal_to.
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <functional>
+ #include <string>
+
+ struct S
+ {
+     std::string first_name;
+     std::string last_name;
+ };
+
+ template <class T>
+ class MyHash;
+
+ template<>
+ class MyHash<S>
+ {
+ public:
+     std::size_t operator()(S const& s) const
+     {
+         std::size_t h1 = std::hash<std::string>()(s.first_name);
+         std::size_t h2 = std::hash<std::string>()(s.last_name);
+         return h1 ^ (h2 << 1);
+     }
+ };
+
+ int main()
+ {
+     std::string s1 = "Hubert";
+     std::string s2 = "Farnsworth";
+     std::hash<std::string> h1;
+
+     S n1;
+     n1.first_name = s1;
+     n1.last_name =  s2;
+
+     std::cout << "hash(s1) = " << h1(s1) << "\\n"
+               << "hash(s2) = " << std::hash<std::string>()(s2) << "\\n"
+               << "hash(n1) = " << MyHash<S>()(n1) << "\\n";
+
+ }
+
+.SH Possible output:
+
+ hash(s1) = 6119893563398376542
+ hash(s2) = 14988020022735710972
+ hash(n1) = 17649170831080298918
+
+   Demonstrates how to specialize std::hash for a user defined type.
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <functional>
+ #include <string>
+
+ struct S
+ {
+     std::string first_name;
+     std::string last_name;
+ };
+
+ namespace std
+ {
+     template<>
+     struct hash<S>
+     {
+         typedef S argument_type;
+         typedef std::size_t result_type;
+
+         result_type operator()(argument_type const& s) const
+         {
+             result_type const h1 ( std::hash<std::string>()(s.first_name) );
+             result_type const h2 ( std::hash<std::string>()(s.last_name) );
+             return h1 ^ (h2 << 1);
+         }
+     };
+ }
+
+ int main()
+ {
+     S s;
+     s.first_name = "Bender";
+     s.last_name =  "Rodriguez";
+     std::hash<S> hash_fn;
+
+     std::cout << "hash(s) = " << hash_fn(s) << "\\n";
+ }
+
+.SH Possible output:
+
+ hash(s) = 32902390710

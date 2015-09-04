@@ -1,27 +1,26 @@
-.TH std::set::set 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::set::set 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    explicit set( const Compare& comp = Compare(),               (until
-                 const Allocator& alloc = Allocator()           C++14)
-   );
-   set : set( Compare() ) {}
+   const Allocator& alloc = Allocator() );                      C++14)
+   set() : set( Compare() ) {}
+                                                                (since
+   explicit set( const Compare& comp,                           C++14)
 
-   explicit set( const Compare& comp,                           (since
-                                                                C++14)
-                 const Allocator& alloc = Allocator()
-   );
+   const Allocator& alloc = Allocator() );
    explicit set( const Allocator& alloc );                  \fB(1)\fP (since
                                                                 C++11)
    template< class InputIt >
 
    set( InputIt first, InputIt last,
-        const Compare& comp = Compare(),
+   const Compare& comp = Compare(),
 
-        const Allocator& alloc = Allocator() );
-   template< class InputIt >                            \fB(1)\fP
-                                                                        (since
-   set( InputIt first, InputIt last,                                    C++14)
+   const Allocator& alloc = Allocator() );
+   template< class InputIt >
 
-        const Allocator& alloc = Allocator() );
+   set( InputIt first, InputIt last, const Allocator&   \fB(1)\fP             (since
+   alloc)                                                               C++14)
+
+   : set(first, last, Compare(), alloc) {}
    set( const set& other );                                     \fB(3)\fP
    set( const set& other, const Allocator& alloc );         \fB(2)\fP \fB(3)\fP     (since
                                                                         C++11)
@@ -31,28 +30,27 @@
                                                                         C++11)
    set( std::initializer_list<value_type> init,
                                                                                 (since
-        const Compare& comp = Compare(),                                        C++11)
+   const Compare& comp = Compare(),                                             C++11)
                                                                 \fB(5)\fP
-        const Allocator& alloc = Allocator() );
-   set( std::initializer_list<value_type> init,                                 (since
-        const Allocator& alloc = Allocator() );                                 C++14)
+   const Allocator& alloc = Allocator() );
+   set( std::initializer_list<value_type> init, const                           (since
+   Allocator& alloc )                                                           C++14)
+   : set(init, Compare(), alloc) {}
 
    Constructs new container from a variety of data sources and optionally using user
    supplied allocator alloc or comparison function object comp.
 
    1) Default constructor. Constructs empty container.
-
-   2) Constructs the container with the contents of the range [first, last).
-
+   2) Range constructor. Constructs the container with the contents of the range
+   [first, last).
    3) Copy constructor. Constructs the container with the copy of the contents of
    other. If alloc is not provided, allocator is obtained by calling
-   std::allocator_traits<allocator_type>::select_on_copy_construction(other).
-
+   std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.get_allocator()).
    4) Move constructor. Constructs the container with the contents of other using move
    semantics. If alloc is not provided, allocator is obtained by move-construction from
    the allocator belonging to other.
-
-   5) Constructs the container with the contents of the initializer list init.
+   5) Initializer-list constructor. Constructs the container with the contents of the
+   initializer list init.
 
 .SH Parameters
 
@@ -90,145 +88,79 @@
 // Run this code
 
  #include <iostream>
- #include <functional>
- #include <map>
-  
- //declare printers for maps
- template<typename Key, typename T, typename Compare, typename Allocator>
- std::ostream& operator<<(std::ostream& stream,
-     const std::map<Key, T, Compare, Allocator>& map);
- template<typename T, typename Compare, typename Allocator>
- std::ostream& operator<<(std::ostream& stream,
-     const std::map<std::string, T, Compare, Allocator>& map);
- template<typename Key, typename Compare, typename Allocator>
- std::ostream& operator<<(std::ostream& stream,
-     const std::map<Key, std::string, Compare, Allocator>& map);
- template<typename Compare, typename Allocator>
- std::ostream& operator<<(std::ostream& stream,
-     const std::map<std::string, std::string, Compare, Allocator>& map);
-  
+ #include <string>
+ #include <set>
+
+ // Helper function for printing pairs.
+ template<class Ch, class Tr, class A, class B> inline
+ std::basic_ostream<Ch, Tr>& operator<<(std::basic_ostream<Ch, Tr>& stream, std::pair<A,B> p)
+ {
+   return stream << '(' << p.first << ", " << p.second << ')';
+ }
+
+ // Helper function for printing containers.
+ template<class Ch, class Tr, class Co>
+ std::basic_ostream<Ch, Tr>& operator<<(std::basic_ostream<Ch, Tr>& stream, Co& c)
+ {
+   stream << '{' << *c.begin();
+
+   for(auto it = ++(c.begin()); it != c.end(); ++it)
+     stream << ", " << *it;
+
+   stream << '}' << std::endl;
+   return stream;
+ }
+
  int main()
  {
-   typedef std::string Key;
-   typedef int Mapped;
-  
    // (1) Default constructor
-   std::map<Key, Mapped> map;
-   map["something"] = 69;
-   map["anything"] = 199;
-   map["that thing"] = 50;
-   std::cout << std::string(80, '-') << '\\n';
-   std::cout << "map = " << map << '\\n';
-  
+   std::set<std::string> a;
+   a.insert("something");
+   a.insert("anything");
+   a.insert("that thing");
+   std::cout << "a = " << a;
+
    // (2) Iterator constructor
-   std::map<Key, Mapped> iter(map.find("anything"), map.end());
-   std::cout << std::string(80, '-') << '\\n';
-   std::cout << "iter = " << iter << '\\n';
-   std::cout << "map = " << map << '\\n';
-  
+   std::set<std::string> b(a.find("anything"), a.end());
+   std::cout << std::string(80, '-') << std::endl;
+   std::cout << "b = " << b;
+
    // (3) Copy constructor
-   std::map<Key, Mapped> copy(map);
-   std::cout << std::string(80, '-') << '\\n';
-   std::cout << "copy = " << copy << '\\n';
-   std::cout << "map = " << map << '\\n';
-  
+   std::set<std::string> c(a);
+   c.insert("another thing");
+   std::cout << std::string(80, '-') << std::endl;
+   std::cout << "a = " << a;
+   std::cout << "c = " << c;
+
    // (4) Move constructor
-   std::map<Key, Mapped> moved(std::move(map));
-   std::cout << std::string(80, '-') << '\\n';
-   std::cout << "moved = " << copy << '\\n';
-   std::cout << "map = " << map << '\\n';
-  
+   std::set<std::string> d(std::move(a));
+   std::cout << std::string(80, '-') << std::endl;
+   std::cout << "a = nullptr" << std::endl;
+   std::cout << "d = " << d;
+
    // (5) Initializer list constructor
-   const std::map<Key, Mapped> init {
-     {"this", 100},
-     {"can", 100},
-     {"be", 100},
-     {"const", 100},
+   std::set<std::string> e{
+     "one", "two", "three", "five", "eight"
    };
-   std::cout << std::string(80, '-') << '\\n';
-   std::cout << "init = " << init << '\\n';
- }
-  
- // A printer for unordered maps
- template<typename Key, typename T, typename Compare, typename Allocator>
- std::ostream& operator<<(std::ostream& stream,
-     const std::map<Key, T, Compare, Allocator>& map) {
-   stream << '{';
-   char comma[3] = {'\\0', ' ', '\\0'};
-   for (const auto& pair : map) {
-     stream << comma << pair.first << ':' << pair.second;
-     comma[0] = ',';
-   }
-   stream << '}';
-   return stream;
- }
-  
- // A specialization for Key strings
- template<typename T, typename Compare, typename Allocator>
- std::ostream& operator<<(std::ostream& stream,
-     const std::map<std::string, T, Compare, Allocator>& map) {
-   stream << '{';
-   char comma[3] = {'\\0', ' ', '\\0'};
-   for (const auto& pair : map) {
-     stream << comma << '"' << pair.first << "\\":" << pair.second;
-     comma[0] = ',';
-   }
-   stream << '}';
-   return stream;
- }
-  
- // A printer for unordered maps
- template<typename Key, typename Compare, typename Allocator>
- std::ostream& operator<<(std::ostream& stream,
-     const std::map<Key, std::string, Compare, Allocator>& map) {
-   stream << '{';
-   char comma[3] = {'\\0', ' ', '\\0'};
-   for (const auto& pair : map) {
-     stream << comma << pair.first << ":\\"" << pair.second << '"';
-     comma[0] = ',';
-   }
-   stream << '}';
-   return stream;
- }
-  
- // A specialization for Key and Mapped strings
- template<typename Compare, typename Allocator>
- std::ostream& operator<<(std::ostream& stream,
-     const std::map<std::string, std::string, Compare, Allocator>& map) {
-   stream << '{';
-   char comma[3] = {'\\0', ' ', '\\0'};
-   for (const auto& pair : map) {
-     stream << comma << '"' << pair.first << "\\":\\"" << pair.second << '"';
-     comma[0] = ',';
-   }
-   stream << '}';
-   return stream;
+   std::cout << std::string(80, '-') << std::endl;
+   std::cout << "e = " << e;
  }
 
 .SH Output:
 
+ a = {anything, something, that thing}
  --------------------------------------------------------------------------------
- map = {"anything":199, "something":69, "that thing":50}
+ b = {anything, something, that thing}
  --------------------------------------------------------------------------------
- iter = {"anything":199, "something":69, "that thing":50}
- map = {"anything":199, "something":69, "that thing":50}
+ a = {anything, something, that thing}
+ c = {another thing, anything, something, that thing}
  --------------------------------------------------------------------------------
- copy = {"anything":199, "something":69, "that thing":50}
- map = {"anything":199, "something":69, "that thing":50}
+ a = nullptr
+ d = {anything, something, that thing}
  --------------------------------------------------------------------------------
- moved = {"anything":199, "something":69, "that thing":50}
- map = {}
- --------------------------------------------------------------------------------
- init = {"be":100, "can":100, "const":100, "this":100}
-
-    This section is incomplete
-    Reason: cleanup/shorten this example
+ e = {eight, five, one, three, two}
 
 .SH See also
 
    operator= assigns values to the container
-             \fI(public member function)\fP 
-
-.SH Category:
-
-     * Todo with reason
+             \fI(public member function)\fP

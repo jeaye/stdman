@@ -1,4 +1,4 @@
-.TH std::enable_shared_from_this 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::enable_shared_from_this 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <memory>
    template< class T > class enable_shared_from_this;  \fI(since C++11)\fP
@@ -33,9 +33,12 @@
 .SH Notes
 
    A common implementation for enable_shared_from_this is to hold a weak reference
-   (such as std::weak_ptr) to this. The constructors of std::shared_ptr can detect
-   presence of a enable_shared_from_this base and share ownership with the existing
-   std::shared_ptrs, instead of assuming the pointer is not managed by anyone else.
+   (such as std::weak_ptr) to this. The constructors of std::shared_ptr detect the
+   presence of an enable_shared_from_this base and assign the newly created
+   std::shared_ptr to the internally stored weak reference. Constructing a
+   std::shared_ptr for an object that is already managed by another std::shared_ptr
+   will not consult the internally stored weak reference and thus will lead to
+   undefined behavior.
 
 .SH Example
 
@@ -44,14 +47,14 @@
 
  #include <memory>
  #include <iostream>
-  
+
  struct Good: std::enable_shared_from_this<Good>
  {
      std::shared_ptr<Good> getptr() {
          return shared_from_this();
      }
  };
-  
+
  struct Bad
  {
      std::shared_ptr<Bad> getptr() {
@@ -59,14 +62,14 @@
      }
      ~Bad() { std::cout << "Bad::~Bad() called\\n"; }
  };
-  
+
  int main()
  {
      // Good: the two shared_ptr's share the same object
      std::shared_ptr<Good> gp1(new Good);
      std::shared_ptr<Good> gp2 = gp1->getptr();
      std::cout << "gp2.use_count() = " << gp2.use_count() << '\\n';
-  
+
      // Bad, each shared_ptr thinks it's the only owner of the object
      std::shared_ptr<Bad> bp1(new Bad);
      std::shared_ptr<Bad> bp2 = bp1->getptr();
@@ -84,4 +87,4 @@
 .SH See also
 
    shared_ptr smart pointer with shared object ownership semantics
-   \fI(C++11)\fP    \fI(class template)\fP 
+   \fI(C++11)\fP    \fI(class template)\fP

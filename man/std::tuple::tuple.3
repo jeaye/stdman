@@ -1,4 +1,4 @@
-.TH std::tuple::tuple 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::tuple::tuple 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <tuple>
    constexpr tuple();                                                \fB(1)\fP  \fI(since C++11)\fP
@@ -54,34 +54,72 @@
    Constructs a new tuple.
 
    1) Default constructor. Value-initializes all elements.
+   Requires that std::is_default_constructible<Ti>::value is true for all i
+   2) Direct constructor. Initializes each element of the tuple with the corresponding
+   parameter.
+   This constructor does not participate in overload resolution unless sizeof...(Types)
+   >= 1 and std::is_copy_constructible<Ti>::value is true for all i.
 
-   2) Initializes each element of the tuple with the corresponding parameter.
+   This constructor is explicit if and only if std::is_convertible<const  (since C++17)
+   Ti&, Ti>::value is false for at least one i.
 
-   3) Initializes each element of the tuple with the corresponding value in
-   std::forward<Utypes>(args).
+   3) Converting constructor. Initializes each element of the tuple with the
+   corresponding value in std::forward<Utypes>(args).
+   Requires that sizeof...(Types) == sizeof...(UTypes).
+   This constructor shall not participate in overload resolution unless
+   sizeof...(Types) >= 1 and std::is_constructible<Ti, Ui&&>::value is true for all i.
 
-   4) For all i in sizeof...(UTypes), initializes ith element of the tuple with
-   std::get<i>(other).
+   The constructor is explicit if and only if std::is_convertible<Ui&&,   (since C++17)
+   Ti>::value is false for at least one i.
 
-   5) For all i in sizeof...(UTypes), initializes ith element of the tuple with
-   std::forward<Ui>(std::get<i>(other)).
+   4) Converting copy-constructor. For all i in sizeof...(UTypes), initializes ith
+   element of the tuple with std::get<i>(other).
+   Requires that sizeof...(Types) == sizeof...(UTypes)
+   Does not participate in overload resolution unless std::is_constructible<Ti, const
+   Ui&>::value is true for all i.
 
-   6) Constructs a 2-element tuple with the first element constructed from p.first and
-   the second element from p.second
+   The constructor is explicit if and only if std::is_convertible<const   (since C++17)
+   Ui&, Ti>::value is false for at least one i.
 
-   7) Constructs a 2-element tuple with the first element constructed from
-   std::forward<U1>(p.first) and the second element from std::forward<U2>(p.second)
+   5) Converting move-constructor. For all i in sizeof...(UTypes), initializes ith
+   element of the tuple with std::forward<Ui>(std::get<i>(other)).
+   Requires that sizeof...(Types) == sizeof...(UTypes)
+   Does not participate in overload resolution unless std::is_constructible<Ti,
+   Ui&&>::value is true for all i.
 
-   8) Compiler-generated copy constructor. Initializes each element of the tuple with
-   the corresponding element of other. This constructor is constexpr if every operation
-   it performs is constexpr. For the empty tuple std::tuple<>, it is constexpr.
+   The constructor is explicit if and only if std::is_convertible<Ui&&,   (since C++17)
+   Ti>::value is false for at least one i.
 
-   9) Compiler-generated move constructor. Initializes each ith element of the tuple
-   with std::forward<Ui>(std::get<i>(other)). This constructor is constexpr if every
-   operation it performs is constexpr. For the empty tuple std::tuple<>, it is
-   constexpr.
+   6) Pair copy constructor. Constructs a 2-element tuple with the first element
+   constructed from p.first and the second element from p.second
+   Requires that sizeof...(Types) == 2
+   Does not participate in overload resolution unless std::is_constructible<T0,const
+   U1&>::value and std::is_constructible<T1, const U2&>::value are both true
 
-   10 - 18) Identical to 1-9 except each element is created by uses-allocator
+   The constructor is explicit if and only if std::is_convertible<const   (since C++17)
+   U1&, T0>::value or std::convertible<const U2&, T1>::value is false
+
+   7) Pair move constructor. Constructs a 2-element tuple with the first element
+   constructed from std::forward<U1>(p.first) and the second element from
+   std::forward<U2>(p.second)
+   Requires that sizeof...(Types) == 2
+   Does not participate in overload resolution unless std::is_constructible<T0,
+   U1&&>::value and std::is_constructible<T1, U2&&>::value are both true
+
+   The constructor is explicit if and only if std::is_convertible<U1&&,   (since C++17)
+   T0>::value or std::convertible<U2&&, T1>::value is false
+
+   8) Implicitly-defined copy constructor. Initializes each element of the tuple with
+   the corresponding element of other.
+   This constructor is constexpr if every operation it performs is constexpr. For the
+   empty tuple std::tuple<>, it is constexpr.
+   Requires that std::is_copy_constructible<Ti>::value is true for all i.
+   9) Implicitly-defined move constructor. Initializes each ith element of the tuple
+   with std::forward<Ui>(std::get<i>(other)).
+   This constructor is constexpr if every operation it performs is constexpr. For the
+   empty tuple std::tuple<>, it is constexpr.
+   Requires that std::is_move_constructible<Ti>::value is true for all i.
+   10-18) Identical to (1-9) except each element is created by uses-allocator
    construction, that is, the Allocator object a is passed as an additional argument to
    the constructor of each element for which std::uses_allocator<Ui, Alloc>::value is
    true.
@@ -93,6 +131,27 @@
    p     - pair of values used to initialize both elements of this 2-tuple
    a     - allocator to use in uses-allocator construction
 
+.SH Notes
+
+   Conditionally-explicit constructors in C++17 make it possible to construct a tuple
+   in copy-initialization context using list-initialization syntax:
+
+ std::tuple<int, int> foo_tuple()
+ {
+   return {1, -1};  // Error until C++17
+   return std::make_tuple(1, -1); // Always works
+ }
+
+   Note that if some element of the list is not implicitly convertible to the
+   corresponding element of the target tuple, the constructors become explicit
+
+ using namespace std::chrono;
+ void launch_rocket_at(std::tuple<hours, minutes, seconds>);
+
+ launch_rocket_at({hours\fB(1)\fP, minutes\fB(2)\fP, seconds\fB(3)\fP}); // OK
+ launch_rocket_at({1, 2, 3}); // Error: int is not implicitly convertible to duration
+ launch_rocket_at(std::tuple<hours, minutes, seconds>{1, 2, 3}); // OK
+
 .SH Example
 
    
@@ -103,7 +162,7 @@
  #include <vector>
  #include <tuple>
  #include <memory>
-  
+
  // helper function to print a tuple of any size
  template<class Tuple, std::size_t N>
  struct TuplePrinter {
@@ -113,7 +172,7 @@
          std::cout << ", " << std::get<N-1>(t);
      }
  };
-  
+
  template<class Tuple>
  struct TuplePrinter<Tuple, 1>{
      static void print(const Tuple& t)
@@ -121,7 +180,7 @@
          std::cout << std::get<0>(t);
      }
  };
-  
+
  template<class... Args>
  void print(const std::tuple<Args...>& t)
  {
@@ -130,7 +189,7 @@
      std::cout << ")\\n";
  }
  // end helper function
-  
+
  int main()
  {
      std::tuple<int, std::string, double> t1;
@@ -141,7 +200,7 @@
      std::cout << "Implicitly converted: "; print(t3);
      std::tuple<int, double> t4(std::make_pair(42, 3.14));
      std::cout << "Constructed from a pair"; print(t4);
-  
+
      // given Allocator my_alloc with a single-argument constructor my_alloc(int)
      // use my_alloc(1) to allocate 10 ints in a vector
      std::vector<int, my_alloc> v(10, 1, my_alloc(1));
@@ -160,9 +219,9 @@
 .SH See also
 
    make_tuple       creates a tuple object of the type defined by the argument types
-                    \fI(function template)\fP 
+                    \fI(function template)\fP
                     creates a tuple of lvalue references or unpacks a tuple into
    tie              individual objects
-                    \fI(function template)\fP 
+                    \fI(function template)\fP
    forward_as_tuple creates a tuple of rvalue references
-                    \fI(function template)\fP 
+                    \fI(function template)\fP
