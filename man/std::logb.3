@@ -1,16 +1,20 @@
-.TH std::logb 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::logb 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <cmath>
-   float       logb( float arg );        \fI(since C++11)\fP
-   double      logb( double arg );       \fI(since C++11)\fP
-   long double logb( long double arg );  \fI(since C++11)\fP
-   double      logb( Integral arg );     \fI(since C++11)\fP
+   float logb( float arg );             \fB(1)\fP \fI(since C++11)\fP
+   double logb( double arg );           \fB(2)\fP \fI(since C++11)\fP
+   long double logb( long double arg ); \fB(3)\fP \fI(since C++11)\fP
+   double logb( Integral arg );         \fB(4)\fP \fI(since C++11)\fP
 
-   Extracts the value of the exponent from the floating-point argument arg, and returns
-   it as a floating-point value. Formally, the result is the integral part of log
-   r|arg| as a signed floating-point value, for non-zero arg, where r is
-   std::numeic_limits<T>::radix and T is the floating-point type of arg. If arg is
-   subnormal, it is treated as though it was normalized.
+   1-3) Extracts the value of the unbiased radix-independent exponent from the
+   floating-point argument arg, and returns it as a floating-point value.
+   4) A set of overloads or a function template accepting an argument of any integral
+   type. Equivalent to \fB(2)\fP (the argument is cast to double).
+
+   Formally, the unbiased exponent is the signed integral part of log
+   r|arg| (returned by this function as a floating-point value), for non-zero arg,
+   where r is std::numeric_limits<T>::radix and T is the floating-point type of arg. If
+   arg is subnormal, it is treated as though it was normalized.
 
 .SH Parameters
 
@@ -18,11 +22,30 @@
 
 .SH Return value
 
-   The floating-point exponent.
+   If no errors occur, the unbiased exponent of arg is returned as a signed
+   floating-point value.
+
+   If a domain error occurs, an implementation-defined value is returned
+
+   If a pole error occurs, -HUGE_VAL, -HUGE_VALF, or -HUGE_VALL is returned.
+
+.SH Error handling
+
+   Errors are reported as specified in math_errhandling
 
    Domain or range error may occur if arg is zero.
 
+   If the implementation supports IEEE floating-point arithmetic (IEC 60559),
+
+     * If arg is ±0, -∞ is returned and FE_DIVBYZERO is raised.
+     * If arg is ±∞, +∞ is returned
+     * If arg is NaN, NaN is returned.
+     * In all other cases, the result is exact (FE_INEXACT is never raised) and the
+       current rounding mode is ignored
+
 .SH Notes
+
+   POSIX requires that a pole error occurs if arg is ±0.
 
    The value of the exponent returned by std::logb is always 1 less than the exponent
    retuned by std::frexp because of the different normalization requirements: for the
@@ -41,40 +64,52 @@
  #include <iostream>
  #include <cmath>
  #include <limits>
+ #include <cfenv>
+ #pragma STDC FENV_ACCESS ON
  int main()
  {
      double f = 123.45;
      std::cout << "Given the number " << f << " or " << std::hexfloat
                << f << std::defaultfloat << " in hex,\\n";
-  
+
      double f3;
      double f2 = std::modf(f, &f3);
      std::cout << "modf() makes " << f3 << " + " << f2 << '\\n';
-  
+
      int i;
      f2 = std::frexp(f, &i);
      std::cout << "frexp() makes " << f2 << " * 2^" << i << '\\n';
-  
+
      i = std::ilogb(f);
      std::cout << "logb()/ilogb() make " << f/std::scalbn(1.0, i) << " * "
                << std::numeric_limits<double>::radix
                << "^" << std::ilogb(f) << '\\n';
+
+     // error handling
+     std::feclearexcept(FE_ALL_EXCEPT);
+     std::cout << "logb(0) = " << std::logb(0) << '\\n';
+     if(std::fetestexcept(FE_DIVBYZERO))
+         std::cout << "    FE_DIVBYZERO raised\\n";
  }
 
-.SH Output:
+.SH Possible output:
 
  Given the number 123.45 or 0x1.edccccccccccdp+6 in hex,
  modf() makes 123 + 0.45
  frexp() makes 0.964453 * 2^7
  logb()/ilogb() make 1.92891 * 2^6
+ logb\fB(0)\fP = -Inf
+     FE_DIVBYZERO raised
 
 .SH See also
 
    frexp   decomposes a number into significand and a power of 2
-           \fI(function)\fP 
+           \fI(function)\fP
    ilogb   extracts exponent of the number
-   \fI(C++11)\fP \fI(function)\fP 
+   \fI(C++11)\fP \fI(function)\fP
    scalbn
    scalbln multiplies a number by FLT_RADIX raised to a power
-   \fI(C++11)\fP \fI(function)\fP 
+   \fI(C++11)\fP \fI(function)\fP
    \fI(C++11)\fP
+   C documentation for
+   logb

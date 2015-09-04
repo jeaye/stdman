@@ -1,13 +1,15 @@
-.TH std::nearbyint 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::nearbyint 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <cmath>
-   float       nearbyint( float arg );        \fI(since C++11)\fP
-   double      nearbyint( double arg );       \fI(since C++11)\fP
-   long double nearbyint( long double arg );  \fI(since C++11)\fP
-   double      nearbyint( Integral arg );     \fI(since C++11)\fP
+   float nearbyint( float arg );             \fB(1)\fP \fI(since C++11)\fP
+   double nearbyint( double arg );           \fB(2)\fP \fI(since C++11)\fP
+   long double nearbyint( long double arg ); \fB(3)\fP \fI(since C++11)\fP
+   double nearbyint( Integral arg );         \fB(4)\fP \fI(since C++11)\fP
 
-   Rounds the floating-point argument arg to an integer value in floating-point format,
-   using the current rounding mode.
+   1-3) Rounds the floating-point argument arg to an integer value in floating-point
+   format, using the current rounding mode.
+   4) A set of overloads or a function template accepting an argument of any integral
+   type. Equivalent to \fB(2)\fP (the argument is cast to double).
 
 .SH Parameters
 
@@ -15,80 +17,95 @@
 
 .SH Return value
 
-   The integer result of rounding arg
+   The nearest integer value to arg, according to the current rounding mode, is
+   returned.
+
+.SH Error handling
+
+   This function is not subject to any of the errors specified in math_errhandling
+
+   If the implementation supports IEEE floating-point arithmetic (IEC 60559),
+
+     * FE_INEXACT is never raised
+     * If arg is ±∞, it is returned, unmodified
+     * If arg is ±0, it is returned, unmodified
+     * If arg is NaN, NaN is returned
 
 .SH Notes
 
-   The only difference between std::nearbyint and std::rint is that std::rint may raise
-   the FE_INEXACT floating-point exception, while std::nearbyint never raises it.
+   The only difference between std::nearbyint and std::rint is that std::nearbyint
+   never raises FE_INEXACT.
+
+   The largest representable floating-point values are exact integers in all standard
+   floating-point formats, so std::nearbyint never overflows on its own; however the
+   result may overflow any integer type (including std::intmax_t), when stored in an
+   integer variable.
+
+   If the current rounding mode is FE_TONEAREST, this function rounds to even in
+   halfway cases (like rint, but unlike round).
 
 .SH Example
 
    
-   
 // Run this code
 
+ #include <iostream>
  #include <cmath>
  #include <cfenv>
- #include <iostream>
-  
+
  int main()
  {
-     #pragma STDC FENV_ACCESS ON
-     std::fesetround(FE_DOWNWARD);
-     std::cout << "rounding using FE_DOWNWARD: \\n" << std::fixed
-               << " 12.0 ->  " << std::nearbyint(12.0) << '\\n'
-               << " 12.1 ->  " << std::nearbyint(12.1) << '\\n'
-               << "-12.1 -> " << std::nearbyint(-12.1) << '\\n'
-               << " 12.5 ->  " << std::nearbyint(12.5) << '\\n'
-               << " 12.9 ->  " << std::nearbyint(12.9) << '\\n'
-               << "-12.9 -> " << std::nearbyint(-12.9) << '\\n'
-               << " 13.0 ->  " << std::nearbyint(13.0) << '\\n';
+ #pragma STDC FENV_ACCESS ON
      std::fesetround(FE_TONEAREST);
-     std::cout << "rounding using FE_TONEAREST: \\n"
-               << " 12.0 ->  " << std::nearbyint(12.0) << '\\n'
-               << " 12.1 ->  " << std::nearbyint(12.1) << '\\n'
-               << "-12.1 -> " << std::nearbyint(-12.1) << '\\n'
-               << " 12.5 ->  " << std::nearbyint(12.5) << '\\n'
-               << " 12.9 ->  " << std::nearbyint(12.9) << '\\n'
-               << "-12.9 -> " << std::nearbyint(-12.9) << '\\n'
-               << " 13.0 ->  " << std::nearbyint(13.0) << '\\n';
+     std::cout << "rounding to nearest: \\n"
+               << "nearbyint(+2.3) = " << std::nearbyint(2.3)
+               << "  nearbyint(+2.5) = " << std::nearbyint(2.5)
+               << "  nearbyint(+3.5) = " << std::nearbyint(3.5) << '\\n'
+               << "nearbyint(-2.3) = " << std::nearbyint(-2.3)
+               << "  nearbyint(-2.5) = " << std::nearbyint(-2.5)
+               << "  nearbyint(-3.5) = " << std::nearbyint(-3.5) << '\\n';
+
+     std::fesetround(FE_DOWNWARD);
+     std::cout << "rounding down:\\n"
+               << "nearbyint(+2.3) = " << std::nearbyint(2.3)
+               << "  nearbyint(+2.5) = " << std::nearbyint(2.5)
+               << "  nearbyint(+3.5) = " << std::nearbyint(3.5) << '\\n'
+               << "nearbyint(-2.3) = " << std::nearbyint(-2.3)
+               << "  nearbyint(-2.5) = " << std::nearbyint(-2.5)
+               << "  nearbyint(-3.5) = " << std::nearbyint(-3.5) << '\\n';
+
+     std::cout << "nearbyint(-0.0) = " << std::nearbyint(-0.0)  << '\\n'
+               << "nearbyint(-Inf) = " << std::nearbyint(-INFINITY) << '\\n';
  }
 
 .SH Output:
 
- rounding using FE_DOWNWARD:
-  12.0 ->  12.000000
-  12.1 ->  12.000000
- -12.1 -> -13.000000
-  12.5 ->  12.000000
-  12.9 ->  12.000000
- -12.9 -> -13.000000
-  13.0 ->  13.000000
- rounding using FE_TONEAREST:
-  12.0 ->  12.000000
-  12.1 ->  12.000000
- -12.1 -> -12.000000
-  12.5 ->  12.000000
-  12.9 ->  13.000000
- -12.9 -> -13.000000
-  13.0 ->  13.000000
+ rounding to nearest:
+ nearbyint(+2.3) = 2  nearbyint(+2.5) = 2  nearbyint(+3.5) = 4
+ nearbyint(-2.3) = -2  nearbyint(-2.5) = -2  nearbyint(-3.5) = -4
+ rounding down:
+ nearbyint(+2.3) = 2  nearbyint(+2.5) = 2  nearbyint(+3.5) = 3
+ nearbyint(-2.3) = -3  nearbyint(-2.5) = -3  nearbyint(-3.5) = -4
+ nearbyint(-0.0) = -0
+ nearbyint(-Inf) = -inf
 
 .SH See also
 
    rint
    lrint      nearest integer using current rounding mode with
    llrint     exception if the result differs
-   \fI(C++11)\fP    \fI(function)\fP 
+   \fI(C++11)\fP    \fI(function)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
    round
    lround
    llround    nearest integer, rounding away from zero in halfway cases
-   \fI(C++11)\fP    \fI(function)\fP 
+   \fI(C++11)\fP    \fI(function)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
    fegetround
    fesetround gets or sets rounding direction
-   \fI(C++11)\fP    \fI(function)\fP 
+   \fI(C++11)\fP    \fI(function)\fP
    \fI(C++11)\fP
+   C documentation for
+   nearbyint

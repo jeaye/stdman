@@ -1,13 +1,15 @@
-.TH std::memcpy 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::memcpy 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <cstring>
    void* memcpy( void* dest, const void* src, std::size_t count );
 
    Copies count bytes from the object pointed to by src to the object pointed to by
-   dest.
+   dest. Both objects are reinterpreted as arrays of unsigned char.
 
-   If the objects overlap, the behavior is undefined. If the objects are not trivially
-   copyable (e.g. scalars, arrays, C-compatible structs), the behavior is undefined.
+   If the objects overlap, the behavior is undefined.
+
+   If the objects are not TriviallyCopyable, the behavior of memcpy is not specified
+   and may be undefined.
 
 .SH Parameters
 
@@ -19,24 +21,42 @@
 
    dest
 
+.SH Notes
+
+   std::memcpy is the fastest library routine for memory-to-memory copy. It is usually
+   more efficient than std::strcpy, which must scan the data it copies or std::memmove,
+   which must take precautions to handle overlapping inputs.
+
+   Several C++ compilers transform suitable memory-copying loops to std::memcpy calls.
+
+   Where strict aliasing prohibits examining the same memory as values of two different
+   types, std::memcpy may be used to convert the values.
+
 .SH Example
 
    
 // Run this code
 
  #include <iostream>
+ #include <cstdint>
  #include <cstring>
-  
+
  int main()
  {
-     char source[] = "once upon a midnight dreary...";
-     char dest[4];
-  
+     // simple usage
+     char source[] = "once upon a midnight dreary...", dest[4];
      std::memcpy(dest, source, sizeof dest);
-  
-     for (char c : dest) {
+     for (char c : dest)
          std::cout << c << '\\n';
-     }
+
+     // reinterpreting
+     double d = 0.1;
+ //  std::int64_t n = *reinterpret_cast<std::int64_t*>(&d); // aliasing violation
+     std::int64_t n;
+     std::memcpy(&n, &d, sizeof d); // OK
+
+     std::cout << std::hexfloat << d << " is " << std::hex << n
+               << " as an std::int64_t\\n";
  }
 
 .SH Output:
@@ -45,17 +65,23 @@
  n
  c
  e
+ 0x1.999999999999ap-4 is 3fb999999999999a as an std::int64_t
 
 .SH See also
 
    memmove               moves one buffer to another
-                         \fI(function)\fP 
+                         \fI(function)\fP
+   memset                fills a buffer with a character
+                         \fI(function)\fP
+                         copies a certain amount of wide characters between two
+   wmemcpy               non-overlapping arrays
+                         \fI(function)\fP
    copy                  copies a range of elements to a new location
-   copy_if               \fI(function template)\fP 
+   copy_if               \fI(function template)\fP
    \fI(C++11)\fP
    copy_backward         copies a range of elements in backwards order
-                         \fI(function template)\fP 
+                         \fI(function template)\fP
    is_trivially_copyable checks if a type is trivially copyable
-   \fI(C++11)\fP               \fI(class template)\fP 
+   \fI(C++11)\fP               \fI(class template)\fP
    C documentation for
    memcpy

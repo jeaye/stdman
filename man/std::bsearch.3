@@ -1,20 +1,25 @@
-.TH std::bsearch 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::bsearch 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <cstdlib>
-   void* bsearch( const void* key, const void* ptr, std::size_t count, std::size_t
-   size,
-                  int (*comp)(const void*, const void*) );
+   extern "C" void* bsearch( const void* key, const void* ptr, std::size_t count,
+   std::size_t size, int (*comp)(const void*, const void*) );
+   extern "C++" void* bsearch( const void* key, const void* ptr, std::size_t count,
+   std::size_t size, int (*comp)(const void*, const void*) );
 
-   Finds an element equal to element pointed to by key in a sorted array pointed to by
-   ptr. The array contains count elements of size bytes. The elements are compared
-   using function pointed to by comp.
+   Finds an element equal to element pointed to by key in an array pointed to by ptr.
+   The array contains count elements of size bytes each and must be partitioned with
+   respect to the object pointed to by key, that is, all the elements that compare less
+   than must appear before all the elements that compare equal to, and those must
+   appear before all the elements that compare greater than the key object. A fully
+   sorted array satisfies these requirements. The elements are compared using function
+   pointed to by comp.
 
-   The behavior is undefined if the array is not already sorted in ascending order
-   according to the same criteria that comp uses.
+   The behavior is undefined if the array is not already partitioned in ascending order
+   with respect to key, according to the same criterion that comp uses.
 
    If the array contains several elements that comp would indicate as equal to the
-   element searched for, then it is undefined which element the function will return as
-   the result.
+   element searched for, then it is unspecified which element the function will return
+   as the result.
 
 .SH Parameters
 
@@ -28,18 +33,25 @@
            a positive integer value if the first argument is greater than the second
            and zero if the arguments are equal. key is passed as the first argument, an
            element from the array as the second.
-   comp  - The signature of the comparison function should be equivalent to the
-           following:
+           The signature of the comparison function should be equivalent to the
+   comp  - following:
 
-            int cmp(const void *a, const void *b);
+           int cmp(const void *a, const void *b);
 
-           The function must not modify the objects passed to it.
+           The function must not modify the objects passed to it and must return
+           consistent results when called for the same objects, regardless of their
+           positions in the array.
 
            
 
 .SH Return value
 
-   Pointer to the found element or NULL if the element has not been found.
+   Pointer to the found element or null pointer if the element has not been found.
+
+.SH Notes
+
+   The two overloads provided by the C++ standard library are distinct because the
+   types of the parameter comp are distinct (language linkage is part of its type)
 
 .SH Example
 
@@ -48,7 +60,7 @@
 
  #include <cstdlib>
  #include <iostream>
-  
+
  int compare(const void *ap, const void *bp)
  {
      const int *a = (int *) ap;
@@ -60,19 +72,19 @@
      else
          return 0;
  }
-  
+
  int main(int argc, char **argv)
  {
      const int ARR_SIZE = 8;
      int arr[ARR_SIZE] = { 1, 2, 3, 4, 5, 6, 7, 8 };
-  
+
      int key1 = 4;
      int *p1 = (int *) std::bsearch(&key1, arr, ARR_SIZE, sizeof(arr[0]), compare);
      if(p1)
          std::cout << "value " << key1 << " found at position " << (p1 - arr) << '\\n';
       else
          std::cout << "value " << key1 << " not found\\n";
-  
+
      int key2 = 9;
      int *p2 = (int *) std::bsearch(&key2, arr, ARR_SIZE, sizeof(arr[0]), compare);
      if(p2)
@@ -89,8 +101,8 @@
 .SH See also
 
    qsort       sorts a range of elements with unspecified type
-               \fI(function)\fP 
+               \fI(function)\fP
    equal_range returns range of elements matching a specific key
-               \fI(function template)\fP 
+               \fI(function template)\fP
    C documentation for
    bsearch

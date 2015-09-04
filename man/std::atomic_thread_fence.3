@@ -1,4 +1,4 @@
-.TH std::atomic_thread_fence 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::atomic_thread_fence 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <atomic>
    extern "C" void atomic_thread_fence( std::memory_order order );  \fI(since C++11)\fP
@@ -8,7 +8,11 @@
    example, all non-atomic and relaxed atomic stores that happen before a
    std::memory_order_release fence in thread A will be synchronized with non-atomic and
    relaxed atomic loads from the same locations made in thread B after an
-   std::memory_order_acquire fence.
+   std::memory_order_acquire fence if there exist atomic operations X and Y, both
+   operating on some atomic object M, such that the fence in thread A is sequenced
+   before X, X modifies M, Y is sequenced before the fence in thread B, and Y reads the
+   value written by X or a value written by any side effect in the hypothetical release
+   sequence X would head if it were a release operation..
 
 .SH Parameters
 
@@ -20,13 +24,12 @@
 
 .SH Exceptions
 
-   noexcept specification:  
+   noexcept specification:
    noexcept
-     
 
 .SH Notes
 
-   atomic_thread_fence imposes stronger synchronization constraints than an atomic
+   atomic_thread_fence imposes different synchronization constraints than an atomic
    store operation with the same std::memory_order. While an atomic store-release
    operation prevents all preceding writes from moving past the store-release, an
    atomic_thread_fence with memory_order_release ordering prevents all preceding writes
@@ -42,13 +45,13 @@
 
  const int num_mailboxes = 32;
  std::atomic<int> mailbox[num_mailboxes];
-  
+
  // The writer threads update non-atomic shared data and then update mailbox[i] as follows
-  std::atomic_store_explicit(&mailbox[i], std::memory_order_release);
-  
+ std::atomic_store_explicit(&mailbox[i], receiver_id, std::memory_order_release);
+
  // Reader thread needs to check all mailbox[i], but only needs to sync with one
-  for (int i = 0; i < num_mailboxes; ++i) {
-     if (std::atomic_load_explicit(&mailbox[i],  std::memory_order_relaxed) == my_id) {
+ for (int i = 0; i < num_mailboxes; ++i) {
+     if (std::atomic_load_explicit(&mailbox[i], std::memory_order_relaxed) == my_id) {
          std::atomic_thread_fence(std::memory_order_acquire); // synchronize with just one writer
          do_work(i); // guaranteed to observe everything done in the writer thread before
                      // the atomic_store_explicit()
@@ -59,9 +62,13 @@
 
    memory_order        defines memory ordering constraints for the given atomic
    \fI(C++11)\fP             operation
-                       \fI(typedef)\fP 
+                       \fI(typedef)\fP
    atomic_signal_fence fence between a thread and a signal handler executed in the same
    \fI(C++11)\fP             thread
-                       \fI(function)\fP 
+                       \fI(function)\fP
    C documentation for
    atomic_thread_fence
+
+.SH Category:
+
+     * unconditionally noexcept

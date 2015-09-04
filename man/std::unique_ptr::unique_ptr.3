@@ -1,44 +1,103 @@
-.TH std::unique_ptr::unique_ptr 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::unique_ptr::unique_ptr 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
-   constexpr unique_ptr();                      \fB(1)\fP \fI(since C++11)\fP
-   constexpr unique_ptr( nullptr_t );           \fB(1)\fP \fI(since C++11)\fP
-   explicit unique_ptr( pointer p );            \fB(2)\fP \fI(since C++11)\fP
-   unique_ptr( pointer p, /* see below */ d1 ); \fB(3)\fP \fI(since C++11)\fP
-   unique_ptr( pointer p, /* see below */ d2 ); \fB(4)\fP \fI(since C++11)\fP
-   unique_ptr( unique_ptr&& u );                \fB(5)\fP \fI(since C++11)\fP
-   template< class U, class E >                 \fB(6)\fP \fI(since C++11)\fP
+   members of the primary template, unique_ptr<T>
+   constexpr unique_ptr();                                   \fB(1)\fP
+   constexpr unique_ptr( nullptr_t );
+   explicit unique_ptr( pointer p );                         \fB(2)\fP
+   unique_ptr( pointer p, /* see below */ d1 );              \fB(3)\fP
+   unique_ptr( pointer p, /* see below */ d2 );              \fB(4)\fP
+   unique_ptr( unique_ptr&& u );                             \fB(5)\fP
+   template< class U, class E >                              \fB(6)\fP
    unique_ptr( unique_ptr<U, E>&& u );
-   template< class U >                          \fB(7)\fP \fI(since C++11)\fP
+   template< class U >                                       \fB(7)\fP (until C++17)
    unique_ptr( auto_ptr<U>&& u );
+   members of the specialization for arrays, unique_ptr<T[]>
+   constexpr unique_ptr();                                   \fB(1)\fP
+   constexpr unique_ptr( nullptr_t );
+   explicit unique_ptr( pointer p );                         \fB(2)\fP (until C++17)
+   template<class U> explicit unique_ptr( U p );             \fB(2)\fP (since C++17)
+   unique_ptr( pointer p, /* see below */ d1 );              \fB(3)\fP (until C++17)
+   template<class U> unique_ptr( U p, /* see below */ d1 );  \fB(3)\fP (since C++17)
+   unique_ptr( pointer p, /* see below */ d2 );              \fB(4)\fP (until C++17)
+   template<class U> unique_ptr( U p, /* see below */ d2 );  \fB(4)\fP (since C++17)
+   unique_ptr( unique_ptr&& u );                             \fB(5)\fP
+   template< class U, class E >                              \fB(6)\fP (since C++17)
+   unique_ptr( unique_ptr<U, E>&& u );
 
-   1) Constructs an empty std::unique_ptr.
+   1) Constructs a std::unique_ptr that owns nothing. Value-initializes the stored
+   pointer and the stored deleter. Requires that Deleter is DefaultConstructible and
+   that construction does not throw an exception.
    2) Constructs a std::unique_ptr which owns p, initializing the stored pointer with p
-   and value-initializing the stored deleter.
+   and value-initializing the stored deleter. Requires that Deleter is
+   DefaultConstructible and that construction does not throw an exception.
    3-4) Constructs a std::unique_ptr object which owns p, initializing the stored
    pointer with p and initializing a deleter D as below (depends upon whether D is a
    reference type)
 
    a) If D is non-reference type A, then the signatures are:
 
-   unique_ptr(pointer p, const A& d);
-   unique_ptr(pointer p, A&& d);
+           unique_ptr(pointer p, const A& d); (requires that Deleter is
+           nothrow-CopyConstructible)
+           unique_ptr(pointer p, A&& d); (requires that Deleter is
+           nothrow-MoveConstructible)
+
    b) If D is an lvalue-reference type A&, then the signatures are:
 
-   unique_ptr(pointer p, A& d);
-   unique_ptr(pointer p, A&& d);
+           unique_ptr(pointer p, A& d);
+           unique_ptr(pointer p, A&& d);
+
    c) If D is an lvalue-reference type const A&, then the signatures are:
 
-   unique_ptr(pointer p, const A& d);
-   unique_ptr(pointer p, const A&& d);
-   5) Constructs a unique_ptr by transferring ownership from u to *this.
+           unique_ptr(pointer p, const A& d);
+           unique_ptr(pointer p, const A&& d);
+
+   2-4) in the specialization for arrays behave the same as the
+   constructors that take a pointer parameter in the primary template
+   except that they will only participate in overload resolution if
+   either
+                                                                          (since C++17)
+      U is the same type as pointer, or
+      pointer is the same type as element_type* and U is some pointer
+      type V* such that V(*)[] is implicitly convertible to
+      element_type(*)[].
+
+   5) Constructs a unique_ptr by transferring ownership from u to *this. If Deleter is
+   not a reference type, requires that it is nothrow-MoveConstructible (if Deleter is a
+   reference, get_deleter() and u.get_deleter() after move construction reference the
+   same value)
    6) Constructs a unique_ptr by transferring ownership from u to *this, where u is
    constructed with a specified deleter (E). It depends upon whether E is a reference
    type, as following:
 
-   a) if E is a reference type, this deleter is copy constructed from u's deleter.
-   b) if E is a non-reference type, this deleter is move constructed from u's deleter.
+   a) if E is a reference type, this deleter is copy constructed from u's deleter
+   (requires that this construction does not throw)
+   b) if E is a non-reference type, this deleter is move constructed from u's deleter
+   (requires that this construction does not throw)
+   This constructor only participates in overload resolution if all of the following is
+   true:
+   a) unique_ptr<U, E>::pointer is implicitly convertible to pointer
+   b) U is not an array type
+   c) Either Deleter is a reference type and E is the same type as D, or Deleter is not
+   a reference type and E is implicitly convertible to D
+
+   6) in the specialization for arrays behaves the same as in the primary
+   template, except that it will only participate in overload resolution
+   if all of the following is true
+
+      U is an array type
+      pointer is the same type as element_type*
+      unique_ptr<U,E>::pointer is the same type as                        (since C++17)
+      unique_ptr<U,E>::element_type*
+      unique_ptr<U,E>::element_type(*)[] is convertible to
+      element_type(*)[]
+      either Deleter is a reference type and E is the same type as
+      Deleter, or Deleter is not a reference type and E is implicitly
+      convertible to Deleter.
+
    7) Constructs a unique_ptr where the stored pointer is initialized with u.release()
-   and the stored deleter is value-initialized.
+   and the stored deleter is value-initialized. This constructor only participates in
+   overload resolution if U* is implicitly convertible to T* and Deleter is the same
+   type as std::default_delete<T>.
 
 .SH Parameters
 
@@ -48,9 +107,17 @@
 
 .SH Exceptions
 
-   noexcept specification:  
+   noexcept specification:
    noexcept
-     
+
+.SH Notes
+
+   Instead of using the overload \fB(2)\fP together with new, it is often a better idea to
+   use std::make_unique<T>.
+
+   std::unique_ptr<Derived> is implicitly convertible to std::unique_ptr<Base> through
+   the overload \fB(6)\fP (because both the managed pointer and std::default_delete are
+   implicitly convertible)
 
 .SH Example
 
@@ -59,142 +126,108 @@
 
  #include <iostream>
  #include <memory>
-  
- struct Foo {
-     Foo() { std::cout << "Foo...\\n"; }
-     ~Foo() { std::cout << "~Foo...\\n\\n"; }
+
+ struct Foo { // object to manage
+     Foo() { std::cout << "Foo ctor\\n"; }
+     Foo(const Foo&) { std::cout << "Foo copy ctor\\n"; }
+     Foo(Foo&&) { std::cout << "Foo move ctor\\n"; }
+     ~Foo() { std::cout << "~Foo dtor\\n"; }
  };
-  
- struct D {
-  
+
+ struct D { // deleter
      D() {};
-  
-     D(const D& other) {
-         std::cout << "call D const copy constructor... \\n";
-     }
-  
-     D(D& other) {
-         std::cout << "call D copy constructor... \\n";
-     }
-  
-     D(D&& other) {
-         std::cout << "call D move constructor... \\n";
-     }
-  
-     void operator () (Foo* p) const {
-         std::cout << "Call delete for Foo object...\\n";
+     D(const D&) { std::cout << "D copy ctor\\n"; }
+     D(D&) { std::cout << "D non-const copy ctor\\n";}
+     D(D&&) { std::cout << "D move ctor \\n"; }
+     void operator()(Foo* p) const {
+         std::cout << "D is deleting a Foo\\n";
          delete p;
      };
  };
-  
+
  int main()
  {
-     // constructor (1)
-     std::cout << "Example constructor(1)...\\n\\n";
-     std::unique_ptr<Foo> up;
-  
-     // constructor (2)
+     std::cout << "Example constructor(1)...\\n";
+     std::unique_ptr<Foo> up1;  // up1 is empty
+     std::unique_ptr<Foo> up1b(nullptr);  // up1b is empty
+
      std::cout << "Example constructor(2)...\\n";
-     Foo* f = new Foo;
-     std::unique_ptr<Foo> up2(f); //up2 now owns f
-     up2.reset();
-  
-     // constructor (3&4)
-     std::cout << "Example constructor(3&4)...\\n";
-  
-     // D is not an lvalue reference type and d is a non-const rvalue expression
-     std::unique_ptr<Foo, D> up3(new Foo, D()); // D must be MoveConstructible
-     up3.reset();
-  
-     // D is not an lvalue reference type and d is an lvalue expression
-     D d2;
-     std::unique_ptr<Foo, D> up4(new Foo, d2); // D must be CopyConstructible
-     up4.reset();
-  
-     // D is an lvalue reference type and d is an lvalue expression
-     D d3;
-     std::unique_ptr<Foo, D&> up5(new Foo, d3); // up5 holds a reference to d3
-     up5.reset();
-  
-     // D is a const lvalue reference type and d is an lvalue expression
-     const D d4;
-     std::unique_ptr<Foo, const D&> up6(new Foo, d4);
-     up6.reset();
-  
-     // constructor (5)
-     std::cout << "Example constructor(5)...\\n";
-     std::unique_ptr<Foo> up7(new Foo);
-     std::unique_ptr<Foo> up8(std::move(up7)); // ownership is transferred to up8
-     up8.reset();
-  
-     // constructor 6
-     std::cout << "Example constructor(6)...\\n\\n";
-     std::unique_ptr<Foo> up9(nullptr);
-  
-     // constructor 7 - D is move constructed
+     {
+         std::unique_ptr<Foo> up2(new Foo); //up2 now owns a Foo
+     } // Foo deleted
+
+     std::cout << "Example constructor(3)...\\n";
      D d;
+     {  // deleter type is not a reference
+        std::unique_ptr<Foo, D> up3(new Foo, d); // deleter copied
+     }
+     {  // deleter type is a reference
+        std::unique_ptr<Foo, D&> up3b(new Foo, d); // up3b holds a reference to d
+     }
+
+     std::cout << "Example constructor(4)...\\n";
+     {  // deleter is not a reference
+        std::unique_ptr<Foo, D> up4(new Foo, D()); // deleter moved
+     }
+
+     std::cout << "Example constructor(5)...\\n";
+     {
+        std::unique_ptr<Foo> up5a(new Foo);
+        std::unique_ptr<Foo> up5b(std::move(up5a)); // ownership transfer
+     }
+
+     std::cout << "Example constructor(6)...\\n";
+     {
+         std::unique_ptr<Foo, D> up6a(new Foo, d); // D is copied
+         std::unique_ptr<Foo, D> up6b(std::move(up6a)); // D is moved
+
+         std::unique_ptr<Foo, D&> up6c(new Foo, d); // D is a reference
+         std::unique_ptr<Foo, D> up6d(std::move(up6c)); // D is copied
+     }
+
      std::cout << "Example constructor(7)...\\n";
-     std::unique_ptr<Foo, D> up10(new Foo, d);     // D is not a reference
-     std::unique_ptr<Foo, D> up11(std::move(up10));     // D is move constructed
-     up11.reset();
-  
-     // constructor 7 - D is copy constructed
-     std::unique_ptr<Foo, D&> up12(new Foo, d);    // D is a reference
-     std::unique_ptr<Foo, D> up13(std::move(up12));       // D is copy constructed
-     up13.reset();
-  
-     // constructor 8
-     std::cout << "Example constructor(8)...\\n";
-     std::auto_ptr<Foo> up14(new Foo);
-     std::unique_ptr<Foo> up15(move(up14));
-     up15.reset();
+     {
+         std::auto_ptr<Foo> up7a(new Foo);
+         std::unique_ptr<Foo> up7b(std::move(up7a)); // ownership transfer
+     }
  }
 
 .SH Output:
 
  Example constructor\fB(1)\fP...
-  
  Example constructor\fB(2)\fP...
- Foo...
- ~Foo...
-  
- Example constructor(3&4)...
- Foo...
- call D move constructor...
- Call delete for Foo object...
- ~Foo...
-  
- Foo...
- call D const copy constructor...
- Call delete for Foo object...
- ~Foo...
-  
- Foo...
- Call delete for Foo object...
- ~Foo...
-  
- Foo...
- Call delete for Foo object...
- ~Foo...
-  
+ Foo ctor
+ ~Foo dtor
+ Example constructor\fB(3)\fP...
+ Foo ctor
+ D copy ctor
+ D is deleting a Foo
+ ~Foo dtor
+ Foo ctor
+ D is deleting a Foo
+ ~Foo dtor
+ Example constructor\fB(4)\fP...
+ Foo ctor
+ D move ctor
+ D is deleting a Foo
+ ~Foo dtor
  Example constructor\fB(5)\fP...
- Foo...
- ~Foo...
-  
+ Foo ctor
+ ~Foo dtor
  Example constructor\fB(6)\fP...
-  
+ Foo ctor
+ D copy ctor
+ D move ctor
+ Foo ctor
+ D non-const copy ctor
+ D is deleting a Foo
+ ~Foo dtor
+ D is deleting a Foo
+ ~Foo dtor
  Example constructor\fB(7)\fP...
- Foo...
- call D const copy constructor...
- call D move constructor...
- Call delete for Foo object...
- ~Foo...
-  
- Foo...
- call D copy constructor...
- Call delete for Foo object...
- ~Foo...
-  
- Example constructor\fB(8)\fP...
- Foo...
- ~Foo...
+ Foo ctor
+ ~Foo dtor
+
+.SH Category:
+
+     * unconditionally noexcept

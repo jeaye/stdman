@@ -1,9 +1,10 @@
-.TH std::calloc 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::calloc 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <cstdlib>
    void* calloc( std::size_t num, std::size_t size );
 
-   Allocates memory for an array of num objects of size size and zero-initializes it.
+   Allocates memory for an array of num objects of size size and initializes it to all
+   bits zero.
 
    If allocation succeeds, returns a pointer to the lowest (first) byte in the
    allocated memory block that is suitably aligned for any object type.
@@ -19,24 +20,60 @@
 
 .SH Return value
 
-   Pointer to the beginning of newly allocated memory or NULL if error has occurred.
-   The pointer must be deallocated with free().
+   On success, returns the pointer to the beginning of newly allocated memory. The
+   returned pointer must be deallocated with std::free() or std::realloc().
+
+   On failure, returns a null pointer.
 
 .SH Notes
 
    Due to the alignment requirements, the number of allocated bytes is not necessarily
    equal to num*size.
 
+   Initialization to all bits zero does not guarantee that a floating-point or a
+   pointer would be initialized to 0.0 and the null pointer value, respectively
+   (although that is true on all common platforms)
+
+   Originally (in C89), support for zero size was added to accommodate code such as
+
+ OBJ *p = calloc(0, sizeof(OBJ)); // "zero-length" placeholder
+ ...
+ while\fB(1)\fP {
+     p = realloc(p, c * sizeof(OBJ)); // reallocations until size settles
+     ... // code that may change c or break out of loop
+ }
+
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+   
+// Run this code
+
+ #include <iostream>
+ #include <cstdlib>
+
+ int main()
+ {
+     int* p1 = (int*)std::calloc(4, sizeof(int)); // allocate and zero out an array of 4 int
+     int* p2 = (int*)std::calloc(1, sizeof(int[4])); // same, naming the array type directly
+     int* p3 = (int*)std::calloc(4, sizeof *p3);   // same, without repeating the type name
+
+     if(p2)
+         for(int n=0; n<4; ++n) // print the array
+             std::cout << "p2[" << n << "] == " << p2[n] << '\\n';
+
+     std::free(p1);
+     std::free(p2);
+     std::free(p3);
+ }
+
+.SH Output:
+
+ p2[0] == 0
+ p2[1] == 0
+ p2[2] == 0
+ p2[3] == 0
 
 .SH See also
 
    C documentation for
    calloc
-
-.SH Category:
-
-     * Todo no example

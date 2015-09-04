@@ -1,16 +1,17 @@
-.TH std::div,std::ldiv,std::lldiv 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::div,std::ldiv,std::lldiv 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <cstdlib>
-   std::div_t     div( int x, int y );
-   std::ldiv_t    div( long x, long y );
-   std::lldiv_t   div( long long x, long long y );              \fI(since C++11)\fP
-   std::ldiv_t   ldiv( long x, long y );
-   std::lldiv_t lldiv( long long x, long long y );              \fI(since C++11)\fP
+   std::div_t div( int x, int y );                             \fB(1)\fP
+   std::ldiv_t div( long x, long y );                          \fB(2)\fP
+   std::lldiv_t div( long long x, long long y );               \fB(3)\fP \fI(since C++11)\fP
+   std::ldiv_t ldiv( long x, long y );                         \fB(4)\fP
+   std::lldiv_t lldiv( long long x, long long y );             \fB(5)\fP \fI(since C++11)\fP
    Defined in header <cinttypes>
-   std::imaxdiv_t div( std::intmax_t x, std::intmax_t y );      \fI(since C++11)\fP
-   std::imaxdiv_t imaxdiv( std::intmax_t x, std::intmax_t y );  \fI(since C++11)\fP
+   std::imaxdiv_t div( std::intmax_t x, std::intmax_t y );     \fB(6)\fP \fI(since C++11)\fP
+   std::imaxdiv_t imaxdiv( std::intmax_t x, std::intmax_t y ); \fB(7)\fP \fI(since C++11)\fP
 
-   Computes quotient and remainder simultaneously.
+   Computes both the quotient and the remainder of the division of the numerator x by
+   the denominator y
 
    The quotient is the algebraic quotient with any fractional part
    discarded (truncated towards zero). The remainder is such that quot *  \fI(until C++11)\fP
@@ -24,27 +25,45 @@
 
 .SH Return value
 
-   Structure of type div_t, ldiv_t, ldiv_t, imaxdiv_t defined as:
+   If both the remainder and the quotient can be represented as objects of the
+   corresponding type (int, long, long long, std::imaxdiv_t, respectively), returns
+   both as an object of type std::div_t, std::ldiv_t, std::lldiv_t, std::imaxdiv_t
+   defined as follows:
 
- struct div_t {
-     int quot;   // The quotient
-     int rem;    // The remainder
- };
-  
- struct ldiv_t {
-     long quot;   // The quotient
-     long rem;    // The remainder
- };
-  
- struct lldiv_t {
-     long long quot;   // The quotient
-     long long rem;    // The remainder
- };
-  
- struct imaxdiv_t {
-     std::intmax_t quot;   // The quotient
-     std::intmax_t rem;    // The remainder
- };
+std::div_t
+
+ struct div_t { int quot; int rem; };
+
+   or
+
+ struct div_t { int rem; int quot; };
+
+std::ldiv_t
+
+ struct ldiv_t { long quot; long rem; };
+
+   or
+
+ struct ldiv_t { long rem; long quot; };
+
+std::lldiv_t
+
+ struct lldiv_t { long long quot; long long rem; };
+
+   or
+
+ struct lldiv_t { long long rem; long long quot; };
+
+std::imaxdiv_t
+
+ struct imaxdiv_t { std::intmax_t quot; std::intmax_t rem; };
+
+   or
+
+ struct imaxdiv_t { std::intmax_t rem; std::intmax_t quot; };
+
+   If either the remainder or the quotient cannot be represented, the behavior is
+   undefined.
 
 .SH Notes
 
@@ -52,9 +71,52 @@
    the built-in division and remainder operators was implementation-defined if either
    of the operands was negative, but it was well-defined in std::div.
 
+   On many platforms, a single CPU instruction obtains both the quotient and the
+   remainder, and this function may leverage that, although compilers are generally
+   able to merge nearby / and % where suitable.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <string>
+ #include <cmath>
+ #include <cstdlib>
+ #include <iostream>
+
+ std::string itoa(int n, int base)
+ {
+     std::string buf;
+     std::div_t dv{}; dv.quot = n;
+     do {
+         dv = std::div(dv.quot, base);
+         buf += "0123456789abcdef"[std::abs(dv.rem)];  // string literals are arrays
+     } while(dv.quot);
+     if(n<0) buf += '-';
+     return {buf.rbegin(), buf.rend()};
+ }
+
+ int main()
+ {
+     std::cout << itoa(12345, 10) << '\\n'
+               << itoa(-12345, 10) << '\\n'
+               << itoa(65535, 16) << '\\n';
+ }
+
+.SH Output:
+
+ 12345
+ -12345
+ ffff
+
 .SH See also
 
-   fmod remainder of the floating point division operation
-        \fI(function)\fP 
+   fmod      remainder of the floating point division operation
+             \fI(function)\fP
+   remainder signed remainder of the division operation
+   \fI(C++11)\fP   \fI(function)\fP
+   remquo    signed remainder as well as the three last bits of the division operation
+   \fI(C++11)\fP   \fI(function)\fP
    C documentation for
    div

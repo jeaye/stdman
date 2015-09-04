@@ -1,0 +1,99 @@
+.TH std::experimental::filesystem::path::c_str,std::experimental::filesystem::path::native, 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.SH Synopsis
+
+   const value_type* c_str() const;   \fB(1)\fP (filesystem TS)
+   const string_type& native() const; \fB(2)\fP (filesystem TS)
+   operator string_type() const;      \fB(3)\fP (filesystem TS)
+
+   Accesses the native path name as a character string.
+
+   1) Equivalent to native().c_str().
+   2) Returns the native string representation of the pathname by reference.
+   3) Returns the native string representation of the pathname by value.
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   The native string representation of the pathname, using native syntax, native
+   character type, and native character encoding. This string is suitable for use with
+   OS APIs.
+
+.SH Exceptions
+
+   1,2)
+   noexcept specification:
+   noexcept
+
+.SH Notes
+
+   The conversion function \fB(3)\fP is provided so that standard file-opening APIs that
+   accept std::basic_string file names, such as the std::ifstream constructor, can use
+   pathnames with no changes to code:
+
+ fs::path p = "/tmp/text.txt";
+ std::ifstream f(p);
+
+.SH Example
+
+   
+// Run this code
+
+ #include <cstdio>
+ #include <clocale>
+ #include <fstream>
+ #include <iostream>
+ #include <experimental/filesystem>
+ namespace fs = std::experimental::filesystem;
+
+ int main()
+ {
+     std::setlocale(LC_ALL, "en_US.utf8");
+     std::locale::global(std::locale("en_US.utf8"));
+
+     fs::path p = fs::u8path(u8"要らない.txt");
+
+     // native string representation can be used with OS APIs
+     std::ofstream(p) << "File contents"; // this uses operator string()
+     if(std::FILE* f = std::fopen(p.c_str(), "r")) {
+         int ch;
+         while((ch=fgetc(f))!= EOF) putchar(ch);
+         std::fclose(f);
+     }
+
+     // multibyte and wide representation can be used for output
+     std::cout.imbue(std::locale());
+     std::cout << "\\nFile name in narrow multibyte encoding: "
+               << p.string() << '\\n';
+
+     std::wcerr.imbue(std::locale());
+     std::wcerr << "File name in wide encoding: "
+                << p.wstring() << '\\n';
+
+     fs::remove(p);
+ }
+
+.SH Output:
+
+ File contents
+ File name in narrow multibyte encoding: 要らない.txt
+ File name in wide encoding: 要らない.txt
+
+.SH See also
+
+   string
+   wstring           returns the path in native pathname format converted to a string
+   u8string          \fI(public member function)\fP
+   u16string
+   u32string
+   generic_string
+   generic_wstring   returns the path in generic pathname format converted to a string
+   generic_u8string  \fI(public member function)\fP
+   generic_u16string
+   generic_u32string
+
+.SH Category:
+
+     * unconditionally noexcept

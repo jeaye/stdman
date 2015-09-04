@@ -1,20 +1,19 @@
-.TH std::time_get::get,std::time_get::do_get 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::time_get::get,std::time_get::do_get 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <locale>
    public:
 
-   iter_type get(iter_type beg, iter_type end, std::ios_base& str,
-                 std::ios_base::iostate& err, std::tm* t,             \fB(1)\fP \fI(since C++11)\fP
+   iter_type get(iter_type beg, iter_type end, std::ios_base& str,    \fB(1)\fP \fI(since C++11)\fP
+   std::ios_base::iostate& err, std::tm* t,
 
-                 const char_type* fmtbeg, const char_type* fmtend)
-   const;
+   const char_type* fmtbeg, const char_type* fmtend) const;
    protected:
 
    virtual iter_type do_get(iter_type neg, iter_type end,
    std::ios_base& str,                                                \fB(2)\fP \fI(since C++11)\fP
-                            std::ios_base::iostate& err, std::tm *t,
+   std::ios_base::iostate& err, std::tm *t,
 
-                            char format, char modifier) const;
+   char format, char modifier) const;
 
    1) Parses the date and time from the input character sequence [beg, end) according
    to the format provided in the character sequence [fmtbeg, fmtend). The format is
@@ -28,7 +27,8 @@
    c) All characters have been read from the input sequence (beg == end. If this
    condition terminates the loop, the function sets both eofbit and failbit in err
 
-   In the body of the loop, the following steps take place:
+                        In the body of the loop, the following steps take place:
+
    a) if the next character in the format string is '%', followed by one or two
    characters that form a valid std::get_time conversion specifier (see below), these
    characters are used in the call do_get(beg, end, str, err, t, format, modifier),
@@ -50,18 +50,21 @@
    2) Parses one conversion specifier from the input sequence [beg, end) and updates
    the std::tm structure pointed to by t accordingly.
 
-   First, clears the error bits in err by executing err = std::ios_base::goodbit. Then
-   reads characters from the input sequence [beg, end) that are expected by the
-   std::time_get format specifier formed by combining '%', modifier (if not '\\0'), and
-   format. If the characters do not combine to form a valid conversion specifier, sets
-   failbit in err. If the end of the input stream is reached after reading a character,
-   sets eofbit in err. If the input string was parsed successfully, updates the
-   corresponding fields of *t.
+                        First, clears the error bits in err by executing err =
+                        std::ios_base::goodbit. Then reads characters from the input
+                        sequence [beg, end) that are expected by the std::time_get
+                        format specifier formed by combining '%', modifier (if not
+                        '\\0'), and format. If the characters do not combine to form a
+                        valid conversion specifier, sets failbit in err. If the end of
+                        the input stream is reached after reading a character, sets
+                        eofbit in err. If the input string was parsed successfully,
+                        updates the corresponding fields of *t.
 
-   For complex conversion specifiers, such as '%x' or '%c', or the directives that use
-   the modifiers 'E' and 'O', the function may fail to determine some of the values to
-   store in *t. In such case, it sets eofbit in err and leaves these fields in
-   unspecified state.
+                        For complex conversion specifiers, such as '%x' or '%c', or the
+                        directives that use the modifiers 'E' and 'O', the function may
+                        fail to determine some of the values to store in *t. In such
+                        case, it sets eofbit in err and leaves these fields in
+                        unspecified state.
 
 .SH Parameters
 
@@ -143,13 +146,13 @@
                                         Day of the year/month
                          parses day of the year as a decimal number
                   j      (range [001,366]), leading zeroes permitted  tm_yday
-   fmtbeg   -            but not required
+                         but not required
                          parses the day of the month as a decimal
-                  d      number (range [01,31]), leading zeroes       tm_mday
+   fmtbeg   -     d      number (range [01,31]), leading zeroes       tm_mday
                          permitted but not required
                          parses the day of the month using the
                   Od     alternative numeric system, e.g 二十七       tm_mday
-                         parses as 23 in ja_JP locale, leading zeroes
+                         parses as 27 in ja_JP locale, leading zeroes
                          permitted but not required
                   e      synonym of d                                 tm_mday
                   Oe     synonym of Od                                tm_mday
@@ -214,6 +217,9 @@
                                                                       tm_sec
                   p      parses the locale's equivalent of a.m. or    tm_hour
                          p.m.
+
+              Note: tm_isdst is not written to, and needs to be set explicitly for use
+              with functions such as mktime
    fmtend   - pointer one past the last character of a sequence of char_type characters
               specifying the conversion format
    format   - the character that names a conversion specifier
@@ -247,13 +253,13 @@
  #include <sstream>
  #include <locale>
  #include <iomanip>
-  
+
  int main()
  {
      std::istringstream ss("2011-Februar-18 23:12:34");
-     ss.imbue(std::locale("de_DE"));
-  
-     auto& f = std::use_facet<std::time_get<char>>(std::locale("de_DE"));
+     ss.imbue(std::locale("de_DE.utf8"));
+
+     auto& f = std::use_facet<std::time_get<char>>(std::locale("de_DE.utf8"));
      std::tm t{};
      std::string s = "%Y-%b-%d %H:%M:%S";
      std::ios_base::iostate err = std::ios_base::goodbit;
@@ -261,7 +267,7 @@
                                                 std::istreambuf_iterator<char>(),
                                                 ss, err, &t, &s[0], &s[0] + s.size());
      ss.setstate(err);
-  
+
      if(ss) {
          std::cout << "Successfully parsed as " << std::put_time(&t, "%c");
          if(ret != std::istreambuf_iterator<char>()) {
@@ -286,4 +292,4 @@
 .SH See also
 
    get_time parses a date/time value of specified format
-   \fI(C++11)\fP  \fI(function template)\fP 
+   \fI(C++11)\fP  \fI(function template)\fP

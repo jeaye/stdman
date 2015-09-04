@@ -1,0 +1,100 @@
+.TH std::experimental::is_detected,std::experimental::detected_t, 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.SH Synopsis
+
+   Defined in header <experimental/type_traits>
+   template< template<class...> class Op, class... Args >  (library fundamentals TS v2)
+   using is_detected = /* see below */;
+   template< template<class...> class Op, class... Args >  (library fundamentals TS v2)
+   using detected_t = /* see below */;
+   template< class Default, template<class...> class Op,
+   class... Args >                                         (library fundamentals TS v2)
+   using detected_or = /* see below */;
+
+   The alias template detected_or is an alias for an unspecified class type with two
+   public member typedefs value_t and type, which are defined as follows:
+
+     * If the template-id Op<Args...> is valid, then value_t is an alias for
+       std::true_type, and type is an alias for Op<Args...>;
+     * Otherwise, value_t is an alias for std::false_type and type is an alias for
+       Default.
+
+   The alias template is_detected is equivalent to typename
+   detected_or<std::experimental::nonesuch, Op, Args...>::value_t. It is an alias for
+   std::true_type if the template-id Op<Args...> is valid; otherwise it is an alias for
+   std::false_type.
+
+   The alias template detected_t is equivalent to typename
+   detected_or<std::experimental::nonesuch, Op, Args...>::type. It is an alias for
+   Op<Args...> if that template-id is valid; otherwise it is an alias for the class
+   std::experimental::nonesuch.
+
+.SH Possible implementation
+
+ namespace detail {
+ template <class Default, class AlwaysVoid,
+           template<class...> class Op, class... Args>
+ struct detector {
+   using value_t = false_type;
+   using type = Default;
+ };
+
+ template <class Default, template<class...> class Op, class... Args>
+ struct detector<Default, std::void_t<Op<Args...>>, Op, Args...> {
+   // Note that std::void_t is a C++17 feature
+   using value_t = true_type;
+   using type = Op<Args...>;
+ };
+
+ } // namespace detail
+
+ template <template<class...> class Op, class... Args>
+ using is_detected = typename detail::detector<nonesuch, void, Op, Args...>::value_t;
+
+ template <template<class...> class Op, class... Args>
+ using detected_t = typename detail::detector<nonesuch, void, Op, Args...>::type;
+
+ template <class Default, template<class...> class Op, class... Args>
+ using detected_or = detail::detector<Default, void, Op, Args...>;
+
+.SH Example
+
+   
+// Run this code
+
+ #include <experimental/type_traits>
+
+ template<class T>
+ using copy_assign_t = decltype(std::declval<T&>() = std::declval<const T&>());
+
+ struct Meow { };
+ struct Purr { void operator=(const Purr&) = delete; };
+
+ int main()
+ {
+     static_assert(std::experimental::is_detected<copy_assign_t, Meow>::value, "Meow should be copy assignable!");
+     static_assert(!std::experimental::is_detected_v<copy_assign_t, Purr>, "Purr should not be copy assignable!");
+     static_assert(std::experimental::is_detected_exact_v<Meow&, copy_assign_t, Meow>, "Copy assignment of Meow should return Meow&!");
+ }
+
+   
+// Run this code
+
+ #include <experimental/type_traits>
+ #include <cstddef>
+
+ template<class T>
+ using diff_t = typename T::difference_type;
+
+ template <class Ptr>
+ using difference_type = std::experimental::detected_or_t<std::ptrdiff_t, diff_t, Ptr>;
+
+ struct Meow { using difference_type = int; };
+ struct Purr {};
+
+ int main()
+ {
+     static_assert(std::is_same<difference_type<Meow>, int>::value, "Meow's difference_type should be int!");
+     static_assert(std::is_same<difference_type<Purr>, std::ptrdiff_t>::value, "Purr's difference_type should be ptrdiff_t!");
+ }
+
+.SH See also

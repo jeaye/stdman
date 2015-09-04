@@ -1,42 +1,88 @@
-.TH std::experimental::filesystem::copy_options 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::experimental::filesystem::copy_options 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <experimental/filesystem>
    enum class copy_options {
 
-       none = 0,
-       skip_existing = 1,
-       overwrite_existing = 2,
-       update_existing = 4,
-       recursive = 8,                           (filesystem TS)
-       copy_symlinks = 16,
-       skip_symlinks = 32,
-       directories_only = 64,
-       create_symlinks = 128,
-       create_hard_links = 256
+   none = 0,
+   skip_existing = 1,
+   overwrite_existing = 2,
+   update_existing = 4,
+   recursive = 8,                               (filesystem TS)
+   copy_symlinks = 16,
+   skip_symlinks = 32,
+   directories_only = 64,
+   create_symlinks = 128,
+   create_hard_links = 256
 
    };
 
-    This section is incomplete
+   This type represents available options that control the behavior of the copy() and
+   copy_file() function.
 
-.SH Constants
+   copy_options satisfies the requirements of BitmaskType (which means the bitwise
+   operators operator&, operator|, operator^, operator~, operator&=, operator|=, and
+   operator^= are defined for this type)
 
-   {{dsc | copy_symlinks
-   Constant           Meaning
-   skip_existing      do not overwrite existing file or report an error
-   overwrite_existing overwrite existing file
-   update_existing    overwrite existing file if it is older than the replacement
-   recursive          recursively copy sub-directories and their contents
-   skip_symlinks      ignore symbolic links
-   directories-only   copy directory structure only, skip all files
-                      create symlinks instead of copying the files. The source path
-   create_symlinks    shall be an absolute path unless the destination path is in the
-                      current directory.
-   create_hard_links  create hard links instead of copying the files
+.SH Member constants
+
+   At most one copy option in each of the following options groups may be present,
+   otherwise the behavior of the copy functions is undefined.
+
+    Member constant   Value                           Meaning
+               options controlling copy_file() when the file already exists
+   none               0   Report an error (default behavior)
+   skip_existing      1     Keep the existing file, without reporting an error.
+   overwrite_existing 2     Replace the existing file
+   update_existing    4     Replace the existing file only if it is older than the file
+                            being copied
+               options controlling the effects of copy() on subdirectories
+   none               0   Skip subdirectories (default behavior)
+   recursive          8     Recursively copy subdirectories and their content
+               options controlling the effects of copy() on symbolic links
+   none               0   Follow symlinks (default behavior)
+   copy_symlinks      16    Copy symlinks as symlinks, not as the files they point to
+   skip_symlinks      32    Ignore symlinks
+                   options controlling the kind of copying copy() does
+   none               0   Copy file content (default behavior)
+   directories_only   64    Copy the directory structure, but do not copy any
+                            non-directory files
+                            Instead of creating copies of files, create symlinks
+   create_symlinks    128   pointing to the originals. Note: the source path must be an
+                            absolute path unless the destination path is in the current
+                            directory.
+   create_hard_links  256   Instead of creating copies of files, create hardlinks that
+                            resolve to the same files as the originals
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <fstream>
+ #include <experimental/filesystem>
+ namespace fs = std::experimental::filesystem;
+
+ int main()
+ {
+     fs::create_directories("sandbox/dir/subdir");
+     std::ofstream("sandbox/file1.txt").put('a');
+     fs::copy("sandbox/file1.txt", "sandbox/file2.txt"); // copy file
+     fs::copy("sandbox/dir", "sandbox/dir2"); // copy directory (non-recursive)
+     // sandbox holds 2 files and 2 directories, one of which has a subdirectory
+     // sandbox/file1.txt
+     // sandbox/file2.txt
+     // sandbox/dir2
+     // sandbox/dir
+     //    sandbox/dir/subdir
+     fs::copy("sandbox", "sandbox/copy", fs::copy_options::recursive);
+     // sandbox/copy holds copies of the above files and subdirectories
+     fs::remove_all("sandbox");
+ }
 
 .SH See also
 
-    This section is incomplete
-
-.SH Category:
-
-     * Todo without reason
+   copy      copies files or directories
+             \fI(function)\fP
+   copy_file copies file contents
+             \fI(function)\fP

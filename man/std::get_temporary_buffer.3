@@ -1,8 +1,8 @@
-.TH std::get_temporary_buffer 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::get_temporary_buffer 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <memory>
    template< class T >
-   std::pair< T*, std::ptrdiff_t > get_temporary_buffer( std::ptrdiff_t count )
+   std::pair< T*, std::ptrdiff_t > get_temporary_buffer( std::ptrdiff_t count );
 
    Allocates storage sufficient to store up to count adjacent objects of type T. If
    there is insufficient memory for all count objects, allocates less than count, if
@@ -19,14 +19,12 @@
 
 .SH Exceptions
 
-   \fI(none)\fP                    \fI(until C++11)\fP
-   noexcept specification:  
-   noexcept                  \fI(since C++11)\fP
-     
+   \fI(none)\fP                  \fI(until C++11)\fP
+   noexcept specification: \fI(since C++11)\fP
+   noexcept
 
 .SH Example
 
-   
    
 // Run this code
 
@@ -34,20 +32,28 @@
  #include <iostream>
  #include <memory>
  #include <string>
-  
+ #include <iterator>
+
  int main()
  {
      const std::string s[] = {"string", "1", "test", "..."};
-     std::string* p = std::get_temporary_buffer<std::string>(4).first;
-  
-     std::copy(std::begin(s), std::end(s),
-               std::raw_storage_iterator<std::string*, std::string>(p));
-  
-     for (std::string* i = p; i != p+4; ++i) {
-         std::cout << *i << '\\n';
-         i->~basic_string<char>();
-     }
-     std::return_temporary_buffer(p);
+     const auto p = std::get_temporary_buffer<std::string>(4);
+     // requires that p.first is passed to return_temporary_buffer
+     // (beware of early exit points and exceptions)
+
+     std::copy(s, s + p.second,
+               std::raw_storage_iterator<std::string*, std::string>(p.first));
+     // requires that each string in p is individually destroyed
+     // (beware of early exit points and exceptions)
+
+     std::copy(p.first, p.first + p.second,
+               std::ostream_iterator<std::string>{std::cout, "\\n"});
+
+     std::for_each(p.first, p.first + p.second, [](std::string& e) {
+         e.~basic_string<char>();
+     });
+
+     std::return_temporary_buffer(p.first);
  }
 
 .SH Output:
@@ -60,4 +66,8 @@
 .SH See also
 
    return_temporary_buffer frees uninitialized storage
-                           \fI(function template)\fP 
+                           \fI(function template)\fP
+
+.SH Category:
+
+     * unconditionally noexcept

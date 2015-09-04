@@ -1,12 +1,14 @@
-.TH std::log 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::log 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <cmath>
-   float       log( float arg );
-   double      log( double arg );
-   long double log( long double arg );
-   double      log( Integral arg );     \fI(since C++11)\fP
+   float log( float arg );             \fB(1)\fP
+   double log( double arg );           \fB(2)\fP
+   long double log( long double arg ); \fB(3)\fP
+   double log( Integral arg );         \fB(4)\fP \fI(since C++11)\fP
 
-   Computes the natural (base e) logarithm of arg.
+   1-3) Computes the the natural (base e) logarithm of arg.
+   4) A set of overloads or a function template accepting an argument of any integral
+   type. Equivalent to 2) (the argument is cast to double).
 
 .SH Parameters
 
@@ -14,48 +16,82 @@
 
 .SH Return value
 
-   Natural logarithm of arg.
+   If no errors occur, the natural (base-e) logarithm of arg (ln(arg) or log
+   e(arg)) is returned.
 
-   Domain error occurs if arg is negative. NAN is returned in that case.
+   If a domain error occurs, an implementation-defined value is returned (NaN where
+   supported)
 
-   Range error occurs if arg is 0. -HUGE_VAL is returned in that case.
+   If a pole error occurs, -HUGE_VAL, -HUGE_VALF, or -HUGE_VALL is returned.
+
+.SH Error handling
+
+   Errors are reported as specified in math_errhandling
+
+   Domain error occurs if arg is less than zero.
+
+   Pole error may occur if arg is zero.
+
+   If the implementation supports IEEE floating-point arithmetic (IEC 60559),
+
+     * If the argument is ±0, -∞ is returned and FE_DIVBYZERO is raised.
+     * If the argument is 1, +0 is returned
+     * If the argument is negative, NaN is returned and FE_INVALID is raised.
+     * If the argument is +∞, +∞ is returned
+     * If the argument is NaN, NaN is returned
 
 .SH Example
-
-   The following code computes the binary (base 2) logarithm with help of natural
-   logarithm.
 
    
 // Run this code
 
- #include <cmath>
  #include <iostream>
-  
+ #include <cmath>
+ #include <cerrno>
+ #include <cstring>
+ #include <cfenv>
+ #pragma STDC FENV_ACCESS ON
  int main()
  {
-     double base = 2.0;
-     double arg  = 256.0;
-     double result = std::log(arg) / std::log(base);
-  
-     std::cout << result << '\\n';
+     std::cout << "log(1) = " << std::log(1) << '\\n'
+               << "base-5 logarithm of 125 = " << std::log(125)/std::log(5) << '\\n';
+     // special values
+     std::cout << "log(1) = " << std::log(1) << '\\n'
+               << "log(+Inf) = " << std::log(INFINITY) << '\\n';
+     // error handling
+     errno=0; std::feclearexcept(FE_ALL_EXCEPT);
+     std::cout << "log(0) = " << std::log(0) << '\\n';
+     if(errno == ERANGE)
+         std::cout << "    errno == ERANGE: " << std::strerror(errno) << '\\n';
+     if(std::fetestexcept(FE_DIVBYZERO))
+         std::cout << "    FE_DIVBYZERO raised\\n";
  }
 
-.SH Output:
+.SH Possible output:
 
- 8
+ log\fB(1)\fP = 0
+ base-5 logarithm of 125 = 3
+ log\fB(1)\fP = 0
+ log(+Inf) = inf
+ log\fB(0)\fP = -inf
+     errno == ERANGE: Numerical result out of range
+     FE_DIVBYZERO raised
 
 .SH See also
 
-   exp                returns e raised to the given power (e^x)
-                      \fI(function)\fP 
    log10              computes common (base 10) logarithm (log[10](x))
-                      \fI(function)\fP 
-   pow                raises a number to the given power (x^y)
-                      \fI(function)\fP 
+                      \fI(function)\fP
+   log2               base 2 logarithm of the given number (log[2](x))
+   \fI(C++11)\fP            \fI(function)\fP
+   log1p              natural logarithm (to base e) of 1 plus the given number
+   \fI(C++11)\fP            (ln(1+x))
+                      \fI(function)\fP
+   exp                returns e raised to the given power (e^x)
+                      \fI(function)\fP
                       complex natural logarithm with the branch cuts along the negative
    log(std::complex)  real axis
-                      \fI(function template)\fP 
+                      \fI(function template)\fP
    log(std::valarray) applies the function std::log to each element of valarray
-                      \fI(function template)\fP 
+                      \fI(function template)\fP
    C documentation for
    log

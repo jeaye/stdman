@@ -1,4 +1,4 @@
-.TH std::get_time 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::get_time 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <iomanip>
    template< class CharT >                                     \fI(since C++11)\fP
@@ -76,12 +76,12 @@
                                      Day of the year/month
                     parses day of the year as a decimal number (range
              j      [001,366]), leading zeroes permitted but not      tm_yday
-   fmt -            required
-                    parses the day of the month as a decimal number
+                    required
+   fmt -            parses the day of the month as a decimal number
              d      (range [01,31]), leading zeroes permitted but not tm_mday
                     required
                     parses the day of the month using the alternative
-             Od     numeric system, e.g 二十七 parses as 23 in ja_JP  tm_mday
+             Od     numeric system, e.g 二十七 parses as 27 in ja_JP  tm_mday
                     locale, leading zeroes permitted but not required
              e      synonym of d                                      tm_mday
              Oe     synonym of Od                                     tm_mday
@@ -142,6 +142,9 @@
                                                                       tm_sec
              p      parses the locale's equivalent of a.m. or p.m.    tm_hour
 
+         Note: tm_isdst is not written to, and needs to be set explicitly for use with
+         functions such as mktime
+
 .SH Return value
 
    Returns an object of unspecified type such that if in is the name of an input stream
@@ -154,7 +157,14 @@
    const TimeGet& tg = std::use_facet<TimeGet>(in.getloc());
    tg.get(Iter(in.rdbuf()), Iter(), in, err, tmb, fmt, fmt + traits::length(fmt));
    if (err != std::ios_base::goodbit)
-       in.setstate(err);
+   in.setstate(err);
+
+.SH Notes
+
+   As specified in std::time_get::do_get, which this function calls, it's unspecified
+   if this function zero out the fields in *tmb that are not set directly by the
+   conversion specifiers that appear in fmt: portable programs should initialize every
+   field of *tmb to zero before calling std::get_time.
 
 .SH Example
 
@@ -165,15 +175,18 @@
  #include <sstream>
  #include <locale>
  #include <iomanip>
- #include <ctime>
-  
+
  int main()
  {
-     std::tm t;
+     std::tm t = {};
      std::istringstream ss("2011-Februar-18 23:12:34");
-     ss.imbue(std::locale("de_DE"));
+     ss.imbue(std::locale("de_DE.utf-8"));
      ss >> std::get_time(&t, "%Y-%b-%d %H:%M:%S");
-     std::cout << std::put_time(&t, "%c") << '\\n';
+     if (ss.fail()) {
+         std::cout << "Parse failed\\n";
+     } else {
+         std::cout << std::put_time(&t, "%c") << '\\n';
+     }
  }
 
 .SH Output:
@@ -184,6 +197,6 @@
 
             parses time/date values from an input character sequence into struct
    time_get std::tm
-            \fI(class template)\fP 
+            \fI(class template)\fP
    put_time formats and outputs a date/time value according to the specified format
-   \fI(C++11)\fP  \fI(function template)\fP 
+   \fI(C++11)\fP  \fI(function template)\fP

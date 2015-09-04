@@ -1,0 +1,127 @@
+.TH std::experimental::propagate_const 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.SH Synopsis
+   Defined in header <experimental/propagate_const>
+   template<class T>                                 (library fundamentals TS v2)
+   class propagate_const;
+
+   std::experimental::propagate_const is a const-propagating wrapper for pointers and
+   pointer-like objects. It treats the wrapped pointer as a pointer to const when
+   accessed through a const access path, hence the name.
+
+   The class satisfies the requirements of MoveConstructible and MoveAssignable if the
+   underlying pointer-like type satisfies the corresponding concept, but
+   propagate_const is neither CopyConstructible nor CopyAssignable.
+
+.SH Type requirements
+   -
+   T must be an object pointer type or a pointer-like class type, as specified below.
+   The program is ill-formed if T is an array type, reference type, pointer to function
+   type, pointer to (possibly cv-qualified) void, or if decltype(*std::declval<T&>())
+   is not an lvalue reference type.
+
+.SH Member types
+
+   Member type  Definition
+   element_type std::remove_reference_t<decltype(*std::declval<T&>())>, the type of the
+                object pointed to by T
+
+.SH Member functions
+
+   constructor                  constructs a new propagate_const
+                                \fI(public member function)\fP
+   destructor                   destructs an propagate_const, destroying the contained
+   (implicitly declared)        pointer
+                                \fI(public member function)\fP
+   operator=                    assigns the propagate_const object
+                                \fI(public member function)\fP
+   swap                         swaps the wrapped pointer
+                                \fI(public member function)\fP
+.SH Observers
+                                returns a pointer to the object pointed to by the
+   get                          wrapped pointer
+                                \fI(public member function)\fP
+   operator bool                checks if the wrapped pointer is null
+                                \fI(public member function)\fP
+   operator*                    dereferences the wrapped pointer
+   operator->                   \fI(public member function)\fP
+   operator element_type*       implicit conversion function to pointer
+   operator const element_type* \fI(public member function)\fP
+
+.SH Non-member functions
+
+   operator==
+   operator!=                                                  compares to another
+   operator<                                                   propagate_const, another
+   operator<=                                                  pointer, or with nullptr
+   operator>                                                   \fI(function template)\fP
+   operator>=
+                                                               specializes the swap
+   std::experimental::swap(std::experimental::propagate_const) algorithm
+                                                               \fI(function template)\fP
+                                                               Retrieves a reference to
+   get_underlying                                              the wrapped pointer-like
+                                                               object
+                                                               \fI(function template)\fP
+
+.SH Helper classes
+
+                                                          hash support for
+   std::hash<std::experimental::propagate_const>          propagate_const
+                                                          (class template
+                                                          specialization)
+   std::equal_to<std::experimental::propagate_const>      Specializations of the
+   std::not_equal_to<std::experimental::propagate_const>  standard comparison function
+   std::less<std::experimental::propagate_const>          objects for propagate_const
+   std::greater<std::experimental::propagate_const>       (class template
+   std::less_equal<std::experimental::propagate_const>    specialization)
+   std::greater_equal<std::experimental::propagate_const>
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <memory>
+ #include <experimental/propagate_const>
+
+ struct X
+ {
+     void g() const { std::cout << "g (const)\\n"; }
+     void g() { std::cout << "g (non-const)\\n"; }
+ };
+
+ struct Y
+ {
+     Y() : m_ptrX(std::make_unique<X>()) { }
+
+     void f() const
+     {
+         std::cout << "f (const)\\n";
+         m_ptrX->g();
+     }
+
+     void f()
+     {
+         std::cout << "f (non-const)\\n";
+         m_ptrX->g();
+     }
+
+     std::experimental::propagate_const<std::unique_ptr<X>> m_ptrX;
+ };
+
+ int main()
+ {
+     Y y;
+     y.f();
+
+     const Y cy;
+     cy.f();
+ }
+
+.SH Output:
+
+ f (non-const)
+ g (non-const)
+ f (const)
+ g (const)

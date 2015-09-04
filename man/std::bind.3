@@ -1,4 +1,4 @@
-.TH std::bind 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::bind 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <functional>
    template< class F, class... Args >             \fB(1)\fP \fI(since C++11)\fP
@@ -8,10 +8,6 @@
 
    The function template bind generates a forwarding call wrapper for f. Calling this
    wrapper is equivalent to invoking f with some of its arguments bound to args.
-
-   Internally, the wrapper holds a member object of type std::decay<F>::type
-   constructed from std::forward<F>(f), and one object per each of args..., of type
-   std::decay<Arg_i>::type, similarly constructed from std::forward<Arg_i>(arg_i).
 
 .SH Parameters
 
@@ -24,11 +20,21 @@
 .SH Return value
 
    A function object of unspecified type T, for which std::is_bind_expression<T>::value
-   == true, and which can be stored in std::function. The object is movable if f and
-   all args are movable, and is copyable otherwise. The type defines the following
-   members:
+   == true, and which can be stored in std::function. It has the following members:
 
-                                  std::bind return type
+std::bind return type
+
+.SH Member objects
+
+   The return type of std::bind holds a member object of type std::decay<F>::type
+   constructed from std::forward<F>(f), and one object per each of args..., of type
+   std::decay<Arg_i>::type, similarly constructed from std::forward<Arg_i>(arg_i).
+
+    Constructors
+
+   The return type of std::bind is CopyConstructible if all of its member objects
+   (specified above) are CopyConstructible, and is MoveConstructible otherwise. The
+   type defines the following members:
 
 .SH Member type result_type
 
@@ -44,8 +50,8 @@
    function call expression g(u1, u2, ... uM), an invocation of the stored object of
    type std::decay<F>::type takes place, with arguments defined as follows:
 
-     * If the argument is of type std::reference_wrapper<T> (e.g. std::ref or
-       std::cref) was used in the initial call to bind, then the reference T& stored in
+     * If the argument is of type std::reference_wrapper<T> (for example, std::ref or
+       std::cref was used in the initial call to bind), then the reference T& stored in
        the bound argument is passed to the invocable object.
      * If std::is_bind_expression<T>::value == true (i.e. another bind subexpression
        was used as an argument in the initial call to bind), then that bind
@@ -70,6 +76,11 @@
 
 .SH Notes
 
+   As described in Callable, when invoking a pointer to non-static member function or
+   pointer to non-static data member, the first argument has to be a reference or
+   pointer (including, possibly, smart pointer such as std::shared_ptr and
+   std::unique_ptr) to an object whose member will be accessed.
+
    The arguments to bind are copied or moved, and are never passed by reference unless
    wrapped in std::ref or std::cref.
 
@@ -84,18 +95,19 @@
 
  #include <random>
  #include <iostream>
+ #include <memory>
  #include <functional>
-  
+
  void f(int n1, int n2, int n3, const int& n4, int n5)
  {
      std::cout << n1 << ' ' << n2 << ' ' << n3 << ' ' << n4 << ' ' << n5 << '\\n';
  }
-  
+
  int g(int n1)
  {
      return n1;
  }
-  
+
  struct Foo {
      void print_sum(int n1, int n2)
      {
@@ -103,40 +115,43 @@
      }
      int data = 10;
  };
-  
+
  int main()
  {
      using namespace std::placeholders;  // for _1, _2, _3...
-  
+
      // demonstrates argument reordering and pass-by-reference
      int n = 7;
      // (_1 and _2 are from std::placeholders, and represent future
      // arguments that will be passed to f1)
      auto f1 = std::bind(f, _2, _1, 42, std::cref(n), n);
      n = 10;
-     f1(1, 2, 1001); // 1 is bound by _1, 2 is bound by _2, 1001 is unused
-  
+     f1(1, 2, 1001); // 1 is bound by _2, 2 is bound by _1, 1001 is unused
+
      // nested bind subexpressions share the placeholders
      auto f2 = std::bind(f, _3, std::bind(g, _3), _3, 4, 5);
      f2(10, 11, 12);
-  
+
      // common use case: binding a RNG with a distribution
      std::default_random_engine e;
      std::uniform_int_distribution<> d(0, 10);
-     std::function<int()> rnd = std::bind(d, e);
+     std::function<int()> rnd = std::bind(d, e); // a copy of e is stored in rnd
      for(int n=0; n<10; ++n)
          std::cout << rnd() << ' ';
      std::cout << '\\n';
-  
+
      // bind to a member function
      Foo foo;
      auto f3 = std::bind(&Foo::print_sum, &foo, 95, _1);
      f3(5);
-  
+
      // bind to member data
      auto f4 = std::bind(&Foo::data, _1);
      std::cout << f4(foo) << '\\n';
- }
+
+     // smart pointers can be used to call members of the referenced objects, too
+     std::cout << f4(std::make_shared<Foo>(foo)) << '\\n'
+               << f4(std::unique_ptr<Foo>(new Foo(foo))) << '\\n';}
 
 .SH Output:
 
@@ -145,10 +160,12 @@
  1 5 0 2 0 8 2 2 10 8
  100
  10
+ 10
+ 10
 
 .SH See also
 
    _1, _2, _3, _4, ... placeholders for the unbound arguments in a std::bind expression
-   \fI(C++11)\fP             (constant) 
+   \fI(C++11)\fP             (constant)
    mem_fn              creates a function object out of a pointer to a member
-   \fI(C++11)\fP             \fI(function template)\fP 
+   \fI(C++11)\fP             \fI(function template)\fP

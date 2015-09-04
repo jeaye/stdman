@@ -1,4 +1,4 @@
-.TH std::reference_wrapper 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::reference_wrapper 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
    Defined in header <functional>
    template< class T >             \fI(since C++11)\fP
@@ -6,8 +6,7 @@
 
    std::reference_wrapper is a class template that wraps a reference in a copyable,
    assignable object. It is frequently used as a mechanism to store references inside
-   standard containers (like std::vector or std::pair) which can not normally hold
-   references.
+   standard containers (like std::vector) which cannot normally hold references.
 
    Specifically, std::reference_wrapper is a CopyConstructible and CopyAssignable
    wrapper around a reference to object or reference to function of type T. Instances
@@ -20,6 +19,8 @@
 
    std::reference_wrapper is also used to pass objects to std::bind or to the
    constructor of std::thread by reference.
+
+   std::reference_wrapper is guaranteed to be TriviallyCopyable. (since C++17)
 
 .SH Member types
 
@@ -55,13 +56,37 @@
 .SH Member functions
 
    constructor   stores a reference in a new std::reference_wrapper object
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    operator=     rebinds a std::reference_wrapper
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    get           accesses the stored reference
-   operator T&   \fI(public member function)\fP 
+   operator T&   \fI(public member function)\fP
    operator()    calls the stored function
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
+
+.SH Possible implementation
+
+   template <class T>
+   class reference_wrapper {
+   public:
+     // types
+     typedef T type;
+
+     // construct/copy/destroy
+     reference_wrapper(T& ref) noexcept : _ptr(std::addressof(ref)) {}
+     reference_wrapper(T&&) = delete;
+     reference_wrapper(const reference_wrapper&) noexcept = default;
+
+     // assignment
+     reference_wrapper& operator=(const reference_wrapper& x) noexcept = default;
+
+     // access
+     operator T& () const noexcept { return *_ptr; }
+     T& get() const noexcept { return *_ptr; }
+
+   private:
+     T* _ptr;
+   };
 
 .SH Example
 
@@ -75,48 +100,46 @@
  #include <list>
  #include <vector>
  #include <iostream>
+ #include <numeric>
+ #include <random>
  #include <functional>
-  
+
  int main()
  {
-     std::list<int> l = {-4, -3, -2, -1, 0, 1, 2, 3, 4};
-  
+     std::list<int> l(10);
+     std::iota(l.begin(), l.end(), -4);
+
      std::vector<std::reference_wrapper<int>> v(l.begin(), l.end());
-     std::random_shuffle(v.begin(), v.end());
-  
-     std::vector<std::reference_wrapper<int>> v2(v.begin(), v.end());
-     std::partition(v2.begin(), v2.end(), [](int n){return n<0;});
-  
+     // can't use shuffle on a list (requires random access), but can use it on a vector
+     std::shuffle(v.begin(), v.end(), std::mt19937{std::random_device{}()});
+
      std::cout << "Contents of the list: ";
-     for(int n: l) {
-         std::cout << n << ' ';
+     for (int n : l) std::cout << n << ' '; std::cout << '\\n';
+
+     std::cout << "Contents of the list, as seen through a shuffled vector: ";
+     for (int i : v) std::cout << i << ' '; std::cout << '\\n';
+
+     std::cout << "Doubling the values in the initial list...\\n";
+     for (int& i : l) {
+         i *= 2;
      }
-     std::cout << '\\n';
-  
-     std::cout << "Contents of the list, shuffled: ";
-     for(int i: v) {
-         std::cout << i << ' ';
-     }
-     std::cout << '\\n';
-  
-     std::cout << "Shuffled elements, partitioned: ";
-     for(int i: v2) {
-         std::cout << i << ' ';
-     }
-     std::cout << '\\n';
+
+     std::cout << "Contents of the list, as seen through a shuffled vector: ";
+     for (int i : v) std::cout << i << ' '; std::cout << '\\n';
  }
 
-.SH Output:
+.SH Possible output:
 
- Contents of the list: -4 -3 -2 -1 0 1 2 3 4
- Contents of the list, shuffled: 0 -1 3 4 -4 1 -2 -3 2
- Shuffled elements, partitioned: -3 -1 -2 -4 4 1 3 0 2
+ Contents of the list: -4 -3 -2 -1 0 1 2 3 4 5
+ Contents of the list, as seen through a shuffled vector: -1 2 -2 1 5 0 3 -3 -4 4
+ Doubling the values in the initial list...
+ Contents of the list, as seen through a shuffled vector: -2 4 -4 2 10 0 6 -6 -8 8
 
 .SH See also
 
    ref
    cref    creates a std::reference_wrapper with a type deduced from its argument
-   \fI(C++11)\fP \fI(function template)\fP 
+   \fI(C++11)\fP \fI(function template)\fP
    \fI(C++11)\fP
    bind    binds one or more arguments to a function object
-   \fI(C++11)\fP \fI(function template)\fP 
+   \fI(C++11)\fP \fI(function template)\fP

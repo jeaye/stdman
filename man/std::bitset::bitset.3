@@ -1,49 +1,69 @@
-.TH std::bitset::bitset 3 "Jun 28 2014" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::bitset::bitset 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
 .SH Synopsis
-   constexpr bitset() noexcept;                                         \fB(1)\fP
-   constexpr bitset( unsigned long long val ) noexcept;                 \fB(2)\fP
+   bitset();                                                    (until
+                                                                C++11)
+   constexpr bitset();                                          (since
+                                                                C++11)
+   bitset( unsigned long val );                                         (until
+                                                                        C++11)
+   constexpr bitset( unsigned long long val );                          (since
+                                                                        C++11)
    template< class CharT, class Traits, class Alloc >
 
-   explicit bitset( const std::basic_string<CharT,Traits,Alloc>& str,
-                    typename                                                    (until
-   std::basic_string<CharT,Traits,Alloc>::size_type pos = 0,                    C++11)
-                    typename
+   explicit bitset( const
+   std::basic_string<CharT,Traits,Alloc>& str,
+   typename                                                                     (until
+   std::basic_string<CharT,Traits,Alloc>::size_type pos                         C++11)
+   = 0,
+   typename
    std::basic_string<CharT,Traits,Alloc>::size_type n =
 
-                        std::basic_string<CharT,Traits,Alloc>::npos);
-   template< class CharT, class Traits, class Alloc >
+   std::basic_string<CharT,Traits,Alloc>::npos);
+   template< class CharT, class Traits, class Alloc >   \fB(1)\fP
 
-   explicit bitset( const std::basic_string<CharT,Traits,Alloc>& str,
-                    typename
-   std::basic_string<CharT,Traits,Alloc>::size_type pos = 0,            \fB(3)\fP     (since
-                    typename                                                    C++11)
+   explicit bitset( const                                   \fB(2)\fP
+   std::basic_string<CharT,Traits,Alloc>& str,
+   typename                                                     \fB(3)\fP
+   std::basic_string<CharT,Traits,Alloc>::size_type pos                         (since
+   = 0,                                                                         C++11)
+   typename
    std::basic_string<CharT,Traits,Alloc>::size_type n =
-                        std::basic_string<CharT,Traits,Alloc>::npos,
-                    CharT zero = CharT(’0’),
+   std::basic_string<CharT,Traits,Alloc>::npos,
+   CharT zero = CharT('0'),
 
-                    CharT one = CharT(’1’));
+   CharT one = CharT('1'));
    template< class CharT >
 
    explicit bitset( const CharT* str,
-                    typename std::basic_string<CharT>::size_type n =        \fB(4)\fP (since
-                        std::basic_string<CharT>::npos,                         C++11)
-                    CharT zero = CharT(’0’),
+   typename std::basic_string<CharT>::size_type n =                     \fB(4)\fP     (since
+   std::basic_string<CharT>::npos,                                              C++11)
+   CharT zero = CharT('0'),
 
-                    CharT one = CharT(’1’));
+   CharT one = CharT('1'));
 
    Constructs a new bitset from one of several optional data sources:
 
    1) Default constructor. Constructs a bitset with all bits set to zero.
-   2) Constructs a bitset using the bits in val. If N is the size of the bitset and M
-   is the number of set bits in val, then only min(N, M) bits will be included in the
-   bitset.
+   2) Constructs a bitset, initializing the first (rightmost, least significant) M bit
+   positions to the corresponding bit values of val, where M is the smaller of the
+   number of bits in an unsigned long long and the number of bits N in the bitset being
+   constructed. If M is less than N (the bitset is longer than
+   32
+   \fI(until C++11)\fP
+   64
+   \fI(since C++11)\fP bits, for typical implementations of unsigned
+   long
+   \fI(since C++11)\fPlong), the remaining bit positions are initialized to zeroes.
    3) Constructs a bitset using the characters in the std::basic_string str. An
    optional starting position pos and length n can be provided, as well as characters
-   denoting alternate values for set (one) and unset (zero) bits.
+   denoting alternate values for set (one) and unset (zero) bits. Traits::eq() is used
+   to compare the character values.
    The effective length of the initializing string is min(n, str.size() - pos).
    If pos > str.size(), this constructor throws std::out_of_range. If any characters
    examined in str are not zero or one, it throws std::invalid_argument.
-   4) Similar to \fB(3)\fP, but uses a CharT* instead of a std::basic_string.
+   4) Similar to \fB(3)\fP, but uses a CharT* instead of a std::basic_string. Equivalent to
+   bitset(n == basic_string<charT>::npos ? basic_string<charT>(str) :
+   basic_string<charT>(str, n), 0, n, zero, one)
 
 .SH Parameters
 
@@ -56,13 +76,18 @@
 
 .SH Exceptions
 
-   1. none
+   1) none                 \fI(until C++11)\fP
+   2) none
+   1)
+   noexcept specification:
+   noexcept                \fI(since C++11)\fP
+   2)
+   noexcept specification:
+   noexcept
 
-   2. none
-
-   3. std::out_of_range if pos > str.size()
-
-   4. none
+   3) std::out_of_range if pos > str.size(), std::invalid_argument if any character is
+   not one or zero
+   4) std::invalid_argument if any character is not one or zero
 
 .SH Example
 
@@ -71,34 +96,57 @@
 
  #include <bitset>
  #include <string>
-  
+ #include <iostream>
+ #include <climits>
+
  int main()
  {
      // empty constructor
      std::bitset<8> b1; // [0,0,0,0,0,0,0,0]
-  
+
      // unsigned long long constructor
-     std::bitset<8> b2(42); // [0,0,1,0,1,0,1,0]
-  
+     std::bitset<8> b2(42);          // [0,0,1,0,1,0,1,0]
+     std::bitset<70> bl(ULLONG_MAX); // [0,0,0,0,0,0,1,1,1,...,1,1,1] in C++11
+     std::bitset<8> bs(0xfff0);      // [1,1,1,1,0,0,0,0]
+
      // string constructor
      std::string bit_string = "110010";
      std::bitset<8> b3(bit_string);       // [0,0,1,1,0,0,1,0]
      std::bitset<8> b4(bit_string, 2);    // [0,0,0,0,0,0,1,0]
      std::bitset<8> b5(bit_string, 2, 3); // [0,0,0,0,0,0,0,1]
-  
+
      // string constructor using custom zero/one digits
      std::string alpha_bit_string = "aBaaBBaB";
      std::bitset<8> b6(alpha_bit_string, 0, alpha_bit_string.size(),
                        'a', 'B');         // [0,1,0,0,1,1,0,1]
-  
+
      // char* constructor using custom digits
      std::bitset<8> b7("XXXXYYYY", 8, 'X', 'Y'); // [0,0,0,0,1,1,1,1]
-     return 0;
+
+     std::cout << b1 << '\\n' << b2 << '\\n' << bl << '\\n' << bs << '\\n'
+               << b3 << '\\n' << b4 << '\\n' << b5 << '\\n' << b6 << '\\n'
+               << b7 << '\\n';
  }
+
+.SH Output:
+
+ 00000000
+ 00101010
+ 0000001111111111111111111111111111111111111111111111111111111111111111
+ 11110000
+ 00110010
+ 00000010
+ 00000001
+ 01001101
+ 00001111
 
 .SH See also
 
    set   sets bits to true or given value
-         \fI(public member function)\fP 
+         \fI(public member function)\fP
    reset sets bits to false
-         \fI(public member function)\fP 
+         \fI(public member function)\fP
+
+.SH Category:
+
+     * unconditionally noexcept
