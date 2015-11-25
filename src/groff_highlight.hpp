@@ -59,10 +59,13 @@ namespace groff_detail
       /* Color standard release annotations. */
       highlight_impl(l, "(C++11)", fmt::italic);
       highlight_impl(l, "(C++14)", fmt::italic);
+      highlight_impl(l, "(C++17)", fmt::italic);
       highlight_impl(l, "(until C++11)", fmt::italic);
       highlight_impl(l, "(since C++11)", fmt::italic);
       highlight_impl(l, "(until C++14)", fmt::italic);
       highlight_impl(l, "(since C++14)", fmt::italic);
+      highlight_impl(l, "(until C++17)", fmt::italic);
+      highlight_impl(l, "(since C++17)", fmt::italic);
 
       /* Description of members. */
       highlight_impl(l, "[static]", fmt::bold);
