@@ -1,22 +1,26 @@
-.TH std::experimental::filesystem::exists 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::experimental::filesystem::exists 3 "Nov 25 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::experimental::filesystem::exists \- std::experimental::filesystem::exists
+
 .SH Synopsis
    Defined in header <experimental/filesystem>
-   bool exists( file_status s )                 \fB(1)\fP (filesystem TS)
-   bool exists( const path& p );                \fB(2)\fP (filesystem TS)
-   bool exists( const path& p, error_code& ec )
+   bool exists( file_status s ) noexcept;                 \fB(1)\fP (filesystem TS)
+   bool exists( const path& p );                          \fB(2)\fP (filesystem TS)
+   bool exists( const path& p, error_code& ec ) noexcept; \fB(3)\fP (filesystem TS)
 
    Checks if the given file status or path corresponds to an existing file or
    directory.
 
-   1) Equivalent to status_known(s) && s.type() != file_type::not_found.
-   2) Equivalent to exists(status(p)) or exists(status(p, ec)) (symlinks are followed).
-   The non-throwing overload returns false if an error occurs.
+   1) Equivalent to status_known(s) && s.type() |= file_type::not_found.
+   2) Equivalent to exists(status(p)).
+   3) Equivalent to exists(status(p, ec)). Returns false and sets ec to an appropriate
+   error code if an error occurs. Otherwise, ec is cleared with a call to ec.clear().
 
 .SH Parameters
 
    s  - file status to check
    p  - path to examine
-   ec - out-parameter for error reporting in the non-throwing overload
+   ec - error code to store the error status to
 
 .SH Return value
 
@@ -25,73 +29,18 @@
 
 .SH Exceptions
 
-   1)
-   noexcept specification:
+   1,3)
+   noexcept specification:  
    noexcept
-   2) The overload that does not take a error_code& parameter throws filesystem_error
-   on underlying OS API errors, constructed with p as the first argument and the OS
-   error code as the error code argument. std::bad_alloc may be thrown if memory
-   allocation fails. The overload taking a error_code& parameter sets it to the OS API
-   error code if an OS API call fails, and executes ec.clear() if no errors occur. This
-   overload has
-   noexcept specification:
-   noexcept
-
-.SH Notes
-
-   The information provided by this function is usually also provided as a byproduct of
-   directory iteration. During directory iteration, calling exists(*iterator) is less
-   efficient than exists(iterator->status())
-
-.SH Example
-
-   
-// Run this code
-
- #include <iostream>
- #include <fstream>
- #include <cstdint>
- #include <experimental/filesystem>
- namespace fs = std::experimental::filesystem;
-
- void demo_exists(const fs::path& p, fs::file_status s = fs::file_status{})
- {
-     std::cout << p;
-     if(fs::status_known(s) ? fs::exists(s) : fs::exists(p))
-         std::cout << " exists\\n";
-     else
-         std::cout << " does not exist\\n";
- }
- int main()
- {
-     fs::create_directory("sandbox");
-     std::ofstream("sandbox/file"); // create regular file
-     fs::create_symlink("non-existing", "sandbox/symlink");
-
-     demo_exists("sandbox");
-     for(auto it = fs::directory_iterator("sandbox"); it != fs::directory_iterator(); ++it)
-         demo_exists(*it, it->status()); // use cached status from directory entry
-     fs::remove_all("sandbox");
- }
-
-.SH Output:
-
- "sandbox" exists
- "sandbox/file" exists
- "sandbox/symlink" does not exist
+     
+   2) filesystem_error if an error occurs. The exception object is constructed with p
+   as an argument. The error code is set to an appropriate error code for the error
+   that caused the failure.
 
 .SH See also
 
-   status         determines file attributes
-   symlink_status determines file attributes, checking the symlink target
-                  \fI(function)\fP
-   file_status    represents file type and permissions
-                  \fI(class)\fP
-                  cached status of the file designated by this directory entry
-   status         cached symlink_status of the file designated by this directory entry
-   symlink_status \fI\fI(public member\fP function of\fP
-                  std::experimental::filesystem::directory_entry)
+    This section is incomplete
 
 .SH Category:
 
-     * unconditionally noexcept
+     * Todo without reason

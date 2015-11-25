@@ -1,4 +1,7 @@
-.TH std::integer_sequence 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::integer_sequence 3 "Nov 25 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::integer_sequence \- std::integer_sequence
+
 .SH Synopsis
    Defined in header <utility>
    template< class T, T... Ints >  \fI(since C++14)\fP
@@ -23,7 +26,7 @@
    size     returns the number of elements in Ints
    \fB[static]\fP \fI(public static member function)\fP
 
-std::integer_sequence::size
+                               std::integer_sequence::size
 
    static constexpr std::size_t size();
 
@@ -39,8 +42,9 @@ std::integer_sequence::size
 
 .SH Exceptions
 
-   noexcept specification:
+   noexcept specification:  
    noexcept
+     
 
    Helper templates
 
@@ -60,7 +64,7 @@ std::integer_sequence::size
    template<std::size_t N>
    using make_index_sequence = make_integer_sequence<std::size_t, N>;
 
-   The program is ill-formed if N is negative. If N is zero, the indicated type is
+   The behavior is undefined if N is negative. If N is zero, the indicated type is
    integer_sequence<T>.
 
    A helper alias template std::index_sequence_for is defined to convert any type
@@ -78,49 +82,51 @@ std::integer_sequence::size
  #include <iostream>
  #include <array>
  #include <utility>
-
- // Convert array into a tuple
+  
+ // Convert array into to tuple
  template<typename Array, std::size_t... I>
- decltype(auto) a2t_impl(const Array& a, std::index_sequence<I...>)
+ auto a2t_impl(const Array& a, std::index_sequence<I...>)
+     -> decltype(std::make_tuple(a[I]...))
  {
      return std::make_tuple(a[I]...);
  }
-
+  
  template<typename T, std::size_t N, typename Indices = std::make_index_sequence<N>>
- decltype(auto) a2t(const std::array<T, N>& a)
+ auto a2t(const std::array<T, N>& a)
+     -> decltype(a2t_impl(a, Indices()))
  {
      return a2t_impl(a, Indices());
  }
-
- // pretty-print a tuple (from http://stackoverflow.com/a/6245777/273767)
-
+  
+ // pretty-print a tuple (from http://stackoverflow.com/a/6245777/273767 )
+  
  template<class Ch, class Tr, class Tuple, std::size_t... Is>
  void print_tuple_impl(std::basic_ostream<Ch,Tr>& os,
                        const Tuple & t,
                        std::index_sequence<Is...>)
  {
-     using swallow = int[]; // guaranties left to right order
+     using swallow = int[];
      (void)swallow{0, (void(os << (Is == 0? "" : ", ") << std::get<Is>(t)), 0)...};
  }
-
+  
  template<class Ch, class Tr, class... Args>
- decltype(auto) operator<<(std::basic_ostream<Ch, Tr>& os,
-                           const std::tuple<Args...>& t)
+ auto operator<<(std::basic_ostream<Ch, Tr>& os, const std::tuple<Args...>& t)
+    -> std::basic_ostream<Ch, Tr>&
  {
      os << "(";
      print_tuple_impl(os, t, std::index_sequence_for<Args...>{});
      return os << ")";
  }
-
+  
  int main()
  {
      std::array<int, 4> array = {1,2,3,4};
-
+  
      // convert an array into a tuple
      auto tuple = a2t(array);
      static_assert(std::is_same<decltype(tuple),
                                 std::tuple<int, int, int, int>>::value, "");
-
+  
      // print it to cout
      std::cout << tuple << '\\n';
  }
@@ -128,49 +134,3 @@ std::integer_sequence::size
 .SH Output:
 
  (1, 2, 3, 4)
-
-.SH Example
-
-   This example shows how a std::tuple can be converted into arguments for a function
-   invocation, see std::experimental::apply.
-
-   
-// Run this code
-
- #include <iostream>
- #include <tuple>
- #include <utility>
-
- template<typename Func, typename Tup, std::size_t... index>
- decltype(auto) invoke_helper(Func&& func, Tup&& tup, std::index_sequence<index...>)
- {
-     return func(std::get<index>(std::forward<Tup>(tup))...);
- }
-
- template<typename Func, typename Tup>
- decltype(auto) invoke(Func&& func, Tup&& tup)
- {
-     constexpr auto Size = std::tuple_size<typename std::decay<Tup>::type>::value;
-     return invoke_helper(std::forward<Func>(func),
-                          std::forward<Tup>(tup),
-                          std::make_index_sequence<Size>{});
- }
-
- void foo(int a, const std::string& b, float c)
- {
-     std::cout << a << " , " << b << " , " << c << '\\n';
- }
-
- int main()
- {
-     auto args = std::make_tuple(2, "Hello", 3.5);
-     invoke(foo, args);
- }
-
-.SH Output:
-
- 2 , Hello , 3.5
-
-.SH Category:
-
-     * unconditionally noexcept

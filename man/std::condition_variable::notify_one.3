@@ -1,4 +1,7 @@
-.TH std::condition_variable::notify_one 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::condition_variable::notify_one 3 "Nov 25 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::condition_variable::notify_one \- std::condition_variable::notify_one
+
 .SH Synopsis
    void notify_one();  \fI(since C++11)\fP
 
@@ -15,8 +18,9 @@
 
 .SH Exceptions
 
-   noexcept specification:
+   noexcept specification:  
    noexcept
+     
 
 .SH Notes
 
@@ -28,10 +32,7 @@
    The notifying thread does not need to hold the lock on the same mutex as the one
    held by the waiting thread(s); in fact doing so is a pessimization, since the
    notified thread would immediately block again, waiting for the notifying thread to
-   release the lock. However, some implementations (in particular many implementations
-   of pthreads) recognize this situation and avoid this "hurry up and wait" scenario by
-   transferring the waiting thread from the condition variable's queue directly to the
-   queue of the mutex within the notify call, without waking it up.
+   release the lock.
 
 .SH Example
 
@@ -42,12 +43,12 @@
  #include <condition_variable>
  #include <thread>
  #include <chrono>
-
+  
  std::condition_variable cv;
  std::mutex cv_m;
  int i = 0;
  bool done = false;
-
+  
  void waits()
  {
      std::unique_lock<std::mutex> lk(cv_m);
@@ -56,26 +57,26 @@
      std::cout << "...finished waiting. i == 1\\n";
      done = true;
  }
-
+  
  void signals()
  {
      std::this_thread::sleep_for(std::chrono::seconds(1));
      std::cout << "Notifying falsely...\\n";
-     cv.notify_one(); // waiting thread is notified with i == 0.
-                      // cv.wait wakes up, checks i, and goes back to waiting
-
+     cv.notify_one();
+    //Most probably, the waiting thread is awaken unnecessarily.
+  
      std::unique_lock<std::mutex> lk(cv_m);
      i = 1;
      while (!done)
      {
          std::cout << "Notifying true change...\\n";
-         lk.unlock();
-         cv.notify_one(); // waiting thread is notified with i == 1, cv.wait returns
+         lk.unlock(); //It is a good idea unlock before notifying.
+         cv.notify_one();
          std::this_thread::sleep_for(std::chrono::seconds(1));
          lk.lock();
      }
  }
-
+  
  int main()
  {
      std::thread t1(waits), t2(signals);
@@ -93,8 +94,4 @@
 .SH See also
 
    notify_all notifies all waiting threads
-              \fI(public member function)\fP
-
-.SH Category:
-
-     * unconditionally noexcept
+              \fI(public member function)\fP 

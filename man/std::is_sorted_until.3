@@ -1,4 +1,7 @@
-.TH std::is_sorted_until 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::is_sorted_until 3 "Nov 25 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::is_sorted_until \- std::is_sorted_until
+
 .SH Synopsis
    Defined in header <algorithm>
    template< class ForwardIt >                                   \fB(1)\fP \fI(since C++11)\fP
@@ -7,7 +10,7 @@
 
    ForwardIt is_sorted_until( ForwardIt first, ForwardIt last,   \fB(2)\fP \fI(since C++11)\fP
 
-   Compare comp );
+                              Compare comp );
 
    Examines the range [first, last) and finds the largest range beginning at first in
    which the elements are sorted in ascending order. The first version of the function
@@ -19,12 +22,12 @@
    first, last - the range of elements to examine
                  comparison function object (i.e. an object that satisfies the
                  requirements of Compare) which returns true if the first argument is
-                 less than (i.e. is ordered before) the second.
+                 less (i.e. is ordered before) the second element.
 
                  The signature of the comparison function should be equivalent to the
                  following:
    comp        -
-                 bool cmp(const Type1 &a, const Type2 &b);
+                  bool cmp(const Type1 &a, const Type2 &b);
 
                  The signature does not need to have const &, but the function object
                  must not modify the objects passed to it.
@@ -62,12 +65,14 @@
        return last;
    }
 .SH Second version
-   template <class ForwardIt, class Compare>
-   ForwardIt is_sorted_until(ForwardIt first, ForwardIt last, Compare comp)
+   template< class ForwardIt, class Compare >
+   ForwardIt is_sorted_until(ForwardIt first, ForwardIt last,
+                             Compare comp)
    {
-       using namespace std::placeholders;
-       ForwardIt it = std::adjacent_find(first, last, std::bind(comp, _2, _1));
-       return it == last ? last : std::next(it);
+       typedef std::iterator_traits<ForwardIt>::value_type value_type;
+       ForwardIt it = std::adjacent_find(begin, end,
+           [comp](const value_type &x, const value_type &y){ return comp(y, x); });
+       return it == last ? last : it+1;
    }
 
 .SH Example
@@ -79,21 +84,21 @@
  #include <algorithm>
  #include <iterator>
  #include <random>
-
+  
  int main()
  {
      std::random_device rd;
      std::mt19937 g(rd());
      const int N = 6;
      int nums[N] = {3, 1, 4, 1, 5, 9};
-
+  
      const int min_sorted_size = 4;
      int sorted_size = 0;
      do {
          std::random_shuffle(nums, nums + N, g);
          int *sorted_end = std::is_sorted_until(nums, nums + N);
          sorted_size = std::distance(nums, sorted_end);
-
+  
          for (auto i : nums) std::cout << i << ' ';
          std::cout << " : " << sorted_size << " initial sorted elements\\n";
      } while (sorted_size < min_sorted_size);
@@ -111,9 +116,5 @@
 
 .SH See also
 
-   is_sorted                                    checks whether a range is sorted into
-   \fI(C++11)\fP                                      ascending order
-                                                \fI(function template)\fP
-   std::experimental::parallel::is_sorted_until parallelized version of
-   (parallelism TS)                             std::is_sorted_until
-                                                \fI(function template)\fP
+   is_sorted checks whether a range is sorted into ascending order
+   \fI(C++11)\fP   \fI(function template)\fP 

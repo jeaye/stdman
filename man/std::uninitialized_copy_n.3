@@ -1,4 +1,7 @@
-.TH std::uninitialized_copy_n 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_copy_n 3 "Nov 25 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::uninitialized_copy_n \- std::uninitialized_copy_n
+
 .SH Synopsis
    Defined in header <memory>
    template< class InputIt, class Size, class ForwardIt >
@@ -6,13 +9,13 @@
    d_first);
 
    Copies count elements from a range beginning at first to an uninitialized memory
-   area beginning at d_first as if by
-
- for ( ; n > 0; ++d_first, ++first, --n)
-    ::new (static_cast<void*>(std::addressof(*d_first)))
-       typename iterator_traits<ForwardIterator>::value_type(*first);
+   area beginning at d_first. The elements in the uninitialized area are constructed
+   using copy constructor.
 
    If an exception is thrown during the initialization, the function has no effects.
+
+    This section is incomplete
+    Reason: update possible implementation to reflect this
 
 .SH Parameters
 
@@ -38,18 +41,10 @@
    ForwardIt uninitialized_copy_n(InputIt first, Size count, ForwardIt d_first)
    {
        typedef typename std::iterator_traits<ForwardIt>::value_type Value;
-       ForwardIt current = d_first;
-       try {
-           for (; count > 0; ++first, ++current, --count) {
-               ::new (static_cast<void*>(std::addressof(*current))) Value(*first);
-           }
-       } catch (...) {
-           for (; d_first != current; ++d_first) {
-               d_first->~Value();
-           }
-           throw;
+       for (; count > 0; ++first, ++d_first, --count) {
+           ::new (static_cast<void*>(&*d_first)) Value(*first);
        }
-       return current;
+       return d_first;
    }
 
 .SH Example
@@ -62,19 +57,18 @@
  #include <memory>
  #include <string>
  #include <tuple>
- #include <vector>
-
+  
  int main()
  {
      std::vector<std::string> v = {"This", "is", "an", "example"};
-
+  
      std::string* p;
      std::size_t sz;
      std::tie(p, sz)  = std::get_temporary_buffer<std::string>(v.size());
      sz = std::min(sz, v.size());
-
+  
      std::uninitialized_copy_n(v.begin(), sz, p);
-
+  
      for (std::string* i = p; i != p+sz; ++i) {
          std::cout << *i << ' ';
          i->~basic_string<char>();
@@ -88,9 +82,9 @@
 
 .SH See also
 
-                                                     copies a range of objects to an
-   uninitialized_copy                                uninitialized area of memory
-                                                     \fI(function template)\fP
-   std::experimental::parallel::uninitialized_copy_n parallelized version of
-   (parallelism TS)                                  std::uninitialized_copy_n
-                                                     \fI(function template)\fP
+   uninitialized_copy copies a range of objects to an uninitialized area of memory
+                      \fI(function template)\fP 
+
+.SH Category:
+
+     * Todo with reason

@@ -1,4 +1,7 @@
-.TH std::call_once 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::call_once 3 "Nov 25 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::call_once \- std::call_once
+
 .SH Synopsis
    Defined in header <mutex>
    template< class Callable, class... Args >                              \fI(since C++11)\fP
@@ -37,21 +40,38 @@
        specified
      * any exception thrown by f
 
-.SH Notes
+.SH Example
 
-   The arguments to the Callable object are moved or copied by value. If
-   a reference argument needs to be passed to the Callable object, it has (until C++17)
-   to be wrapped (e.g. with std::ref or std::cref).
-   The arguments to the Callable object are perfect forwarded (as if by
-   std::forward<Callable>(f) and std::forward<Args>(args))...), which is
-   different from the uses of Callables in the thread constructor or      (since C++17)
-   std::async, because call_once does not have to transfer its arguments
-   to another thread of execution, and therefore does not need to move or
-   copy.
+   
+// Run this code
 
-   Initialization of function-local statics is guaranteed to occur only once even when
-   called from multiple threads, and may be more efficient than the equivalent code
-   using std::call_once.
+ #include <iostream>
+ #include <thread>
+ #include <mutex>
+  
+ std::once_flag flag;
+  
+ void do_once()
+ {
+     std::call_once(flag, [](){ std::cout << "Called once" << std::endl; });
+ }
+  
+ int main()
+ {
+     std::thread t1(do_once);
+     std::thread t2(do_once);
+     std::thread t3(do_once);
+     std::thread t4(do_once);
+  
+     t1.join();
+     t2.join();
+     t3.join();
+     t4.join();
+ }
+
+.SH Output:
+
+ Called once
 
 .SH Example
 
@@ -61,47 +81,38 @@
  #include <iostream>
  #include <thread>
  #include <mutex>
-
- std::once_flag flag1, flag2;
-
- void simple_do_once()
+  
+ std::once_flag flag;
+  
+ inline void may_throw_function(bool do_throw)
  {
-     std::call_once(flag1, [](){ std::cout << "Simple example: called once\\n"; });
- }
-
- void may_throw_function(bool do_throw)
- {
+   // only one instance of this function can be run simultaneously
    if (do_throw) {
-     std::cout << "throw: call_once will retry\\n"; // this may appear more than once
+     std::cout << "throw\\n"; // this message may be printed from 0 to 3 times
+     // if function exits via exception, another function selected
      throw std::exception();
    }
-   std::cout << "Didn't throw, call_once will not attempt again\\n"; // guaranteed once
+  
+   std::cout << "once\\n"; // printed exactly once, it's guaranteed that
+       // there are no messages after it
  }
-
- void do_once(bool do_throw)
+  
+ inline void do_once(bool do_throw)
  {
    try {
-     std::call_once(flag2, may_throw_function, do_throw);
+     std::call_once(flag, may_throw_function, do_throw);
    }
    catch (...) {
    }
  }
-
+  
  int main()
  {
-     std::thread st1(simple_do_once);
-     std::thread st2(simple_do_once);
-     std::thread st3(simple_do_once);
-     std::thread st4(simple_do_once);
-     st1.join();
-     st2.join();
-     st3.join();
-     st4.join();
-
      std::thread t1(do_once, true);
      std::thread t2(do_once, true);
      std::thread t3(do_once, false);
      std::thread t4(do_once, true);
+  
      t1.join();
      t2.join();
      t3.join();
@@ -110,14 +121,11 @@
 
 .SH Possible output:
 
- Simple example: called once
- throw: call_once will retry
- throw: call_once will retry
- Didn't throw, call_once will not attempt again
+ throw
+ throw
+ once
 
 .SH See also
 
    once_flag helper object to ensure that call_once invokes the function only once
-   \fI(C++11)\fP   \fI(class)\fP
-   C documentation for
-   call_once
+   \fI(C++11)\fP   \fI(class)\fP 

@@ -1,4 +1,7 @@
-.TH std::enable_if 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::enable_if 3 "Nov 25 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::enable_if \- std::enable_if
+
 .SH Synopsis
    Defined in header <type_traits>
    template< bool B, class T = void >  \fI(since C++11)\fP
@@ -7,12 +10,12 @@
    If B is true, std::enable_if has a public member typedef type, equal to T;
    otherwise, there is no member typedef.
 
-   This metafunction is a convenient way to leverage SFINAE to conditionally remove
-   functions from overload resolution based on type traits and to provide separate
-   function overloads and specializations for different type traits. std::enable_if can
-   be used as an additional function argument (not applicable to operator overloads),
-   as a return type (not applicable to constructors and destructors), or as a class
-   template or function template parameter.
+   This metafunction is used to conditionally remove functions and classes from
+   overload resolution based on type traits and to provide separate function overloads
+   and specializations for different type traits. std::enable_if can be used as an
+   additional function argument (not applicable to operator overloads), as a return
+   type (not applicable to constructors and destructors), or as a class template or
+   function template parameter.
 
 .SH Member types
 
@@ -28,29 +31,9 @@
 
    template<bool B, class T = void>
    struct enable_if {};
-
+    
    template<class T>
    struct enable_if<true, T> { typedef T type; };
-
-.SH Notes
-
-   A common mistake is to declare two function templates that differ only in their
-   default template arguments. This is illegal because default template arguments are
-   not part of function template's signature, and declaring two different function
-   templates with the same signature is illegal.
-
- struct T {
-     enum { int_t,float_t } m_type;
-     template <typename Integer,
-               typename = std::enable_if_t<std::is_integral<Integer>::value>
-     >
-     T(Integer) : m_type(int_t) {}
-
-     template <typename Floating,
-               typename = std::enable_if_t<std::is_floating_point<Floating>::value>
-     >
-     T(Floating) : m_type(float_t) {} // error: cannot overload
- };
 
 .SH Example
 
@@ -59,98 +42,67 @@
 
  #include <type_traits>
  #include <iostream>
- #include <string>
-
- namespace detail { struct inplace_t{}; }
- void* operator new(std::size_t, void* p, detail::inplace_t) {
-     return p;
- }
-
- // #1, enabled via the return type
- template<class T,class... Args>
- typename std::enable_if<std::is_trivially_constructible<T,Args&&...>::value>::type
-     construct(T* t,Args&&... args)
- {
-     std::cout << "constructing trivially constructible T\\n";
- }
-
- // #2
- template<class T, class... Args>
- std::enable_if_t<!std::is_trivially_constructible<T,Args&&...>::value> //Using helper type
-     construct(T* t,Args&&... args)
- {
-     std::cout << "constructing non-trivially constructible T\\n";
-     new(t, detail::inplace_t{}) T(args...);
- }
-
- // #3, enabled via a parameter
+  
+ // foo1 overloads are enabled via the return type
  template<class T>
- void destroy(T* t,
-              typename std::enable_if<std::is_trivially_destructible<T>::value>::type* = 0)
+ typename std::enable_if<std::is_floating_point<T>::value, T>::type
+     foo1(T t)
  {
-     std::cout << "destroying trivially destructible T\\n";
+     std::cout << "foo1: float\\n";
+     return t;
  }
-
- // #4, enabled via a template parameter
- template<class T,
-          typename std::enable_if<
-              !std::is_trivially_destructible<T>{} &&
-              (std::is_class<T>{} || std::is_union<T>{})
-             >::type* = nullptr>
- void destroy(T* t)
+  
+ template<class T>
+ std::enable_if_t<std::is_integral<T>::value, T> //Using helper type
+     foo1(T t)
  {
-     std::cout << "destroying non-trivially destructible T\\n";
-     t->~T();
+     std::cout << "foo1: int\\n";
+     return t;
  }
-
- // #5, enabled via a template parameter
- template<class T,
-         typename = std::enable_if_t<std::is_array<T>::value> >
- void destroy(T* t) // note, function signature is unmodified
+  
+ // foo2 overload is enabled via a parameter
+ template<class T>
+ T foo2(T t, typename std::enable_if<std::is_integral<T>::value >::type* = 0)
  {
-     for(std::size_t i = 0; i < std::extent<T>::value; ++i) {
-         destroy((*t)[i]);
-     }
+     return t;
  }
- /*
- template<class T,
-         typename = std::enable_if_t<std::is_void<T>::value> >
- void destroy(T* t){} // error: has the same signature with #5
- */
-
- // the partial specialization of A is enabled via a template parameter
+  
+ // foo3 overload is enabled via a template parameter
+ template<class T ,
+          class = typename std::enable_if<std::is_integral<T>::value>::type >
+ T foo3(T t) // note, function signature is unmodified
+ {
+     return t;
+ }
+  
+ // A is enabled via a template parameter
  template<class T, class Enable = void>
- class A {}; // primary template
-
+ class A; // undefined
+  
  template<class T>
- class A<T, typename std::enable_if<std::is_floating_point<T>::value>::type> {
- }; // specialization for floating point types
-
+ class A<T, typename std::enable_if<std::is_floating_point<T>::value >::type> {
+ };
+  
  int main()
  {
-     std::aligned_union_t<0,int,std::string> u;
-
-     construct(reinterpret_cast<int*>(&u));
-     destroy(reinterpret_cast<int*>(&u));
-
-     construct(reinterpret_cast<std::string*>(&u),"Hello");
-     destroy(reinterpret_cast<std::string*>(&u));
-
-     A<int> a1; // OK, matches the primary template
-     A<double> a2; // OK, matches the partial specialization
+     foo1(1.2); // OK, calls the first version of foo1()
+     foo1(10); // OK, calls the second version of foo1()
+  
+ //  foo2(0.1); // compile-time error
+     foo2(7); // OK
+  
+ //  foo3(1.2); // compile-time error
+     foo3(34); // OK
+  
+ //  A<int> a1; // compile-time error
+     A<double> a1; // OK
  }
 
 .SH Output:
 
- constructing trivially constructible T
- destroying trivially destructible T
- constructing non-trivially constructible T
- destroying non-trivially destructible T
+ foo1: float
+ foo1: int
 
 .SH See also
 
-   void_t  void variadic alias template
-   (C++17) (alias template)
-
      * static_assert
-     * SFINAE

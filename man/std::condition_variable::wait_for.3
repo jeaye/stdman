@@ -1,26 +1,29 @@
-.TH std::condition_variable::wait_for 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::condition_variable::wait_for 3 "Nov 25 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::condition_variable::wait_for \- std::condition_variable::wait_for
+
 .SH Synopsis
    template< class Rep, class Period >
 
-   std::cv_status wait_for( std::unique_lock<std::mutex>& lock, \fB(1)\fP \fI(since C++11)\fP
+   std::cv_status wait_for( std::unique_lock<std::mutex>& lock,       \fB(1)\fP \fI(since C++11)\fP
 
-   const std::chrono::duration<Rep, Period>& rel_time);
+                            const std::chrono::duration<Rep, Period>&
+   rel_time);
    template< class Rep, class Period, class Predicate >
 
-   bool wait_for( std::unique_lock<std::mutex>& lock,           \fB(2)\fP \fI(since C++11)\fP
-   const std::chrono::duration<Rep, Period>& rel_time,
+   bool wait_for( std::unique_lock<std::mutex>& lock,                 \fB(2)\fP \fI(since C++11)\fP
+                  const std::chrono::duration<Rep, Period>& rel_time,
 
-   Predicate pred);
+                  Predicate pred);
 
    1) Atomically releases lock, blocks the current executing thread, and adds it to the
    list of threads waiting on *this. The thread will be unblocked when notify_all() or
    notify_one() is executed, or when the relative timeout rel_time expires. It may also
    be unblocked spuriously. When unblocked, regardless of the reason, lock is
-   reacquired and wait_for() exits.
-   If this function exits via exception, lock is also reacquired.
-   \fI(until C++14)\fP
+   reacquired and wait_for() exits. If this function exits via exception, lock is also
+   reacquired.
    2) Equivalent to return wait_until(lock, std::chrono::steady_clock::now() +
-   rel_time, std::move(pred). This overload may be used to ignore spurious awakenings.
+   rel_time);. This overload may be used to ignore spurious awakenings.
 
    A steady clock is used to measure the duration. This function may block for longer
    than timeout_duration due to scheduling or resource contention delays.
@@ -31,11 +34,6 @@
    Calling this function if lock.mutex() is not the same mutex as the one used by all
    other threads that are currently waiting on the same condition variable is undefined
    behavior.
-
-   If these functions fail to meet the postcondition
-   (lock.owns_lock()==true and lock.mutex() is locked by the calling      \fI(since C++14)\fP
-   thread), std::terminate is called. For example, this could happen if
-   relocking the mutex throws an exception,
 
 .SH Parameters
 
@@ -48,22 +46,19 @@
    pred     - The signature of the predicate function should be equivalent to the
               following:
 
-              bool pred();
+               bool pred();
 
 .SH Return value
 
    1) std::cv_status::timeout if the relative timeout specified by rel_time expired,
-   std::cv_status::no_timeout otherwise.
+   std::cv_status::no_timeout overwise.
    2) false if the predicate pred still evaluates to false after the rel_time timeout
    expired, otherwise true.
 
 .SH Exceptions
 
-   May throw std::system_error, may also propagate exceptions thrown by   \fI(until C++14)\fP
-   lock.lock() or lock.unlock().
-   Any exception thrown by clock, time_point, or duration during the
-   execution (clocks, time points, and durations provided by the standard \fI(since C++14)\fP
-   library never throw)
+   May throw std::system_error, may also propagate exceptions thrown by lock.lock() or
+   lock.unlock().
 
 .SH Example
 
@@ -75,11 +70,11 @@
  #include <condition_variable>
  #include <thread>
  #include <chrono>
-
+  
  std::condition_variable cv;
  std::mutex cv_m;
  std::atomic<int> i{0};
-
+  
  void waits(int idx)
  {
      std::unique_lock<std::mutex> lk(cv_m);
@@ -88,7 +83,7 @@
      else
          std::cerr << "Thread " << idx << " timed out. i == " << i << '\\n';
  }
-
+  
  void signals()
  {
      std::this_thread::sleep_for(std::chrono::milliseconds(120));
@@ -99,7 +94,7 @@
      std::cerr << "Notifying again...\\n";
      cv.notify_all();
  }
-
+  
  int main()
  {
      std::thread t1(waits, 1), t2(waits, 2), t3(waits, 3), t4(signals);
@@ -117,7 +112,7 @@
 .SH See also
 
    wait       blocks the current thread until the condition variable is woken up
-              \fI(public member function)\fP
+              \fI(public member function)\fP 
               blocks the current thread until the condition variable is woken up or
    wait_until until specified time point has been reached
-              \fI(public member function)\fP
+              \fI(public member function)\fP 

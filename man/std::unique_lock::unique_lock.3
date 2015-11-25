@@ -1,21 +1,26 @@
-.TH std::unique_lock::unique_lock 3 "Sep  4 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.TH std::unique_lock::unique_lock 3 "Nov 25 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::unique_lock::unique_lock \- std::unique_lock::unique_lock
+
 .SH Synopsis
-   unique_lock();                                                 \fB(1)\fP \fI(since C++11)\fP
-   unique_lock( unique_lock&& other );                            \fB(2)\fP \fI(since C++11)\fP
-   explicit unique_lock( mutex_type& m );                         \fB(3)\fP \fI(since C++11)\fP
-   unique_lock( mutex_type& m, std::defer_lock_t t );             \fB(4)\fP \fI(since C++11)\fP
-   unique_lock( mutex_type& m, std::try_to_lock_t t );            \fB(5)\fP \fI(since C++11)\fP
-   unique_lock( mutex_type& m, std::adopt_lock_t t );             \fB(6)\fP \fI(since C++11)\fP
+   unique_lock();                                                     \fB(1)\fP \fI(since C++11)\fP
+   unique_lock( unique_lock&& other );                                \fB(2)\fP \fI(since C++11)\fP
+   explicit unique_lock( mutex_type& m );                             \fB(3)\fP \fI(since C++11)\fP
+   unique_lock( mutex_type& m, std::defer_lock_t t );                 \fB(4)\fP \fI(since C++11)\fP
+   unique_lock( mutex_type& m, std::try_to_lock_t t );                \fB(5)\fP \fI(since C++11)\fP
+   unique_lock( mutex_type& m, std::adopt_lock_t t );                 \fB(6)\fP \fI(since C++11)\fP
    template< class Rep, class Period >
 
-   unique_lock( mutex_type& m,                                    \fB(7)\fP \fI(since C++11)\fP
+   unique_lock( mutex_type& m,                                        \fB(7)\fP \fI(since C++11)\fP
 
-   const std::chrono::duration<Rep,Period>& timeout_duration );
+                const std::chrono::duration<Rep,Period>&
+   timeout_duration );
    template< class Clock, class Duration >
 
-   unique_lock( mutex_type& m,                                    \fB(8)\fP \fI(since C++11)\fP
+   unique_lock( mutex_type& m,                                        \fB(8)\fP \fI(since C++11)\fP
 
-   const std::chrono::time_point<Clock,Duration>& timeout_time );
+                const std::chrono::time_point<Clock,Duration>&
+   timeout_time );
 
    Constructs a unique_lock, optionally locking the supplied mutex.
 
@@ -51,8 +56,9 @@
 .SH Exceptions
 
    1, 2, 4)
-   noexcept specification:
+   noexcept specification:  
    noexcept
+     
 
 .SH Example
 
@@ -64,14 +70,14 @@
  #include <thread>
  #include <vector>
  #include <mutex>
-
+  
  class Number;
  std::ostream& operator<<(std::ostream& stream, const Number& number);
-
+  
  class Number {
   public:
    Number() : v_(1) {}
-
+  
    // thread-safe update of 'a' and 'b'
    static void update(Number& a, Number& b, bool order) {
      // do not lock 'mutex_' of 'a' and 'b' sequentially,
@@ -79,61 +85,61 @@
      // that's why 'std::lock' exists (see below)
      GuardLock lock_a(a.mutex_, std::defer_lock);
      GuardLock lock_b(b.mutex_, std::defer_lock);
-
+  
      // mutexes is not locked
      assert(!lock_a.owns_lock());
      assert(!lock_b.owns_lock());
-
+  
      // unspecified series of calls...
      std::lock(lock_a, lock_b);
-
+  
      // Result: 'a.mutex_' and 'b.mutex_' is in locked state
      // 'a' and 'b' can be modified safety
      assert(lock_a.owns_lock());
      assert(lock_b.owns_lock());
-
+  
      if (order) {
        a.v_ += b.v_;
        b.v_ += a.v_;
-
+  
        std::cout << a << b;
      }
      else {
        b.v_ += a.v_;
        a.v_ += b.v_;
-
+  
        std::cout << b << a;
      }
-
+  
      // 'lock_a' and 'lock_b' will be destroyed,
      // unlocking 'a.mutex_' and 'b.mutex_'
    }
-
+  
    // not thread-safe; used before thread creation or in thread-safe 'update'
    std::ostream& print(std::ostream& stream) const {
      stream << v_ << " ";
      return stream;
    }
-
+  
   private:
    using Mutex = std::mutex;
    using GuardLock = std::unique_lock<Mutex>;
-
+  
    Mutex mutex_;
    int v_;
  };
-
+  
  // not thread-safe; see 'Number::print'
  std::ostream& operator<<(std::ostream& stream, const Number& number) {
    return number.print(stream);
  }
-
+  
  int main() {
    Number a, b;
    std::cout << a << b;
-
+  
    std::vector<std::thread> threads;
-
+  
    for (unsigned i = 0; i < 4; ++i) {
      // without 'std::lock' deadlock may occur in this situation:
      //   thread #1 lock 'a.mutex_'
@@ -144,18 +150,14 @@
      threads.emplace_back(Number::update, std::ref(a), std::ref(b), true); // #1
      threads.emplace_back(Number::update, std::ref(b), std::ref(a), false); // #2
    }
-
+  
    for (auto& i: threads) {
      i.join();
    }
-
+  
    std::cout << '\\n';
  }
 
 .SH Output:
 
  1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597 2584
-
-.SH Category:
-
-     * unconditionally noexcept
