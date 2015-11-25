@@ -4,21 +4,28 @@ std::end \- std::end
 
 .SH Synopsis
    Defined in header <iterator>
-   template< class C >                               \fB(1)\fP \fI(since C++11)\fP
+   template< class C >                                  \fB(1)\fP \fI(since C++11)\fP
    auto end( C& c ) -> decltype(c.end());
-   template< class C >                               \fB(1)\fP \fI(since C++11)\fP
+   template< class C >                                  \fB(1)\fP \fI(since C++11)\fP
    auto end( const C& c ) -> decltype(c.end());
-   template< class T, size_t N >                     \fB(2)\fP \fI(since C++11)\fP
-   T* end( T (&array)[N] );
-   template< class C >                               \fB(3)\fP \fI(since C++14)\fP
-   auto cend( const C& c ) -> decltype(std::end(c));
+   template< class T, std::size_t N >                                     \fI(since C++11)\fP
+   T* end( T (&array)[N] );                                               \fI(until C++14)\fP
+   template< class T, std::size_t N >                                     \fI(since C++14)\fP
+   constexpr T* end( T (&array)[N] );                   \fB(2)\fP
+   template< class C >
+   constexpr auto cend( const C& c ) ->                     \fB(3)\fP           \fI(since C++14)\fP
+   decltype(std::end(c));
 
    Returns an iterator to the end (i.e. the element after the last element) of the
-   given container c or array array.
+   given container c or array array. These templates rely on C::end() having a
+   reasonable implementation.
 
-   1) Returns a possibly const-qualified iterator to the end of the container c.
+   1) Returns exactly c.end(), which is typically an iterator one past the end of the
+   sequence represented by c. If C is a standard Container, this returns a C::iterator
+   when c is not const-qualified, and a C::const_iterator otherwise.
    2) Returns a pointer to the end of the array array.
-   3) Returns a const-qualified iterator to the end of the container c.
+   3) Returns exactly std::end(c), with c always treated as const-qualified. If C is a
+   standard Container, this always returns a C::const_iterator.
 
    range-begin-end.svg
 
@@ -32,6 +39,17 @@ std::end \- std::end
    An iterator to the end of c or array. Note that the end of a container or array is
    defined as the element following the last valid element.
 
+.SH Exceptions
+
+   2)
+   noexcept specification:  
+   noexcept
+     
+   \fI(since C++14)\fP
+   3)
+   noexcept specification:  
+   noexcept(noexcept(std::end(c)))
+
 .SH Notes
 
    In addition to being included in <iterator>, std::end is guaranteed to become
@@ -39,16 +57,33 @@ std::end \- std::end
    <forward_list>, <list>, <map>, <regex>, <set>, <string>, <unordered_map>,
    <unordered_set>, and <vector>.
 
-.SH Specializations
+   User-defined overloads
 
-   Custom specializations of std::end may be provided for classes that do not expose a
-   suitable end() member function, yet can be iterated. The following specializations
-   are already provided by the standard library:
+   Custom overloads of std::end may be provided for classes that do not expose a
+   suitable end() member function, yet can be iterated. The following overloads are
+   already provided by the standard library:
 
    std::end(std::initializer_list) specializes std::end
    \fI(C++11)\fP                         \fI(function template)\fP 
    std::end(std::valarray)         specializes std::end
    \fI(C++11)\fP                         \fI(function template)\fP 
+
+   Similar to the use of swap (described in Swappable), typical use of the end function
+   in generic context is an equivalent of using std::end; end(arg);, which lets both
+   the ADL-selected overloads for user-defined types and the standard library function
+   templates to appear in the same overload set.
+
+ template<typename Container, typename Function>
+ void for_each(Container&& cont, Function f) {
+     using std::begin;
+     auto it = begin(cont);
+     using std::end;
+     auto end_it = end(cont);
+     while (it != end_it) {
+         f(*it);
+         ++it;
+     }
+ }
 
 .SH Example
 
@@ -83,3 +118,8 @@ std::end \- std::end
    cbegin  returns an iterator to the beginning of a container or array
    \fI(C++11)\fP \fI(function)\fP 
    \fI(C++14)\fP
+
+   Categories:
+
+     * unconditionally noexcept
+     * conditionally noexcept

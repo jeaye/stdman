@@ -25,8 +25,9 @@ std::condition_variable::wait_until \- std::condition_variable::wait_until
    list of threads waiting on *this. The thread will be unblocked when notify_all() or
    notify_one() is executed, or when the absolute time point timeout_time is reached.
    It may also be unblocked spuriously. When unblocked, regardless of the reason, lock
-   is reacquired and wait_until exits. If this function exits via exception, lock is
-   also reacquired.
+   is reacquired and wait_until exits.
+   If this function exits via exception, lock is also reacquired.
+   \fI(until C++14)\fP
    2) Equivalent to
 
  while (!pred()) {
@@ -38,19 +39,17 @@ std::condition_variable::wait_until \- std::condition_variable::wait_until
 
    This overload may be used to ignore spurious wakeups.
 
-   The clock tied to timeout_time is used, which means that adjustments of the clock
-   are taken into account. Thus, the maximum duration of the block might, but might
-   not, be less or more than timeout_time - Clock::now() at the time of the call,
-   depending on the direction of the adjustment. The function also may block for longer
-   than until after timeout_time has been reached due to scheduling or resource
-   contention delays.
-
    Calling this function if lock.mutex() is not locked by the current thread is
    undefined behavior.
 
    Calling this function if lock.mutex() is not the same mutex as the one used by all
    other threads that are currently waiting on the same condition variable is undefined
    behavior.
+
+   If these functions fail to meet the postcondition
+   (lock.owns_lock()==true and lock.mutex() is locked by the calling      \fI(since C++14)\fP
+   thread), std::terminate is called. For example, this could happen if
+   relocking the mutex throws an exception,
 
 .SH Parameters
 
@@ -70,12 +69,26 @@ std::condition_variable::wait_until \- std::condition_variable::wait_until
    1) std::cv_status::timeout if the absolute timeout specified by abs_time was
    reached, std::cv_status::no_timeout overwise.
    2) false if the predicate pred still evaluates to false after the abs_time timeout
-   expired, otherwise true.
+   expired, otherwise true. If the timeout had already expired, evaluates and returns
+   the result of pred.
 
 .SH Exceptions
 
-   May throw std::system_error, may also propagate exceptions thrown by lock.lock() or
-   lock.unlock().
+   May throw std::system_error, may also propagate exceptions thrown by   \fI(until C++14)\fP
+   lock.lock() or lock.unlock().
+   Any exception thrown by clock, time point, or duration during the
+   execution (clocks, time points, and durations provided by the standard \fI(since C++14)\fP
+   library never throw)
+
+.SH Notes
+
+   The clock tied to timeout_time is used, which is not required to be a monotonic
+   clock.There are no guarantees regarding the behavior of this function if the clock
+   is adjusted discontinuously, but the existing implementations convert timeout_time
+   from Clock to std::chrono::system_clock and delegate to POSIX pthread_cond_timedwait
+   so that the wait honors ajustments to the system clock, but not to the the
+   user-provided Clock. In any case, the function also may wait for longer than until
+   after timeout_time has been reached due to scheduling or resource contention delays.
 
 .SH Example
 
@@ -87,16 +100,17 @@ std::condition_variable::wait_until \- std::condition_variable::wait_until
  #include <condition_variable>
  #include <thread>
  #include <chrono>
+ using namespace std::literals;
   
  std::condition_variable cv;
  std::mutex cv_m;
- std::atomic<int> i = ATOMIC_VAR_INIT(0);
+ std::atomic<int> i{0};
   
  void waits(int idx)
  {
      std::unique_lock<std::mutex> lk(cv_m);
      auto now = std::chrono::system_clock::now();
-     if(cv.wait_until(lk, now + std::chrono::milliseconds(idx*100), [](){return i == 1;}))
+     if(cv.wait_until(lk, now + idx*100ms, [](){return i == 1;}))
          std::cerr << "Thread " << idx << " finished waiting. i == " << i << '\\n';
      else
          std::cerr << "Thread " << idx << " timed out. i == " << i << '\\n';
@@ -104,10 +118,10 @@ std::condition_variable::wait_until \- std::condition_variable::wait_until
   
  void signals()
  {
-     std::this_thread::sleep_for(std::chrono::milliseconds(120));
+     std::this_thread::sleep_for(120ms);
      std::cerr << "Notifying...\\n";
      cv.notify_all();
-     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+     std::this_thread::sleep_for(100ms);
      i = 1;
      std::cerr << "Notifying again...\\n";
      cv.notify_all();

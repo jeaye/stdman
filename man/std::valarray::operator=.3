@@ -3,34 +3,38 @@
 std::valarray::operator= \- std::valarray::operator=
 
 .SH Synopsis
-   valarray<T>& operator=( const valarray<T>& other );    \fB(1)\fP
-   valarray<T>& operator=( valarray<T>&& other );         \fB(2)\fP \fI(since C++11)\fP
-   valarray<T>& operator=( const T& val );                \fB(3)\fP
-   valarray<T>& operator=( const std::slice_array& );     \fB(4)\fP
-   valarray<T>& operator=( const std::gslice_array& );    \fB(5)\fP
-   valarray<T>& operator=( const std::mask_array& );      \fB(6)\fP
-   valarray<T>& operator=( const std::indirect_array& );  \fB(7)\fP
-   valarray<T>& operator=( std::initializer_list<T> il ); \fB(8)\fP \fI(since C++11)\fP
+   valarray<T>& operator=( const valarray<T>& other );            \fB(1)\fP
+   valarray<T>& operator=( valarray<T>&& other );                 \fB(2)\fP \fI(since C++11)\fP
+   valarray<T>& operator=( const T& val );                        \fB(3)\fP
+   valarray<T>& operator=( const std::slice_array<T>& other);     \fB(4)\fP
+   valarray<T>& operator=( const std::gslice_array<T>& other);    \fB(5)\fP
+   valarray<T>& operator=( const std::mask_array<T>& other );     \fB(6)\fP
+   valarray<T>& operator=( const std::indirect_array<T>& other ); \fB(7)\fP
+   valarray<T>& operator=( std::initializer_list<T> il );         \fB(8)\fP \fI(since C++11)\fP
 
    Replaces the contents of the numeric array.
 
-   1) Copy assignment operator. Replaces the contents with a copy of the contents of
-   other.
-   2) Move assignment operator. Replaces the contents with those of other using move
-   semantics (i.e. the data in other is moved from other into this numeric array).
-   other is in valid, but unspecified state afterwards.
-   3) Assigns each value in the numeric array the value of val.
-
-    This section is incomplete
-
-   8) Assigns the contents of initializer list il. Equivalent to {{{1}}}.
+   1) Copy assignment operator. Each element of *this is assigned the value of the
+   corresponding element of other. If the length of other does not equal the length of
+   *this,
+   the behavior is undefined
+   \fI(until C++11)\fP
+   first resizes as if by resize(other.size())
+   \fI(since C++11)\fP.
+   2) Move assignment operator. Replaces the contents of *this with those of other. The
+   value of other is unspecified after this operation. The complexity of this operation
+   may be linear if T has non-trivial destructors, but is usually constant otherwise.
+   3) Replaces each value in *this with a copy of val.
+   4-7) Replaces the contents of *this with the result of a generalized subscripting
+   operation. The behavior is undefined if the length of the argument does not equal
+   the length of *this or if any value on the left depends on the value on the right
+   (e.g v=v[v>2]).
+   8) Assigns the contents of initializer list il. Equivalent to *this = valarray(il).
 
 .SH Parameters
 
-   other - another numeric array to assign
-           the value to initialize each element with
-   val   -
-            This section is incomplete
+   other - another numeric array (or a mask) to assign
+   val   - the value to initialize each element with
    il    - initializer list to assign
 
 .SH Return value
@@ -41,13 +45,54 @@ std::valarray::operator= \- std::valarray::operator=
 
    1) \fI(none)\fP
    2)
-
-   \fI(none)\fP                    \fI(until C++11)\fP
    noexcept specification:  
-   noexcept                  \fI(since C++11)\fP
+   noexcept
      
-
    3-8) \fI(none)\fP
+
+.SH Example
+
+   
+// Run this code
+
+ #include <valarray>
+ #include <iostream>
+  
+ int main()
+ {
+     std::valarray<int> v1(3);
+     v1 = -1; // from a scalar
+     std::cout << "assigned from scalar: ";
+     for(int n: v1) std::cout << n << ' '; std::cout << '\\n';
+  
+     v1 = {1, 2, 3, 4, 5, 6}; // from initializer list of different size
+     std::cout << "assigned from initializer_list:      ";
+     for(int n: v1) std::cout << n << ' '; std::cout << '\\n';
+  
+     std::valarray<int> v2(3);
+     v2 = v1[std::slice(0,3,2)]; // from slice array
+     std::cout << "every 2nd element starting at pos 0: ";
+     for(int n: v2) std::cout << n << ' '; std::cout << '\\n';
+  
+     v2 = v1[v1 % 2 == 0]; // from mask array
+     std::cout << "values that are even          :      ";
+     for(int n: v2) std::cout << n << ' '; std::cout << '\\n';
+  
+     std::valarray<std::size_t> idx = {0,1,2,4}; // index array
+     v2.resize(4); // sizes must match when assigning from gen subscript
+     v2 = v1[idx]; // from indirect array
+     std::cout << "values at positions 0,1,2,4:         ";
+     for(int n: v2) std::cout << n << ' '; std::cout << '\\n';
+ }
+
+.SH Output:
+
+ assigned from scalar: -1 -1 -1
+ assigned from initializer_list:      1 2 3 4 5 6
+ every 2nd element starting at pos 0: 1 3 5
+ values that are even          :      2 4 6
+ values at positions 0,1,2,4:         1 2 3 5
+
 .SH Category:
 
-     * Todo without reason
+     * unconditionally noexcept

@@ -20,16 +20,24 @@ std::shared_ptr \- std::shared_ptr
 
    A shared_ptr can share ownership of an object while storing a pointer to another
    object. This feature can be used to point to member objects while owning the object
-   they belong to.
+   they belong to. The stored pointer is the one accessed by get(), the dereference and
+   the comparison operators. The managed pointer is the one passed to the deleter when
+   use count reaches zero.
 
-   A shared_ptr may also own no objects, in which case it is called empty.
+   A shared_ptr may also own no objects, in which case it is called empty (an empty
+   shared_ptr may have a non-null stored pointer if the aliasing constructor was used
+   to create it)
 
-   shared_ptr meets the requirements of CopyConstructible and CopyAssignable.
+   All specializations of shared_ptr meet the requirements of CopyConstructible,
+   CopyAssignable, and LessThanComparable and are contextually convertible to bool.
 
    All member functions (including copy constructor and copy assignment) can be called
    by multiple threads on different instances of shared_ptr without additional
    synchronization even if these instances are copies and share ownership of the same
-   object.
+   object. If multiple threads of execution access the same shared_ptr without
+   synchronization and any of those accesses uses a non-const member function of
+   shared_ptr then a data race will occur; the shared_ptr overloads of atomic functions
+   can be used to prevent the data race.
 
 .SH Member types
 
@@ -113,11 +121,16 @@ std::shared_ptr \- std::shared_ptr
    shared_ptr using the raw underlying pointer owned by another shared_ptr leads to
    undefined behavior.
 
+   std::shared_ptr may be used with an incomplete type T, but T must be complete at the
+   point in code where the constructor from a raw pointer or the reset(T*) member
+   function is called (note that std::unique_ptr may be constructed from a raw pointer
+   to an incomplete type).
+
 .SH Implementation notes
 
    In a typical implementation, std::shared_ptr holds only two pointers:
 
-     * a pointer to the managed object
+     * the stored pointer (one returned by get())
      * a pointer to control block
 
    The control block is a dynamically-allocated object that holds:
@@ -144,6 +157,82 @@ std::shared_ptr \- std::shared_ptr
    managed object. The control block does not deallocate itself until the std::weak_ptr
    counter reaches zero as well.
 
+   In practical implementations, the number of weak pointers may be incremented if
+   there is a shared pointer to the same control block.
+
    To satisfy thread safety requirements, the reference counters are typically
-   incremented and decremented using std::atomic::fetch_add with
+   incremented and decremented using an equivalent of std::atomic::fetch_add with
    std::memory_order_relaxed.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <memory>
+ #include <thread>
+ #include <chrono>
+ #include <mutex>
+  
+ struct Base
+ {
+     Base() { std::cout << "  Base::Base()\\n"; }
+     // Note: non-virtual destructor is OK here
+     ~Base() { std::cout << "  Base::~Base()\\n"; }
+ };
+ struct Derived: public Base
+ {
+     Derived() { std::cout << "  Derived::Derived()\\n"; }
+     ~Derived() { std::cout << "  Derived::~Derived()\\n"; }
+ };
+  
+ void thr(std::shared_ptr<Base> p)
+ {
+     std::this_thread::sleep_for(std::chrono::seconds(1));
+     std::shared_ptr<Base> lp = p; // thread-safe, even though the
+                                   // shared use_count is incremented
+     {
+       static std::mutex io_mutex;
+       std::lock_guard<std::mutex> lk(io_mutex);
+       std::cout << "local pointer in a thread:\\n"
+                 << "  lp.get() = " << lp.get()
+                 << ", lp.use_count() = " << lp.use_count() << '\\n';
+     }
+ }
+  
+ int main()
+ {
+     std::shared_ptr<Base> p = std::make_shared<Derived>();
+  
+     std::cout << "Created a shared Derived (as a pointer to Base)\\n"
+               << "  p.get() = " << p.get()
+               << ", p.use_count() = " << p.use_count() << '\\n';
+     std::thread t1(thr, p), t2(thr, p), t3(thr, p);
+     p.reset(); // release ownership from main
+     std::cout << "Shared ownership between 3 threads and released\\n"
+               << "ownership from main:\\n"
+               << "  p.get() = " << p.get()
+               << ", p.use_count() = " << p.use_count() << '\\n';
+     t1.join(); t2.join(); t3.join();
+     std::cout << "All threads completed, the last one deleted Derived\\n";
+ }
+
+.SH Possible output:
+
+ Base::Base()
+   Derived::Derived()
+ Created a shared Derived (as a pointer to Base)
+   p.get() = 0xc99028, p.use_count() = 1
+ Shared ownership between 3 threads and released
+ ownership from main:
+   p.get() = (nil), p.use_count() = 0
+ local pointer in a thread:
+   lp.get() = 0xc99028, lp.use_count() = 3
+ local pointer in a thread:
+   lp.get() = 0xc99028, lp.use_count() = 4
+ local pointer in a thread:
+   lp.get() = 0xc99028, lp.use_count() = 2
+   Derived::~Derived()
+   Base::~Base()
+ All threads completed, the last one deleted Derived

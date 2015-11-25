@@ -22,16 +22,23 @@ std::default_delete \- std::default_delete
    operator()    deletes the object or array
                  \fI(public member function)\fP 
 
-                           std::default_delete::default_delete
+std::default_delete::default_delete
 
-   constexpr default_delete = default;           \fB(1)\fP \fI(since C++11)\fP
-   template <class U>                            \fB(2)\fP \fI(since C++11)\fP
-   default_delete( const default_delete<U>& d );
+   constexpr default_delete() = default;    \fB(1)\fP
+   template <class U>                           (member only of generic default_delete
+   default_delete( const default_delete<U>& \fB(2)\fP template)
+   d );
+   template<class U>                            (since C++17)
+   default_delete( const                    \fB(3)\fP (member only the array default_delete
+   default_delete<U[]>& d);                     specialization)
 
    1) Constructs a std::default_delete object.
    2) Constructs a std::default_delete object from another std::default_delete object.
    This constructor will only participate in overload resolution if U* is implicitly
    convertible to T*.
+   3) Constructs a std::default_delete<U[]> object from another
+   std::default_delete<U[]> object. This constructor will only participate in overload
+   resolution if U(*)[] is implicitly convertible to T(*)[].
 
 .SH Parameters
 
@@ -43,11 +50,27 @@ std::default_delete \- std::default_delete
    noexcept
      
 
-                             std::default_delete::operator()
+.SH Notes
 
-   void operator()(T *ptr) const;  \fI(since C++11)\fP
+   The converting constructor template of std::default_delete makes possible the
+   implicit conversion from std::unique_ptr<Derived> to std::unique_ptr<Base>.
 
-   Calls either delete or delete[] on ptr.
+std::default_delete::operator()
+
+   void operator()(T* ptr) const; \fB(1)\fP (as of C++17, no longer a member of the
+                                      default_delete<T[]> template specialization)
+   template <class U>                 (member only of default_delete<T[]> template
+   void operator()(U* ptr) const; \fB(2)\fP specialization, but defined as deleted prior to
+                                      C++17)
+
+   1) Calls delete (primary template) or delete[] (array specialization)
+   on ptr                                                                 (until C++17)
+   2) Defined as deleted
+   1) Calls delete on ptr
+   2) Calls delete[] on ptr. This function will only participate in       (since C++17)
+   overload resolution if U(*)[] is implicitly convertible to T(*)[].
+
+   In any case, if U is an incomplete type, the program is ill-formed
 
 .SH Parameters
 
@@ -96,3 +119,7 @@ std::default_delete \- std::default_delete
 
    unique_ptr smart pointer with unique object ownership semantics
    \fI(C++11)\fP    \fI(class template)\fP 
+
+.SH Category:
+
+     * unconditionally noexcept

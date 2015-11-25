@@ -18,8 +18,8 @@ std::wcstof,std::wcstod,std::wcstold \- std::wcstof,std::wcstod,std::wcstold
      * decimal floating point expression. It consists of the following parts:
 
      * (optional) plus or minus sign
-     * nonempty sequence of decimal digits optionally containing a decimal point
-       character (defines significand)
+     * nonempty sequence of decimal digits optionally containing decimal point
+       character (as determined by the current C locale) (defines significand)
      * (optional) e or E followed with optional minus or plus sign and nonempty
        sequence of decimal digits (defines exponent)
 
@@ -28,7 +28,7 @@ std::wcstof,std::wcstod,std::wcstold \- std::wcstof,std::wcstod,std::wcstold
      * (optional) plus or minus sign
      * 0x or 0X
      * nonempty sequence of hexadecimal digits optionally containing a decimal point
-       character (defines significand)
+       character (as determined by the current C locale) (defines significand)
      * (optional) p or P followed with optional minus or plus sign and nonempty
        sequence of decimal digits (defines exponent)
 
@@ -42,6 +42,8 @@ std::wcstof,std::wcstod,std::wcstold \- std::wcstof,std::wcstod,std::wcstold
      * (optional) plus or minus sign
      * NAN or NAN(char_sequence) ignoring case of the NAN part. char_sequence can only
        contain alphanumeric characters. The result is a quiet NaN floating point value.
+
+     * any other expression that may be accepted by the currently installed C locale
 
    The functions sets the pointer pointed to by str_end to point to the wide character
    past the last character interpreted. If str_end is NULL, it is ignored.
@@ -60,14 +62,43 @@ std::wcstof,std::wcstod,std::wcstold \- std::wcstof,std::wcstod,std::wcstold
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+   
+// Run this code
+
+ #include <iostream>
+ #include <string>
+ #include <cerrno>
+ #include <cwchar>
+  
+ int main()
+ {
+     const wchar_t* p = L"111.11 -2.22 0X1.BC70A3D70A3D7P+6  1.18973e+4932zzz";
+     wchar_t* end;
+     std::wcout << "Parsing L\\"" << p << "\\":\\n";
+     for (double f = std::wcstod(p, &end); p != end; f = std::wcstod(p, &end))
+     {
+         std::wcout << "'" << std::wstring(p, end-p) << "' -> ";
+         p = end;
+         if (errno == ERANGE){
+             std::wcout << "range error, got ";
+             errno = 0;
+         }
+         std::wcout << f << '\\n';
+     }
+ }
+
+.SH Output:
+
+ Parsing L"111.11 -2.22 0X1.BC70A3D70A3D7P+6  1.18973e+4932zzz":
+ '111.11' -> 111.11
+ ' -2.22' -> -2.22
+ ' 0X1.BC70A3D70A3D7P+6' -> 111.11
+ '  1.18973e+4932' -> range error, got inf
 
 .SH See also
 
+   strtof  converts a byte string to a floating point value
+   strtod  \fI(function)\fP 
+   strtold
    C documentation for
    wcstof
-
-.SH Category:
-
-     * Todo no example

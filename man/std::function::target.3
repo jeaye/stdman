@@ -33,34 +33,43 @@ std::function::target \- std::function::target
  #include <functional>
  #include <iostream>
   
- void normal_fun()
+ int f(int, int) { return 1; }
+ int g(int, int) { return 2; }
+ void test(std::function<int(int, int)> const& arg)
  {
-    std::cout << "hello\\n";
+     std::cout << "test function: ";
+     if (arg.target<std::plus<int>>())
+         std::cout << "it is plus\\n";
+     if (arg.target<std::minus<int>>())
+         std::cout << "it is minus\\n";
+  
+     int (*const* ptr)(int, int) = arg.target<int(*)(int, int)>();
+     if (ptr && *ptr == f)
+         std::cout << "it is the function f\\n";
+     if (ptr && *ptr == g)
+         std::cout << "it is the function g\\n";
  }
   
  int main()
  {
-   using fptr = void(*)();
-  
-   fptr fun = normal_fun; //pointer to function
-  
-   std::function<void()> f = fun;
-  
-   fun = *f.target<fptr>();
-   //I know that f keeps a fptr object, then I invoke target<fptr> to make a copy
-   //of the object
-   fun();
-  
-   std::cout << std::boolalpha << (f.target<int>() == nullptr) << '\\n';
-   //f doesn't keep an object of type int
+     test(std::function<int(int, int)>(std::plus<int>()));
+     test(std::function<int(int, int)>(std::minus<int>()));
+     test(std::function<int(int, int)>(f));
+     test(std::function<int(int, int)>(g));
  }
 
 .SH Output:
 
- hello
- true
+ test function: it is plus
+ test function: it is minus
+ test function: it is the function f
+ test function: it is the function g
 
 .SH See also
 
-   target_type obtains the typeid of the stored target of a std::function
+   target_type obtains the typeid of the stored target
                \fI(public member function)\fP 
+
+.SH Category:
+
+     * unconditionally noexcept

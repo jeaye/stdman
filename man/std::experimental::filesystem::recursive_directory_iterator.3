@@ -4,28 +4,37 @@ std::experimental::filesystem::recursive_directory_iterator \- std::experimental
 
 .SH Synopsis
    Defined in header <experimental/filesystem>
-   class recursive_directory_iterator :                            (filesystem TS)
-       public std::iterator<input_iterator_tag, directory_entry>;
+   class recursive_directory_iterator;          (filesystem TS)
 
-   recursive_directory_iterator is an input iterator that can recursively advance
-   through entries of a directory and its children directories. Directory iteration
-   never returns directory entries to the current (dot) and parent (dot-dot)
-   directories. The order of directory entries is unspecified.
+   recursive_directory_iterator is an InputIterator that iterates over the
+   directory_entry elements of a directory, and, recursively, over the entries of all
+   subdirectories. The iteration order is unspecified, except that each directory entry
+   is visited only once.
 
-   The past-the-end iterator (simply called the end iterator) is a special iterator. An
-   end iterator is always equal to an end iterator and never equal to a non-end
-   iterator. An end iterator is created by the default constructor of directory
-   iterator and when a directory iterator is advanced past the last directory element.
-   Calling operator* or operator-> on an end iterator yields undefined behavior.
+   By default, symlinks are not followed, but this can be enabled by specifying the
+   directory option follow_directory_symlink at construction time.
 
-    This section is incomplete
-    Reason: clarify
+   The special pathnames dot and dot-dot are skipped.
 
-   If a file in a directory is deleted after the directory iterator has been created,
-   the directory iterator may return a directory entry to the deleted file. If, on the
-   other hand, a new file is created after the directory iterator has been created,
-   iteration of the directory is not guaranteed to return a directory entry to the new
-   file.
+   If the recursive_directory_iterator is advanvced past the last directory entry of
+   the top-level directory, it becomes equal to the default-constructed iterator, also
+   known as the end iterator. Two end iterators are always equal, dereferencing or
+   incrementing the end iterator is undefined behavior.
+
+   If a file or a directory is deleted or added to the directory tree after the
+   recursive directory iterator has been created, it is unspecified whether the change
+   would be observed through the iterator.
+
+   If the directory structure contains cycles, the end iterator may be unreachable.
+
+.SH Member types
+
+   Member type       Definition
+   value_type        filesystem::directory_entry
+   difference_type   std::ptrdiff_t
+   pointer           const filesystem::directory_entry*
+   reference         const filesystem::directory_entry&
+   iterator_category std::input_iterator_tag
 
 .SH Member functions
 
@@ -54,6 +63,60 @@ std::experimental::filesystem::recursive_directory_iterator \- std::experimental
    disable_recursion_pending disables recursion until the next increment
                              \fI(public member function)\fP 
 
-.SH Category:
+.SH Non-member functions
 
-     * Todo with reason
+   filesystem::begin(filesystem::recursive_directory_iterator) range-based for loop
+   filesystem::end(filesystem::recursive_directory_iterator)   support
+                                                               \fI(function)\fP 
+
+   Additionally, operator== and operator!= are provided, either as members or as
+   non-members, as required by InputIterator
+
+.SH Notes
+
+   A recursive_directory_iterator typically holds a reference-counted pointer (to
+   satisfy shallow-copy semantics of InputIterator) to an implementation object, which
+   holds:
+
+     * a container (such as std::vector) of non-recursive directory_iterators that
+       forms the recursion stack
+     * the recursion depth counter (accessible with depth())
+     * the directory options used at construction (accessible with options())
+     * the pending recursion flag (accessible with recursion_pending(), may be combined
+       with the directory options to save space)
+
+.SH Example
+
+   
+// Run this code
+
+ #include <fstream>
+ #include <iostream>
+ #include <experimental/filesystem>
+ namespace fs = std::experimental::filesystem;
+  
+ int main()
+ {
+     fs::create_directories("sandbox/a/b");
+     std::ofstream("sandbox/file1.txt");
+     fs::create_symlink("a", "sandbox/syma");
+     for(auto& p: fs::recursive_directory_iterator("sandbox"))
+         std::cout << p << '\\n';
+     fs::remove_all("sandbox");
+ }
+
+.SH Possible output:
+
+ "sandbox/a"
+ "sandbox/a/b"
+ "sandbox/file1.txt"
+ "sandbox/syma"
+
+.SH See also
+
+   directory_iterator an iterator to the contents of the directory
+                      \fI(class)\fP 
+   directory_entry    a directory entry
+                      \fI(class)\fP 
+   directory_options  options for iterating directory contents
+                      \fI(enum)\fP 

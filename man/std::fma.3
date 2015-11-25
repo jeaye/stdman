@@ -12,16 +12,16 @@ std::fma \- std::fma
    #define FP_FAST_FMAF /* implementation-defined */               \fB(6)\fP \fI(since C++11)\fP
    #define FP_FAST_FMAL /* implementation-defined */               \fB(7)\fP \fI(since C++11)\fP
 
-   The fma functions compute (x*y) + z, rounded as one ternary operation, according to
-   the rounding mode characterized by the value of FLT_ROUNDS.
-
-   4) If any argument has integral type, it is cast to double. If any other argument is
-   long double, then the return type is long double, otherwise it is double.
-
+   1-3) Computes (x*y) + z as if to infinite precision and rounded only once to fit the
+   result type.
+   4) A set of overloads or a function template for all combinations of arguments of
+   arithmetic type not covered by 1-3). If any argument has integral type, it is cast
+   to double. If any other argument is long double, then the return type is long
+   double, otherwise it is double.
    5-7) If the macro constants FP_FAST_FMAF, FP_FAST_FMA, or FP_FAST_FMAL are defined,
-   the function std::fma evaluates faster than the expression x*y+z for float, double,
-   and long double arguments, respectively. If defined, these macros evaluate to
-   integer 1.
+   the function std::fma evaluates faster (in addition to being more precise) than the
+   expression x*y+z for float, double, and long double arguments, respectively. If
+   defined, these macros evaluate to integer 1.
 
 .SH Parameters
 
@@ -29,7 +29,98 @@ std::fma \- std::fma
 
 .SH Return value
 
-   (x*y) + z, rounded as one ternary operation
+   If successful, returns the value of (x*y) + z as if calculated to infinite precision
+   and rounded once to fit the result type (or, alternatively, calculated as a single
+   ternary floating-point operation)
+
+   If a range error due to overflow occurs, ±HUGE_VAL, ±HUGE_VALF, or ±HUGE_VALL is
+   returned.
+
+   If a range error due to underflow occurs, the correct value (after rounding) is
+   returned.
+
+.SH Error handling
+
+   Errors are reported as specified in math_errhandling
+
+   If the implementation supports IEEE floating-point arithmetic (IEC 60559),
+
+     * If x is zero and y is infinite or if x is infinite and y is zero, and z is not a
+       NaN, then NaN is returned and FE_INVALID is raised
+     * If x is zero and y is infinite or if x is infinite and y is zero, and z is a
+       NaN, then NaN is returned and FE_INVALID may be raised
+     * If x*y is an exact infinity and z is an infinity with the opposite sign, NaN is
+       returned and FE_INVALID is raised
+     * If x or y are NaN, NaN is returned
+     * If z is NaN, and x*y aren't 0*Inf or Inf*0, then NaN is returned (without
+       FE_INVALID)
+
+.SH Notes
+
+   This operation is commonly implemented in hardware as fused multiply-add CPU
+   instruction. If supported by hardware, the appropriate FP_FAST_FMA* macros are
+   expected to be defined, but many implementations make use of the CPU instruction
+   even when the macros are not defined.
+
+   POSIX additionally specifies that the situations specified to return FE_INVALID are
+   domain errors.
+
+   Due to its infinite intermediate precision, fma is a common building block of other
+   correctly-rounded mathematical operations, such as std::sqrt or even the division
+   (where not provided by the CPU, e.g. Itanium)
+
+   As with all floating-point expressions, the expression (x*y) + z may be compiled as
+   a fused mutiply-add unless the #pragma STDC FP_CONTRACT is off.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <iomanip>
+ #include <cmath>
+ #include <cfenv>
+ #pragma STDC FENV_ACCESS ON
+ int main()
+ {
+     // demo the difference between fma and built-in operators
+     double in = 0.1;
+     std::cout << "0.1 double is " << std::setprecision(23) << in
+               << " (" << std::hexfloat << in << std::defaultfloat << ")\\n"
+               << "0.1*10 is 1.0000000000000000555112 (0x8.0000000000002p-3), "
+               << "or 1.0 if rounded to double\\n";
+     double expr_result = 0.1 * 10 - 1;
+     double fma_result = fma(0.1, 10, -1);
+     std::cout << "0.1 * 10 - 1 = " << expr_result
+               << " : 1 subtracted after intermediate rounding\\n"
+               << "fma(0.1, 10, -1) = " << std::setprecision(6) << fma_result << " ("
+               << std::hexfloat << fma_result << std::defaultfloat << ")\\n\\n";
+  
+     // fma is used in double-double arithmetic
+     double high = 0.1 * 10;
+     double low = fma(0.1, 10, -high);
+     std::cout << "in double-double arithmetic, 0.1 * 10 is representable as "
+               << high << " + " << low << "\\n\\n";
+  
+     // error handling
+     std::feclearexcept(FE_ALL_EXCEPT);
+     std::cout << "fma(+Inf, 10, -Inf) = " << std::fma(INFINITY, 10, -INFINITY) << '\\n';
+     if(std::fetestexcept(FE_INVALID))
+         std::cout << "    FE_INVALID raised\\n";
+ }
+
+.SH Possible output:
+
+ 0.1 double is 0.10000000000000000555112 (0x1.999999999999ap-4)
+ 0.1*10 is 1.0000000000000000555112 (0x8.0000000000002p-3), or 1.0 if rounded to double
+ 0.1 * 10 - 1 = 0 : 1 subtracted after intermediate rounding
+ fma(0.1, 10, -1) = 5.55112e-17 (0x1p-54)
+  
+ in double-double arithmetic, 0.1 * 10 is representable as 1 + 5.55112e-17
+  
+ fma(+Inf, 10, -Inf) = -nan
+     FE_INVALID raised
 
 .SH See also
 

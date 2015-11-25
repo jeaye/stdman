@@ -8,21 +8,32 @@ std::initializer_list \- std::initializer_list
    class initializer_list;
 
    An object of type std::initializer_list<T> is a lightweight proxy object that
-   provides access to an array of objects of type T.
+   provides access to an array of objects of type const T.
 
    A std::initializer_list object is automatically constructed when:
 
      * a braced-init-list is used in list-initialization, including function-call list
-       initialization and assignment expressions (not to be confused with constructor
-       initializer lists)
+       initialization and assignment expressions
      * a braced-init-list is bound to auto, including in a ranged for loop
 
    Initializer lists may be implemented as a pair of pointers or pointer and length.
-   Copying a std::initializer_list does not copy the underlying objects. The underlying
-   array is not guaranteed to exist after the lifetime of the original initializer list
-   object has ended. The storage for std::initializer_list is unspecified (i.e. it
-   could be automatic, temporary, or static read-only memory, depending on the
-   situation).
+   Copying a std::initializer_list does not copy the underlying objects.
+
+   The underlying array is not guaranteed to exist after the lifetime of
+   the original initializer list object has ended. The storage for        \fI(until C++14)\fP
+   std::initializer_list is unspecified (i.e. it could be automatic,
+   temporary, or static read-only memory, depending on the situation).
+   The underlying array is a temporary array, in which each element is
+   copy-initialized (except that narrowing conversions are invalid) from
+   the corresponding element of the original initializer list. The
+   lifetime of the underlying array is the same as any other temporary
+   object, except that initializing an initializer_list object from the   \fI(since C++14)\fP
+   array extends the lifetime of the array exactly like binding a
+   reference to a temporary (with the same exceptions, such as for
+   initializing a non-static class member). The underlying array may be
+   allocated in read-only memory.
+   The program is ill-formed if an explicit or partial specialization of  (since C++17)
+   std::initializer_list is declared.
 
 .SH Member types
 
@@ -30,7 +41,7 @@ std::initializer_list \- std::initializer_list
    value_type      T
    reference       const T&
    const_reference const T&
-   size_type       size_t
+   size_type       std::size_t
    iterator        const T*
    const_iterator  const T*
 
@@ -42,7 +53,7 @@ std::initializer_list \- std::initializer_list
    size          returns the number of elements in the initializer list
                  \fI(public member function)\fP 
 .SH Iterators
-   begin         returns a pointer the first element
+   begin         returns a pointer to the first element
                  \fI(public member function)\fP 
    end           returns a pointer to one past the last element
                  \fI(public member function)\fP 
@@ -78,7 +89,7 @@ std::initializer_list \- std::initializer_list
          v.insert(v.end(), l.begin(), l.end());
      }
      std::pair<const T*, std::size_t> c_arr() const {
-         return {&v[0], v.size()};  // list-initialization in return statement
+         return {&v[0], v.size()};  // copy list-initialization in return statement
                                     // this is NOT a use of std::initializer_list
      }
  };
@@ -88,18 +99,18 @@ std::initializer_list \- std::initializer_list
   
  int main()
  {
-     S<int> s = {1, 2, 3, 4, 5}; // direct list-initialization
+     S<int> s = {1, 2, 3, 4, 5}; // copy list-initialization
      s.append({6, 7, 8});      // list-initialization in function call
   
      std::cout << "The vector size is now " << s.c_arr().second << " ints:\\n";
   
-     for (auto n : s.v) std::cout << ' ' << n;
-  
+     for (auto n : s.v)
+         std::cout << n << ' ';
      std::cout << '\\n';
   
-     std::cout << "range-for over brace-init-list: \\n";
+     std::cout << "Range-for over brace-init-list: \\n";
   
-     for (int x : {-1, -2, -3}) // the rule for auto makes this ranged for work
+     for (int x : {-1, -2, -3}) // the rule for auto makes this ranged-for work
          std::cout << x << ' ';
      std::cout << '\\n';
   
@@ -117,7 +128,7 @@ std::initializer_list \- std::initializer_list
 
  constructed with a 5-element list
  The vector size is now 8 ints:
-  1 2 3 4 5 6 7 8
- range-for over brace-init-list:
+ 1 2 3 4 5 6 7 8
+ Range-for over brace-init-list:
  -1 -2 -3
  The list bound to auto has size() = 3

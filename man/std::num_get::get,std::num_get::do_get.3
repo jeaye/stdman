@@ -28,32 +28,37 @@ std::num_get::get,std::num_get::do_get \- std::num_get::get,std::num_get::do_get
                   std::ios_base::iostate& err, long double& v ) const;
    iter_type get( iter_type in, iter_type end, std::ios_base& str,
                   std::ios_base::iostate& err, void*& v ) const;
-   protected:                                                                 \fB(1)\fP
+   protected:
 
-   iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str, \fB(1)\fP
 
-                     std::ios_base::iostate& err, bool& v ) const;
-   iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
-                     std::ios_base::iostate& err, long& v ) const;
-   iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
-                     std::ios_base::iostate& err, long long& v ) const;
-   iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
-                     std::ios_base::iostate& err, unsigned short& v ) const;
-   iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
-                     std::ios_base::iostate& err, unsigned int& v ) const;        \fB(2)\fP
-   iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
-                     std::ios_base::iostate& err, unsigned long& v ) const;
-   iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
-                     std::ios_base::iostate& err, unsigned long long& v )
+                             std::ios_base::iostate& err, bool& v ) const;
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, long& v ) const;
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, long long& v )
    const;
-   iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
-                     std::ios_base::iostate& err, float& v ) const;
-   iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
-                     std::ios_base::iostate& err, double& v ) const;
-   iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
-                     std::ios_base::iostate& err, long double& v ) const;
-   iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
-                     std::ios_base::iostate& err, void*& v ) const;
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, unsigned short& v )
+   const;
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, unsigned int& v )
+   const;                                                                         \fB(2)\fP
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, unsigned long& v )
+   const;
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, unsigned long long&
+   v ) const;
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, float& v ) const;
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, double& v ) const;
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, long double& v )
+   const;
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, void*& v ) const;
 
    1) Public member function, calls the member function do_get of the most derived
    class.
@@ -123,7 +128,7 @@ std::num_get::get,std::num_get::do_get \- std::num_get::get,std::num_get::do_get
             the thousands separation is in use at all
             std::use_facet<std::numpunct<charT>>(str.getloc()).grouping().length() !=
             0, then if the decimal point '.' has not yet been accumulated, the position
-            of the character is rememebered, but the character is otherwise ignored. If
+            of the character is remembered, but the character is otherwise ignored. If
             the decimal point has already been accumulated, the character is discarded
             and Stage 2 terminates.
           * In any case, the check is made whether the char obtained from the previous
@@ -149,7 +154,7 @@ std::num_get::get,std::num_get::do_get \- std::num_get::get,std::num_get::do_get
        stored in v
      * If the conversion function results in a negative value too large
        to fit in the type of v, the most negative representable value is
-       stored in v
+       stored in v, or zero for unsigned integer types.
 
      * In any case, if the conversion function fails std::ios_base::failbit is assigned
        to err
@@ -175,6 +180,12 @@ std::num_get::get,std::num_get::do_get \- std::num_get::get,std::num_get::do_get
 
    In C++98/C++03, if an error occurs, v is left unchanged. In C++11, it is set to a
    value as described above.
+
+   The result of converting a negative number string into an unsigned integer is an
+   open issue LWG 1169: some implementations produce zero (since the value represented
+   by the string is smaller than what the target type can represent), others strictly
+   follow the protocol of std::strtoull which negates in the target type, giving
+   LLONG_MAX for "-1", and so produce the largest value of the target type instead.
 
 .SH Example
 

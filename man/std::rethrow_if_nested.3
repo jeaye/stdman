@@ -7,8 +7,9 @@ std::rethrow_if_nested \- std::rethrow_if_nested
    template< class E >                    \fI(since C++11)\fP
    void rethrow_if_nested( const E& e );
 
-   If E is a type that is unambiguously derived from std::nested_exception, extracts
-   and throws the nested exception as if by calling dynamic_cast<const
+   If the dynamic type (the most derived type) of the object referenced by e is
+   publicly and unambiguously derived from std::nested_exception, extracts and throws
+   the nested exception as if by calling dynamic_cast<const
    std::nested_exception&>(e).rethrow_nested(). Otherwise, does nothing.
 
 .SH Parameters
@@ -18,6 +19,22 @@ std::rethrow_if_nested \- std::rethrow_if_nested
 .SH Return value
 
    \fI(none)\fP
+
+.SH Possible implementation
+
+   template <class T>
+   void rethrow_if_nested(const T& e,
+                          std::enable_if_t<std::is_polymorphic<T>::value>* = 0)
+   {
+       if(auto nep = dynamic_cast<const std::nested_exception*>(&e))
+           nep->rethrow_nested();
+   }
+    
+   template <class T>
+   void rethrow_if_nested(const T&,
+                          std::enable_if_t<!std::is_polymorphic<T>::value>* = 0)
+   {
+   }
 
 .SH Example
 

@@ -4,9 +4,12 @@ std::result_of \- std::result_of
 
 .SH Synopsis
    Defined in header <type_traits>
-   template< class >                      \fB(1)\fP \fI(since C++11)\fP
-   class result_of; //not defined
-   template< class F, class... ArgTypes > \fB(2)\fP \fI(since C++11)\fP
+   template< class >
+
+   class result_of; // undefined
+                                           \fI(since C++11)\fP
+   template< class F, class... ArgTypes >
+
    class result_of<F(ArgTypes...)>;
 
    Deduces the return type of a function call expression at compile time.
@@ -33,17 +36,57 @@ std::result_of \- std::result_of
 
 .SH Possible implementation
 
-   template<class>
-   struct result_of;
-    
-   // C++11 implementation, does not satisfy C++14 requirements
-   template<class F, class... ArgTypes>
-   struct result_of<F(ArgTypes...)>
-   {
-       typedef decltype(
-                        std::declval<F>()(std::declval<ArgTypes>()...)
-                       ) type;
-   };
+ namespace detail {
+ template <class F, class... Args>
+ inline auto INVOKE(F&& f, Args&&... args) ->
+     decltype(forward<F>(f)(forward<Args>(args)...)) {
+       return forward<F>(f)(forward<Args>(args)...);
+ }
+  
+ template <class Base, class T, class Derived>
+ inline auto INVOKE(T Base::*pmd, Derived&& ref) ->
+     decltype(forward<Derived>(ref).*pmd) {
+       return forward<Derived>(ref).*pmd;
+ }
+  
+ template <class PMD, class Pointer>
+ inline auto INVOKE(PMD&& pmd, Pointer&& ptr) ->
+     decltype((*forward<Pointer>(ptr)).*forward<PMD>(pmd)) {
+       return (*forward<Pointer>(ptr)).*forward<PMD>(pmd);
+ }
+  
+ template <class Base, class T, class Derived, class... Args>
+ inline auto INVOKE(T Base::*pmf, Derived&& ref, Args&&... args) ->
+     decltype((forward<Derived>(ref).*pmf)(forward<Args>(args)...)) {
+       return (forward<Derived>(ref).*pmf)(forward<Args>(args)...);
+ }
+  
+ template <class PMF, class Pointer, class... Args>
+ inline auto INVOKE(PMF&& pmf, Pointer&& ptr, Args&&... args) ->
+     decltype(((*forward<Pointer>(ptr)).*forward<PMF>(pmf))(forward<Args>(args)...)) {
+       return ((*forward<Pointer>(ptr)).*forward<PMF>(pmf))(forward<Args>(args)...);
+ }
+ } // namespace detail
+  
+ // Minimal C++11 implementation:
+ template <class> struct result_of;
+ template <class F, class... ArgTypes>
+ struct result_of<F(ArgTypes...)> {
+     using type = decltype(detail::INVOKE(std::declval<F>(), std::declval<ArgTypes>()...));
+ };
+  
+ // Conforming C++14 implementation (is also a valid C++11 implementation):
+ namespace detail {
+ template <typename, typename = void>
+ struct result_of {};
+ template <typename F, typename...Args>
+ struct result_of<F(Args...),
+                  decltype(void(detail::INVOKE(std::declval<F>(), std::declval<Args>()...)))> {
+     using type = decltype(detail::INVOKE(std::declval<F>(), std::declval<Args>()...));
+ };
+ } // namespace detail
+  
+ template <class T> struct result_of : detail::result_of<T> {};
 
 .SH Notes
 
@@ -52,41 +95,11 @@ std::result_of \- std::result_of
    SFINAE (when F is not callable, std::result_of<F(Args...)> simply doesn't have the
    type member).
 
+   The motivation behind std::result_of is to determine the result of invoking a
+   FunctionObject, in particular if that result type is different for different sets of
+   arguments.
+
 .SH Examples
-
-   std::result_of can be used to determine the result of invoking a functor, in
-   particular if the result type is different for different sets of arguments:
-
-   
-// Run this code
-
- #include <type_traits>
-  
- struct S {
-     double operator()(char, int&);
-     float operator()(int);
- };
-  
- struct C {
-     double Func(char, int&);
- };
-  
- int main()
- {
-     // the result of invoking S with char and int& arguments is double
-     std::result_of<S(char, int&)>::type f = 3.14; // f has type double
-     static_assert(std::is_same<decltype(f), double>::value, "");
-  
-     // the result of invoking S with int argument is float
-     std::result_of<S(int)>::type d = 3.14; // f has type float
-     static_assert(std::is_same<decltype(d), float>::value, "");
-  
-     // result_of can be used with a pointer to member function as follows
-     std::result_of<decltype(&C::Func)(C, char, int&)>::type g = 3.14;
-     static_assert(std::is_same<decltype(g), double>::value, "");
- }
-
-   demonstrates the C++14 changes to result_of requirements
 
    
 // Run this code
@@ -94,9 +107,13 @@ std::result_of \- std::result_of
  #include <type_traits>
  #include <iostream>
   
+ struct S {
+     double operator()(char, int&);
+     float operator()(int) { return 1.0;}
+ };
+  
  template<class T>
- typename std::result_of<T(int)>::type
- f(T& t)
+ typename std::result_of<T(int)>::type f(T& t)
  {
      std::cout << "overload of f for callable T\\n";
      return t(0);
@@ -109,12 +126,26 @@ std::result_of \- std::result_of
      return u;
  }
   
- struct S {};
+ int main()
+ {
+     // the result of invoking S with char and int& arguments is double
+     std::result_of<S(char, int&)>::type d = 3.14; // d has type double
+     static_assert(std::is_same<decltype(d), double>::value, "");
   
- int main() {
-   f<S>(1); // fails to compile in C++11, calls the non-callable overload in C++14
+     // the result of invoking S with int argument is float
+     std::result_of<S(int)>::type x = 3.14; // f has type float
+     static_assert(std::is_same<decltype(x), float>::value, "");
+  
+     // result_of can be used with a pointer to member function as follows
+     struct C { double Func(char, int&); };
+     std::result_of<decltype(&C::Func)(C, char, int&)>::type g = 3.14;
+     static_assert(std::is_same<decltype(g), double>::value, "");
+  
+     f<C>(1); // fails to compile in C++11, calls the non-callable overload in C++14
  }
- output=
+
+.SH Output:
+
  overload of f for non-callable T
 
 .SH See also

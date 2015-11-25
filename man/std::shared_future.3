@@ -8,7 +8,15 @@ std::shared_future \- std::shared_future
    template< class T > class shared_future<T&>;   \fB(2)\fP \fI(since C++11)\fP
    template<>          class shared_future<void>; \fB(3)\fP \fI(since C++11)\fP
 
-    This section is incomplete
+   The class template std::shared_future provides a mechanism to access the result of
+   asynchronous operations, similar to std::future, except that multiple threads are
+   allowed to wait for the same shared state. Unlike std::future, which is only
+   moveable (so only one instance can refer to any particular asynchronous result),
+   std::shared_future is copyable and multiple shared future objects may refer to the
+   same shared state.
+
+   Access to the same shared state from multiple threads is safe if each thread does it
+   through its own copy of a shared_future object.
 
 .SH Member functions
 
@@ -52,7 +60,7 @@ std::shared_future \- std::shared_future
   
      std::chrono::time_point<std::chrono::high_resolution_clock> start;
   
-     auto fun1 = [&]() -> std::chrono::duration<double, std::milli>
+     auto fun1 = [&, ready_future]() -> std::chrono::duration<double, std::milli>
      {
          t1_ready_promise.set_value();
          ready_future.wait(); // waits for the signal from main()
@@ -60,7 +68,7 @@ std::shared_future \- std::shared_future
      };
   
   
-     auto fun2 = [&]() -> std::chrono::duration<double, std::milli>
+     auto fun2 = [&, ready_future]() -> std::chrono::duration<double, std::milli>
      {
          t2_ready_promise.set_value();
          ready_future.wait(); // waits for the signal from main()
@@ -90,7 +98,3 @@ std::shared_future \- std::shared_future
 
  Thread 1 received the signal 0.072 ms after start
  Thread 2 received the signal 0.041 ms after start
-
-.SH Category:
-
-     * Todo without reason

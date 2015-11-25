@@ -4,12 +4,15 @@ std::frexp \- std::frexp
 
 .SH Synopsis
    Defined in header <cmath>
-   float       frexp( float arg, int* exp );
-   double      frexp( double arg, int* exp );
-   long double frexp( long double arg, int* exp );
-   double      frexp( Integral arg, int* exp );     \fI(since C++11)\fP
+   float       frexp( float arg, int* exp );       \fB(1)\fP
+   double      frexp( double arg, int* exp );      \fB(2)\fP
+   long double frexp( long double arg, int* exp ); \fB(3)\fP
+   double      frexp( Integral arg, int* exp );    \fB(4)\fP \fI(since C++11)\fP
 
-   Decomposes given floating point value to significand and exponent.
+   1-3) Decomposes given floating point value arg into a normalized fraction and an
+   integral power of two.
+   4) A set of overloads or a function template accepting an argument of any integral
+   type. Equivalent to \fB(2)\fP (the argument is cast to double).
 
 .SH Parameters
 
@@ -18,8 +21,80 @@ std::frexp \- std::frexp
 
 .SH Return value
 
-   Significand of the given floating point number in the range of [0.5; 1). The
-   exponent is put into integer value pointed to by exp.
+   If arg is zero, returns zero and stores zero in *exp.
+
+   Otherwise (if arg is not zero), if no errors occur, returns the value x in the range
+   (-1;-0.5], [0.5; 1) and stores an integer value in *exp such that x×2(*exp)
+   =arg
+
+   If the value to be stored in *exp is outside the range of int, the behavior is
+   unspecified.
+
+   If arg is not a floating-point number, the behavior is unspecified.
+
+.SH Error handling
+
+   This function is not subject to any errors specified in math_errhandling
+
+   If the implementation supports IEEE floating-point arithmetic (IEC 60559),
+
+     * If arg is ±0, it is returned, unmodified, and 0 is stored in *exp.
+     * If arg is ±∞, it is returned, and an unspecified value is stored in *exp.
+     * If arg is NaN, NaN is returned, and an unspecified value is stored in *exp.
+     * No floating-point exceptions are raised.
+     * If FLT_RADIX is 2 (or a power of 2), the returned value is exact, the current
+       rounding mode is ignored
+
+.SH Notes
+
+   On a binary system (where FLT_RADIX is 2), frexp may be implemented as
+
+ {
+     *exp = (value == 0) ? 0 : (int)(1 + std::logb(value));
+     return std::scalbn(value, -(*exp));
+ }
+
+   The function std::frexp, together with its dual, std::ldexp, can be used to
+   manipulate the representation of a floating-point number without direct bit
+   manipulations.
+
+.SH Example
+
+   Compares different floating-point decomposition functions
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <cmath>
+ #include <limits>
+  
+ int main()
+ {
+     double f = 123.45;
+     std::cout << "Given the number " << f << " or " << std::hexfloat
+               << f << std::defaultfloat << " in hex,\\n";
+  
+     double f3;
+     double f2 = std::modf(f, &f3);
+     std::cout << "modf() makes " << f3 << " + " << f2 << '\\n';
+  
+     int i;
+     f2 = std::frexp(f, &i);
+     std::cout << "frexp() makes " << f2 << " * 2^" << i << '\\n';
+  
+     i = std::ilogb(f);
+     std::cout << "logb()/ilogb() make " << f/std::scalbn(1.0, i) << " * "
+               << std::numeric_limits<double>::radix
+               << "^" << std::ilogb(f) << '\\n';
+ }
+
+.SH Possible output:
+
+ Given the number 123.45 or 0x1.edccccccccccdp+6 in hex,
+ modf() makes 123 + 0.45
+ frexp() makes 0.964453 * 2^7
+ logb()/ilogb() make 1.92891 * 2^6
 
 .SH See also
 
@@ -31,3 +106,5 @@ std::frexp \- std::frexp
    \fI(C++11)\fP \fI(function)\fP 
    modf    decomposes a number into integer and fractional parts
            \fI(function)\fP 
+   C documentation for
+   frexp

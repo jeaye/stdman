@@ -73,22 +73,17 @@ std::atomic::compare_exchange_weak,std::atomic::compare_exchange_strong \- std::
    std::memory_order_seq_cst )
    volatile;
 
-   Atomically compares the value stored in *this with the value of expected, and if
-   those are equal, replaces the former with desired (performs read-modify-write
-   operation). Otherwise, loads the actual value stored in *this into expected
-   (performs load operation).
+   Atomically compares the object representation of *this with the object
+   representation of expected, as if by std::memcmp, and if those are bitwise-equal,
+   replaces the former with desired (performs read-modify-write operation). Otherwise,
+   loads the actual value stored in *this into expected (performs load operation).
+   Copying is performed as if by std::memcpy.
 
    The memory models for the read-modify-write and load operations are success and
    failure respectively. In the \fB(2)\fP and \fB(4)\fP versions order is used for both
    read-modify-write and load operations, except that std::memory_order_acquire and
    std::memory_order_relaxed are used for the load operation if order ==
    std::memory_order_acq_rel, or order == std::memory_order_release respectively.
-
-   The weak forms (1-2) of the functions are allowed to fail spuriously, that is, act
-   as if *this != expected even if they are equal. When a compare-and-exchange is in a
-   loop, the weak version will yield better performance on some platforms. When a weak
-   compare-and-exchange would require a loop and a strong one would not, the strong one
-   is preferable.
 
 .SH Parameters
 
@@ -111,6 +106,18 @@ std::atomic::compare_exchange_weak,std::atomic::compare_exchange_strong \- std::
    noexcept specification:  
    noexcept
      
+
+.SH Notes
+
+   The weak forms (1-2) of the functions are allowed to fail spuriously, that is, act
+   as if *this != expected even if they are equal. When a compare-and-exchange is in a
+   loop, the weak version will yield better performance on some platforms.
+
+   When a weak compare-and-exchange would require a loop and a strong one would not,
+   the strong one is preferable unless the object representation of T may include
+   padding bits, trap bits, or offers multiple object representations for the same
+   value (e.g. floating-point NaN). In those cases, weak compare-and-exchange typically
+   works because it quickly converges on some stable object representation.
 
 .SH Example
 
@@ -138,27 +145,27 @@ std::atomic::compare_exchange_weak,std::atomic::compare_exchange_strong \- std::
      {
          node<T>* new_node = new node<T>(data);
   
- //      // put the current value of head into new_node->next
- //      new_node->next = head.load(std::memory_order_relaxed);
- //
- //      // now make new_node the new head, but if the head
- //      // is no longer what's stored in new_node->next
- //      // (some other thread must have inserted a node just now)
- //      // then put that new head into new_node->next and try again
- //      while(!head.compare_exchange_weak(new_node->next, new_node,
- //                                        std::memory_order_release,
- //                                        std::memory_order_relaxed))
- //          ; // the body of the loop is empty
- //
+       // put the current value of head into new_node->next
+       new_node->next = head.load(std::memory_order_relaxed);
+  
+       // now make new_node the new head, but if the head
+       // is no longer what's stored in new_node->next
+       // (some other thread must have inserted a node just now)
+       // then put that new head into new_node->next and try again
+       while(!head.compare_exchange_weak(new_node->next, new_node,
+                                         std::memory_order_release,
+                                         std::memory_order_relaxed))
+           ; // the body of the loop is empty
+  
  // Note: the above use is not thread-safe in at least
- // GCC prior to 4.8.3 (bug 60272), clang (bug 18899), MSVC (bug 819819).
- // The following is a workaround:
-         node<T>* old_head = head.load(std::memory_order_relaxed);
-         do {
-             new_node->next = old_head;
-         } while(!head.compare_exchange_weak(old_head, new_node,
-                                             std::memory_order_release,
-                                             std::memory_order_relaxed));
+ // GCC prior to 4.8.3 (bug 60272), clang prior to 2014-05-05 (bug 18899)
+ // MSVC prior to 2014-03-17 (bug 819819). The following is a workaround:
+ //      node<T>* old_head = head.load(std::memory_order_relaxed);
+ //      do {
+ //          new_node->next = old_head;
+ //       } while(!head.compare_exchange_weak(old_head, new_node,
+ //                                           std::memory_order_release,
+ //                                           std::memory_order_relaxed));
      }
  };
  int main()
@@ -225,3 +232,7 @@ std::atomic::compare_exchange_weak,std::atomic::compare_exchange_strong \- std::
    \fI(C++11)\fP                                 \fI(function template)\fP 
    \fI(C++11)\fP
    \fI(C++11)\fP
+
+.SH Category:
+
+     * unconditionally noexcept

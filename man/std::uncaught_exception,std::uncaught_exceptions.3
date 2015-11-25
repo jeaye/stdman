@@ -1,0 +1,99 @@
+.TH std::uncaught_exception,std::uncaught_exceptions 3 "Nov 25 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::uncaught_exception,std::uncaught_exceptions \- std::uncaught_exception,std::uncaught_exceptions
+
+.SH Synopsis
+   Defined in header <exception>
+   bool uncaught_exception();    \fB(1)\fP (deprecated in C++17)
+   int uncaught_exceptions();    \fB(2)\fP (since C++17)
+
+   1) Detects if the current thread has a live exception object, that is, an exception
+   has been thrown or rethrown and not yet entered a matching catch clause,
+   std::terminate or std::unexpected. In other words, std::uncaught_exception detects
+   if stack unwinding is currently in progress.
+   2) Detects how many exceptions have been thrown or rethrown and not yet entered
+   their matching catch clauses.
+
+   Sometimes it's safe to throw an exception even while std::uncaught_exception() ==
+   true. For example, if stack unwinding causes a stack-allocated object to be
+   destructed, the destructor for that object could run code that throws an exception
+   as long as the exception is caught by some catch block before escaping the
+   destructor.
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   1) true if stack unwinding is currently in progress in this thread.
+   2) The number of exception objects currently uncaught.
+
+.SH Exceptions
+
+   \fI(none)\fP                    \fI(until C++11)\fP
+   noexcept specification:  
+   noexcept                  \fI(since C++11)\fP
+     
+
+.SH Notes
+
+   An example where int-returning uncaught_exceptions is used is the boost.log]
+   library: the expression BOOST_LOG(logger) << foo(); first creates a guard object and
+   records the number of uncaught exceptions in its constructor. The output is
+   performed by the guard object's destructor unless foo() throws (in which case the
+   number of uncaught exceptions in the destructor is greater than what the constructor
+   observed)
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <exception>
+ #include <stdexcept>
+  
+ struct Foo {
+     ~Foo() {
+         if (std::uncaught_exception()) {
+             std::cout << "~Foo() called during stack unwinding\\n";
+         } else {
+             std::cout << "~Foo() called normally\\n";
+         }
+     }
+ };
+ int main()
+ {
+     Foo f;
+     try {
+         Foo f;
+         std::cout << "Exception thrown\\n";
+         throw std::runtime_error("test exception");
+     } catch (const std::exception& e) {
+         std::cout << "Exception caught: " << e.what() << '\\n';
+     }
+ }
+
+.SH Output:
+
+ Exception thrown
+ ~Foo() called during stack unwinding
+ Exception caught: test exception
+ ~Foo() called normally
+
+.SH See also
+
+   terminate     function called when exception handling fails
+                 \fI(function)\fP 
+   exception_ptr shared pointer type for handling exception objects
+   \fI(C++11)\fP       \fI(typedef)\fP 
+
+.SH External links
+
+     * GOTW issue 47: Uncaught Exceptions
+     * Rationale for std::uncaught_exceptions
+
+.SH Category:
+
+     * unconditionally noexcept

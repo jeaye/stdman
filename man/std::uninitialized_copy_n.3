@@ -9,13 +9,13 @@ std::uninitialized_copy_n \- std::uninitialized_copy_n
    d_first);
 
    Copies count elements from a range beginning at first to an uninitialized memory
-   area beginning at d_first. The elements in the uninitialized area are constructed
-   using copy constructor.
+   area beginning at d_first as if by
+
+ for ( ; n > 0; ++d_first, ++first, --n)
+    ::new (static_cast<void*>(std::addressof(*d_first)))
+       typename iterator_traits<ForwardIterator>::value_type(*first);
 
    If an exception is thrown during the initialization, the function has no effects.
-
-    This section is incomplete
-    Reason: update possible implementation to reflect this
 
 .SH Parameters
 
@@ -41,10 +41,18 @@ std::uninitialized_copy_n \- std::uninitialized_copy_n
    ForwardIt uninitialized_copy_n(InputIt first, Size count, ForwardIt d_first)
    {
        typedef typename std::iterator_traits<ForwardIt>::value_type Value;
-       for (; count > 0; ++first, ++d_first, --count) {
-           ::new (static_cast<void*>(&*d_first)) Value(*first);
+       ForwardIt current = d_first;
+       try {
+           for (; count > 0; ++first, ++current, --count) {
+               ::new (static_cast<void*>(std::addressof(*current))) Value(*first);
+           }
+       } catch (...) {
+           for (; d_first != current; ++d_first) {
+               d_first->~Value();
+           }
+           throw;
        }
-       return d_first;
+       return current;
    }
 
 .SH Example
@@ -57,6 +65,7 @@ std::uninitialized_copy_n \- std::uninitialized_copy_n
  #include <memory>
  #include <string>
  #include <tuple>
+ #include <vector>
   
  int main()
  {
@@ -82,9 +91,9 @@ std::uninitialized_copy_n \- std::uninitialized_copy_n
 
 .SH See also
 
-   uninitialized_copy copies a range of objects to an uninitialized area of memory
-                      \fI(function template)\fP 
-
-.SH Category:
-
-     * Todo with reason
+                                                     copies a range of objects to an
+   uninitialized_copy                                uninitialized area of memory
+                                                     \fI(function template)\fP 
+   std::experimental::parallel::uninitialized_copy_n parallelized version of
+   (parallelism TS)                                  std::uninitialized_copy_n
+                                                     \fI(function template)\fP 

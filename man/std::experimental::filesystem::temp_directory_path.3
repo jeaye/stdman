@@ -5,14 +5,9 @@ std::experimental::filesystem::temp_directory_path \- std::experimental::filesys
 .SH Synopsis
    Defined in header <experimental/filesystem>
    path temp_directory_path();                 \fB(1)\fP (filesystem TS)
-   path temp_directory_path( error_code& ec ); \fB(2)\fP (filesystem TS)
+   path temp_directory_path( error_code& ec );
 
-   Returns an unspecified directory suitable for temporary files.
-
-   An error is reported if the path to be returned does not exist or is not directory.
-
-   The second version returns path() and sets ec to an appropriate error code if error
-   occurs. Otherwise, ec is cleared via ec.clear().
+   Returns the directory location suitable for temporary files.
 
 .SH Parameters
 
@@ -20,34 +15,52 @@ std::experimental::filesystem::temp_directory_path \- std::experimental::filesys
 
 .SH Return value
 
-   A directory suitable for temporary files.
+   A directory suitable for temporary files. The path is guaranteed to exist and to be
+   a directory. The overload that takes error_code& argument returns an empty path on
+   error.
 
 .SH Exceptions
 
-   1) filesystem_error if an error occurs.
-   2)
+   The overload that does not take a error_code& parameter throws filesystem_error on
+   underlying OS API errors, constructed with path to be returned as the first argument
+   and the OS error code as the error code argument. std::bad_alloc may be thrown if
+   memory allocation fails. The overload taking a error_code& parameter sets it to the
+   OS API error code if an OS API call fails, and executes ec.clear() if no errors
+   occur. This overload has
    noexcept specification:  
    noexcept
      
+
+.SH Notes
+
+   On POSIX systems, the path may be the one specified in the environment variables
+   TMPDIR, TMP, TEMP, TEMPDIR, and, if none of them are specified, the path "/tmp" is
+   returned.
+
+   On Windows systems, the path is typically the one returned by GetTempPath
 
 .SH Example
 
    
 // Run this code
 
- #include <filesystem>
  #include <iostream>
-  
+ #include <experimental/filesystem>
+ namespace fs = std::experimental::filesystem;
  int main()
  {
-     namespace fs = std::experimental::filesystem;
-     std::cout << fs::temp_directory_path() << '\\n';
+     std::cout << "Temp directory is " << fs::temp_directory_path() << '\\n';
  }
 
-.SH Output:
+.SH Possible output:
 
- /tmp
+ Temp directory is "C:\\Windows\\TEMP\\"
 
 .SH See also
 
-   Template:cpp/experimental/fs/dsc unique path
+   tmpfile creates and opens a temporary, auto-removing file
+           \fI(function)\fP 
+
+.SH Category:
+
+     * unconditionally noexcept

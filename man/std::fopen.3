@@ -30,13 +30,56 @@ std::fopen \- std::fopen
               "a+"         append         Open a file for     write to end  create new
                            extended       read/write
               File access mode flag "b" can optionally be specified to open a file in
-              binary mode. This flag has effect only on Windows systems.
+              binary mode. This flag has no effect on POSIX systems, but on Windows,
+              for example, it disables special handling of '\\n' and '\\x1A'.
               On the append file access modes, data is written to the end of the file
               regardless of the current position of the file position indicator.
 
 .SH Return value
 
-   Opened file stream on success, NULL on failure
+   If successful, returns a pointer to the object that controls the opened file stream,
+   with both eof and error bits cleared. The stream is fully buffered unless filename
+   refers to an interactive device.
+
+   On error, returns a null pointer. POSIX requires that errno is set in this case.
+
+.SH Notes
+
+   The format of filename is implementation-defined, and does not necessarily refer to
+   a file (e.g. it may be the console or another device accessible through filesystem
+   API). On platforms that support them, filename may include absolute or relative
+   filesystem path.
+
+   For portable directory and file naming, see C++ filesystem TS or boost.filesystem
+
+.SH Example
+
+   
+// Run this code
+
+ #include <cstdio>
+ #include <cstdlib>
+  
+ int main()
+ {
+     FILE* fp = std::fopen("test.txt", "r");
+     if(!fp) {
+         std::perror("File opening failed");
+         return EXIT_FAILURE;
+     }
+  
+     int c; // note: int, not char, required to handle EOF
+     while ((c = std::fgetc(fp)) != EOF) { // standard C I/O file reading loop
+        std::putchar(c);
+     }
+  
+     if (std::ferror(fp))
+         std::puts("I/O error when reading");
+     else if (std::feof(fp))
+         std::puts("End of file reached successfully");
+  
+     std::fclose(fp);
+ }
 
 .SH See also
 

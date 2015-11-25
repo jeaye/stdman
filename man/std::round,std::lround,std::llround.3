@@ -4,20 +4,26 @@ std::round,std::lround,std::llround \- std::round,std::lround,std::llround
 
 .SH Synopsis
    Defined in header <cmath>
-   float round( float arg );              \fI(since C++11)\fP
-   double round( double arg );            \fI(since C++11)\fP
-   long double round( long double arg );  \fI(since C++11)\fP
-   double round( Integral arg );          \fI(since C++11)\fP
-   long lround( float arg );              \fI(since C++11)\fP
-   long lround( double arg );             \fI(since C++11)\fP
-   long lround( long double arg );        \fI(since C++11)\fP
-   long lround( Integral arg );           \fI(since C++11)\fP
-   long long llround( float arg );        \fI(since C++11)\fP
-   long long llround( double arg );       \fI(since C++11)\fP
-   long long llround( long double arg );  \fI(since C++11)\fP
-   long long llround( Integral arg );     \fI(since C++11)\fP
+   float round( float arg );             \fB(1)\fP  \fI(since C++11)\fP
+   double round( double arg );           \fB(2)\fP  \fI(since C++11)\fP
+   long double round( long double arg ); \fB(3)\fP  \fI(since C++11)\fP
+   double round( Integral arg );         \fB(4)\fP  \fI(since C++11)\fP
+   long lround( float arg );             \fB(5)\fP  \fI(since C++11)\fP
+   long lround( double arg );            \fB(6)\fP  \fI(since C++11)\fP
+   long lround( long double arg );       \fB(7)\fP  \fI(since C++11)\fP
+   long lround( Integral arg );          \fB(8)\fP  \fI(since C++11)\fP
+   long long llround( float arg );       \fB(9)\fP  \fI(since C++11)\fP
+   long long llround( double arg );      \fB(10)\fP \fI(since C++11)\fP
+   long long llround( long double arg ); \fB(11)\fP \fI(since C++11)\fP
+   long long llround( Integral arg );    \fB(12)\fP \fI(since C++11)\fP
 
-   Computes nearest integer to arg. Number is rounded away from zero in halfway cases
+   1-3) Computes the nearest integer value to arg (in floating-point format), rounding
+   halfway cases away from zero, regardless of the current rounding mode.
+   5-7, 9-11) Computes the nearest integer value to arg (in integer format), rounding
+   halfway cases away from zero, regardless of the current rounding mode.
+   4,8,12) A set of overloads or a function template accepting an argument of any
+   integral type. Equivalent to 2), 6), or 10), respectively (the argument is cast to
+   double).
 
 .SH Parameters
 
@@ -25,11 +31,129 @@ std::round,std::lround,std::llround \- std::round,std::lround,std::llround
 
 .SH Return value
 
-   Nearest integer to arg.
+   If no errors occur, the nearest integer value to arg, rounding halfway cases away
+   from zero, is returned.
 
 .SH Return value
    math-round away zero.svg
    Argument
+
+   If a domain error occurs, an implementation-defined value is returned
+
+.SH Error handling
+
+   Errors are reported as specified in math_errhandling
+
+   If the result of std::lround or std::llround is outside the range representable by
+   the return type, a domain error or a range error may occur.
+
+   If the implementation supports IEEE floating-point arithmetic (IEC 60559),
+
+   For the std::round function:
+
+     * The current rounding mode has no effect.
+     * If arg is ±∞, it is returned, unmodified
+     * If arg is ±0, it is returned, unmodified
+     * If arg is NaN, NaN is returned
+
+   For std::lround and std::llround functions:
+
+     * FE_INEXACT is never raised
+     * The current rounding mode has no effect.
+     * If arg is ±∞, FE_INVALID is raised and an implementation-defined value is
+       returned
+     * If the result of the rounding is outside the range of the return type,
+       FE_INVALID is raised and an implementation-defined value is returned
+     * If arg is NaN, FE_INVALID is raised and an implementation-defined value is
+       returned
+
+.SH Notes
+
+   FE_INEXACT may be (but isn't required to be) raised by std::round when rounding a
+   non-integer finite value.
+
+   The largest representable floating-point values are exact integers in all standard
+   floating-point formats, so std::round never overflows on its own; however the result
+   may overflow any integer type (including std::intmax_t), when stored in an integer
+   variable.
+
+   POSIX specifies that all cases where std::lround or std::llround raise FE_INEXACT
+   are domain errors.
+
+   The double version of std::round behaves as if implemented as follows:
+
+ #include <cmath>
+ #include <cfenv>
+ #pragma STDC FENV_ACCESS ON
+ double round(double x)
+ {
+     std::fenv_t save_env;
+     std::feholdexcept(&save_env);
+     double result = std::rint(x);
+     if (std::fetestexcept(FE_INEXACT)) {
+         std::fesetround(FE_TOWARDZERO);
+         result = std::rint(std::copysign(0.5 + std::fabs(x), x));
+     }
+     std::feupdateenv(&save_env);
+     return result;
+ }
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <cmath>
+ #include <cfenv>
+ #include <climits>
+  
+ #pragma STDC FENV_ACCESS ON
+  
+ int main()
+ {
+     // round
+     std::cout << "round(+2.3) = " << std::round(2.3)
+               << "  round(+2.5) = " << std::round(2.5)
+               << "  round(+2.7) = " << std::round(2.7) << '\\n'
+               << "round(-2.3) = " << std::round(-2.3)
+               << "  round(-2.5) = " << std::round(-2.5)
+               << "  round(-2.7) = " << std::round(-2.7) << '\\n';
+  
+     std::cout << "round(-0.0) = " << std::round(-0.0)  << '\\n'
+               << "round(-Inf) = " << std::round(-INFINITY) << '\\n';
+  
+     // lround
+     std::cout << "lround(+2.3) = " << std::lround(2.3)
+               << "  lround(+2.5) = " << std::lround(2.5)
+               << "  lround(+2.7) = " << std::lround(2.7) << '\\n'
+               << "lround(-2.3) = " << std::lround(-2.3)
+               << "  lround(-2.5) = " << std::lround(-2.5)
+               << "  lround(-2.7) = " << std::lround(-2.7) << '\\n';
+  
+     std::cout << "lround(-0.0) = " << std::lround(-0.0)  << '\\n'
+               << "lround(-Inf) = " << std::lround(-INFINITY) << '\\n';
+  
+     // error handling
+     std::feclearexcept(FE_ALL_EXCEPT);
+     std::cout << "std::lround(LONG_MAX+1.5) = "
+               << std::lround(LONG_MAX+1.5) << '\\n';
+     if(std::fetestexcept(FE_INVALID))
+               std::cout << "    FE_INVALID was raised\\n";
+ }
+
+.SH Possible output:
+
+ round(+2.3) = 2  round(+2.5) = 3  round(+2.7) = 3
+ round(-2.3) = -2  round(-2.5) = -3  round(-2.7) = -3
+ round(-0.0) = -0
+ round(-Inf) = -inf
+ lround(+2.3) = 2  lround(+2.5) = 3  lround(+2.7) = 3
+ lround(-2.3) = -2  lround(-2.5) = -3  lround(-2.7) = -3
+ lround(-0.0) = 0
+ lround(-Inf) = -9223372036854775808
+ std::lround(LONG_MAX+1.5) = -9223372036854775808
+     FE_INVALID was raised
 
 .SH See also
 
@@ -39,3 +163,5 @@ std::round,std::lround,std::llround \- std::round,std::lround,std::llround
            \fI(function)\fP 
    trunc   nearest integer not greater in magnitude than the given value
    \fI(C++11)\fP \fI(function)\fP 
+   C documentation for
+   round

@@ -27,6 +27,10 @@ std::input_iterator_tag,std::output_iterator_tag,std::forward_iterator_tag, \- s
    For every iterator type, a typedef std::iterator_traits<Iterator>::iterator_category
    is available, which is an alias to one of these five tag types.
 
+.SH Notes
+
+   There is no separate tag for ContiguousIterator
+
 .SH Example
 
    Common technique for algorithm selection based on iterator category tags is to use a
@@ -69,6 +73,57 @@ std::input_iterator_tag,std::output_iterator_tag,std::forward_iterator_tag, \- s
   
  //    std::istreambuf_iterator<char> i1(std::cin), i2;
  //    alg(i1, i2); // compile error: no matching function for call
+ }
+
+.SH Output:
+
+ alg() called for random-access iterator
+ alg() called for bidirectional iterator
+
+.SH Example
+
+   Algorithm selection based on iterator category tags using std::enable_if
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <vector>
+ #include <list>
+ #include <iterator>
+  
+ template<typename Condition, typename T = void>
+ using EnableIf_t = typename std::enable_if<Condition::value, T>::type;
+  
+ template<typename Iterator, typename IteratorTag>
+ using IsSameIteratorCond =
+     std::is_same<IteratorTag,
+     typename std::iterator_traits<Iterator>::iterator_category>;
+  
+ template<
+     typename BDIter,
+     typename = EnableIf_t<IsSameIteratorCond<BDIter, std::bidirectional_iterator_tag>>>
+ void alg(BDIter, BDIter)
+ {
+     std::cout << "alg() called for bidirectional iterator\\n";
+ }
+  
+ template<
+     typename RAIter,
+     typename = EnableIf_t<IsSameIteratorCond<RAIter, std::random_access_iterator_tag>>,
+     typename = void> // dummy value to avoid template re-definition error
+ void alg(RAIter, RAIter)
+ {
+     std::cout << "alg() called for random-access iterator\\n";
+ }
+  
+ int main()
+ {
+     std::vector<int> v;
+     alg(v.begin(), v.end());
+  
+     std::list<int> l;
+     alg(l.begin(), l.end());
  }
 
 .SH Output:

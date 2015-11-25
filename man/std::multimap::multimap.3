@@ -6,7 +6,7 @@ std::multimap::multimap \- std::multimap::multimap
    explicit multimap( const Compare& comp = Compare(),          (until
                       const Allocator& alloc =                  C++14)
    Allocator() );
-   multimap : multimap( Compare() ) {}
+   multimap() : multimap( Compare() ) {}
 
    explicit multimap( const Compare& comp,                      (since
                                                                 C++14)
@@ -14,17 +14,17 @@ std::multimap::multimap \- std::multimap::multimap
    Allocator() );
    explicit multimap( const Allocator& alloc );             \fB(1)\fP (since
                                                                 C++11)
-   template< class InputIt >
+   template< class InputIterator >
 
-   multimap( InputIt first, InputIt last,
+   multimap( InputIterator first, InputIterator last,
              const Compare& comp = Compare(),
 
              const Allocator& alloc = Allocator() );
-   template< class InputIt >                            \fB(1)\fP
+   template< class InputIterator >                      \fB(1)\fP
                                                                         (since
-   multimap( InputIt first, InputIt last,                               C++14)
+   multimap( InputIterator first, InputIterator last,                   C++14)
 
-             const Allocator& alloc = Allocator() );
+             const Allocator& alloc );
    multimap( const multimap& other );                           \fB(3)\fP
    multimap( const multimap& other, const Allocator&        \fB(2)\fP \fB(3)\fP     (since
    alloc );                                                             C++11)
@@ -38,23 +38,19 @@ std::multimap::multimap \- std::multimap::multimap
                                                                 \fB(5)\fP
              const Allocator& alloc = Allocator() );
    multimap( std::initializer_list<value_type> init,                            (since
-             const Allocator& alloc = Allocator() );                            C++14)
+             const Allocator& );                                                C++14)
 
    Constructs new container from a variety of data sources and optionally using user
    supplied allocator alloc or comparison function object comp.
 
    1) Default constructor. Constructs empty container.
-
    2) Constructs the container with the contents of the range [first, last).
-
    3) Copy constructor. Constructs the container with the copy of the contents of
    other. If alloc is not provided, allocator is obtained by calling
-   std::allocator_traits<allocator_type>::select_on_copy_construction(other).
-
+   std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.get_allocator()).
    4) Move constructor. Constructs the container with the contents of other using move
    semantics. If alloc is not provided, allocator is obtained by move-construction from
    the allocator belonging to other.
-
    5) Constructs the container with the contents of the initializer list init.
 
 .SH Parameters
@@ -67,7 +63,7 @@ std::multimap::multimap \- std::multimap::multimap
    init        - initializer list to initialize the elements of the container with
 .SH Type requirements
    -
-   InputIt must meet the requirements of InputIterator.
+   InputIterator must meet the requirements of InputIterator.
    -
    Compare must meet the requirements of Compare.
    -
@@ -76,156 +72,17 @@ std::multimap::multimap \- std::multimap::multimap
 .SH Complexity
 
    1) Constant
-
    2) N log(N) where N = std::distance(first, last) in general, linear in N if the
    range is already sorted by value_comp().
-
    3) Linear in size of other
-
    4) Constant. If alloc is given and alloc != other.get_allocator(), then linear.
-
    5) N log(N) where N = init.size()) in general, linear in N if init is already sorted
    by value_comp().
 
 .SH Example
 
-   
-// Run this code
-
- #include <iostream>
- #include <functional>
- #include <map>
-  
- //declare printers for maps
- template<typename Key, typename T, typename Compare, typename Allocator>
- std::ostream& operator<<(std::ostream& stream,
-     const std::map<Key, T, Compare, Allocator>& map);
- template<typename T, typename Compare, typename Allocator>
- std::ostream& operator<<(std::ostream& stream,
-     const std::map<std::string, T, Compare, Allocator>& map);
- template<typename Key, typename Compare, typename Allocator>
- std::ostream& operator<<(std::ostream& stream,
-     const std::map<Key, std::string, Compare, Allocator>& map);
- template<typename Compare, typename Allocator>
- std::ostream& operator<<(std::ostream& stream,
-     const std::map<std::string, std::string, Compare, Allocator>& map);
-  
- int main()
- {
-   typedef std::string Key;
-   typedef int Mapped;
-  
-   // (1) Default constructor
-   std::map<Key, Mapped> map;
-   map["something"] = 69;
-   map["anything"] = 199;
-   map["that thing"] = 50;
-   std::cout << std::string(80, '-') << '\\n';
-   std::cout << "map = " << map << '\\n';
-  
-   // (2) Iterator constructor
-   std::map<Key, Mapped> iter(map.find("anything"), map.end());
-   std::cout << std::string(80, '-') << '\\n';
-   std::cout << "iter = " << iter << '\\n';
-   std::cout << "map = " << map << '\\n';
-  
-   // (3) Copy constructor
-   std::map<Key, Mapped> copy(map);
-   std::cout << std::string(80, '-') << '\\n';
-   std::cout << "copy = " << copy << '\\n';
-   std::cout << "map = " << map << '\\n';
-  
-   // (4) Move constructor
-   std::map<Key, Mapped> moved(std::move(map));
-   std::cout << std::string(80, '-') << '\\n';
-   std::cout << "moved = " << copy << '\\n';
-   std::cout << "map = " << map << '\\n';
-  
-   // (5) Initializer list constructor
-   const std::map<Key, Mapped> init {
-     {"this", 100},
-     {"can", 100},
-     {"be", 100},
-     {"const", 100},
-   };
-   std::cout << std::string(80, '-') << '\\n';
-   std::cout << "init = " << init << '\\n';
- }
-  
- // A printer for unordered maps
- template<typename Key, typename T, typename Compare, typename Allocator>
- std::ostream& operator<<(std::ostream& stream,
-     const std::map<Key, T, Compare, Allocator>& map) {
-   stream << '{';
-   char comma[3] = {'\\0', ' ', '\\0'};
-   for (const auto& pair : map) {
-     stream << comma << pair.first << ':' << pair.second;
-     comma[0] = ',';
-   }
-   stream << '}';
-   return stream;
- }
-  
- // A specialization for Key strings
- template<typename T, typename Compare, typename Allocator>
- std::ostream& operator<<(std::ostream& stream,
-     const std::map<std::string, T, Compare, Allocator>& map) {
-   stream << '{';
-   char comma[3] = {'\\0', ' ', '\\0'};
-   for (const auto& pair : map) {
-     stream << comma << '"' << pair.first << "\\":" << pair.second;
-     comma[0] = ',';
-   }
-   stream << '}';
-   return stream;
- }
-  
- // A printer for unordered maps
- template<typename Key, typename Compare, typename Allocator>
- std::ostream& operator<<(std::ostream& stream,
-     const std::map<Key, std::string, Compare, Allocator>& map) {
-   stream << '{';
-   char comma[3] = {'\\0', ' ', '\\0'};
-   for (const auto& pair : map) {
-     stream << comma << pair.first << ":\\"" << pair.second << '"';
-     comma[0] = ',';
-   }
-   stream << '}';
-   return stream;
- }
-  
- // A specialization for Key and Mapped strings
- template<typename Compare, typename Allocator>
- std::ostream& operator<<(std::ostream& stream,
-     const std::map<std::string, std::string, Compare, Allocator>& map) {
-   stream << '{';
-   char comma[3] = {'\\0', ' ', '\\0'};
-   for (const auto& pair : map) {
-     stream << comma << '"' << pair.first << "\\":\\"" << pair.second << '"';
-     comma[0] = ',';
-   }
-   stream << '}';
-   return stream;
- }
-
-.SH Output:
-
- --------------------------------------------------------------------------------
- map = {"anything":199, "something":69, "that thing":50}
- --------------------------------------------------------------------------------
- iter = {"anything":199, "something":69, "that thing":50}
- map = {"anything":199, "something":69, "that thing":50}
- --------------------------------------------------------------------------------
- copy = {"anything":199, "something":69, "that thing":50}
- map = {"anything":199, "something":69, "that thing":50}
- --------------------------------------------------------------------------------
- moved = {"anything":199, "something":69, "that thing":50}
- map = {}
- --------------------------------------------------------------------------------
- init = {"be":100, "can":100, "const":100, "this":100}
-
     This section is incomplete
-    Reason: cleanup/shorten this example
+    Reason: no example
 
 .SH See also
 
@@ -234,4 +91,4 @@ std::multimap::multimap \- std::multimap::multimap
 
 .SH Category:
 
-     * Todo with reason
+     * Todo no example

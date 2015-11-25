@@ -18,7 +18,7 @@ std::realloc \- std::realloc
    b) allocating a new memory block of size new_size bytes, copying memory area with
    size equal the lesser of the new and the old sizes, and freeing the old block.
 
-   If there is not enough memory, the old memory block is not freed and null-pointer is
+   If there is not enough memory, the old memory block is not freed and null pointer is
    returned.
 
    If ptr is NULL, the behavior is the same as calling std::malloc(new_size).
@@ -27,12 +27,6 @@ std::realloc \- std::realloc
    returned, or some non-null pointer may be returned that may not be used to access
    storage).
 
-.SH Notes
-
-   Because reallocation may involve bytewise copying (regardless of whether it's to
-   expand or to contract), only the objects of TriviallyCopyable types are safe to
-   access in the preserved part of the memory block after a call to realloc.
-
 .SH Parameters
 
    ptr      - pointer to the memory area to be reallocated
@@ -40,19 +34,74 @@ std::realloc \- std::realloc
 
 .SH Return value
 
-   Pointer to the beginning of newly allocated memory or NULL if error has occurred.
-   The pointer must be deallocated with std::free().
+   On success, returns a pointer to the beginning of newly allocated memory. The
+   returned pointer must be deallocated with std::free(), the original pointer ptr is
+   invalidated and any access to it is undefined behavior (even if reallocation was
+   in-place).
+
+   On failure, returns a null pointer. The original pointer ptr remains valid and may
+   need to be deallocated with std::free()
+
+.SH Notes
+
+   Because reallocation may involve bytewise copying (regardless of whether it's to
+   expand or to contract), only the objects of TriviallyCopyable types are safe to
+   access in the preserved part of the memory block after a call to realloc.
+
+   Some non-standard libraries define a type trait "BitwiseMovable" or "Relocatable",
+   which describes a type that
+
+     * does not have to register with an observer that maintains a pointer to this
+       object (e.g. nodes of a list or a tree)
+     * has no members of pointer type that point to members of the same object (like
+       std::experimental::optional)
+
+   Objects of such type can be accessed after their storage is reallocated even if
+   their copy constructors are not trivial.
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+   
+// Run this code
+
+ #include <cstdlib>
+ #include <new>
+ #include <cassert>
+  
+ class MallocDynamicBuffer
+ {
+     char* p;
+ public:
+     explicit MallocDynamicBuffer(std::size_t initial = 0) : p(nullptr) {
+        resize(initial);
+     }
+     ~MallocDynamicBuffer() { std::free(p); }
+     void resize(std::size_t newSize) {
+         if(newSize == 0) { // this check is not strictly needed,
+             std::free(p);  // but zero-size realloc is deprecated in C
+             p = nullptr;
+         } else {
+             if(void* mem = std::realloc(p, newSize))
+                 p = static_cast<char*>(mem);
+             else
+                 throw std::bad_alloc();
+         }
+     }
+     char& operator[](size_t n) { return p[n]; }
+     char operator[](size_t n) const { return p[n]; }
+ };
+  
+ int main()
+ {
+     MallocDynamicBuffer buf1(1024);
+     buf1[5] = 'f';
+     buf1.resize(10); // shrink
+     assert(buf1[5] == 'f');
+     buf1.resize(1024); // grow
+     assert(buf1[5] == 'f');
+ }
 
 .SH See also
 
    C documentation for
    realloc
-
-.SH Category:
-
-     * Todo no example

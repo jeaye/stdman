@@ -4,12 +4,14 @@ std::log2 \- std::log2
 
 .SH Synopsis
    Defined in header <cmath>
-   float       log2( float arg );        \fI(since C++11)\fP
-   double      log2( double arg );       \fI(since C++11)\fP
-   long double log2( long double arg );  \fI(since C++11)\fP
-   double      log2( Integral arg );     \fI(since C++11)\fP
+   float       log2( float arg );       \fB(1)\fP \fI(since C++11)\fP
+   double      log2( double arg );      \fB(2)\fP \fI(since C++11)\fP
+   long double log2( long double arg ); \fB(3)\fP \fI(since C++11)\fP
+   double      log2( Integral arg );    \fB(4)\fP \fI(since C++11)\fP
 
-   Computes the base 2 logarithm of arg.
+   1-3) Computes the binary (base-2) logarithm of arg.
+   4) A set of overloads or a function template accepting an argument of any integral
+   type. Equivalent to 2) (the argument is cast to double).
 
 .SH Parameters
 
@@ -17,20 +19,86 @@ std::log2 \- std::log2
 
 .SH Return value
 
-   log
-   2(arg)
+   If no errors occur, the base-2 logarithm of arg (log
+   2(arg) or lb(arg)) is returned.
 
-   Domain error occurs if arg is negative. NAN is returned in that case.
+   If a domain error occurs, an implementation-defined value is returned (NaN where
+   supported)
 
-   Range error occurs if arg is 0. -HUGE_VAL is returned in that case.
+   If a pole error occurs, -HUGE_VAL, -HUGE_VALF, or -HUGE_VALL is returned.
+
+.SH Error handling
+
+   Errors are reported as specified in math_errhandling
+
+   Domain error occurs if arg is less than zero.
+
+   Pole error may occur if arg is zero.
+
+   If the implementation supports IEEE floating-point arithmetic (IEC 60559),
+
+     * If the argument is ±0, -∞ is returned and FE_DIVBYZERO is raised.
+     * If the argument is 1, +0 is returned
+     * If the argument is negative, NaN is returned and FE_INVALID is raised.
+     * If the argument is +∞, +∞ is returned
+     * If the argument is NaN, NaN is returned
+
+.SH Notes
+
+   For integer arg, the binary logarithm can be interpreted as the zero-based index of
+   the most significant 1 bit in the input.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <cmath>
+ #include <cerrno>
+ #include <cstring>
+ #include <cfenv>
+ #pragma STDC FENV_ACCESS ON
+ int main()
+ {
+     std::cout << "log2(65536) = " << std::log2(65536) << '\\n'
+               << "log2(0.125) = " << std::log2(0.125) << '\\n'
+               << "log2(0x020f) = " << std::log2(0x020f)
+               << " (highest set bit is in position 9)\\n"
+               << "base-5 logarithm of 125 = " << std::log2(125)/std::log2(5) << '\\n';
+     // special values
+     std::cout << "log2(1) = " << std::log2(1) << '\\n'
+               << "log2(+Inf) = " << std::log2(INFINITY) << '\\n';
+     // error handling
+     errno=0; std::feclearexcept(FE_ALL_EXCEPT);
+     std::cout << "log2(0) = " << std::log2(0) << '\\n';
+     if(errno == ERANGE)
+         std::cout << "    errno == ERANGE: " << std::strerror(errno) << '\\n';
+     if(std::fetestexcept(FE_DIVBYZERO))
+         std::cout << "    FE_DIVBYZERO raised\\n";
+ }
+
+.SH Possible output:
+
+ log2(65536) = 16
+ log2(0.125) = -3
+ log2(0x020f) = 9.04166 (highest set bit is in position 9)
+ base-5 logarithm of 125 = 3
+ log2\fB(1)\fP = 0
+ log2(+Inf) = inf
+ log2\fB(0)\fP = -inf
+     errno == ERANGE: Numerical result out of range
+     FE_DIVBYZERO raised
 
 .SH See also
 
    log     computes natural (base e) logarithm (to base e) (ln(x))
            \fI(function)\fP 
-   exp2    returns 2 raised to the given power (2^x)
-   \fI(C++11)\fP \fI(function)\fP 
    log10   computes common (base 10) logarithm (log[10](x))
            \fI(function)\fP 
+   log1p   natural logarithm (to base e) of 1 plus the given number (ln(1+x))
+   \fI(C++11)\fP \fI(function)\fP 
+   exp2    returns 2 raised to the given power (2^x)
+   \fI(C++11)\fP \fI(function)\fP 
    C documentation for
    log2

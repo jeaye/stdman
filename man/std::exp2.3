@@ -4,12 +4,14 @@ std::exp2 \- std::exp2
 
 .SH Synopsis
    Defined in header <cmath>
-   double      exp2( double n );       \fI(since C++11)\fP
-   float       exp2( float n );        \fI(since C++11)\fP
-   long double exp2( long double n );  \fI(since C++11)\fP
-   double      exp2( Integral n );     \fI(since C++11)\fP
+   double      exp2( double n );      \fB(1)\fP \fI(since C++11)\fP
+   float       exp2( float n );       \fB(2)\fP \fI(since C++11)\fP
+   long double exp2( long double n ); \fB(3)\fP \fI(since C++11)\fP
+   double      exp2( Integral n );    \fB(4)\fP \fI(since C++11)\fP
 
-   Computes 2 raised to the given power n
+   1-3) Computes 2 raised to the given power n
+   4) A set of overloads or a function template accepting an argument of any integral
+   type. Equivalent to 2) (the argument is cast to double).
 
 .SH Parameters
 
@@ -17,20 +19,72 @@ std::exp2 \- std::exp2
 
 .SH Return value
 
-   2 raised to the n (i.e. 2^n)
+   If no errors occur, the base-2 exponential of n (2n
+   ) is returned.
 
-   If the result is too large for the underlying type, range error occurs and HUGE_VAL
-   is returned.
+   If a range error due to overflow occurs, +HUGE_VAL, +HUGE_VALF, or +HUGE_VALL is
+   returned.
+
+   If a range error occurs due to underflow, the correct result (after rounding) is
+   returned.
+
+.SH Error handling
+
+   Errors are reported as specified in math_errhandling
+
+   If the implementation supports IEEE floating-point arithmetic (IEC 60559),
+
+     * If the argument is ±0, 1 is returned
+     * If the argument is -∞, +0 is returned
+     * If the argument is +∞, +∞ is returned
+     * If the argument is NaN, NaN is returned
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <cmath>
+ #include <cerrno>
+ #include <cstring>
+ #include <cfenv>
+ #pragma STDC FENV_ACCESS ON
+ int main()
+ {
+     std::cout << "exp2(4) = " << std::exp2(4) << '\\n'
+               << "exp2(0.5) = " << std::exp2(0.5) << '\\n'
+               << "exp2(-4) = " << std::exp2(-4) << '\\n';
+     // special values
+     std::cout << "exp2(-0) = " << std::exp2(-0.0) << '\\n'
+               << "exp2(-Inf) = " << std::exp2(-INFINITY) << '\\n';
+     // error handling
+     errno=0; std::feclearexcept(FE_ALL_EXCEPT);
+     std::cout << "exp2(1024) = " << std::exp2(1024) << '\\n';
+     if(errno == ERANGE)
+         std::cout << "    errno == ERANGE: " << std::strerror(errno) << '\\n';
+     if(std::fetestexcept(FE_OVERFLOW))
+         std::cout << "    FE_OVERFLOW raised\\n";
+ }
+
+.SH Possible output:
+
+ exp2\fB(4)\fP = 16
+ exp2(0.5) = 1.41421
+ exp2(-4) = 0.0625
+ exp2(-0) = 1
+ exp2(-Inf) = 0
+ exp2(1024) = inf
+     errno == ERANGE: Numerical result out of range
+     FE_OVERFLOW raised
 
 .SH See also
 
    exp     returns e raised to the given power (e^x)
            \fI(function)\fP 
-   log2    base 2 logarithm of the given number
+   expm1   returns e raised to the given power, minus one (e^x-1)
    \fI(C++11)\fP \fI(function)\fP 
-   log     computes natural (base e) logarithm (to base e) (ln(x))
-           \fI(function)\fP 
-   pow     raises a number to the given power (x^y)
-           \fI(function)\fP 
+   log2    base 2 logarithm of the given number (log[2](x))
+   \fI(C++11)\fP \fI(function)\fP 
    C documentation for
    exp2

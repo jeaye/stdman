@@ -4,12 +4,15 @@ std::asin \- std::asin
 
 .SH Synopsis
    Defined in header <cmath>
-   float       asin( float arg );
-   double      asin( double arg );
-   long double asin( long double arg );
-   double      asin( Integral arg );     \fI(since C++11)\fP
+   float       asin( float arg );       \fB(1)\fP
+   double      asin( double arg );      \fB(2)\fP
+   long double asin( long double arg ); \fB(3)\fP
+   double      asin( Integral arg );    \fB(4)\fP \fI(since C++11)\fP
 
-   Computes arc sine of arg.
+   Computes the principal value of the arc sine of arg.
+
+   4) A set of overloads or a function template accepting an argument of any integral
+   type. Equivalent to 2) (the argument is cast to double).
 
 .SH Parameters
 
@@ -17,12 +20,75 @@ std::asin \- std::asin
 
 .SH Return value
 
-   Arc sine of arg in radians in the range of [-π/2; π/2] radians.
+   If no errors occur, the arc sine of arg (arcsin(arg)) in the range [-
 
-   Domain error occurs if arg is outside the range [-1.0; 1.0]. NaN is returned in that
-   case and FE_INVALID is raised.
+   π
+   2
 
-   std::asin(+0) returns +0. std::asin(-0) returns -0.
+    ; +
+
+   π
+   2
+
+   ], is returned.
+
+   If a domain error occurs, an implementation-defined value is returned (NaN where
+   supported)
+
+   If a range error occurs due to underflow, the correct result (after rounding) is
+   returned.
+
+.SH Error handling
+
+   Errors are reported as specified in math_errhandling
+
+   Domain error occurs if arg is outside the range [-1.0; 1.0]
+
+   If the implementation supports IEEE floating-point arithmetic (IEC 60559),
+
+     * If the argument is ±0, it is returned unmodified
+     * If |arg| > 1, a domain error occurs and NaN is returned.
+     * if the argument is NaN, NaN is returned
+
+.SH Example
+
+   
+// Run this code
+
+ #include <cmath>
+ #include <iostream>
+ #include <cerrno>
+ #include <cfenv>
+ #include <cstring>
+  
+ #pragma STDC FENV_ACCESS ON
+ int main()
+ {
+     std::cout << "asin(1.0) = " << asin(1) << '\\n'
+               << "2*asin(1.0) = " << 2*asin(1) << '\\n'
+               << "asin(-0.5) = " << asin(-0.5) << '\\n'
+               << "6*asin(-0.5) =" << 6*asin(-0.5) << '\\n';
+     // special values
+     std::cout << "asin(0.0) = " << asin(0) << " asin(-0.0)=" << asin(-0.0) << '\\n';
+     // error handling
+     errno = 0; std::feclearexcept(FE_ALL_EXCEPT);
+     std::cout << "asin(1.1) = " << asin(1.1) << '\\n';
+     if(errno == EDOM)
+         std::cout << "    errno == EDOM: " << std::strerror(errno) << '\\n';
+     if(std::fetestexcept(FE_INVALID))
+         std::cout << "    FE_INVALID raised" << '\\n';
+ }
+
+.SH Possible output:
+
+ asin(1.0) = 1.5708
+ 2*asin(1.0) = 3.14159
+ asin(-0.5) = -0.523599
+ 6*asin(-0.5) = -3.14159
+ asin(0.0) = 0 asin(-0.0)=-0
+ asin(1.1) = nan
+     errno == EDOM: Numerical argument out of domain
+     FE_INVALID raised
 
 .SH See also
 

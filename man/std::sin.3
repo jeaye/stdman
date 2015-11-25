@@ -4,12 +4,15 @@ std::sin \- std::sin
 
 .SH Synopsis
    Defined in header <cmath>
-   float       sin( float arg );
-   double      sin( double arg );
-   long double sin( long double arg );
-   double      sin( Integral arg );     \fI(since C++11)\fP
+   float       sin( float arg );       \fB(1)\fP
+   double      sin( double arg );      \fB(2)\fP
+   long double sin( long double arg ); \fB(3)\fP
+   double      sin( Integral arg );    \fB(4)\fP \fI(since C++11)\fP
 
-   Computes sine of arg.
+   Computes the sine of arg (measured in radians).
+
+   4) A set of overloads or a function template accepting an argument of any integral
+   type. Equivalent to 2) (the argument is cast to double).
 
 .SH Parameters
 
@@ -17,9 +20,72 @@ std::sin \- std::sin
 
 .SH Return value
 
-   Sine of arg in the range [-1 ; +1].
+   If no errors occur, the sine of arg (sin(arg)) in the range [-1 ; +1], is returned.
 
-   Domain error occurs if arg is infinite. NAN is returned in that case.
+   The result may have little or no significance if the magnitude of arg  \fI(until C++11)\fP
+   is large
+
+   If a domain error occurs, an implementation-defined value is returned (NaN where
+   supported)
+
+   If a range error occurs due to underflow, the correct result (after rounding) is
+   returned.
+
+.SH Error handling
+
+   Errors are reported as specified in math_errhandling
+
+   If the implementation supports IEEE floating-point arithmetic (IEC 60559),
+
+     * if the argument is ±0, it is returned unmodified
+     * if the argument is ±∞, NaN is returned and FE_INVALID is raised
+     * if the argument is NaN, NaN is returned
+
+.SH Notes
+
+   The case where the argument is infinite is not specified to be a domain error in C
+   (to which C++ defers), but it is defined as a domain error in POSIX
+
+   POSIX also specifies that in case of underflow, arg is returned unmodified, and if
+   that is not supported, an implementation-defined value no greater than DBL_MIN,
+   FLT_MIN, and LDBL_MIN is returned.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <cmath>
+ #include <cerrno>
+ #include <cfenv>
+  
+ #pragma STDC FENV_ACCESS ON
+ const double pi = std::acos(-1);
+ int main()
+ {
+     // typical usage
+     std::cout << "sin(pi/6) = " << std::sin(pi/6) << '\\n'
+               << "sin(pi/2) = " << std::sin(pi/2) << '\\n'
+               << "sin(-3*pi/4) = " << std::sin(-3*pi/4) << '\\n';
+     // special values
+     std::cout << "sin(+0) = " << std::sin(0.0) << '\\n'
+               << "sin(-0) = " << std::sin(-0.0) << '\\n';
+     // error handling
+     std::feclearexcept(FE_ALL_EXCEPT);
+     std::cout << "sin(INFINITY) = " << std::sin(INFINITY) << '\\n';
+     if(std::fetestexcept(FE_INVALID)) std::cout << "    FE_INVALID raised\\n";
+ }
+
+.SH Possible output:
+
+ sin(pi/6) = 0.5
+ sin(pi/2) = 1
+ sin(-3*pi/4) = -0.707107
+ sin(+0) = 0
+ sin(-0) = -0
+ sin(INFINITY) = -nan
+     FE_INVALID raised
 
 .SH See also
 

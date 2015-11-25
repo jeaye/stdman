@@ -13,16 +13,17 @@ std::nextafter,std::nexttoward \- std::nextafter,std::nexttoward
    long double nexttoward( long double from, long double to ); \fB(7)\fP \fI(since C++11)\fP
    double      nexttoward( Integral from, long double to );    \fB(8)\fP \fI(since C++11)\fP
 
-   Returns the next representable value of from in the direction of to. If from equals
-   to to, to is returned.
+   Returns the next representable value of from in the direction of to.
 
-   4) If any argument has integral type, it is cast to double. If any other argument is
-   long double, then the return type is long double, otherwise it is double
-
-   If from is finite, but the result of nextafter or nexttoward is infinite, raises
-   FE_OVERFLOW and FE_INEXACT. If the result is subnormal or zero and from != to,
-   raises FE_UNDERFLOW and FE_INEXACT. In any case, the returned value is independent
-   of the current rounding mode.
+   1-3) If from equals to to, to is returned.
+   5-7) If from equals to to, to is returned, converted from long double to the return
+   type of the function without loss of range or precision.
+   4) A set of overloads or a function template for all combinations of arguments of
+   arithmetic type not covered by (1-3). If any argument has integral type, it is cast
+   to double. If any argument is long double, then the return type Promoted is also
+   long double, otherwise the return type is always double.
+   8) A set of overloads or a function template accepting the from argument of any
+   integral type. Equivalent to \fB(6)\fP (the argument is cast to double).
 
 .SH Parameters
 
@@ -30,7 +31,35 @@ std::nextafter,std::nexttoward \- std::nextafter,std::nexttoward
 
 .SH Return value
 
-   the next representable value of from in the direction of to.
+   If no errors occur, the next representable value of from in the direction of to. is
+   returned. If from equals to, then to is returned.
+
+   If a range error due to overflow occurs, ±HUGE_VAL, ±HUGE_VALF, or ±HUGE_VALL is
+   returned (with the same sign as from)
+
+   If a range error occurs due to underflow, the correct result is returned.
+
+.SH Error handling
+
+   Errors are reported as specified in math_errhandling
+
+   If the implementation supports IEEE floating-point arithmetic (IEC 60559),
+
+     * if from is finite, but the expected result is an infinity, raises FE_INEXACT and
+       FE_OVERFLOW
+     * if from does not equal to and the result is subnormal or zero, raises FE_INEXACT
+       and FE_UNDERFLOW
+     * in any case, the returned value is independent of the current rounding mode
+     * if either from or to is NaN, NaN is returned
+
+.SH Notes
+
+   POSIX specifies that the overflow and the underflow conditions are range errors
+   (errno may be set)
+
+   IEC 60559 recommends that from is returned whenever from==to. These functions return
+   to instead, which makes the behavior around zero consistent: std::nextafter(-0.0,
+   +0.0) returns +0.0 and std::nextafter(+0.0, -0.0) returns –0.0.
 
 .SH Example
 
@@ -38,19 +67,68 @@ std::nextafter,std::nexttoward \- std::nextafter,std::nexttoward
 // Run this code
 
  #include <cmath>
- #include <iostream>
  #include <iomanip>
+ #include <iostream>
+ #include <cfloat>
+ #include <cfenv>
   
  int main()
  {
-     std::cout << "0.1 lies between the doubles " << std::setprecision(100) << '\\n'
-               << 0.1 << '\\n' << " and\\n"
-               << std::nextafter(0.1, 0) << '\\n';
+     float from1 = 0, to1 = std::nextafter(from1, 1.f);
+     std::cout << "The next representable float after " << std::setprecision(20) << from1
+               << " is " << to1
+               << std::hexfloat << " (" << to1 << ")\\n" << std::defaultfloat;
+  
+     float from2 = 1, to2 = std::nextafter(from2, 2.f);
+     std::cout << "The next representable float after " << from2 << " is " << to2
+               << std::hexfloat << " (" << to2 << ")\\n" << std::defaultfloat;
+  
+     double from3 = std::nextafter(0.1, 0), to3 = 0.1;
+     std::cout << "The number 0.1 lies between two valid doubles:\\n"
+               << std::setprecision(56) << "    " << from3
+               << std::hexfloat << " (" << from3 << ')' << std::defaultfloat
+               << "\\nand " << to3 << std::hexfloat << " (" << to3 << ")\\n"
+               << std::defaultfloat << std::setprecision(20);
+  
+     // difference between nextafter and nexttoward:
+     long double dir = std::nextafter(from1, 1.0L); // first subnormal long double
+     float x = nextafter(from1, dir); // first converts dir to float, giving 0
+     std::cout << "With nextafter, next float after " << from1 << " is " << x << '\\n';
+     x = std::nexttoward(from1, dir);
+     std::cout << "With nexttoward, next float after " << from1 << " is " << x << '\\n';
+  
+     // special values
+     {
+         #pragma STDC FENV_ACCESS ON
+         std::feclearexcept(FE_ALL_EXCEPT);
+         double from4 = DBL_MAX, to4 = std::nextafter(from4, INFINITY);
+         std::cout << "The next representable double after " << std::setprecision(6)
+                   << from4 << std::hexfloat << " (" << from4 << ')'
+                   << std::defaultfloat << " is " << to4
+                   << std::hexfloat << " (" << to4 << ")\\n" << std::defaultfloat;
+         if(std::fetestexcept(FE_OVERFLOW)) std::cout << "   raised FE_OVERFLOW\\n";
+         if(std::fetestexcept(FE_INEXACT)) std::cout << "   raised FE_INEXACT\\n";
+     } // end FENV_ACCESS block
+  
+     float from5 = 0.0, to5 = std::nextafter(from5, -0.0);
+     std::cout << "std::nextafter(+0.0, -0.0) gives " << std::fixed << to5 << '\\n';
  }
 
 .SH Output:
 
- 0.1 lies between the doubles
- 0.1000000000000000055511151231257827021181583404541015625
-  and
- 0.09999999999999999167332731531132594682276248931884765625
+ The next representable float after 0 is 1.4012984643248170709e-45 (0x1p-149)
+ The next representable float after 1 is 1.0000001192092895508 (0x1.000002p+0)
+ The number 0.1 lies between two valid doubles:
+     0.09999999999999999167332731531132594682276248931884765625 (0x1.9999999999999p-4)
+ and 0.1000000000000000055511151231257827021181583404541015625 (0x1.999999999999ap-4)
+ With nextafter, next float after 0 is 0
+ With nexttoward, next float after 0 is 1.4012984643248170709e-45
+ The next representable double after 1.79769e+308 (0x1.fffffffffffffp+1023) is inf (inf)
+    raised FE_OVERFLOW
+    raised FE_INEXACT
+ std::nextafter(+0.0, -0.0) gives -0.000000
+
+.SH See also
+
+   C documentation for
+   nextafter

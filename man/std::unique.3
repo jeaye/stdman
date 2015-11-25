@@ -51,6 +51,11 @@ std::unique \- std::unique
 
    Forward iterator to the new end of the range
 
+.SH Complexity
+
+   For nonempty ranges, exactly std::distance(first,last) -1 applications of the
+   corresponding predicate.
+
 .SH Possible implementation
 
 .SH First version
@@ -62,30 +67,29 @@ std::unique \- std::unique
     
        ForwardIt result = first;
        while (++first != last) {
-           if (!(*result == *first)) {
-               *(++result) = *first;
+           if (!(*result == *first) && ++result != first) {
+               *result = std::move(*first);
            }
        }
        return ++result;
    }
 .SH Second version
    template<class ForwardIt, class BinaryPredicate>
-   ForwardIt unique(ForwardIt first, ForwardIt last,
-                          BinaryPredicate p)
+   ForwardIt unique(ForwardIt first, ForwardIt last, BinaryPredicate p)
    {
        if (first == last)
            return last;
     
        ForwardIt result = first;
        while (++first != last) {
-           if (!p(*result, *first)) {
-               *(++result) = *first;
+           if (!p(*result, *first) && ++result != first) {
+               *result = std::move(*first);
            }
        }
        return ++result;
    }
 
-.SH Example
+.SH Examples
 
    The following code removes all consecutive equivalent elements from a vector of
    integers.
@@ -114,17 +118,41 @@ std::unique \- std::unique
 
  1 2 3 2 1
 
-.SH Complexity
+   The following code removes all duplicate elements from a vector of integers.
 
-   linear in the distance between first and last
+   
+// Run this code
+
+ #include <iostream>
+ #include <algorithm>
+ #include <vector>
+  
+ int main()
+ {
+     std::vector<int> v{1,2,3,1,2,3,3,4,5,4,5,6,7};
+     std::sort(v.begin(), v.end());
+     auto last = std::unique(v.begin(), v.end());
+     v.erase(last, v.end());
+     for (const auto& i : v)
+       std::cout << i << " ";
+     std::cout << "\\n";
+ }
+
+.SH Output:
+
+ 1 2 3 4 5 6 7
 
 .SH See also
 
-                 finds two identical (or some other relationship) items adjacent to
-   adjacent_find each other
-                 \fI(function template)\fP 
-                 creates a copy of some range of elements that contains no consecutive
-   unique_copy   duplicates
-                 \fI(function template)\fP 
-   remove        removes elements satisfying specific criteria
-   remove_if     \fI(function template)\fP 
+                                       finds the first two adjacent items that are
+   adjacent_find                       equal (or satisfy a given predicate)
+                                       \fI(function template)\fP 
+                                       creates a copy of some range of elements that
+   unique_copy                         contains no consecutive duplicates
+                                       \fI(function template)\fP 
+   remove                              removes elements satisfying specific criteria
+   remove_if                           \fI(function template)\fP 
+   unique                              removes consecutive duplicate elements
+                                       \fI(public member function of std::list)\fP 
+   std::experimental::parallel::unique parallelized version of std::unique
+   (parallelism TS)                    \fI(function template)\fP 

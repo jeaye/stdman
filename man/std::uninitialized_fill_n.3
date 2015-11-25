@@ -5,11 +5,20 @@ std::uninitialized_fill_n \- std::uninitialized_fill_n
 .SH Synopsis
    Defined in header <memory>
    template< class ForwardIt, class Size, class T >
-   void uninitialized_fill_n( ForwardIt first, Size count, const T& value )
+   void uninitialized_fill_n( ForwardIt first, Size count, const T&       \fI(until C++11)\fP
+   value );
+   template< class ForwardIt, class Size, class T >
+   ForwardIt uninitialized_fill_n( ForwardIt first, Size count, const T&  \fI(since C++11)\fP
+   value );
 
    Copies the given value value to the first count elements in an uninitialized memory
-   area beginning at first. The elements in the uninitialized area are constructed
-   using copy constructor.
+   area beginning at first as if by
+
+ for (; n--; ++first)
+   ::new (static_cast<void*>(std::addressof(*first)))
+      typename iterator_traits<ForwardIterator>::value_type(x);
+
+   If an exception is thrown during the initialization, the function has no effects.
 
 .SH Parameters
 
@@ -22,23 +31,31 @@ std::uninitialized_fill_n \- std::uninitialized_fill_n
 
 .SH Return value
 
-   Iterator to the element past the last element copied.
+   \fI(none)\fP                                                \fI(until C++11)\fP
+   Iterator to the element past the last element copied. \fI(since C++11)\fP
 
 .SH Complexity
 
-   Linear in count
+   Linear in count.
 
 .SH Possible implementation
 
    template< class ForwardIt, class Size, class T >
-   void uninitialized_fill_n(ForwardIt first, Size count
-                             const T& value)
+   ForwardIt uninitialized_fill_n(ForwardIt first, Size count, const T& value)
    {
        typedef typename std::iterator_traits<ForwardIt>::value_type Value;
-       for (; count > 0; ++first, --count) {
-           ::new (static_cast<void*>(&*first)) Value(value);
+       ForwardIt current = first;
+       try {
+           for (; count > 0; ++current, (void) --count) {
+               ::new (static_cast<void*>(std::addressof(*current))) Value(value);
+           }
+           return current;
+       } catch (...) {
+           for (; first != current; ++first) {
+               first->~Value();
+           }
+           throw;
        }
-       return first;
    }
 
 .SH Example
@@ -56,7 +73,7 @@ std::uninitialized_fill_n \- std::uninitialized_fill_n
  {
      std::string* p;
      std::size_t sz;
-     std::tie(p, sz)  = std::get_temporary_buffer<std::string>(4);
+     std::tie(p, sz) = std::get_temporary_buffer<std::string>(4);
      std::uninitialized_fill_n(p, sz, "Example");
   
      for (std::string* i = p; i != p+sz; ++i) {
@@ -75,5 +92,9 @@ std::uninitialized_fill_n \- std::uninitialized_fill_n
 
 .SH See also
 
-   uninitialized_fill copies an object to an uninitialized area of memory
-                      \fI(function template)\fP 
+                                                     copies an object to an
+   uninitialized_fill                                uninitialized area of memory
+                                                     \fI(function template)\fP 
+   std::experimental::parallel::uninitialised_fill_n parallelized version of
+   (parallelism TS)                                  std::uninitialised_fill_n
+                                                     \fI(function template)\fP 

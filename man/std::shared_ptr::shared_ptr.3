@@ -25,7 +25,7 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
    shared_ptr( shared_ptr<Y>&& r );
    template< class Y >                                   \fB(11)\fP
    explicit shared_ptr( const std::weak_ptr<Y>& r );
-   template< class Y >                                   \fB(12)\fP
+   template< class Y >                                   \fB(12)\fP (until C++17)
    shared_ptr( std::auto_ptr<Y>&& r );
    template< class Y, class Deleter >                    \fB(13)\fP
    shared_ptr( std::unique_ptr<Y,Deleter>&& r );
@@ -45,7 +45,7 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
    available, i.e. delete ptr must be well formed, have well-defined behavior and not
    throw any exceptions.
    3) Uses the specified deleter d as the deleter. Deleter must be callable for the
-   type T, i.e. d(ptr) must be well formed, have well-defined behavior and not throw
+   type Y, i.e. d(ptr) must be well formed, have well-defined behavior and not throw
    any exceptions. Deleter must be CopyConstructible. The copy constructor and the
    destructor must not throw exceptions.
    4) Same as \fB(3)\fP, but additionally uses a copy of alloc for allocation of data for
@@ -53,19 +53,20 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
    not throw exceptions.
    5-7) Analogous to \fB(2)\fP, \fB(3)\fP, \fB(4)\fP respectively, but constructs a shared_ptr with no
    managed object, i.e. empty shared_ptr.
-   8) Constructs a shared_ptr which shares ownership information with r, but holds an
-   unrelated and unmanaged pointer ptr. Even if this shared_ptr is the last of the
-   group to go out of scope, it will call the destructor for the object originally
-   managed by r. However, calling get() on this will always return a copy of ptr. It is
-   the responsibility of the programmer to make sure that this ptr remains valid as
-   long as this shared_ptr exists, such as in the typical use cases where ptr is a
-   member of the object managed by r or is an alias (e.g., downcast) of r.get()
+   8) The aliasing constructor: constructs a shared_ptr which shares ownership
+   information with r, but holds an unrelated and unmanaged pointer ptr. Even if this
+   shared_ptr is the last of the group to go out of scope, it will call the destructor
+   for the object originally managed by r. However, calling get() on this will always
+   return a copy of ptr. It is the responsibility of the programmer to make sure that
+   this ptr remains valid as long as this shared_ptr exists, such as in the typical use
+   cases where ptr is a member of the object managed by r or is an alias (e.g.,
+   downcast) of r.get()
    9) Constructs a shared_ptr which shares ownership of the object managed by r. If r
-   manages no object, *this manages no object too. The templated overload doesn't
-   participate in the overload resolution if Y* is not implicitly convertible to T*.
+   manages no object, *this manages no object too. This overload doesn't participate in
+   overload resolution if Y* is not implicitly convertible to T*.
    10) Move-constructs a shared_ptr from r. After the construction, *this contains a
-   copy of the previous state of r, r is empty. The templated overload doesn't
-   participate in the overload resolution if Y* is not implicitly convertible to T*.
+   copy of the previous state of r, r is empty. This overload doesn't participate in
+   overload resolution if Y* is not implicitly convertible to T*.
    11) Constructs a shared_ptr which shares ownership of the object managed by r. Y*
    must be convertible to T*. Note that r.lock() may be used for the same purpose: the
    difference is that this constructor throws an exception if the argument is empty,
@@ -74,7 +75,16 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
    must be convertible to T*. After construction, r is empty.
    13) Constructs a shared_ptr which manages the object currently managed by r. The
    deleter associated to r is stored for future deletion of the managed object. r
-   manages no object after the call. Y* must be convertible to T*.
+   manages no object after the call.
+
+   This overload doesn't participate in overload resolution if
+   std::unique_ptr<Y, D>::pointer is not convertible to T*. If r.get() is (since C++17)
+   a null pointer, this overload is equivalent to the default constructor
+   \fB(1)\fP.
+
+   If D is a reference type, equivalent to shared_ptr(r.release(),
+   std::ref(r.get_deleter()). Otherwise, equivalent to shared_ptr(r.release(),
+   r.get_deleter())
 
 .SH Notes
 
@@ -188,3 +198,7 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
                    creates a shared pointer that manages a new object allocated using
    allocate_shared an allocator
                    \fI(function template)\fP 
+
+.SH Category:
+
+     * unconditionally noexcept

@@ -24,8 +24,8 @@ buffer - pointer to a null-terminated character string to read from
          pointer to a null-terminated character string specifying how to read the input.
 
          The format string consists of whitespace characters (any single whitespace character in the format string consumes
-         all available consecutive whitespace characters from the input), non-whitespace characters except % (each such
-         character in the format string consumes exactly one identical character from the input) and conversion
+         all available consecutive whitespace characters from the input), non-whitespace multibyte characters except % (each
+         such character in the format string consumes exactly one identical character from the input) and conversion
          specifications. Each conversion specification has the following format:
 
            * introductory % character
@@ -49,25 +49,69 @@ buffer - pointer to a null-terminated character string to read from
          specifier
                   length modifier             hh       h      \fI(none)\fP     l        ll        j         z        t         L
              %      matches literal %      N/A      N/A      N/A      N/A      N/A      N/A        N/A     N/A        N/A
-             c      matches a single
-                    character
-                    matches a character
-             s      string (a sequence of
+                    matches a character or
+                    a sequence of
+                    characters
+
+                    If a width specifier
+                    is used, matches
+                    exactly width
+             c      characters (the
+                    argument must be a
+                    pointer to an array
+                    with sufficient room).
+                    Unlike %s and %[, does
+                    not append the null
+                    character to the
+                    array.
+                    matches a sequence of
                     non-whitespace
-                    characters)
+                    characters (a string)
+
+                    If width specifier is
+                    used, matches up to
+                    width or until the
+                    first whitespace
+             s      character, whichever
+                    appears first. Always
+                    stores a null
+                    character in addition
+                    to the characters
+                    matched (so the
+                    argument array must
+                    have room for at least
+                    width+1 characters)    N/A      N/A      char*    wchar_t* N/A      N/A        N/A     N/A        N/A
                     matches a non-empty
                     sequence of character
                     from set of
-                    characters.            N/A      N/A      char*    wchar_t* N/A      N/A        N/A     N/A        N/A
+                    characters.
 
                     If the first character
-           [set]    of the set is ^, then
+                    of the set is ^, then
                     all characters not in
                     the set are matched.
                     If the set begins with
                     ] or ^] then the ]
                     character is also
                     included into the set.
+                    It is
+                    implementation-defined
+           [set]    whether the character
+                    - in the non-initial
+                    position in the
+                    scanset may be
+                    indicating a range, as
+                    in [0-9]. If width
+                    specifier is used,
+                    matches only up to
+                    width. Always stores a
+                    null character in
+                    addition to the
+                    characters matched (so
+format -            the argument array
+                    must have room for at
+                    least width+1
+                    characters)
                     matches a decimal
                     integer.
 
@@ -76,28 +120,33 @@ buffer - pointer to a null-terminated character string to read from
                     expected by strtol()
                     with the value 10 for
                     the base argument
-                    matches a decimal
+                    matches an integer.
+
+                    The format of the
+                    number is the same as
+             i      expected by strtol()
+                    with the value 0 for
+                    the base argument
+                    (base is determined by
+                    the first characters
+                    parsed)
+                    matches a unsigned
                     integer.
 
-             i      The format of the
+                    The format of the
                     number is the same as
-                    expected by strtol()
+             u      expected by strtoul()
                     with the value 0 for
-format -            the base argument
-                    matches a unsigned
-                    decimal integer.
+                    the base argument               signed                     signed
+                    (base is determined by signed   short*   signed   signed   long     intmax_t*
+                    the first characters   char* or or       int* or  long* or long* or or         size_t* ptrdiff_t* N/A
+                    parsed)                unsigned unsigned unsigned unsigned unsigned uintmax_t*
+                    matches an octal       char*    short*   int*     long*    long
+                    integer.                                                   long*
 
-             u      The format of the
+             o      The format of the
                     number is the same as
                     expected by strtoul()
-                    with the value 0 for                                     signed
-                    the base argument      signed   signed   signed   signed   long
-                    matches an octal       char* or short*   int* or  long* or long* or intmax_t*
-                    integer.               unsigned or       unsigned unsigned unsigned or         size_t* ptrdiff_t* N/A
-                                           char*    unsigned int*     long*    long     uintmax_t*
-             o      The format of the               short*                     long*
-                    number is the same as
-                    expected by strtol()
                     with the value 8 for
                     the base argument
                     matches an hexadecimal
@@ -105,7 +154,7 @@ format -            the base argument
 
              x      The format of the
                     number is the same as
-                    expected by strtol()
+                    expected by strtoul()
                     with the value 16 for
                     the base argument
                     returns the number of
@@ -136,22 +185,29 @@ format -            the base argument
                     sequence using %p
                     format specifier
 
-         All conversion specifiers other than [, c, and n consume and discard all leading whitespace characters before
-         attempting to parse the input. These consumed characters do not count towards the specified maximum field width.
+         All conversion specifiers other than [, c, and n consume and discard all leading whitespace characters (determined
+         as if by calling isspace) before attempting to parse the input. These consumed characters do not count towards the
+         specified maximum field width.
 
-         The conversion specifiers lc, ls, and l[ perform multibyte-to-wide character conversion as if by calling
-         std::mbrtowc with an std::mbstate_t object initialized to zero before the first character is converted.
+         The conversion specifiers lc, ls, and l[ perform multibyte-to-wide character conversion as if by calling wcrtomb()
+         with an mbstate_t object initialized to zero before the first character is converted.
 
          The conversion specifiers s and [ always store the null terminator in addition to the matched characters. The size
          of the destination array must be at least one greater than the specified field width.
 
-         The correct conversion specifications for the fixed-width character types (std:int8_t, etc) are defined in the
-         header <cinttypes>.
+         The correct conversion specifications for the fixed-width integer types (int8_t, etc) are defined in the header
+         <cinttypes>(C++) or <inttypes.h> (C) (although SCNdMAX, SCNuMAX, etc is synonymous with %jd, %ju, etc).
 vlist  - variable argument list containing the receiving arguments
 
 .SH Return value
 
    Number of arguments successfully read, or EOF if failure occurs.
+
+.SH Notes
+
+   All these functions invoke va_arg at least once, the value of arg is indeterminate
+   after the return. These functions to not invoke va_end, and it must be done by the
+   caller.
 
 .SH Example
 

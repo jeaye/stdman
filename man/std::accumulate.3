@@ -44,7 +44,13 @@ std::accumulate \- std::accumulate
 
 .SH Return value
 
-   The sum of the given value and elements in the given range.
+   1) The sum of the given value and elements in the given range.
+   2) The result of left fold of the given range over op
+
+.SH Notes
+
+   Although std::accumulate performs left fold by default, right fold may be achieved
+   by using reverse iterators, e.g. std::accumulate(v.rbegin(), v.rend(), init, binop)
 
 .SH Possible implementation
 
@@ -77,36 +83,31 @@ std::accumulate \- std::accumulate
  #include <vector>
  #include <numeric>
  #include <string>
-  
- int multiply(int x, int y)
- {
-     return x*y;
- }
-  
- std::string magic_function(std::string res, int x)
- {
-     return res += (x > 5) ? "b" : "s";
- }
+ #include <functional>
   
  int main()
  {
      std::vector<int> v{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   
      int sum = std::accumulate(v.begin(), v.end(), 0);
-     int product = std::accumulate(v.begin(), v.end(), 1, multiply);
-     std::string magic = std::accumulate(v.begin(), v.end(), std::string(),
-                                         magic_function);
   
-     std::cout << sum << '\\n'
-               << product << '\\n'
-               << magic << '\\n';
+     int product = std::accumulate(v.begin(), v.end(), 1, std::multiplies<int>());
+  
+     std::string s = std::accumulate(v.begin()+1, v.end(), std::to_string(v[0]),
+                          [](const std::string& a, int b) {
+                                return a + '-' + std::to_string(b);
+                          });
+  
+     std::cout << "sum: " << sum << '\\n'
+               << "product: " << product << '\\n'
+               << "dash-separated string: " << s << '\\n';
  }
 
 .SH Output:
 
- 55
- 3628800
- sssssbbbbb
+ sum: 55
+ product: 3628800
+ dash-separated string: 1-2-3-4-5-6-7-8-9-10
 
 .SH See also
 
@@ -116,3 +117,5 @@ std::accumulate \- std::accumulate
                        \fI(function template)\fP 
    partial_sum         computes the partial sum of a range of elements
                        \fI(function template)\fP 
+   reduce              similar to std::accumulate, except out of order
+   (parallelism TS)    \fI(function template)\fP 

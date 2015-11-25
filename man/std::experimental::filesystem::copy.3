@@ -5,22 +5,71 @@ std::experimental::filesystem::copy \- std::experimental::filesystem::copy
 .SH Synopsis
    Defined in header <experimental/filesystem>
    void copy( const path& from, const path& to );                   \fB(1)\fP (filesystem TS)
-   void copy( const path& from, const path& to, error_code& ec );   \fB(2)\fP (filesystem TS)
-   void copy( const path& from, const path& to, copy_options        \fB(3)\fP (filesystem TS)
-   options );
+   void copy( const path& from, const path& to, error_code& ec );
    void copy( const path& from, const path& to, copy_options
-   options,                                                         \fB(4)\fP (filesystem TS)
-              error_code& ec );
+   options );                                                       \fB(2)\fP (filesystem TS)
+   void copy( const path& from, const path& to, copy_options
+   options, error_code& ec );
 
-   Copies file or directory.
+   Copies files and directories, with a variety of options
 
-    This section is incomplete
+   1) The default, equivalent to \fB(2)\fP with copy_options::none used as options
+   2) Copies the file or directory from to file or directory to, using the copy options
+   indicated by options. The behavior is undefined if there is more than one option in
+   any of the copy_options option group present in options (even in the copy_file
+   group, which is not relevant to copy)
+
+   The behavior is as follows:
+
+     * First, before doing anything else, obtains type and permissions of from by no
+       more than single call to status (or, if copy_options::skip_symlinks or
+       copy_options::create_symlinks are present in options, by a call to
+       symlink_status).
+     * If necessary, obtains the status of to the same way, by no more than a single
+       status or symlink_status call.
+     * If from does not exist, reports an error.
+     * If from and to are the same file as determined by equivalent(), reports an error
+     * If either from or to is not a regular file, a directory, or a symlink, as
+       determined by is_other, reports an error
+     * If from is a directory, but to is a regular file, reports an error
+     * If from is a symbolic link, then
+
+     * If copy_options::skip_symlink is present in options, does nothing.
+     * Otherwise, if to does not exist and copy_options::copy_symlinks is present in
+       options, then behaves as if copy_symlink(from, to)
+     * Otherwise, reports an error
+
+     * Otherwise, if from is a regular file, then
+
+     * If copy_options::directories_only is present in options, does nothing
+     * Otherwise, if copy_options::create_symlinks is present in options, creates a
+       symlink to to. Note: from must be an absolute path unless to is in the current
+       directory.
+     * Otherwise, if copy_options::create_hard_links is present in options, creates a
+       hard link to to
+     * Otherwise, if to is a directory, then behaves as if copy_file(from,
+       to/from.filename(), options) (creates a copy of from as a file in the directory
+       to)
+     * Otherwise, behaves as if copy_file(from, to, options) (copies the file)
+
+     * Otherwise, if from is a directory and either options has copy_options::recursive
+       or is copy_options::none,
+
+     * If to does not exist, first executes create_directory(to, from) (creates the new
+       directory with a copy of the old directory's attributes)
+     * Then, whether to already existed or was just created, iterates over the files
+       contained in from as if by for (const_directory_entry& x :
+       directory_iterator(from)) and for each directory entry, recursively calls
+       copy(x.path(), to/x.path().filename(), options | unspecified), where unspecified
+       is some unspecified set of copy options.
+
+     * Otherwise does nothing
 
 .SH Parameters
 
-    This section is incomplete
-
-   ec - error code to store error status to
+   from - path to the source file, directory, or symlink
+   to   - path to the target file, directory, or symlink
+   ec   - out-parameter for error reporting in the non-throwing overload
 
 .SH Return value
 
@@ -28,17 +77,77 @@ std::experimental::filesystem::copy \- std::experimental::filesystem::copy
 
 .SH Exceptions
 
-    This section is incomplete
-
-   2,4)
+   The overload that does not take a error_code& parameter throws filesystem_error on
+   underlying OS API errors, constructed with from as the first argument, to as the
+   second argument, and the OS error code as the error code argument. std::bad_alloc
+   may be thrown if memory allocation fails. The overload taking a error_code&
+   parameter sets it to the OS API error code if an OS API call fails, and executes
+   ec.clear() if no errors occur. This overload has
    noexcept specification:  
    noexcept
      
 
+.SH Notes
+
+   The default behavior when copying directories is the non-recursive copy: the files
+   are copied, but not the subdirectories:
+
+ // Given
+ // /dir1 contains /dir1/file1, /dir1/file2, /dir1/dir2
+ // and /dir1/dir2 contains /dir1/dir2/file3
+ // After
+ std::experimental::filesystem::copy("/dir1", "/dir3");
+ // /dir3 is created (with the attributes of /dir1)
+ // /dir1/file1 is copied to /dir3/file1
+ // /dir1/file2 is copied to /dir3/file2
+
+   While with copy_options::recursive, the subdirectories are also copied, with their
+   content, recursively.
+
+ // ...but after
+ std::experimental::filesystem::copy("/dir1", "/dir3", copy_options::recursive);
+ // /dir3 is created (with the attributes of /dir1)
+ // /dir1/file1 is copied to /dir3/file1
+ // /dir1/file2 is copied to /dir3/file2
+ // /dir3/dir2 is created (with the attributes of /dir1/dir2)
+ // /dir1/dir2/file3 is copied to /dir3/dir2/file3
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <fstream>
+ #include <experimental/filesystem>
+ namespace fs = std::experimental::filesystem;
+  
+ int main()
+ {
+     fs::create_directories("sandbox/dir/subdir");
+     std::ofstream("sandbox/file1.txt").put('a');
+     fs::copy("sandbox/file1.txt", "sandbox/file2.txt"); // copy file
+     fs::copy("sandbox/dir", "sandbox/dir2"); // copy directory (non-recursive)
+     // sandbox holds 2 files and 2 directories, one of which has a subdirectory
+     // sandbox/file1.txt
+     // sandbox/file2.txt
+     // sandbox/dir2
+     // sandbox/dir
+     //    sandbox/dir/subdir
+     fs::copy("sandbox", "sandbox/copy", fs::copy_options::recursive);
+     // sandbox/copy holds copies of the above files and subdirectories
+     fs::remove_all("sandbox");
+ }
+
 .SH See also
 
-    This section is incomplete
+   copy_options specifies semantics of copy operations
+                \fI(enum)\fP 
+   copy_symlink copies a symbolic link
+                \fI(function)\fP 
+   copy_file    copies file contents
+                \fI(function)\fP 
 
 .SH Category:
 
-     * Todo without reason
+     * unconditionally noexcept

@@ -8,38 +8,48 @@ std::quoted \- std::quoted
 
    /*unspecified*/ quoted(const CharT* s,                             \fB(1)\fP \fI(since C++14)\fP
 
-                          CharT delim=CharT(’"’), CharT
-   escape=CharT(’\\\\’));
+                          CharT delim=CharT('"'), CharT
+   escape=CharT('\\\\'));
    template< class CharT, class Traits, class Allocator >
 
    /*unspecified*/ quoted(const std::basic_string<CharT, Traits,
    Allocator>& s,                                                     \fB(2)\fP \fI(since C++14)\fP
 
-                          CharT delim=CharT(’"’), CharT
-   escape=CharT(’\\\\’));
+                          CharT delim=CharT('"'), CharT
+   escape=CharT('\\\\'));
    template< class CharT, class Traits, class Allocator >
 
    /*unspecified*/ quoted(std::basic_string<CharT, Traits,
    Allocator>& s,                                                     \fB(3)\fP \fI(since C++14)\fP
 
-                          CharT delim=CharT(’"’), CharT
-   escape=CharT(’\\\\’));
+                          CharT delim=CharT('"'), CharT
+   escape=CharT('\\\\'));
 
    Allows insertion and extraction of quoted strings, such as the ones found in CSV or
 .SH XML.
 
-   1,2) When used in an expression out << quoted(s, delim, escape), inserts into the
-   output stream out the following characters (using appropriate operator<< overloads):
-   a) The character delim
-   b) Every character from s, except if the next character to output equals delim or
-   equals escape (as determined by operator==), then first outputs an extra copy of
-   escape
-   c) In the end, outputs delim once more
-   3) When used in an expression in >> quoted(s, delim, escape), extracts characters
-   from the input stream in, using std::basic_istream::operator>>, according to the
-   following rules:
-   a) If the first character extracted does not equal delim (as determined by
-   operator==), then simply performs in >> s.
+   1,2) When used in an expression out << quoted(s, delim, escape), where out is an
+   output stream with char_type equal to CharT and, for overload 2, traits_type equal
+   to Traits, behaves as a FormattedOutputFunction, which inserts into out a sequence
+   of characters seq constructed as follows:
+   a) First, the character delim is added to the sequence
+   b) Then every character from s, except if the next character to output equals delim
+   or equals escape (as determined by the stream's traits_type::eq), then first appends
+   an extra copy of escape
+   c) In the end, delim is appended to seq once more
+
+   Then, if seq.size() < out.width(), adds out.width()-seq.size() copies of the fill
+   character out.fill() either at the end of the sequence (if ios_base::left is set in
+   out.flags()) or at the beginning of the sequence (in all other cases).
+   Finally, outputs each character from the resulting sequence as if by calling
+   out.rdbuf()->sputn(seq, n), where n=std::max(out.width(), seq.size()) and
+   out.width\fB(0)\fP to cancel the effects of std::setw, if any.
+   3) When used in an expression in >> quoted(s, delim, escape), where in is an input
+   stream with char_type equal to CharT and traits_type equal to Traits, extracts
+   characters from in, using std::basic_istream::operator>>, according to the following
+   rules:
+   a) If the first character extracted does not equal delim (as determined by the
+   stream's traits_type::eq), then simply performs in >> s.
    b) Otherwise (if the first character is the delimiter):
    1) Turns off the skipws flag on the input stream
    2) Empties the destination string by calling s.clear()

@@ -4,15 +4,15 @@ std::random_shuffle,std::shuffle \- std::random_shuffle,std::shuffle
 
 .SH Synopsis
    Defined in header <algorithm>
-   template< class RandomIt >
+   template< class RandomIt >               (until C++17)
    void random_shuffle( RandomIt first, \fB(1)\fP (deprecated in C++14)
    RandomIt last );
    template< class RandomIt, class
    RandomFunc >                                                   \fI(until C++11)\fP
    void random_shuffle( RandomIt first,
    RandomIt last, RandomFunc& r );
-   template< class RandomIt, class
-   RandomFunc >                         \fB(2)\fP                       \fI(since C++11)\fP
+   template< class RandomIt, class                                \fI(since C++11)\fP
+   RandomFunc >                         \fB(2)\fP                       (until C++17)
    void random_shuffle( RandomIt first,                           (deprecated in C++14)
    RandomIt last, RandomFunc&& r );
    template< class RandomIt, class URNG
@@ -32,11 +32,10 @@ std::random_shuffle,std::shuffle \- std::random_shuffle,std::shuffle
 
    first, last - the range of elements to shuffle randomly
                  function object returning a randomly chosen value of type convertible
-   r           - to iterator_traits<RandomIt>::difference_type in the interval [0,n) if
-                 invoked as r(n)
-                 function object returning a randomly chosen value of type
-   g           - URNG::result_type in the interval [g.min(), g.max()] if invoked as g()
-                 (e.g. any of the uniform random number generators from <random>)
+   r           - to std::iterator_traits<RandomIt>::difference_type in the interval
+                 [0,n) if invoked as r(n)
+   g           - a UniformRandomNumberGenerator whose result type is convertible to
+                 std::iterator_traits<RandomIt>::difference_type
 .SH Type requirements
    -
    RandomIt must meet the requirements of ValueSwappable and RandomAccessIterator.
@@ -54,6 +53,17 @@ std::random_shuffle,std::shuffle \- std::random_shuffle,std::shuffle
 .SH Possible implementation
 
 .SH First version
+   template< class RandomIt >
+   void random_shuffle( RandomIt first, RandomIt last )
+   {
+       typename std::iterator_traits<RandomIt>::difference_type i, n;
+       n = last - first;
+       for (i = n-1; i > 0; --i) {
+           using std::swap;
+           swap(first[i], first[std::rand() % (i+1)]);
+       }
+   }
+.SH Second version
    template<class RandomIt, class RandomFunc>
    void random_shuffle(RandomIt first, RandomIt last, RandomFunc&& r)
    {
@@ -64,7 +74,7 @@ std::random_shuffle,std::shuffle \- std::random_shuffle,std::shuffle
            swap(first[i], first[r(i+1)]);
        }
    }
-.SH Second version
+                                  Third version
    template<class RandomIt, class UniformRandomNumberGenerator>
    void shuffle(RandomIt first, RandomIt last,
                 UniformRandomNumberGenerator&& g)
@@ -103,7 +113,7 @@ std::random_shuffle,std::shuffle \- std::random_shuffle,std::shuffle
   
      std::shuffle(v.begin(), v.end(), g);
   
-     copy(v.begin(), v.end(), std::ostream_iterator<int>(std::cout, " "));
+     std::copy(v.begin(), v.end(), std::ostream_iterator<int>(std::cout, " "));
      std::cout << "\\n";
  }
 

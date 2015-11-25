@@ -5,7 +5,7 @@ std::return_temporary_buffer \- std::return_temporary_buffer
 .SH Synopsis
    Defined in header <memory>
    template< class T >
-   void return_temporary_buffer( T* p )
+   void return_temporary_buffer( T* p );
 
    Deallocates storage previously allocated with std::get_temporary_buffer.
 
@@ -27,20 +27,28 @@ std::return_temporary_buffer \- std::return_temporary_buffer
  #include <iostream>
  #include <memory>
  #include <string>
+ #include <iterator>
   
  int main()
  {
      const std::string s[] = {"string", "1", "test", "..."};
-     std::string* p = std::get_temporary_buffer<std::string>(4).first;
+     const auto p = std::get_temporary_buffer<std::string>(4);
+     // requires that p.first is passed to return_temporary_buffer
+     // (beware of early exit points and exceptions)
   
-     std::copy(std::begin(s), std::end(s),
-               std::raw_storage_iterator<std::string*, std::string>(p));
+     std::copy(s, s + p.second,
+               std::raw_storage_iterator<std::string*, std::string>(p.first));
+     // requires that each string in p is individually destroyed
+     // (beware of early exit points and exceptions)
   
-     for (std::string* i = p; i != p+4; ++i) {
-         std::cout << *i << '\\n';
-         i->~basic_string<char>();
-     }
-     std::return_temporary_buffer(p);
+     std::copy(p.first, p.first + p.second,
+               std::ostream_iterator<std::string>{std::cout, "\\n"});
+  
+     std::for_each(p.first, p.first + p.second, [](std::string& e) {
+         e.~basic_string<char>();
+     });
+  
+     std::return_temporary_buffer(p.first);
  }
 
 .SH Output:

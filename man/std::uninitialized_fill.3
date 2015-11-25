@@ -5,11 +5,16 @@ std::uninitialized_fill \- std::uninitialized_fill
 .SH Synopsis
    Defined in header <memory>
    template< class ForwardIt, class T >
-   void uninitialized_fill( ForwardIt first, ForwardIt last, const T& value )
+   void uninitialized_fill( ForwardIt first, ForwardIt last, const T& value );
 
    Copies the given value to an uninitialized memory area, defined by the range [first,
-   last). The elements in the uninitialized area are constructed using copy
-   constructor.
+   last) as if by
+
+ for (; first != last; ++first)
+   ::new (static_cast<void*>(std::addressof(*first)))
+       typename iterator_traits<ForwardIterator>::value_type(x);
+
+   If an exception is thrown during the initialization, the function has no effects.
 
 .SH Parameters
 
@@ -30,13 +35,19 @@ std::uninitialized_fill \- std::uninitialized_fill
 .SH Possible implementation
 
    template<class ForwardIt, class T>
-   void uninitialized_fill(ForwardIt first,
-                           ForwardIt last,
-                           const T& value)
+   void uninitialized_fill(ForwardIt first, ForwardIt last, const T& value)
    {
        typedef typename std::iterator_traits<ForwardIt>::value_type Value;
-       for (; first != last; ++first) {
-           ::new (static_cast<void*>(&*first)) Value(value);
+       ForwardIt current = first;
+       try {
+           for (; current != last; ++current) {
+               ::new (static_cast<void*>(std::addressof(*current))) Value(value);
+           }
+       }  catch (...) {
+           for (; first != current; ++first) {
+               first->~Value();
+           }
+           throw;
        }
    }
 
@@ -75,5 +86,9 @@ std::uninitialized_fill \- std::uninitialized_fill
 
 .SH See also
 
-   uninitialized_fill_n copies an object to an uninitialized area of memory
-                        \fI(function template)\fP 
+                                                   copies an object to an uninitialized
+   uninitialized_fill_n                            area of memory
+                                                   \fI(function template)\fP 
+   std::experimental::parallel::uninitialized_fill parallelized version of
+   (parallelism TS)                                std::uninitialized_fill
+                                                   \fI(function template)\fP 

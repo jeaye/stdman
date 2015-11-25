@@ -57,15 +57,31 @@ std::regex_search \- std::regex_search
                       std::regex_constants::match_flag_type flags =
 
                           std::regex_constants::match_default );
+   template< class STraits, class SAlloc,
+
+             class Alloc, class CharT, class Traits >
+   bool regex_search( const std::basic_string<CharT,STraits,SAlloc>&&,
+                      std::match_results<
+                          typename                                              (since
+   std::basic_string<CharT,STraits,SAlloc>::const_iterator,                 \fB(7)\fP C++14)
+                          Alloc
+                      >&,
+                      const std::basic_regex<CharT, Traits>&,
+                      std::regex_constants::match_flag_type flags =
+
+                          std::regex_constants::match_default ) = delete;
 
    Determines if there is a match between the regular expression e and some subsequence
    in the target character sequence.
 
    1) Analyzes generic range [first,last). Match results are returned in m.
-   2) Analyzes a null-terminates string pointed to by str. Match results are returned
+   2) Analyzes a null-terminated string pointed to by str. Match results are returned
    in m.
    3) Analyzes a string s. Match results are returned in m.
    4-6) Equivalent to (1-3), just omits the match results.
+   7) The overload 3 is prohibited from accepting temporary strings, otherwise this
+   function populates match_results m with string iterators that become invalid
+   immediately.
 
    regex_search will successfully match any subsequence of the given sequence, whereas
    std::regex_match will only return true if the regular expression matches the entire
@@ -100,7 +116,7 @@ std::regex_search \- std::regex_search
 
    m.ready()          true
    m.empty()          false
-   m.size()           number of subexpressions plus 1, that is, 1+e.mark_count()
+   m.size()           number of marked subexpressions plus 1, that is, 1+e.mark_count()
    m.prefix().first   first
    m.prefix().second  m[0].first
    m.prefix().matched m.prefix().first != m.prefix().second
@@ -109,11 +125,11 @@ std::regex_search \- std::regex_search
    m.suffix().matched m.suffix().first != m.suffix().second
    m[0].first         the start of the matching sequence
    m[0].second        the end of the matching sequence
-   m[0].matched       true if a match was found, false otherwise
-   m[n].first         the start of the sequence that matched sub-expression n, or last
-                      if the subexpression did not participate in the match
-   m[n].second        the end of the sequence that matched sub-expression n, or last if
-                      the subexpression did not participate in the match
+   m[0].matched       true
+   m[n].first         the start of the sequence that matched marked sub-expression n,
+                      or last if the subexpression did not participate in the match
+   m[n].second        the end of the sequence that matched marked sub-expression n, or
+                      last if the subexpression did not participate in the match
    m[n].matched       true if sub-expression n participated in the match, false
                       otherwise
 
@@ -145,11 +161,8 @@ std::regex_search \- std::regex_search
      for (const auto &line : lines) {
          std::regex_search(line, color_match, color_regex);
          std::cout << "matches for '" << line << "'\\n";
-         for (size_t i = 0; i < color_match.size(); ++i) {
-             std::ssub_match sub_match = color_match[i];
-             std::string sub_match_str = sub_match.str();
-             std::cout << i << ": " << sub_match_str << '\\n';
-         }
+         for (size_t i = 0; i < color_match.size(); ++i)
+             std::cout << i << ": " << color_match[i] << '\\n';
      }
  }
 

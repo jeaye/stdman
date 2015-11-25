@@ -3,53 +3,104 @@
 std::experimental::filesystem::u8path \- std::experimental::filesystem::u8path
 
 .SH Synopsis
+   Defined in header <experimental/filesystem>
    template< class Source >                    \fB(1)\fP (filesystem TS)
    path u8path( const Source& source );
    template< class InputIt >                   \fB(2)\fP (filesystem TS)
    path u8path( InputIt first, InputIt last );
 
-   Creates an UTF-8 path from the given UTF-8 encoded char-based sources.
+   Constructs a path p from a UTF-8 encoded sequence of chars, supplied either as an
+   std::string, or as a null-terminated multibyte string, or as a [first, last)
+   iterator pair.
 
-   If value_type is char and the current native narrow encoding is UTF-8, returns
-   path(source) or path(begin, end).
-
-   Otherwise, if value_type is wchar_t and the native wide encoding is UTF-16, or if
-   value_type is char16_t or char32_t, converts source or the range [first, last) to a
-   temporary value of type string_type and returns a path constructed from that value.
-
-   Otherwise, converts source or the range [first, last) to a temporary value of type
-   std::u32string and returns a path constructed from that value.
-
-    This section is incomplete
-    Reason: argument format conversion
-
-   It is unspecified how Unicode encoding conversions are performed.
+     * If path::value_type is char and native encoding is UTF-8, constructs a path
+       directly as if by path(source) or path(first, last). Note: this is the typical
+       situation of a POSIX system that uses Unicode, such as Linux.
+     * Otherwise, if path::value_type is wchar_t and native encoding is UTF-16 (this is
+       the situation on Windows), or if path::value_type is char16_t (native encoding
+       guaranteed UTF-16) or char32_t (native encoding guaranteed UTF-32), then first
+       converts the UTF-8 character sequence to a temporary string tmp of type
+       path::string_type and then the new path is constructed as if by path(tmp)
+     * Otherwise (for non-UTF-8 narrow character encodings and for non-UTF-16 wchar_t),
+       first converts the UTF-8 character sequence to a temporary UTF-32-encoded string
+       tmp of type std::u32string, and then the new path is constructed as if by
+       path(tmp) (this path is taken on a POSIX system with a non-Unicode multibyte or
+       single-byte encoded filesystem)
 
 .SH Parameters
 
-                                        a character sequence to construct the path
-   source                  -            from.
-
-                                         This section is incomplete
-                                        a range to construct the path from.
-   first, last             -
-                                         This section is incomplete
+                 an UTF-8 encoded std::string, pointer to a null-terminated multibyte
+   source      - string, or an input iterator with char value type that points to a
+                 null-terminated multibyte string
+   first, last - pair of InputIterators that specify a UTF-8 encoded character sequence
 .SH Type requirements
    -
    InputIt must meet the requirements of InputIterator.
    -
-   The value type of InputIt must be one of the encoded character types (char, wchar_t,
-   char16_t and char32_t)
+   The value type of InputIt must be char
 
 .SH Return value
 
-   A newly constructed UTF-8 encoded path.
+   The path constructed from the input string after conversion from UTF-8 to the
+   filesystem's native character encoding.
 
 .SH Exceptions
 
-   \fI(none)\fP
+   May throw filesystem_error on underlying OS API errors or std::bad_alloc if memory
+   allocation fails.
 
-   Categories:
+.SH Notes
 
-     * Todo with reason
-     * Todo without reason
+   On systems where native path format differs from the generic path format (neither
+   Windows nor POSIX systems are examples of such OSes), if the argument to this
+   function is using generic format, it will be converted to native.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <cstdio>
+ #include <clocale>
+ #include <fstream>
+ #include <iostream>
+ #include <experimental/filesystem>
+ namespace fs = std::experimental::filesystem;
+  
+ int main()
+ {
+     std::setlocale(LC_ALL, "en_US.utf8");
+     std::locale::global(std::locale("en_US.utf8"));
+  
+     fs::path p = fs::u8path(u8"要らない.txt");
+  
+     // native string representation can be used with OS APIs
+     std::ofstream(p) << "File contents"; // this uses operator string()
+     if(std::FILE* f = std::fopen(p.c_str(), "r")) {
+         int ch;
+         while((ch=fgetc(f))!= EOF) putchar(ch);
+         std::fclose(f);
+     }
+  
+     // multibyte and wide representation can be used for output
+     std::cout.imbue(std::locale());
+     std::cout << "\\nFile name in narrow multibyte encoding: "
+               << p.string() << '\\n';
+  
+     std::wcerr.imbue(std::locale());
+     std::wcerr << "File name in wide encoding: "
+                << p.wstring() << '\\n';
+  
+     fs::remove(p);
+ }
+
+.SH Output:
+
+ File contents
+ File name in narrow multibyte encoding: 要らない.txt
+ File name in wide encoding: 要らない.txt
+
+.SH See also
+
+   path represents a path
+        \fI(class)\fP 

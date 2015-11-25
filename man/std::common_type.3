@@ -10,14 +10,20 @@ std::common_type \- std::common_type
    Determines the common type among all types T..., that is the type all T... can be
    implicitly converted to.
 
-     * std::common_type may be specialized for custom types, e.g.
-       std::chrono::time_point.
-     * For non-specialized std::common_type, the rules for determining the common type
-       between every pair T1, T2 are exactly the rules for determining the return type
-       of the ternary conditional operator where T1 and T2 are the types of its second
-       and the third operands.
-     * For arithmetic types, the common type may also be viewed as the type of the
-       (possibly mixed-mode) arithmetic expression such as T0() + T1() + ... + Tn().
+   For non-specialized std::common_type, the rules for determining the common type
+   between every pair T1, T2 are exactly the rules for determining the return type of
+   the ternary conditional operator in unevaluated context, with arbitrary first
+   argument of type bool and with
+   xvalues of type T1 and T2
+   (since C++17)
+   std::declval<T1>() and std::declval<T2>()
+   (until C++17) as the second and the third operands.
+   The common type is the result of std::decay applied to the type of the ternary
+   conditional
+   \fI(since C++14)\fP.
+
+   If sizeof...(T) is zero or if there is no common type, the member type (since C++17)
+   is not defined (std::common_type is SFINAE-friendly)
 
 .SH Member types
 
@@ -31,8 +37,11 @@ std::common_type \- std::common_type
 
 .SH Specializations
 
-   Custom specializations of the type trait std::common_type are allowed. The following
-   specializations are already provided by the standard library:
+   Custom specializations of the type trait std::common_type are allowed, as long as at
+   least one parameter is a user-defined type (note that the behavior of a program that
+   adds a specialization to any other class from <type_traits> is undefined).
+
+   The following specializations are already provided by the standard library:
 
    std::common_type<std::chrono::duration>   specializes the std::common_type trait
                                              \fI(class template specialization)\fP 
@@ -50,13 +59,18 @@ std::common_type \- std::common_type
     
    template <class T, class U>
    struct common_type<T, U> {
-       typedef decay_t<decltype(true ? declval<T>() : declval<U>())> type;
+       typedef decay_t<decltype(true ? std::declval<T>() : std::declval<U>())> type;
    };
     
    template <class T, class U, class... V>
    struct common_type<T, U, V...> {
        typedef common_type_t<common_type_t<T, U>, V...> type;
    };
+
+.SH Notes
+
+   For arithmetic types, the common type may be viewed as the type of the (possibly
+   mixed-mode) arithmetic expression such as T0() + T1() + ... + Tn().
 
 .SH Examples
 
@@ -92,40 +106,3 @@ std::common_type \- std::common_type
  i1d2: 4.5
  d1i2: 4.3
  d1d2: 5.8
-
-   Demonstrates the use as the identity template
-
-   
-// Run this code
-
- #include <type_traits>
- #include <vector>
- #include <iostream>
-  
- template <size_t N>
- void fun(const int (&a)[N])
- {
-     std::cout << "Array overload: ";
-     for (int n: a)
-         std::cout << n << ' ';
-     std::cout << '\\n';
- }
-  
- void fun(const std::vector<int>& v)
- {
-     std::cout << "Vector overload: ";
-     for (int n: v)
-         std::cout << n << ' ';
-     std::cout << '\\n';
- }
-  
- int main()
- {
-     fun( {1, 2, 3} ); // calls the vector overload
-     fun( std::common_type<int[]>::type {1, 2, 3} ); // calls the array overload
- }
-
-.SH Output:
-
- Vector overload: 1 2 3
- Array overload: 1 2 3

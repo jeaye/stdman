@@ -1,0 +1,104 @@
+.TH std::invoke 3 "Nov 25 2015" "2.0 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::invoke \- std::invoke
+
+.SH Synopsis
+   Defined in header <functional>
+   template< class F, class... ArgTypes>
+   std::result_of_t<F&&(ArgTypes&&...)> invoke(F&& f, ArgTypes&&...       (since C++17)
+   args);
+
+   Invoke the Callable object f with the parameters args. As by
+   INVOKE(std::forward<F>(f), std::forward<Args>(args)...).
+
+   where INVOKE(f, t1, t2, ..., tn) is defined as follows:
+
+     * if f is a pointer to member function of class T and t1 is an object of class T
+       or reference to an object of class T or derived from T, then INVOKE(f, t1, t2,
+       ..., tn) is equivalent to (t1.*f)(t2, ..., tn)
+     * otherwise, if f is a pointer to member function and t1 is not one of the types
+       described above, then INVOKE(f, t1, t2, ..., tn) is equivalent to ((*t1).*f)(t2,
+       ..., tn)
+     * otherwise, if N == 1 and f is a pointer to data member of class T and t1 is an
+       object of class T or reference to an object of class T or derived from T, then
+       INVOKE(f, t1) is equivalent to t1.*f
+     * otherwise, if N == 1 and f is a pointer to data member of class T and t1 is not
+       one of the types described above, then INVOKE(f, t1) is equivalent to (*t1).*f
+     * otherwise, INVOKE(f, t1, t2, ..., tn) is equivalent to f(t1, t2, ..., tn) (that
+       is, f is a FunctionObject)
+
+.SH Parameters
+
+   f    - Callable object to be invoked
+   args - arguments to pass to f
+
+.SH Possible implementation
+
+ namespace detail {
+ template <class F, class... Args>
+ inline auto INVOKE(F&& f, Args&&... args) ->
+     decltype(std::forward<F>(f)(std::forward<Args>(args)...)) {
+       return std::forward<F>(f)(std::forward<Args>(args)...);
+ }
+  
+ template <class Base, class T, class Derived>
+ inline auto INVOKE(T Base::*pmd, Derived&& ref) ->
+     decltype(std::forward<Derived>(ref).*pmd) {
+       return std::forward<Derived>(ref).*pmd;
+ }
+  
+ template <class PMD, class Pointer>
+ inline auto INVOKE(PMD pmd, Pointer&& ptr) ->
+     decltype((*std::forward<Pointer>(ptr)).*pmd) {
+       return (*std::forward<Pointer>(ptr)).*pmd;
+ }
+  
+ template <class Base, class T, class Derived, class... Args>
+ inline auto INVOKE(T Base::*pmf, Derived&& ref, Args&&... args) ->
+     decltype((std::forward<Derived>(ref).*pmf)(std::forward<Args>(args)...)) {
+       return (std::forward<Derived>(ref).*pmf)(std::forward<Args>(args)...);
+ }
+  
+ template <class PMF, class Pointer, class... Args>
+ inline auto INVOKE(PMF pmf, Pointer&& ptr, Args&&... args) ->
+     decltype(((*std::forward<Pointer>(ptr)).*pmf)(std::forward<Args>(args)...)) {
+       return ((*std::forward<Pointer>(ptr)).*pmf)(std::forward<Args>(args)...);
+ }
+ } // namespace detail
+  
+ template< class F, class... ArgTypes>
+ decltype(auto) invoke(F&& f, ArgTypes&&... args) {
+     return detail::INVOKE(std::forward<F>(f), std::forward<ArgTypes>(args)...);
+ }
+
+.SH Example
+
+   Implement the basic functionality of std::mem_fn.
+
+   
+// Run this code
+
+ #include <functional>
+ template< class PM >
+ class mem_fn_t {
+     PM p;
+ public:
+     mem_fn_t(PM p):p(p){}
+     template<class... Args>
+     decltype(auto) operator()(Args&&... args) {
+         return std::invoke(p, std::forward<Args>(args)...);
+     }
+ };
+  
+ template< class R, class T >
+ auto mem_fn(R T::* pm){
+     mem_fn_t<R T::*> t {pm};
+     return t;
+ }
+
+.SH See also
+
+   mem_fn    creates a function object out of a pointer to a member
+   \fI(C++11)\fP   \fI(function template)\fP 
+   result_of deduces the return type of a function call expression
+   \fI(C++11)\fP   \fI(class template)\fP 

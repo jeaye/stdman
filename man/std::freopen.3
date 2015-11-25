@@ -6,8 +6,12 @@ std::freopen \- std::freopen
    Defined in header <cstdio>
    std::FILE* freopen( const char* filename, const char* mode, std::FILE* stream );
 
-   Reassigns an existing file stream stream to a different file identified by
-   filenameusing specified mode. mode is used to determine the new file access mode.
+   First, attempts to close the file associated with stream, ignoring any errors. Then,
+   if filename is not null, attempts to open the file specified by filename using mode
+   as if by fopen, and associates that file with the file stream pointed to by stream.
+   If filename is a null pointer, then the function attempts to reopen the file that is
+   already associated with stream (it is implementation defined which mode changes are
+   allowed in this case)
 
 .SH Parameters
 
@@ -30,7 +34,8 @@ std::freopen \- std::freopen
               "a+"         append         Open a file for     write to end  create new
                            extended       read/write
               File access mode flag "b" can optionally be specified to open a file in
-              binary mode. This flag has effect only on Windows systems.
+              binary mode. This flag has no effect on POSIX systems, but on Windows,
+              for example, it disables special handling of '\\n' and '\\x1A'.
               On the append file access modes, data is written to the end of the file
               regardless of the current position of the file position indicator.
    stream   - the file stream to modify
@@ -38,6 +43,11 @@ std::freopen \- std::freopen
 .SH Return value
 
    stream on success, NULL on failure
+
+.SH Notes
+
+   freopen is the only way to change the narrow/wide orientation of a stream once it
+   has been established by an I/O operation or by std::fwide.
 
 .SH Example
 
@@ -50,10 +60,11 @@ std::freopen \- std::freopen
   
  int main()
  {
-     std::printf("stdout is printed to console");
-     std::freopen("redir.txt", "w", stdout);
-     std::printf("stdout is redirected to a file");
-     std::fclose(stdout);
+     std::printf("stdout is printed to console\\n");
+     if(std::freopen("redir.txt", "w", stdout)) {
+         std::printf("stdout is redirected to a file\\n"); // this is written to redir.txt
+         std::fclose(stdout);
+     }
  }
 
 .SH Output:
