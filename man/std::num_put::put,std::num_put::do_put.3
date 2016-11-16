@@ -1,4 +1,4 @@
-.TH std::num_put::put,std::num_put::do_put 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::num_put::put,std::num_put::do_put 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::num_put::put,std::num_put::do_put \- std::num_put::put,std::num_put::do_put
 
@@ -57,6 +57,7 @@ std::num_put::put,std::num_put::do_put \- std::num_put::put,std::num_put::do_put
    fmtflags floatfield = (str.flags() & std::ios_base::floatfield);
    fmtflags showpos = (str.flags() & std::ios_base::showpos);
    fmtflags showbase = (str.flags() & std::ios_base::showbase);
+   fmtflags showpoint = (str.flags() & std::ios_base::showpoint);
 
      * If the type of v is bool
 
@@ -69,7 +70,7 @@ std::num_put::put,std::num_put::do_put \- std::num_put::put,std::num_put::do_put
             returns out.
 
      * If the type of v is an integer type, the the first applicable choice of the
-       following five is selected:
+       following is selected:
 
    If basefield == oct, will use conversion specifier %o
    If basefield == hex && !uppercase, will use conversion specifier %x
@@ -81,27 +82,31 @@ std::num_put::put,std::num_put::do_put \- std::num_put::put,std::num_put::do_put
        necessary: l for long and unsigned long, ll for long long and unsigned long
        long.
      * If the type of v is a floating-point type, the the first applicable choice of
-       the following five is selected:
+       the following is selected:
 
    If floatfield == std::ios_base::fixed, will use conversion specifier %f
    If floatfield == std::ios_base::scientific && !uppercase, will use conversion
    specifier %e
    If floatfield == std::ios_base::scientific, will use conversion specifier %E
-   If floatfield == (std::ios_base::fixed | std::ios_base::scientific) && !uppercase,
-   will use conversion specifier %a \fI(since C++11)\fP
-   If floatfield == (std::ios_base::fixed | std::ios_base::scientific), will use
-   conversion specifier %A \fI(since C++11)\fP
+
+   If floatfield == (std::ios_base::fixed | std::ios_base::scientific) &&
+   !uppercase, will use conversion specifier %a                           \fI(since C++11)\fP
+   If floatfield == (std::ios_base::fixed | std::ios_base::scientific),
+   will use conversion specifier %A
+
    If !uppercase, will use conversion specifier %g
    otherwise, will use conversion specifier %G
 
-     * 
-          * If the type of v is long double, the length modifier L is added to the
-            conversion specifier.
-          * Additionally, if floatfield != (ios_base::fixed | ios_base::scientific),
-            then precision modifier is added, set to str.precision()
+     * If the type of v is long double, the length modifier L is added to the
+       conversion specifier.
+     * Additionally,
+       if floatfield != (ios_base::fixed | ios_base::scientific), then
+       \fI(since C++11)\fP precision modifier is added, set to str.precision()
 
-     * For both integer and floating-point types, if showbase is set, the modifier # is
-       prepended. If showpos is set, the modifier + is prepended.
+     * For both integer and floating-point types, if showpos is set, the modifier + is
+       prepended
+     * For integer types, if showbase is set, the modifier # is prepended.
+     * For floating-point types, if showpoint is set, the modifier # is prepended.
      * If the type of v is void*, will use conversion specifier %p
      * A narrow character string is created as if by a call to std::printf(spec, v) in
        the "C" locale, where spec is the chosen conversion specifier.
@@ -161,6 +166,11 @@ std::num_put::put,std::num_put::do_put \- std::num_put::put,std::num_put::do_put
    combination of std::showbase and std::oct for example) is not counted as a padding
    character.
 
+   When formatting a floating point value as hexfloat (i.e., when
+   floatfield == (std::ios_base::fixed | std::ios_base::scientific)), the \fI(since C++11)\fP
+   stream's precision is not used; instead, the number is always printed
+   with enough precision to exactly represent the value.
+
 .SH Example
 
    Output a number using the facet directly, and demonstrate user-defined facet
@@ -170,7 +180,7 @@ std::num_put::put,std::num_put::do_put \- std::num_put::put,std::num_put::do_put
 
  #include <iostream>
  #include <locale>
-  
+
  // this custom num_put outputs squares of all integers (except long long)
  struct squaring_num_put : std::num_put<char> {
      iter_type do_put(iter_type s, std::ios_base& f,
@@ -178,20 +188,20 @@ std::num_put::put,std::num_put::do_put \- std::num_put::put,std::num_put::do_put
      {
          return std::num_put<char>::do_put(s, f, fill, v*v );
      }
-  
+
      iter_type do_put(iter_type s, std::ios_base& f,
                       char_type fill, unsigned long v) const
      {
          return std::num_put<char>::do_put(s, f, fill, v*v);
      }
  };
-  
+
  int main()
  {
      auto& facet = std::use_facet<std::num_put<char>>(std::locale());
      facet.put(std::cout, std::cout, '0', 2.71);
      std::cout << '\\n';
-  
+
      std::cout.imbue(std::locale(std::cout.getloc(), new squaring_num_put));
      std::cout << 6 << ' ' << -12 << '\\n';
  }
@@ -209,9 +219,9 @@ std::num_put::put,std::num_put::do_put \- std::num_put::put,std::num_put::do_put
  #include <iostream>
  #include <iterator>
  #include <locale>
-  
+
  struct base { long x = 10; };
-  
+
  template <class CharT, class Traits>
  std::basic_ostream<CharT, Traits>&
      operator<< (std::basic_ostream<CharT, Traits>& os, base const& b)
@@ -229,11 +239,11 @@ std::num_put::put,std::num_put::do_put \- std::num_put::put,std::num_put::do_put
      }
      return os;
  }
-  
+
  int main()
  {
      base b;
-  
+
      std::cout << b;
  }
 
@@ -244,4 +254,4 @@ std::num_put::put,std::num_put::do_put \- std::num_put::put,std::num_put::do_put
 .SH See also
 
    operator<< inserts formatted data
-              \fI(public member function of std::basic_ostream)\fP 
+              \fI(public member function of std::basic_ostream)\fP

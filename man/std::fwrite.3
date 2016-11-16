@@ -1,4 +1,4 @@
-.TH std::fwrite 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::fwrite 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::fwrite \- std::fwrite
 
@@ -38,42 +38,45 @@ std::fwrite \- std::fwrite
 // Run this code
 
  #include <cstdio>
-  
+ #include <vector>
+ #include <array>
+
  int main ()
  {
      // write buffer to file
-     std::FILE *f1;
-     char buffer[] = { 'x' , 'y' , 'z' };
-     f1 = std::fopen("file.bin", "wb");
-     std::fwrite(buffer, sizeof(char), sizeof(buffer), f1);
-     std::fclose(f1);
-  
+     if(std::FILE* f1 = std::fopen("file.bin", "wb")) {
+         std::array<int, 3> v = {42, -1, 7}; // underlying storage of std::array is an array
+         std::fwrite(v.data(), sizeof v[0], v.size(), f1);
+         std::fclose(f1);
+     }
+
      // read the same data and print it to the standard output
-     std::FILE *f2;
-     char rbuf[10];
-     f2 = std::fopen("file.bin", "rb");
-     const char* res = std::fgets(rbuf, sizeof(rbuf), f2);
-     std::fclose(f2);
-  
-     if (res) { // points to rbuf on read success, NULL on failure
-         std::puts(res);
+     if(std::FILE *f2 = std::fopen("file.bin", "rb")) {
+         std::vector<int> rbuf(10); // underlying storage of std::vector is also an array
+         std::size_t sz = std::fread(&rbuf[0], sizeof rbuf[0], rbuf.size(), f2);
+         std::fclose(f2);
+         for(std::size_t n = 0; n < sz; ++n) {
+             std::printf("%d\\n", rbuf[n]);
+         }
      }
  }
 
 .SH Output:
 
- xyz
+ 42
+ -1
+ 7
 
 .SH See also
 
    printf
    fprintf  prints formatted output to stdout, a file stream or a buffer
-   sprintf  \fI(function)\fP 
+   sprintf  \fI(function)\fP
    snprintf
    \fI(C++11)\fP
    fputs    writes a character string to a file stream
-            \fI(function)\fP 
+            \fI(function)\fP
    fread    reads from a file
-            \fI(function)\fP 
+            \fI(function)\fP
    C documentation for
    fwrite

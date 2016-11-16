@@ -1,4 +1,4 @@
-.TH std::is_move_assignable,std::is_trivially_move_assignable, 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::is_move_assignable,std::is_trivially_move_assignable, 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_move_assignable,std::is_trivially_move_assignable, \- std::is_move_assignable,std::is_trivially_move_assignable,
 
@@ -12,16 +12,15 @@ std::is_move_assignable,std::is_trivially_move_assignable, \- std::is_move_assig
    template< class T >                  \fB(3)\fP \fI(since C++11)\fP
    struct is_nothrow_move_assignable;
 
-   1) Checks whether a type is MoveAssignable.
-   Formally, provides the member constant value equal to true if the expression
-   std::declval<T&>() = std::declval<T&&>() is well-formed in unevaluated context, and
-   value equal to false otherwise. T must be a complete type, possibly cv-qualified
-   void or array of unknown bound.
-   2) same as \fB(1)\fP, but evaluation of the move-assignment expression will not call any
-   operation that is not trivial.
-   3) same as \fB(1)\fP, but the evaluation of the move-assignment expression will not call
-   any operation that is not noexcept.
-   
+   1) If T is not a referenceable type (i.e., possibly cv-qualified void or a function
+   type with a cv-qualifier-seq or a ref-qualifier), provides a member constant value
+   equal to false. Otherwise, provides a member constant value equal to
+   std::is_assignable<T&, T&&>::value.
+   2) Same as 1), but uses std::is_trivially_assignable<T&, T&&>
+   3) Same as 1), but uses std::is_nothrow_assignable<T&, T&&>
+
+   T shall be a complete type, (possibly cv-qualified) void, or an array of unknown
+   bound. Otherwise, the behavior is undefined.
 
 .SH Member constants
 
@@ -47,12 +46,12 @@ std::is_move_assignable,std::is_trivially_move_assignable, \- std::is_move_assig
    struct is_move_assignable
        : std::is_assignable< typename std::add_lvalue_reference<T>::type,
                              typename std::add_rvalue_reference<T>::type> {};
-    
+
    template< class T>
    struct is_trivially_move_assignable
        : std::is_trivially_assignable< typename std::add_lvalue_reference<T>::type,
                                        typename std::add_rvalue_reference<T>::type> {};
-    
+
    template< class T>
    struct is_nothrow_move_assignable
        : std::is_nothrow_assignable< typename std::add_lvalue_reference<T>::type,
@@ -61,8 +60,9 @@ std::is_move_assignable,std::is_trivially_move_assignable, \- std::is_move_assig
 .SH Notes
 
    The trait std::is_move_assignable is less strict than MoveAssignable because it does
-   not check the type of the result of the assignment (which, in for a MoveAssignable
-   type, must be T&).
+   not check the type of the result of the assignment (which, for a MoveAssignable
+   type, must be T&), nor the semantic requirement that the target's value after the
+   assignment is equivalent to the source's value before the assignment.
 
    The type does not have to implement a move assignment operator in order to satisfy
    this trait; see MoveAssignable for details.
@@ -90,7 +90,7 @@ std::is_move_assignable,std::is_trivially_move_assignable, \- std::is_move_assig
                << std::is_move_assignable<int[2]>::value << '\\n'
                << "Foo is trivally move-assignable? "
                << std::is_trivially_move_assignable<Foo>::value << '\\n';
-  
+
      std::cout << std::boolalpha
                << "NoMove is move-assignable? "
                << std::is_move_assignable<NoMove>::value << '\\n'
@@ -111,21 +111,21 @@ std::is_move_assignable,std::is_trivially_move_assignable, \- std::is_move_assig
 is_assignable
 is_trivially_assignable                           checks if a type has a assignment
 is_nothrow_assignable                             operator for a specific argument
-\fI(C++11)\fP                                           \fI(class template)\fP 
+\fI(C++11)\fP                                           \fI(class template)\fP
 \fI(C++11)\fP
 \fI(C++11)\fP
 is_copy_assignable
 is_trivially_copy_assignable                      checks if a type has a copy assignment
 is_nothrow_copy_assignable                        operator
-\fI(C++11)\fP                                           \fI(class template)\fP 
+\fI(C++11)\fP                                           \fI(class template)\fP
 \fI(C++11)\fP
 \fI(C++11)\fP
 std::experimental::is_move_assignable_v           variable template alias of
 (library fundamentals TS)                         std::is_move_assignable::value
-                                                  (variable template) 
+                                                  (variable template)
 std::experimental::is_trivially_move_assignable_v variable template alias of
 (library fundamentals TS)                         std::is_trivially_move_assignable::value
-                                                  (variable template) 
+                                                  (variable template)
 std::experimental::is_nothrow_move_assignable_v   variable template alias of
 (library fundamentals TS)                         std::is_nothrow_move_assignable::value
-                                                  (variable template) 
+                                                  (variable template)

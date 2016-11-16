@@ -1,0 +1,134 @@
+.TH std::transform_reduce 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::transform_reduce \- std::transform_reduce
+
+.SH Synopsis
+   Defined in header <numeric>
+   template<class InputIt, class UnaryOp, class T, class BinaryOp>
+
+   T transform_reduce(InputIt first, InputIt last,                 \fB(1)\fP \fI(since C++17)\fP
+
+   UnaryOp unary_op, T init, BinaryOp binary_op);
+   template<class ExecutionPolicy,
+
+   class InputIt, class UnaryOp, class T, class BinaryOp>
+   T transform_reduce(ExecutionPolicy&& policy,                    \fB(2)\fP \fI(since C++17)\fP
+   InputIt first, InputIt last,
+
+   UnaryOp unary_op, T init, BinaryOp binary_op);
+
+   1) Applies unary_op to each element in the range [first; last) and reduces the
+   results (possibly permuted and aggregated in unspecified manner) along with the
+   initial value init over binary_op.
+   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
+   in overload resolution unless
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
+
+   The behavior is non-deterministic if binary_op is not associative or not
+   commutative.
+
+   The behavior is undefined if unary_op or binary_op modifies any element or
+   invalidates any iterator in [first; last).
+
+.SH Parameters
+
+   first, last - the range of elements to apply the algorithm to
+   init        - the initial value of the generalized sum
+   policy      - the execution policy to use. See execution policy for details.
+   unary_op    - unary FunctionObject that will be applied to each element of the input
+                 range. The return type must be acceptable as input to binary_op
+   binary_op   - binary FunctionObject that will be applied in unspecified order to the
+                 results of unary_op, the results of other binary_op and init.
+.SH Type requirements
+   -
+   InputIt must meet the requirements of InputIterator.
+
+.SH Return value
+
+   Generalized sum of init and unary_op(*first), unary_op(*(first+1)), ...
+   unary_op(*(last-1)) over binary_op,
+
+   where generalized sum GSUM(op, a
+   1, ..., a
+   N) is defined as follows:
+
+     * if N=1, a
+       1
+     * if N > 1, op(GSUM(op, b
+       1, ..., b
+       K), GSUM(op, b
+       M, ..., b
+       N)) where
+
+     * b
+       1, ..., b
+       N may be any permutation of a1, ..., aN and
+     * 1 < K+1 = M ≤ N
+
+   in other words, the results of unary_op may be grouped and arranged in arbitrary
+   order.
+
+.SH Complexity
+
+   O(last - first) applications each of unary_op and binary_op.
+
+.SH Exceptions
+
+   The overloads with a template parameter named ExecutionPolicy report errors as
+   follows:
+
+     * If execution of a function invoked as part of the algorithm throws an exception,
+       std::terminate is called.
+     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
+
+.SH Notes
+
+   unary_op is not applied to init
+
+   If the range is empty, init is returned, unmodified
+
+.SH Example
+
+   transform_reduce can be used to parallelize std::inner_product:
+
+   
+// Run this code
+
+ #include <vector>
+ #include <iterator>
+ #include <functional>
+ #include <iostream>
+ #include <numeric>
+ #include <execution_policy>
+ #include <boost/iterator/zip_iterator.hpp>
+ #include <boost/tuple.hpp>
+
+ int main()
+ {
+     std::vector<double> xvalues(10007, 1.0), yvalues(10007, 1.0);
+
+     double result = std::transform_reduce(
+         std::par,
+         boost::iterators::make_zip_iterator(
+             boost::make_tuple(std::begin(xvalues), std::begin(yvalues))),
+         boost::iterators::make_zip_iterator(
+             boost::make_tuple(std::end(xvalues), std::end(yvalues))),
+         [](auto r) { return boost::get<0>(r) * boost::get<1>(r); }
+         0.0,
+         std::plus<>()
+     );
+     std::cout << result << '\\n';
+ }
+
+.SH Output:
+
+ 10007
+
+.SH See also
+
+   accumulate sums up a range of elements
+              \fI(function template)\fP
+   transform  applies a function to a range of elements
+              \fI(function template)\fP
+   reduce     similar to std::accumulate, except out of order
+   \fI(C++17)\fP    \fI(function template)\fP

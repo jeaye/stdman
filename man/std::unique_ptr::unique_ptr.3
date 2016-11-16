@@ -1,4 +1,4 @@
-.TH std::unique_ptr::unique_ptr 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::unique_ptr::unique_ptr 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unique_ptr::unique_ptr \- std::unique_ptr::unique_ptr
 
@@ -53,10 +53,11 @@ std::unique_ptr::unique_ptr \- std::unique_ptr::unique_ptr
 
    2-4) in the specialization for arrays behave the same as the
    constructors that take a pointer parameter in the primary template
-   except that they will only participate in overload resolution if
-   either                                                                 \fI(since C++17)\fP
-
+   except that they will only participate in overload resolution if one
+   of the following is true
+                                                                          \fI(since C++17)\fP
    U is the same type as pointer, or
+   U is std::nullptr_t, or
    pointer is the same type as element_type* and U is some pointer type
    V* such that V(*)[] is implicitly convertible to element_type(*)[].
 
@@ -105,9 +106,8 @@ std::unique_ptr::unique_ptr \- std::unique_ptr::unique_ptr
 
 .SH Exceptions
 
-   noexcept specification:  
+   noexcept specification:
    noexcept
-     
 
 .SH Notes
 
@@ -118,6 +118,11 @@ std::unique_ptr::unique_ptr \- std::unique_ptr::unique_ptr
    the overload \fB(6)\fP (because both the managed pointer and std::default_delete are
    implicitly convertible)
 
+   Because the default constructor is constexpr, static unique_ptrs are initialized as
+   part of static non-local initialization, before any dynamic non-local initialization
+   begins. This makes it safe to use a unique_ptr in a constructor of any static
+   object.
+
 .SH Example
 
    
@@ -125,14 +130,14 @@ std::unique_ptr::unique_ptr \- std::unique_ptr::unique_ptr
 
  #include <iostream>
  #include <memory>
-  
+
  struct Foo { // object to manage
      Foo() { std::cout << "Foo ctor\\n"; }
      Foo(const Foo&) { std::cout << "Foo copy ctor\\n"; }
      Foo(Foo&&) { std::cout << "Foo move ctor\\n"; }
      ~Foo() { std::cout << "~Foo dtor\\n"; }
  };
-  
+
  struct D { // deleter
      D() {};
      D(const D&) { std::cout << "D copy ctor\\n"; }
@@ -143,18 +148,18 @@ std::unique_ptr::unique_ptr \- std::unique_ptr::unique_ptr
          delete p;
      };
  };
-  
+
  int main()
  {
      std::cout << "Example constructor(1)...\\n";
      std::unique_ptr<Foo> up1;  // up1 is empty
      std::unique_ptr<Foo> up1b(nullptr);  // up1b is empty
-  
+
      std::cout << "Example constructor(2)...\\n";
      {
          std::unique_ptr<Foo> up2(new Foo); //up2 now owns a Foo
      } // Foo deleted
-  
+
      std::cout << "Example constructor(3)...\\n";
      D d;
      {  // deleter type is not a reference
@@ -163,27 +168,27 @@ std::unique_ptr::unique_ptr \- std::unique_ptr::unique_ptr
      {  // deleter type is a reference
         std::unique_ptr<Foo, D&> up3b(new Foo, d); // up3b holds a reference to d
      }
-  
+
      std::cout << "Example constructor(4)...\\n";
      {  // deleter is not a reference
         std::unique_ptr<Foo, D> up4(new Foo, D()); // deleter moved
      }
-  
+
      std::cout << "Example constructor(5)...\\n";
      {
         std::unique_ptr<Foo> up5a(new Foo);
         std::unique_ptr<Foo> up5b(std::move(up5a)); // ownership transfer
      }
-  
+
      std::cout << "Example constructor(6)...\\n";
      {
          std::unique_ptr<Foo, D> up6a(new Foo, d); // D is copied
          std::unique_ptr<Foo, D> up6b(std::move(up6a)); // D is moved
-  
+
          std::unique_ptr<Foo, D&> up6c(new Foo, d); // D is a reference
          std::unique_ptr<Foo, D> up6d(std::move(up6c)); // D is copied
      }
-  
+
      std::cout << "Example constructor(7)...\\n";
      {
          std::auto_ptr<Foo> up7a(new Foo);

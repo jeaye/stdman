@@ -1,4 +1,4 @@
-.TH std::min_element 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::min_element 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::min_element \- std::min_element
 
@@ -9,28 +9,41 @@ std::min_element \- std::min_element
    ForwardIt last );
    template< class ForwardIt >
    constexpr ForwardIt min_element( ForwardIt               \fI(since C++17)\fP
-   first, ForwardIt last );                         \fB(1)\fP
+   first, ForwardIt last );
+   template< class ExecutionPolicy, class ForwardIt
+   >                                                    \fB(2)\fP \fI(since C++17)\fP
+   ForwardIt min_element( ExecutionPolicy&& policy,
+   ForwardIt first, ForwardIt last );               \fB(1)\fP
    template< class ForwardIt, class Compare >
    ForwardIt min_element( ForwardIt first,                                \fI(until C++17)\fP
-   ForwardIt last, Compare comp );                      \fB(2)\fP
+   ForwardIt last, Compare comp );
    template< class ForwardIt, class Compare >
-   constexpr ForwardIt min_element( ForwardIt                             \fI(since C++17)\fP
+   constexpr ForwardIt min_element( ForwardIt           \fB(3)\fP               \fI(since C++17)\fP
    first, ForwardIt last, Compare comp );
+   template< class ExecutionPolicy, class
+   ForwardIt, class Compare >                               \fB(4)\fP           \fI(since C++17)\fP
+   ForwardIt min_element( ExecutionPolicy&& policy,
+   ForwardIt first, ForwardIt last, Compare comp );
 
-   Finds the smallest element in the range [first, last). The first version uses
-   operator< to compare the values, the second version uses the given comparison
-   function comp.
+   Finds the smallest element in the range [first, last).
+
+   1) Elements are compared using operator<.
+   3) Elements are compared using the given binary comparison function comp.
+   2,4) Same as (1,3), but executed according to policy. These overloads do not
+   participate in overload resolution unless
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
 
 .SH Parameters
 
    first, last - forward iterators defining the range to examine
+   policy      - the execution policy to use. See execution policy for details.
                  comparison function object (i.e. an object that satisfies the
                  requirements of Compare) which returns true if a is less than b.
 
                  The signature of the comparison function should be equivalent to the
                  following:
 
-   cmp         -  bool cmp(const Type1 &a, const Type2 &b);
+   cmp         - bool cmp(const Type1 &a, const Type2 &b);
 
                  The signature does not need to have const &, but the function object
                  must not modify the objects passed to it.
@@ -51,6 +64,15 @@ std::min_element \- std::min_element
 
    Exactly max(N-1,0) comparisons, where N = std::distance(first, last).
 
+.SH Exceptions
+
+   The overloads with a template parameter named ExecutionPolicy report errors as
+   follows:
+
+     * If execution of a function invoked as part of the algorithm throws an exception,
+       std::terminate is called.
+     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
+
 .SH Possible implementation
 
 .SH First version
@@ -58,7 +80,7 @@ std::min_element \- std::min_element
    ForwardIt min_element(ForwardIt first, ForwardIt last)
    {
        if (first == last) return last;
-    
+
        ForwardIt smallest = first;
        ++first;
        for (; first != last; ++first) {
@@ -74,7 +96,7 @@ std::min_element \- std::min_element
                                Compare comp)
    {
        if (first == last) return last;
-    
+
        ForwardIt smallest = first;
        ++first;
        for (; first != last; ++first) {
@@ -93,11 +115,11 @@ std::min_element \- std::min_element
  #include <algorithm>
  #include <iostream>
  #include <vector>
-  
+
  int main()
  {
      std::vector<int> v{3, 1, 4, 1, 5, 9};
-  
+
      std::vector<int>::iterator result = std::min_element(std::begin(v), std::end(v));
      std::cout << "min element at: " << std::distance(std::begin(v), result);
  }
@@ -109,11 +131,11 @@ std::min_element \- std::min_element
 .SH See also
 
    max_element                              returns the largest element in a range
-                                            \fI(function template)\fP 
+                                            \fI(function template)\fP
    minmax_element                           returns the smallest and the largest
-   \fI(C++11)\fP                                  element in a range
-                                            \fI(function template)\fP 
-   min                                      returns the smaller of two elements
-                                            \fI(function template)\fP 
+   \fI(C++11)\fP                                  elements in a range
+                                            \fI(function template)\fP
+   min                                      returns the smaller of the given values
+                                            \fI(function template)\fP
    std::experimental::parallel::min_element parallelized version of std::min_element
-   (parallelism TS)                         \fI(function template)\fP 
+   (parallelism TS)                         \fI(function template)\fP

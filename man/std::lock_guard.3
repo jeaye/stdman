@@ -1,25 +1,35 @@
-.TH std::lock_guard 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::lock_guard 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::lock_guard \- std::lock_guard
 
 .SH Synopsis
    Defined in header <mutex>
-   template< class Mutex >    \fI(since C++11)\fP
+   template< class Mutex >          \fI(since C++11)\fP
+   class lock_guard;                \fI(until C++17)\fP
+   template< class... MutexTypes >  \fI(since C++17)\fP
    class lock_guard;
 
    The class lock_guard is a mutex wrapper that provides a convenient RAII-style
-   mechanism for owning a mutex for the duration of a scoped block.
+   mechanism for owning a mutex
+   or several mutexes
+   \fI(since C++17)\fP for the duration of a scoped block.
 
    When a lock_guard object is created, it attempts to take ownership of the mutex it
    is given. When control leaves the scope in which the lock_guard object was created,
    the lock_guard is destructed and the mutex is released.
 
+   If several mutexes are given, deadlock avoidance algorithm is used as  \fI(since C++17)\fP
+   if by std::lock.
+
    The lock_guard class is non-copyable.
 
 .SH Template parameters
 
-   Mutex - the type of the mutex to lock. The type must meet the BasicLockable
-           requirements
+   Mutex - the type of the mutex to lock. The type must meet the          \fI(since C++11)\fP
+           BasicLockable requirements                                     \fI(until C++17)\fP
+                the types of the mutexes to lock. The types must meet the
+   MutexTypes - Lockable requirements unless sizeof...(MutexTypes)==1, in \fI(since C++17)\fP
+                which case the only type must meet BasicLockable
 
 .SH Member types
 
@@ -29,11 +39,11 @@ std::lock_guard \- std::lock_guard
 .SH Member functions
 
    constructor   constructs a lock_guard, optionally locking the given mutex
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    destructor    destructs the lock_guard object, unlocks the underlying mutex
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    operator=     not copy-assignable
-   [deleted]     \fI(public member function)\fP 
+   [deleted]     \fI(public member function)\fP
 
 .SH Example
 
@@ -43,31 +53,31 @@ std::lock_guard \- std::lock_guard
  #include <thread>
  #include <mutex>
  #include <iostream>
-  
+
  int g_i = 0;
  std::mutex g_i_mutex;  // protects g_i
-  
+
  void safe_increment()
  {
      std::lock_guard<std::mutex> lock(g_i_mutex);
      ++g_i;
-  
+
      std::cout << std::this_thread::get_id() << ": " << g_i << '\\n';
-  
+
      // g_i_mutex is automatically released when lock
      // goes out of scope
  }
-  
+
  int main()
  {
      std::cout << __func__ << ": " << g_i << '\\n';
-  
+
      std::thread t1(safe_increment);
      std::thread t2(safe_increment);
-  
+
      t1.join();
      t2.join();
-  
+
      std::cout << __func__ << ": " << g_i << '\\n';
  }
 
@@ -77,3 +87,8 @@ std::lock_guard \- std::lock_guard
  140641306900224: 1
  140641298507520: 2
  main: 2
+
+.SH See also
+
+   unique_lock implements movable mutex ownership wrapper
+   \fI(C++11)\fP     \fI(class template)\fP

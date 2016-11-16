@@ -1,21 +1,32 @@
-.TH std::is_sorted 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::is_sorted 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_sorted \- std::is_sorted
 
 .SH Synopsis
    Defined in header <algorithm>
-   template< class ForwardIt >                                      \fB(1)\fP \fI(since C++11)\fP
+   template< class ForwardIt >                                        \fB(1)\fP \fI(since C++11)\fP
    bool is_sorted( ForwardIt first, ForwardIt last );
-   template< class ForwardIt, class Compare >                       \fB(2)\fP \fI(since C++11)\fP
+   template< class ExecutionPolicy, class ForwardIt >
+   bool is_sorted( ExecutionPolicy&& policy, ForwardIt first,         \fB(2)\fP \fI(since C++17)\fP
+   ForwardIt last );
+   template< class ForwardIt, class Compare >                         \fB(3)\fP \fI(since C++11)\fP
    bool is_sorted( ForwardIt first, ForwardIt last, Compare comp );
+   template< class ExecutionPolicy, class ForwardIt, class Compare >
+   bool is_sorted( ExecutionPolicy&& policy, ForwardIt first,         \fB(4)\fP \fI(since C++17)\fP
+   ForwardIt last, Compare comp );
 
-   Checks if the elements in range [first, last) are sorted in ascending order. The
-   first version of the function uses operator< to compare the elements, the second
-   uses the given comparison function comp.
+   Checks if the elements in range [first, last) are sorted in non-descending order.
+
+   1) Elements are compared using operator<.
+   3) Elements are compared using the given binary comparison function comp.
+   2,4) Same as (1,3), but executed according to policy. These overloads do not
+   participate in overload resolution unless
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
 
 .SH Parameters
 
    first, last - the range of elements to examine
+   policy      - the execution policy to use. See execution policy for details.
                  comparison function object (i.e. an object that satisfies the
                  requirements of Compare) which returns true if the first argument is
                  less than (i.e. is ordered before) the second.
@@ -23,7 +34,7 @@ std::is_sorted \- std::is_sorted
                  The signature of the comparison function should be equivalent to the
                  following:
    comp        -
-                  bool cmp(const Type1 &a, const Type2 &b);
+                 bool cmp(const Type1 &a, const Type2 &b);
 
                  The signature does not need to have const &, but the function object
                  must not modify the objects passed to it.
@@ -41,6 +52,15 @@ std::is_sorted \- std::is_sorted
 .SH Complexity
 
    linear in the distance between first and last
+
+.SH Exceptions
+
+   The overloads with a template parameter named ExecutionPolicy report errors as
+   follows:
+
+     * If execution of a function invoked as part of the algorithm throws an exception,
+       std::terminate is called.
+     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
 .SH Possible implementation
 
@@ -64,17 +84,17 @@ std::is_sorted \- std::is_sorted
 
  #include <iostream>
  #include <algorithm>
-  
+
  int main()
  {
      const int N = 5;
      int digits[N] = {3, 1, 4, 1, 5};
-  
+
      for (auto i : digits) std::cout << i << ' ';
      std::cout << ": is_sorted: " << std::is_sorted(digits, digits+N) << '\\n';
-  
+
      std::sort(digits, digits+N);
-  
+
      for (auto i : digits) std::cout << i << ' ';
      std::cout << ": is_sorted: " << std::is_sorted(digits, digits+N) << '\\n';
  }
@@ -87,6 +107,6 @@ std::is_sorted \- std::is_sorted
 .SH See also
 
    is_sorted_until                        finds the largest sorted subrange
-   \fI(C++11)\fP                                \fI(function template)\fP 
+   \fI(C++11)\fP                                \fI(function template)\fP
    std::experimental::parallel::is_sorted parallelized version of std::is_sorted
-   (parallelism TS)                       \fI(function template)\fP 
+   (parallelism TS)                       \fI(function template)\fP

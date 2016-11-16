@@ -1,27 +1,38 @@
-.TH std::for_each 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::for_each 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::for_each \- std::for_each
 
 .SH Synopsis
    Defined in header <algorithm>
    template< class InputIt, class UnaryFunction >
-   UnaryFunction for_each( InputIt first, InputIt last, UnaryFunction f );
+   UnaryFunction for_each( InputIt first, InputIt last, UnaryFunction \fB(1)\fP
+   f );
+   template< class ExecutionPolicy, class InputIt, class
+   UnaryFunction2 >                                                   \fB(2)\fP \fI(since C++17)\fP
+   void for_each( ExecutionPolicy&& policy, InputIt first, InputIt
+   last, UnaryFunction2 f );
 
-   Applies the given function object f to the result of dereferencing every iterator in
-   the range [first, last), in order.
+   1) Applies the given function object f to the result of dereferencing every iterator
+   in the range [first, last), in order.
+   2) Applies the given function object f to the result of dereferencing every iterator
+   in the range [first, last) (not necessarily in order). The algorithm is executed
+   according to policy. This overload does not participate in overload resolution
+   unless std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.
 
-   If InputIt is a mutable iterator, f may modify the elements of the range through the
-   dereferenced iterator. If f returns a result, the result is ignored.
+   For both overloads, if InputIt is a mutable iterator, f may modify the elements of
+   the range through the dereferenced iterator. If f returns a result, the result is
+   ignored.
 
 .SH Parameters
 
    first, last - the range to apply the function to
+   policy      - the execution policy to use. See execution policy for details.
                  function object, to be applied to the result of dereferencing every
                  iterator in the range [first, last)
 
                  The signature of the function should be equivalent to the following:
 
-   f           -  void fun(const Type &a);
+   f           - void fun(const Type &a);
 
                  The signature does not need to have const &.
                  The type Type must be such that an object of type InputIt can be
@@ -34,15 +45,30 @@ std::for_each \- std::for_each
    -
    UnaryFunction must meet the requirements of MoveConstructible. Does not have to be
    CopyConstructible
+   -
+   UnaryFunction2 must meet the requirements of CopyConstructible.
 
 .SH Return value
 
-   f            \fI(until C++11)\fP
-   std::move(f) \fI(since C++11)\fP
+   1)
+   f
+   \fI(until C++11)\fP
+   std::move(f)
+   \fI(since C++11)\fP
+   2) (nothing)
 
 .SH Complexity
 
    Exactly last - first applications of f
+
+.SH Exceptions
+
+   The overload with a template parameter named ExecutionPolicy reports errors as
+   follows:
+
+     * If execution of a function invoked as part of the algorithm throws an exception,
+       std::terminate is called.
+     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
 .SH Possible implementation
 
@@ -66,31 +92,33 @@ std::for_each \- std::for_each
  #include <vector>
  #include <algorithm>
  #include <iostream>
-  
- struct Sum {
-     Sum() { sum = 0; }
+
+ struct Sum
+ {
+     Sum(): sum{0} { }
      void operator()(int n) { sum += n; }
-  
      int sum;
  };
-  
+
  int main()
  {
-     std::vector<int> nums{3, 4, 2, 9, 15, 267};
-  
+     std::vector<int> nums{3, 4, 2, 8, 15, 267};
+
      std::cout << "before:";
-     for (auto n : nums) {
+     for (auto const &n : nums)
+     {
          std::cout << ' ' << n;
      }
      std::cout << '\\n';
-  
+
      std::for_each(nums.begin(), nums.end(), [](int &n){ n++; });
-  
-     // Calls Sum::operator() for each number
+
+     // calls Sum::operator() for each number
      Sum s = std::for_each(nums.begin(), nums.end(), Sum());
-  
+
      std::cout << "after: ";
-     for (auto n : nums) {
+     for (auto const &n : nums)
+     {
          std::cout << ' ' << n;
      }
      std::cout << '\\n';
@@ -99,16 +127,14 @@ std::for_each \- std::for_each
 
 .SH Output:
 
- before: 3 4 2 9 15 267
- after:  4 5 3 10 16 268
- sum: 306
+ before: 3 4 2 8 15 267
+ after:  4 5 3 9 16 268
+ sum: 305
 
 .SH See also
 
-   transform        applies a function to a range of elements
-                    \fI(function template)\fP 
-   range-for loop   executes loop over range \fI(since C++11)\fP 
-   for_each         similar to std::for_each except returns void
-   (parallelism TS) \fI(function template)\fP 
-   for_each_n       applies a function object to the first n elements of a sequence
-   (parallelism TS) \fI(function template)\fP 
+   transform      applies a function to a range of elements
+                  \fI(function template)\fP
+   range-for loop executes loop over range \fI(since C++11)\fP
+   for_each_n     applies a function object to the first n elements of a sequence
+   \fI(C++17)\fP        \fI(function template)\fP

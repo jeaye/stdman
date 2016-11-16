@@ -1,0 +1,148 @@
+.TH std::experimental::parallel::transform_reduce 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::experimental::parallel::transform_reduce \- std::experimental::parallel::transform_reduce
+
+.SH Synopsis
+   Defined in header <experimental/numeric>
+   template<class InputIt, class UnaryOp, class T, class BinaryOp>
+
+   T transform_reduce(InputIt first, InputIt last,                 \fB(1)\fP (parallelism TS)
+
+   UnaryOp unary_op, T init, BinaryOp binary_op);
+   template<class ExecutionPolicy,
+
+   class InputIt, class UnaryOp, class T, class BinaryOp>
+   T transform_reduce(ExecutionPolicy&& policy,                    \fB(2)\fP (parallelism TS)
+   InputIt first, InputIt last,
+
+   UnaryOp unary_op, T init, BinaryOp binary_op);
+
+   Applies unary_op to each element in the range [first; last) and reduces the results
+   (possibly permuted and aggregated in unspecified manner) along with the initial
+   value init over binary_op.
+
+   The behavior is non-deterministic if binary_op is not associative or not
+   commutative.
+
+   The behavior is undefined if unary_op or binary_op modifies any element or
+   invalidates any iterator in [first; last).
+
+.SH Parameters
+
+   first, last - the range of elements to apply the algorithm to
+   init        - the initial value of the generalized sum
+   policy      - the execution policy
+   unary_op    - unary FunctionObject that will be applied to each element of the input
+                 range. The return type must be acceptable as input to binary_op
+   binary_op   - binary FunctionObject that will be applied in unspecified order to the
+                 results of unary_op, the results of other binary_op and init.
+.SH Type requirements
+   -
+   InputIt must meet the requirements of InputIterator.
+
+.SH Return value
+
+   Generalized sum of init and unary_op(*first), unary_op(*(first+1)), ...
+   unary_op(*(last-1)) over binary_op,
+
+   where generalized sum GSUM(op, a
+   1, ..., a
+   N) is defined as follows:
+
+     * if N=1, a
+       1
+     * if N > 1, op(GSUM(op, b
+       1, ..., b
+       K), GSUM(op, b
+       M, ..., b
+       N)) where
+
+     * b
+       1, ..., b
+       N may be any permutation of a1, ..., aN and
+     * 1 < K+1 = M ≤ N
+
+   in other words, the results of unary_op may be grouped and arranged in arbitrary
+   order.
+
+.SH Complexity
+
+   O(last - first) applications each of unary_op and binary_op.
+
+.SH Exceptions
+
+     * If execution of a function invoked as part of the algorithm throws an exception,
+
+     * if policy is parallel_vector_execution_policy, std::terminate is called
+     * if policy is sequential_execution_policy or parallel_execution_policy, the
+       algorithm exits with an exception_list containing all uncaught exceptions. If
+       there was only one uncaught exception, the algorithm may rethrow it without
+       wrapping in exception_list. It is unspecified how much work the algorithm will
+       perform before returning after the first exception was encountered.
+     * if policy is some other type, the behavior is implementation-defined
+
+     * If the algorithm fails to allocate memory (either for itself or to construct an
+       exception_list when handling a user exception), std::bad_alloc is thrown.
+
+.SH Notes
+
+   unary_op is not applied to init
+
+   If the range is empty, init is returned, unmodified
+
+     * If policy is an instance of sequential_execution_policy, all operations are
+       performed in the calling thread.
+     * If policy is an instance of parallel_execution_policy, operations may be
+       performed in unspecified number of threads, indeterminately sequenced with each
+       other
+     * If policy is an instance of parallel_vector_execution_policy, execution may be
+       both parallelized and vectorized: function body boundaries are not respected and
+       user code may be overlapped and combined in arbitrary manner (in particular,
+       this implies that a user-provided Callable must not acquire a mutex to access a
+       shared resource)
+
+.SH Example
+
+   transform_reduce can be used to parallelize std::inner_product:
+
+   
+// Run this code
+
+ #include <vector>
+ #include <iterator>
+ #include <functional>
+ #include <iostream>
+ #include <experimental/numeric>
+ #include <experimental/execution_policy>
+ #include <boost/iterator/zip_iterator.hpp>
+ #include <boost/tuple.hpp>
+
+ int main()
+ {
+     std::vector<double> xvalues(10007, 1.0), yvalues(10007, 1.0);
+
+     double result = std::experimental::parallel::transform_reduce(
+         std::experimental::parallel::par,
+         boost::iterators::make_zip_iterator(
+             boost::make_tuple(std::begin(xvalues), std::begin(yvalues))),
+         boost::iterators::make_zip_iterator(
+             boost::make_tuple(std::end(xvalues), std::end(yvalues))),
+         [](auto r) { return boost::get<0>(r) * boost::get<1>(r); }
+         0.0,
+         std::plus<>()
+     );
+     std::cout << result << '\\n';
+ }
+
+.SH Output:
+
+ 10007
+
+.SH See also
+
+   accumulate       sums up a range of elements
+                    \fI(function template)\fP
+   transform        applies a function to a range of elements
+                    \fI(function template)\fP
+   reduce           similar to std::accumulate, except out of order
+   (parallelism TS) \fI(function template)\fP

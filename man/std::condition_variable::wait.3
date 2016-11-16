@@ -1,4 +1,4 @@
-.TH std::condition_variable::wait 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::condition_variable::wait 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::condition_variable::wait \- std::condition_variable::wait
 
@@ -41,7 +41,7 @@ std::condition_variable::wait \- std::condition_variable::wait
    pred - The signature of the predicate function should be equivalent to the
           following:
 
-           bool pred();
+          bool pred();
 
 .SH Return value
 
@@ -49,9 +49,13 @@ std::condition_variable::wait \- std::condition_variable::wait
 
 .SH Exceptions
 
+   1)
+
    May throw std::system_error, may also propagate exceptions thrown by   \fI(until C++14)\fP
    lock.lock() or lock.unlock().
    Does not throw                                                         \fI(since C++14)\fP
+
+   2) Same as \fB(1)\fP but may also propagate exceptions thrown by pred
 
 .SH Notes
 
@@ -62,9 +66,15 @@ std::condition_variable::wait \- std::condition_variable::wait
    other threads that are currently waiting on the same condition variable is undefined
    behavior.
 
+   The effects of notify_one()/notify_all() and each of the three atomic parts of
+   wait()/wait_for()/wait_until() (unlock+wait, wakeup, and lock) take place in a
+   single total order that can be viewed as modification order of an atomic variable:
+   the order is specific to this individual condition_variable. This makes it
+   impossible for notify_one() to, for example, be delayed and unblock a thread that
+   started waiting just after the call to notify_one() was made.
+
 .SH Example
 
-   
    
 // Run this code
 
@@ -72,14 +82,14 @@ std::condition_variable::wait \- std::condition_variable::wait
  #include <condition_variable>
  #include <thread>
  #include <chrono>
-  
+
  std::condition_variable cv;
  std::mutex cv_m; // This mutex is used for three purposes:
                   // 1) to synchronize accesses to i
                   // 2) to synchronize accesses to std::cerr
                   // 3) for the condition variable cv
  int i = 0;
-  
+
  void waits()
  {
      std::unique_lock<std::mutex> lk(cv_m);
@@ -87,7 +97,7 @@ std::condition_variable::wait \- std::condition_variable::wait
      cv.wait(lk, []{return i == 1;});
      std::cerr << "...finished waiting. i == 1\\n";
  }
-  
+
  void signals()
  {
      std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -96,9 +106,9 @@ std::condition_variable::wait \- std::condition_variable::wait
          std::cerr << "Notifying...\\n";
      }
      cv.notify_all();
-  
+
      std::this_thread::sleep_for(std::chrono::seconds(1));
-  
+
      {
          std::lock_guard<std::mutex> lk(cv_m);
          i = 1;
@@ -106,7 +116,7 @@ std::condition_variable::wait \- std::condition_variable::wait
      }
      cv.notify_all();
  }
-  
+
  int main()
  {
      std::thread t1(waits), t2(waits), t3(waits), t4(signals);
@@ -131,7 +141,7 @@ std::condition_variable::wait \- std::condition_variable::wait
 
               blocks the current thread until the condition variable is woken up or
    wait_for   after the specified timeout duration
-              \fI(public member function)\fP 
+              \fI(public member function)\fP
               blocks the current thread until the condition variable is woken up or
    wait_until until specified time point has been reached
-              \fI(public member function)\fP 
+              \fI(public member function)\fP

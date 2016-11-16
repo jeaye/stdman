@@ -1,4 +1,4 @@
-.TH std::ungetc 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::ungetc 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ungetc \- std::ungetc
 
@@ -6,11 +6,35 @@ std::ungetc \- std::ungetc
    Defined in header <cstdio>
    int ungetc( int ch, std::FILE *stream );
 
-   Puts the character ch back to the given file stream.
+   If ch does not equal EOF, pushes the character ch (reinterpreted as unsigned char)
+   into the input buffer associated with the stream stream in such a manner than
+   subsequent read operation from stream will retrieve that character. The external
+   device associated with the stream is not modified.
+
+   Stream repositioning operations std::fseek, std::fsetpos, and std::rewind discard
+   the effects of ungetc.
+
+   If ungetc is called more than once without an intervening read or repositioning, it
+   may fail (in other words, a pushback buffer of size 1 is guaranteed, but any larger
+   buffer is implementation-defined). If multiple successful ungetc were performed,
+   read operations retrieve the pushed-back characters in reverse order of ungetc
+
+   If ch equals EOF, the operation fails and the stream is not affected.
+
+   A successful call to ungetc clears the end of file status flag std::feof.
+
+   A successful call to ungetc on a binary stream decrements the stream position
+   indicator by one (the behavior is indeterminate if the stream position indicator was
+   zero).
+
+   A successful call to ungetc on a text stream modifies the stream position indicator
+   in unspecified manner but guarantees that after all pushed-back characters are
+   retrieved with a read operation, the stream position indicator is equal to its value
+   before ungetc.
 
 .SH Parameters
 
-   ch     - character to be put back
+   ch     - character to be pushed into the input stream buffer
    stream - file stream to put the character back to
 
 .SH Return value
@@ -19,9 +43,65 @@ std::ungetc \- std::ungetc
 
    On failure EOF is returned and the given stream remains unchanged.
 
+.SH Notes
+
+   The size of the pushback buffer varies in practice from 4k (Linux, MacOS) to as
+   little as 4 (Solaris) or the guaranteed minimum 1 (HPUX, AIX)
+
+   The apparent size of the pushback buffer may be larger if the character that is
+   pushed back equals the character existing at that location in the external character
+   sequence (the implementation may simply decrement the read file position indicator
+   and avoid maintaining a pushback buffer)
+
+.SH Example
+
+   demonstrates the use of ungetc in its original purpose: implementing scanf
+
+   
+// Run this code
+
+ #include <cctype>
+ #include <cstdio>
+
+ void demo_scanf(const char* fmt, std::FILE* s) {
+     if(*fmt == '%') {
+         switch(*++fmt) {
+             case 'u': {
+                 int c;
+                 while(std::isspace(c=std::getc(s))) {} // skip leading white space
+                 unsigned int num = 0;
+                 while(std::isdigit(c)) {
+                     num = num*10 + c-'0';
+                     c = std::getc(s);
+                 }
+                 std::printf("%%u scanned %u\\n", num);
+                 std::ungetc(c, s); // reprocess the non-digit
+             }
+             case 'c': {
+                 int c = std::getc(s);
+                 std::printf("%%c scanned '%c'\\n", c);
+             }
+         }
+     }
+ }
+
+ int main()
+ {
+     std::FILE* f = std::fopen("input.txt", "w+");
+     std::fputs("123x", f);
+     std::rewind(f);
+     demo_scanf("%u%c", f);
+     std::fclose(f);
+ }
+
+.SH Output:
+
+ %u scanned 123
+ %c scanned 'x'
+
 .SH See also
 
    fgetc gets a character from a file stream
-   getc  \fI(function)\fP 
+   getc  \fI(function)\fP
    C documentation for
    ungetc

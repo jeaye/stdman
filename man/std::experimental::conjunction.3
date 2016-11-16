@@ -1,0 +1,64 @@
+.TH std::experimental::conjunction 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::experimental::conjunction \- std::experimental::conjunction
+
+.SH Synopsis
+   Defined in header <experimental/type_traits>
+   template<class... B>                          (library fundamentals TS v2)
+   struct conjunction;
+
+   Forms the logical conjunction of the type traits B....
+
+   The BaseCharacteristic of a specialization conjunction<B1, ..., BN> is the first Bi
+   for which Bi::value == false, or if every Bi::value != false, the BaseCharacteristic
+   is BN.
+
+   If sizeof...(B) == 0, the BaseCharacteristic is std::true_type.
+
+   Conjunction is short-circuiting: if there is a template type argument Bi with
+   Bi::value == false, then instantiating conjunction<B1, ..., BN>::value does not
+   require the instantiation of Bj::value for j > i
+
+.SH Template parameters
+
+   B... - every type must be usable as a base class and define member B::value that is
+          convertible to bool
+
+   Helper variable template
+
+   template<class... B>
+   constexpr bool conjunction_v =                          (library fundamentals TS v2)
+   conjunction<B...>::value;
+
+.SH Possible implementation
+
+template<class...> struct conjunction : std::true_type { };
+template<class B1> struct conjunction<B1> : B1 { };
+template<class B1, class... Bn>
+struct conjunction<B1, Bn...> : std::conditional_t<B1::value != false, conjunction<Bn...>, B1>  {};
+
+.SH Notes
+
+   A specialization of conjunction does not necessarily have a BaseCharacteristic of
+   either std::true_type or std::false_type: it simply inherits the base characteristic
+   of the first B whose ::value, converted to bool, is false, or the base
+   characteristic of the very last B when all of them convert to true. For example,
+   conjunction<std::integral_constant<int, 2>, std::integral_constant<int, 4>>::value
+   is 4.
+
+.SH Example
+
+   
+// Run this code
+
+ // func is enabled if all Ts... have the same type
+ template<typename T, typename... Ts>
+ std::enable_if_t<std::experimental::conjunction_v<std::is_same<T, Ts>...> >
+ func(T, Ts...) {
+  // TODO something to show
+ }
+
+.SH See also
+
+   conjunction variadic logical AND metafunction
+   \fI(C++17)\fP     \fI(class template)\fP

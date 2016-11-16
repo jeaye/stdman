@@ -1,4 +1,4 @@
-.TH std::mutex 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::mutex 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::mutex \- std::mutex
 
@@ -19,39 +19,39 @@ std::mutex \- std::mutex
      * A calling thread must not own the mutex prior to calling lock or try_lock.
 
    The behavior of a program is undefined if a mutex is destroyed while still owned by
-   some thread. The mutex class satisfies all requirements of Mutex and
-   StandardLayoutType.
+   any threads, or a thread terminates while owning a mutex. The mutex class satisfies
+   all requirements of Mutex and StandardLayoutType.
 
    std::mutex is neither copyable nor movable.
 
 .SH Member types
 
-   Member type        Definition
-   native_handle_type implementation-defined
+   Member type                  Definition
+   native_handle_type(optional) implementation-defined
 
 .SH Member functions
 
    constructor   constructs the mutex
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    destructor    destroys the mutex
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    operator=     not copy-assignable
-   [deleted]     \fI(public member function)\fP 
+   [deleted]     \fI(public member function)\fP
 .SH Locking
    lock          locks the mutex, blocks if the mutex is not available
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    try_lock      tries to lock the mutex, returns if the mutex is not available
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    unlock        unlocks the mutex
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
 .SH Native handle
    native_handle returns the underlying implementation-defined thread handle
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
 
 .SH Notes
 
    std::mutex is usually not accessed directly: std::unique_lock and std::lock_guard
-   are used to manage locking in exception-safe manner.
+   are used to manage locking in an exception-safe manner.
 
 .SH Example
 
@@ -67,28 +67,27 @@ std::mutex \- std::mutex
  #include <chrono>
  #include <thread>
  #include <mutex>
-  
+
  std::map<std::string, std::string> g_pages;
  std::mutex g_pages_mutex;
-  
+
  void save_page(const std::string &url)
  {
      // simulate a long page fetch
      std::this_thread::sleep_for(std::chrono::seconds(2));
      std::string result = "fake content";
-  
-     g_pages_mutex.lock(); // or, to be exception-safe, use std::lock_guard
+
+     std::lock_guard<std::mutex> guard(g_pages_mutex);
      g_pages[url] = result;
-     g_pages_mutex.unlock();
  }
-  
+
  int main()
  {
      std::thread t1(save_page, "http://foo");
      std::thread t2(save_page, "http://bar");
      t1.join();
      t2.join();
-  
+
      // safe to access g_pages without lock now, as the threads are joined
      for (const auto &pair : g_pages) {
          std::cout << pair.first << " => " << pair.second << '\\n';

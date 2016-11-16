@@ -1,4 +1,4 @@
-.TH std::unordered_set::insert 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::unordered_set::insert 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unordered_set::insert \- std::unordered_set::insert
 
@@ -10,6 +10,8 @@ std::unordered_set::insert \- std::unordered_set::insert
    template< class InputIt >                                        \fB(5)\fP \fI(since C++11)\fP
    void insert( InputIt first, InputIt last );
    void insert( std::initializer_list<value_type> ilist );          \fB(6)\fP \fI(since C++11)\fP
+   insert_return_type insert(node_type&& nh);                       \fB(7)\fP \fI(since C++17)\fP
+   iterator insert(const_iterator hint, node_type&& nh);            \fB(8)\fP \fI(since C++17)\fP
 
    Inserts element(s) into the container, if the container doesn't already contain an
    element with an equivalent key.
@@ -19,11 +21,26 @@ std::unordered_set::insert \- std::unordered_set::insert
    should start.
    5) Inserts elements from range [first, last).
    6) Inserts elements from initializer list ilist.
+   7) If nh is an empty node handle, does nothing. Otherwise, inserts the element owned
+   by nh into the container , if the container doesn't already contain an element with
+   a key equivalent to nh.key(). The behavior is undefined if nh is not empty and
+   get_allocator() != nh.get_allocator().
+   8) If nh is an empty node handle, does nothing and returns the end iterator.
+   Otherwise, inserts the element owned by nh into the container, if the container
+   doesn't already contain an element with a key equivalent to nh.key(), and returns
+   the iterator pointing to the element with key equivalent to nh.key() (regardless of
+   whether the insert succeeded or failed). If the insertion succeeds, nh is moved
+   from, otherwise it retains ownership of the element. The element is inserted as
+   close as possible to hint. The behavior is undefined if nh is not empty and
+   get_allocator() != nh.get_allocator().
 
    If rehashing occurs due to the insertion, all iterators are invalidated. Otherwise
    iterators are not affected. References are not invalidated. Rehashing occurs only if
-   the new number of elements is equal to or greater than
-   max_load_factor()*bucket_count().
+   the new number of elements is greater than max_load_factor()*bucket_count().
+   If the insertion is successful, pointers and references to the element obtained
+   while it is held in the node handle are invalidated, and pointers and references
+   obtained to that element before it was extracted become valid.
+   \fI(since C++17)\fP
 
 .SH Parameters
 
@@ -31,6 +48,7 @@ std::unordered_set::insert \- std::unordered_set::insert
    value       - element value to insert
    first, last - range of elements to insert
    ilist       - initializer list to insert the values from
+   nh          - a compatible node handle
 .SH Type requirements
    -
    InputIt must meet the requirements of InputIterator.
@@ -43,6 +61,14 @@ std::unordered_set::insert \- std::unordered_set::insert
    3-4) Returns an iterator to the inserted element, or to the element that prevented
    the insertion.
    5-6) \fI(none)\fP
+   7) Returns an insert_return_type with the members initialized as follows: if nh is
+   empty, inserted is false, position is end(), and node is empty. Otherwise if the
+   insertion took place, inserted is true, position points to the inserted element, and
+   node is empty. If the insertion failed, inserted is false, node has the previous
+   value of nh, and position points to an element with a key equivalent to nh.key().
+   8) End iterator if nh was empty, iterator pointing to the inserted element if
+   insertion took place, and iterator pointing to an element with a key equivalent to
+   nh.key() if it failed.
 
 .SH Exceptions
 
@@ -56,13 +82,22 @@ std::unordered_set::insert \- std::unordered_set::insert
    1-4) Average case: O(1), worst case O(size())
    5-6) Average case: O(N), where N is the number of elements to insert. Worse case:
    O(N*size()+N)
+   7-8) Average case: O(1), worst case O(size())
+
+.SH Notes
+
+   The hinted insert (3,4) does not return a boolean in order to be
+   signature-compatible with positional insert on sequential containers, such as
+   std::vector::insert. This makes it possible to create generic inserters such as
+   std::inserter. One way to check success of a hinted insert is to compare size()
+   before and after.
 
 .SH See also
 
    emplace      constructs element in-place
-                \fI(public member function)\fP 
+                \fI(public member function)\fP
    emplace_hint constructs elements in-place using a hint
-                \fI(public member function)\fP 
+                \fI(public member function)\fP
 
 .SH Category:
 

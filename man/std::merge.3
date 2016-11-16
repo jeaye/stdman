@@ -1,4 +1,4 @@
-.TH std::merge 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::merge 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::merge \- std::merge
 
@@ -6,21 +6,46 @@ std::merge \- std::merge
    Defined in header <algorithm>
    template< class InputIt1, class InputIt2, class OutputIt >
 
-   OutputIt merge( InputIt1 first1, InputIt1 last1,                         \fB(1)\fP
-                   InputIt2 first2, InputIt2 last2,
+   OutputIt merge( InputIt1 first1, InputIt1 last1,                   \fB(1)\fP
+   InputIt2 first2, InputIt2 last2,
 
-                   OutputIt d_first );
-   template< class InputIt1, class InputIt2, class OutputIt, class Compare>
+   OutputIt d_first );
+   template< class ExecutionPolicy, class InputIt1, class InputIt2,
+   class OutputIt >
 
-   OutputIt merge( InputIt1 first1, InputIt1 last1,                         \fB(2)\fP
-                   InputIt2 first2, InputIt2 last2,
+   OutputIt merge( ExecutionPolicy&& policy, InputIt1 first1,         \fB(2)\fP \fI(since C++17)\fP
+   InputIt1 last1,
+   InputIt2 first2, InputIt2 last2,
 
-                   OutputIt d_first, Compare comp );
+   OutputIt d_first );
+   template< class InputIt1, class InputIt2, class OutputIt, class
+   Compare>
+
+   OutputIt merge( InputIt1 first1, InputIt1 last1,                   \fB(3)\fP
+   InputIt2 first2, InputIt2 last2,
+
+   OutputIt d_first, Compare comp );
+   template< class ExecutionPolicy, class InputIt1, class InputIt2,
+   class OutputIt, class Compare>
+
+   OutputIt merge( ExecutionPolicy&& policy, InputIt1 first1,         \fB(4)\fP \fI(since C++17)\fP
+   InputIt1 last1,
+   InputIt2 first2, InputIt2 last2,
+
+   OutputIt d_first, Compare comp );
 
    Merges two sorted ranges [first1, last1) and [first2, last2) into one sorted range
-   beginning at d_first. The first version uses operator< to compare the elements, the
-   second version uses the given comparison function comp. The relative order of
-   equivalent elements is preserved.
+   beginning at d_first.
+
+   1) Elements are compared using operator<.
+   3) Elements are compared using the given binary comparison function comp.
+   2,4) Same as (1,3), but executed according to policy. These overloads do not
+   participate in overload resolution unless
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
+
+   For equivalent elements in the original two ranges, the elements from the first
+   range (preserving their original order) precede the elements from the second range
+   (preserving their original order).
 
    The behavior is undefined if the destination range overlaps either of the input
    ranges (the input ranges may overlap each other).
@@ -30,6 +55,7 @@ std::merge \- std::merge
    first1, last1 - the first range of elements to merge
    first2, last2 - the second range of elements to merge
    d_first       - the beginning of the destination range
+   policy        - the execution policy to use. See execution policy for details.
                    comparison function object (i.e. an object that satisfies the
                    requirements of Compare) which returns true if the first argument
                    is less than (i.e. is ordered before) the second.
@@ -37,7 +63,7 @@ std::merge \- std::merge
                    The signature of the comparison function should be equivalent to the
                    following:
    comp          -
-                    bool cmp(const Type1 &a, const Type2 &b);
+                   bool cmp(const Type1 &a, const Type2 &b);
 
                    The signature does not need to have const &, but the function object
                    must not modify the objects passed to it.
@@ -60,11 +86,20 @@ std::merge \- std::merge
 
    At most std::distance(first1, last1) + std::distance(first2, last2) - 1 comparisons.
 
+.SH Exceptions
+
+   The overloads with a template parameter named ExecutionPolicy report errors as
+   follows:
+
+     * If execution of a function invoked as part of the algorithm throws an exception,
+       std::terminate is called.
+     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
+
 .SH Notes
 
    This algorithm performs a similar task as std::set_union does. Both consume two
    sorted input ranges and produce a sorted output with elements from both inputs. The
-   difference bewteen these two algorithms is with handling values from both input
+   difference between these two algorithms is with handling values from both input
    ranges which compare equivalent (see notes on LessThanComparable). If any equivalent
    values appeared n times in the first range and m times in the second, std::merge
    would output all n+m occurrences whereas std::set_union would output std::max(n, m)
@@ -126,36 +161,36 @@ std::merge \- std::merge
  #include <vector>
  #include <random>
  #include <functional>
-  
+
  int main()
  {
      // fill the vectors with random numbers
      std::random_device rd;
      std::mt19937 mt(rd());
      std::uniform_int_distribution<> dis(0, 9);
-  
+
      std::vector<int> v1(10), v2(10);
      std::generate(v1.begin(), v1.end(), std::bind(dis, std::ref(mt)));
      std::generate(v2.begin(), v2.end(), std::bind(dis, std::ref(mt)));
-  
+
      // sort
      std::sort(v1.begin(), v1.end());
      std::sort(v2.begin(), v2.end());
-  
+
      // output v1
      std::cout << "v1 : ";
      std::copy(v1.begin(), v1.end(), std::ostream_iterator<int>(std::cout, " "));
      std::cout << '\\n';
-  
+
      // output v2
      std::cout << "v2 : ";
      std::copy(v2.begin(), v2.end(), std::ostream_iterator<int>(std::cout, " "));
      std::cout << '\\n';
-  
+
      // merge
      std::vector<int> dst;
      std::merge(v1.begin(), v1.end(), v2.begin(), v2.end(), std::back_inserter(dst));
-  
+
      // output
      std::cout << "dst: ";
      std::copy(dst.begin(), dst.end(), std::ostream_iterator<int>(std::cout, " "));
@@ -171,13 +206,13 @@ std::merge \- std::merge
 .SH See also
 
    inplace_merge                      merges two ordered ranges in-place
-                                      \fI(function template)\fP 
+                                      \fI(function template)\fP
    set_union                          computes the union of two sets
-                                      \fI(function template)\fP 
+                                      \fI(function template)\fP
    sort                               sorts a range into ascending order
-                                      \fI(function template)\fP 
+                                      \fI(function template)\fP
                                       sorts a range of elements while preserving order
    stable_sort                        between equal elements
-                                      \fI(function template)\fP 
+                                      \fI(function template)\fP
    std::experimental::parallel::merge parallelized version of std::merge
-   (parallelism TS)                   \fI(function template)\fP 
+   (parallelism TS)                   \fI(function template)\fP

@@ -1,33 +1,44 @@
-.TH std::uninitialized_fill_n 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_fill_n 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_fill_n \- std::uninitialized_fill_n
 
 .SH Synopsis
    Defined in header <memory>
    template< class ForwardIt, class Size, class T >
-   void uninitialized_fill_n( ForwardIt first, Size count, const T&       \fI(until C++11)\fP
-   value );
+   void uninitialized_fill_n( ForwardIt first, Size count, const          \fI(until C++11)\fP
+   T& value );
    template< class ForwardIt, class Size, class T >
-   ForwardIt uninitialized_fill_n( ForwardIt first, Size count, const T&  \fI(since C++11)\fP
-   value );
+   ForwardIt uninitialized_fill_n( ForwardIt first, Size count,   \fB(1)\fP     \fI(since C++11)\fP
+   const T& value );
+   template< class ExecutionPolicy, class ForwardIt, class Size,
+   class T >                                                          \fB(2)\fP \fI(since C++17)\fP
+   ForwardIt uninitialized_fill_n( ExecutionPolicy&& policy,
+   ForwardIt first, Size count, const T& value );
 
-   Copies the given value value to the first count elements in an uninitialized memory
-   area beginning at first as if by
+   1) Copies the given value value to the first count elements in an uninitialized
+   memory area beginning at first as if by
 
  for (; n--; ++first)
    ::new (static_cast<void*>(std::addressof(*first)))
-      typename iterator_traits<ForwardIterator>::value_type(x);
+      typename iterator_traits<ForwardIt>::value_type(x);
 
    If an exception is thrown during the initialization, the function has no effects.
+   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
+   in overload resolution unless
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
 
 .SH Parameters
 
-   first - the beginning of the range of the elements to initialize
-   count - number of elements to construct
-   value - the value to construct the elements with
+   first            -           the beginning of the range of the elements to
+                                initialize
+   count            -           number of elements to construct
+   value            -           the value to construct the elements with
 .SH Type requirements
    -
    ForwardIt must meet the requirements of ForwardIterator.
+   -
+   No increment, assignment, comparison, or indirection through valid instances of
+   ForwardIt may throw exceptions.
 
 .SH Return value
 
@@ -37,6 +48,15 @@ std::uninitialized_fill_n \- std::uninitialized_fill_n
 .SH Complexity
 
    Linear in count.
+
+.SH Exceptions
+
+   The overload with a template parameter named ExecutionPolicy reports errors as
+   follows:
+
+     * If execution of a function invoked as part of the algorithm throws an exception,
+       std::terminate is called.
+     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
 .SH Possible implementation
 
@@ -68,14 +88,14 @@ std::uninitialized_fill_n \- std::uninitialized_fill_n
  #include <memory>
  #include <string>
  #include <tuple>
-  
+
  int main()
  {
      std::string* p;
      std::size_t sz;
      std::tie(p, sz) = std::get_temporary_buffer<std::string>(4);
      std::uninitialized_fill_n(p, sz, "Example");
-  
+
      for (std::string* i = p; i != p+sz; ++i) {
          std::cout << *i << '\\n';
          i->~basic_string<char>();
@@ -93,8 +113,9 @@ std::uninitialized_fill_n \- std::uninitialized_fill_n
 .SH See also
 
                                                      copies an object to an
-   uninitialized_fill                                uninitialized area of memory
-                                                     \fI(function template)\fP 
+   uninitialized_fill                                uninitialized area of memory,
+                                                     defined by a range
+                                                     \fI(function template)\fP
    std::experimental::parallel::uninitialised_fill_n parallelized version of
    (parallelism TS)                                  std::uninitialised_fill_n
-                                                     \fI(function template)\fP 
+                                                     \fI(function template)\fP

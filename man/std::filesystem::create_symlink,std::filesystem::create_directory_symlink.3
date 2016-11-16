@@ -1,0 +1,106 @@
+.TH std::filesystem::create_symlink,std::filesystem::create_directory_symlink 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::filesystem::create_symlink,std::filesystem::create_directory_symlink \- std::filesystem::create_symlink,std::filesystem::create_directory_symlink
+
+.SH Synopsis
+   Defined in header <filesystem>
+   void create_symlink( const std::filesystem::path& target,
+
+   const std::filesystem::path& link );
+   void create_symlink( const std::filesystem::path& target,          \fB(1)\fP \fI(since C++17)\fP
+   const std::filesystem::path& link,
+
+   std::error_code& ec );
+   void create_directory_symlink( const std::filesystem::path&
+   target,
+
+   const std::filesystem::path& link );
+   void create_directory_symlink( const std::filesystem::path&        \fB(2)\fP \fI(since C++17)\fP
+   target,
+   const std::filesystem::path& link,
+
+   std::error_code& ec );
+
+   Creates a symbolic link link with its target set to target as if by POSIX symlink():
+   the pathname target may be invalid or non-existing.
+
+   Some operating systems require symlink creation to identify that the link is to a
+   directory. Portable code should use \fB(2)\fP to create directory symlinks rather than
+   \fB(1)\fP, even though there is no distinction on POSIX systems.
+
+.SH Parameters
+
+   target - path to point the symlink to, does not have to exisdt
+   link   - path of the new symbolic link
+   ec     - out-parameter for error reporting in the non-throwing overload
+
+.SH Return value
+
+   \fI(none)\fP
+
+.SH Exceptions
+
+   The overload that does not take a std::error_code& parameter throws filesystem_error
+   on underlying OS API errors, constructed with target as the first argument, link as
+   the second argument, and the OS error code as the error code argument.
+   std::bad_alloc may be thrown if memory allocation fails. The overload taking a
+   std::error_code& parameter sets it to the OS API error code if an OS API call fails,
+   and executes ec.clear() if no errors occur. This overload has
+   noexcept specification:
+   noexcept
+
+.SH Notes
+
+   Some operating systems do not support symbolic links at all or support them only for
+   regular files.
+
+   Some file systems do not support symbolic links regardless of the operating system,
+   for example the FAT system used on some memory cards and flash drives.
+
+   Like a hard link, a symbolic link allows a file to have multiple logical names. The
+   presence of a hard link guarantees the existence of a file, even after the original
+   name has been removed. A symbolic link provides no such assurance; in fact, the file
+   named by the target argument need not exist when the link is created. A symbolic
+   link can cross file system boundaries.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <filesystem>
+ namespace fs = std::filesystem;
+
+ int main()
+ {
+     fs::create_directories("sandbox/subdir");
+     fs::create_symlink("target", "sandbox/sym1");
+     fs::create_directory_symlink("subdir", "sandbox/sym2");
+
+     for(auto it = fs::directory_iterator("sandbox"); it != fs::directory_iterator(); ++it)
+         if(is_symlink(it->symlink_status()))
+             std::cout << *it << "->" << read_symlink(*it) << '\\n';
+
+     fs::remove_all("sandbox");
+ }
+
+.SH Possible output:
+
+ "sandbox/sym1"->"target"
+ "sandbox/sym2"->"subdir"
+
+.SH See also
+
+   status           determines file attributes
+   symlink_status   determines file attributes, checking the symlink target
+   \fI(C++17)\fP          \fI(function)\fP
+   \fI(C++17)\fP
+   read_symlink     obtains the target of a symbolic link
+   \fI(C++17)\fP          \fI(function)\fP
+   create_hard_link creates a hard link
+   \fI(C++17)\fP          \fI(function)\fP
+
+.SH Category:
+
+     * unconditionally noexcept

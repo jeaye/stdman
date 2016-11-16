@@ -1,28 +1,40 @@
-.TH std::uninitialized_fill 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_fill 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_fill \- std::uninitialized_fill
 
 .SH Synopsis
    Defined in header <memory>
    template< class ForwardIt, class T >
-   void uninitialized_fill( ForwardIt first, ForwardIt last, const T& value );
+   void uninitialized_fill( ForwardIt first, ForwardIt last, const T& \fB(1)\fP
+   value );
+   template< class ExecutionPolicy, class ForwardIt, class T >
+   void uninitialized_fill( ExecutionPolicy&& policy, ForwardIt       \fB(2)\fP \fI(since C++17)\fP
+   first, ForwardIt last, const T& value );
 
-   Copies the given value to an uninitialized memory area, defined by the range [first,
-   last) as if by
+   1) Copies the given value to an uninitialized memory area, defined by the range
+   [first, last) as if by
 
  for (; first != last; ++first)
    ::new (static_cast<void*>(std::addressof(*first)))
-       typename iterator_traits<ForwardIterator>::value_type(x);
+       typename iterator_traits<ForwardIt>::value_type(x);
 
    If an exception is thrown during the initialization, the function has no effects.
+   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
+   in overload resolution unless
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
 
 .SH Parameters
 
-   first, last  -  the range of the elements to initialize
-   value        -  the value to construct the elements with
+   first, last         -         the range of the elements to initialize
+   value               -         the value to construct the elements with
+   policy              -         the execution policy to use. See execution policy for
+                                 details.
 .SH Type requirements
    -
    ForwardIt must meet the requirements of ForwardIterator.
+   -
+   No increment, assignment, comparison, or indirection through valid instances of
+   ForwardIt may throw exceptions.
 
 .SH Return value
 
@@ -31,6 +43,15 @@ std::uninitialized_fill \- std::uninitialized_fill
 .SH Complexity
 
    Linear in the distance between first and last
+
+.SH Exceptions
+
+   The overload with a template parameter named ExecutionPolicy reports errors as
+   follows:
+
+     * If execution of a function invoked as part of the algorithm throws an exception,
+       std::terminate is called.
+     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
 .SH Possible implementation
 
@@ -61,15 +82,15 @@ std::uninitialized_fill \- std::uninitialized_fill
  #include <memory>
  #include <string>
  #include <tuple>
-  
+
  int main()
  {
      std::string* p;
      std::size_t sz;
      std::tie(p, sz) = std::get_temporary_buffer<std::string>(4);
-  
+
      std::uninitialized_fill(p, p+sz, "Example");
-  
+
      for (std::string* i = p; i != p+sz; ++i) {
          std::cout << *i << '\\n';
          i->~basic_string<char>();
@@ -87,8 +108,9 @@ std::uninitialized_fill \- std::uninitialized_fill
 .SH See also
 
                                                    copies an object to an uninitialized
-   uninitialized_fill_n                            area of memory
-                                                   \fI(function template)\fP 
+   uninitialized_fill_n                            area of memory, defined by a start
+                                                   and a count
+                                                   \fI(function template)\fP
    std::experimental::parallel::uninitialized_fill parallelized version of
    (parallelism TS)                                std::uninitialized_fill
-                                                   \fI(function template)\fP 
+                                                   \fI(function template)\fP

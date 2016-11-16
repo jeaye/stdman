@@ -1,0 +1,63 @@
+.TH std::experimental::when_any 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::experimental::when_any \- std::experimental::when_any
+
+.SH Synopsis
+   Defined in header <experimental/future>
+   template < class Sequence >
+
+   struct when_any_result {                                                (concurrency
+   std::size_t index;                                                      TS)
+   Sequence futures;
+
+   };
+   template < class InputIt >
+
+   auto when_any(InputIt first, InputIt last)                          \fB(1)\fP (concurrency
+                                                                           TS)
+   -> future<when_any_result<std::vector<typename
+   std::iterator_traits<InputIt>::value_type>>>;
+   template < class... Futures >
+                                                                           (concurrency
+   auto when_any(Futures&&... futures)                                 \fB(2)\fP TS)
+
+   -> future<when_any_result<std::tuple<std::decay_t<Futures>...>>>;
+
+   Create a future object that becomes ready when at least one of the input futures and
+   shared_futures become ready. The behavior is undefined if any input future or
+   shared_future is invalid.
+
+   In particular, let Sequence be a std::vector<typename
+   std::iterator_traits<InputIt>::value_type> for \fB(1)\fP and
+   std::tuple<std::decay_t<Futures>...> for \fB(2)\fP. This function template creates a
+   shared state containing when_any_result<Sequence> and returns a future referring to
+   the shared state. Every input future is moved into the corresponding object in the
+   futures member of the when_any_result<Sequence> in the shared state, and every input
+   shared_future is copied to the corresponding object in the futures member of the
+   when_any_result<Sequence> in the shared state. The order of the objects in the
+   Sequence matches the order of arguments.
+
+   1) This function does not participate in overload resolution unless InputIt's value
+   type (i.e., typename std::iterator_traits<InputIt>::value_type) is a
+   std::experimental::future or std::experimental::shared_future.
+   2) This function does not participate in overload resolution unless every argument
+   is either a (possibly cv-qualified) std::experimental::shared_future or a
+   cv-unqualified std::experimental::future. (Formally, for every type Fn in Futures,
+   either std::remove_reference_t<Fn> is std::experimental::future<Rn>, or
+   std::decay_t<Fn> is std::experimental::shared_future<Rn>.)
+
+   After this call, every input future is no longer valid; every input shared_future
+   remains valid.
+
+.SH Return value
+
+   A future referring to the shared state created by the call. The future is always
+   valid(), and it becomes ready when at least one of the input futures and
+   shared_futures the call are ready. The index member of the when_any_result contains
+   the position of the ready future or shared_future in the futures member.
+
+   1) If the range is empty (i.e., first == last), the returned future is ready
+   immediately; the futures field of the when_any_result is an empty vector, and the
+   index field is size_t(-1).
+   2) If no argument is provided, the returned future is ready immediately; the futures
+   field of the when_any_result is an empty tuple, and the index field is size_t(-1).

@@ -1,4 +1,4 @@
-.TH std::is_constructible,std::is_trivially_constructible,std::is_nothrow_constructible 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::is_constructible,std::is_trivially_constructible,std::is_nothrow_constructible 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_constructible,std::is_trivially_constructible,std::is_nothrow_constructible \- std::is_constructible,std::is_trivially_constructible,std::is_nothrow_constructible
 
@@ -11,16 +11,25 @@ std::is_constructible,std::is_trivially_constructible,std::is_nothrow_constructi
    template< class T, class... Args > \fB(3)\fP \fI(since C++11)\fP
    struct is_nothrow_constructible;
 
-   1) If the expression T obj(arg1, arg2, ... argN); is well-formed, given
-   declval<Args>()... as arguments, provides the member constant value equal true.
-   Otherwise, value is false.
+   1) If T is an object or reference type and the variable definition T
+   obj(std::declval<Args>()...); is well-formed, provides the member constant value
+   equal to true. In all other cases, value is false.
 
-   2) same as 1), but the constructor expression does not call any operation that is
-   not trivial.
+   For the purposes of this check, the variable definition is never interpreted as a
+   function declaration, and the use of std::declval is not considered an odr-use.
+   Access checks are performed as if from a context unrelated to T and any of the types
+   in Args. Only the validity of the immediate context of the variable definition is
+   considered.
 
-   3) same as 1), but the constructor expression is noexcept.
+   2) same as 1), but the variable definition does not call any operation that is not
+   trivial. For the purposes of this check, the call to std::declval is considered
+   trivial.
 
-   
+   3) same as 1), but the variable definition is noexcept.
+
+   T and all types in the parameter pack Args shall each be a complete type, (possibly
+   cv-qualified) void, or an array of unknown bound. Otherwise, the behavior is
+   undefined.
 
 .SH Member constants
 
@@ -40,6 +49,13 @@ std::is_constructible,std::is_trivially_constructible,std::is_nothrow_constructi
    value_type bool
    type       std::integral_constant<bool, value>
 
+.SH Notes
+
+   In many implementations, is_nothrow_constructible also checks if the destructor
+   throws because it is effectively noexcept(T(arg)). Same applies to
+   is_trivially_constructible, which, in these implementations, also requires that the
+   destructor is trivial: GCC bug 51452 LWG issue 2116.
+
 .SH Example
 
    
@@ -47,7 +63,7 @@ std::is_constructible,std::is_trivially_constructible,std::is_nothrow_constructi
 
  #include <iostream>
  #include <type_traits>
-  
+
  class Foo {
      int v1;
      double v2;
@@ -55,7 +71,7 @@ std::is_constructible,std::is_trivially_constructible,std::is_nothrow_constructi
      Foo(int n) : v1(n), v2() {}
      Foo(int n, double f) noexcept : v1(n), v2(f) {}
  };
-  
+
  int main() {
      std::cout << "Foo is ...\\n" << std::boolalpha
                << "\\tTrivially-constructible from const Foo&? "
@@ -84,30 +100,30 @@ std::is_constructible,std::is_trivially_constructible,std::is_nothrow_constructi
    is_default_constructible
    is_trivially_default_constructible              checks if a type has a default
    is_nothrow_default_constructible                constructor
-   \fI(C++11)\fP                                         \fI(class template)\fP 
+   \fI(C++11)\fP                                         \fI(class template)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
    is_copy_constructible
    is_trivially_copy_constructible                 checks if a type has a copy
    is_nothrow_copy_constructible                   constructor
-   \fI(C++11)\fP                                         \fI(class template)\fP 
+   \fI(C++11)\fP                                         \fI(class template)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
    is_move_constructible
-   is_trivially_move_constructible                 checks if a type has a move
-   is_nothrow_move_constructible                   constructor
-   \fI(C++11)\fP                                         \fI(class template)\fP 
+   is_trivially_move_constructible                 checks if a type can be constructed
+   is_nothrow_move_constructible                   from an rvalue reference
+   \fI(C++11)\fP                                         \fI(class template)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
    uses_allocator                                  checks if the specified type supports
    \fI(C++11)\fP                                         uses-allocator construction
-                                                   \fI(class template)\fP 
+                                                   \fI(class template)\fP
    std::experimental::is_constructible_v           variable template alias of
    (library fundamentals TS)                       std::is_constructible::value
-                                                   (variable template) 
+                                                   (variable template)
    std::experimental::is_trivially_constructible_v variable template alias of
    (library fundamentals TS)                       std::is_trivially_constructible::value
-                                                   (variable template) 
+                                                   (variable template)
    std::experimental::is_nothrow_constructible_v   variable template alias of
    (library fundamentals TS)                       std::is_nothrow_constructible::value
-                                                   (variable template) 
+                                                   (variable template)

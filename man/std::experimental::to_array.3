@@ -1,4 +1,4 @@
-.TH std::experimental::to_array 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::experimental::to_array 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::experimental::to_array \- std::experimental::to_array
 
@@ -20,17 +20,56 @@ std::experimental::to_array \- std::experimental::to_array
    An std::array object whose elements are copy-initialized from the corresponding
    element of a.
 
+.SH Possible implementation
+
+   namespace detail {
+   template <class T, std::size_t N, std::size_t... I>
+   constexpr std::array<std::remove_cv_t<T>, N>
+       to_array_impl(T (&a)[N], std::index_sequence<I...>)
+   {
+       return { {a[I]...} };
+   }
+   }
+
+   template <class T, std::size_t N>
+   constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&a)[N])
+   {
+       return detail::to_array_impl(a, std::make_index_sequence<N>{});
+   }
+
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+   
+// Run this code
+
+ #include <experimental/array>
+ #include <unistd.h>
+ #include <stdlib.h>
+ #include <assert.h>
+
+ // mkstemp(3) that works
+ template <size_t N>
+ int tempfd(char const (&tmpl)[N])
+ {
+     using std::experimental::to_array;
+
+     auto s = to_array(tmpl);
+     int fd = mkstemp(s.data());
+     if (fd != -1)
+         unlink(s.data());
+
+     return fd;
+ }
+
+ int main()
+ {
+     int fd = tempfd("/tmp/test.XXXXXX");
+     int rt = close(fd);
+     assert(rt == 0);
+ }
 
 .SH See also
 
               Creates a std::array object whose size and optionally element type are
    make_array deduced from the arguments
-              \fI(function template)\fP 
-
-.SH Category:
-
-     * Todo no example
+              \fI(function template)\fP

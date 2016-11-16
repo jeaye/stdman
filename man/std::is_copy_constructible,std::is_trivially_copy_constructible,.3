@@ -1,4 +1,4 @@
-.TH std::is_copy_constructible,std::is_trivially_copy_constructible, 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::is_copy_constructible,std::is_trivially_copy_constructible, 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_copy_constructible,std::is_trivially_copy_constructible, \- std::is_copy_constructible,std::is_trivially_copy_constructible,
 
@@ -12,16 +12,17 @@ std::is_copy_constructible,std::is_trivially_copy_constructible, \- std::is_copy
    template< class T >                     \fB(3)\fP \fI(since C++11)\fP
    struct is_nothrow_copy_constructible;
 
-   1) Checks whether a type is CopyConstructible, i.e. can be constructed from a const
-   T& argument. If the requirement is met, a member constant value equal true is
-   provided, otherwise value is false.
+   1) If T is not a referenceable type (i.e., possibly cv-qualified void or a function
+   type with a cv-qualifier-seq or a ref-qualifier), provides a member constant value
+   equal to false. Otherwise, provides a member constant value equal to
+   std::is_constructible<T, const T&>::value.
 
-   2) Same as \fB(1)\fP, but the copy constructor expression does not call any operation that
-   is not trivial.
+   2) Same as \fB(1)\fP, but uses std::is_trivially_constructible<T, const T&>.
 
-   3) Same as \fB(1)\fP, but the copy constructor expression is noexcept.
+   3) Same as \fB(1)\fP, but uses std::is_nothrow_constructible<T, const T&>.
 
-   
+   T shall be a complete type, (possibly cv-qualified) void, or an array of unknown
+   bound. Otherwise, the behavior is undefined.
 
 .SH Member constants
 
@@ -47,16 +48,23 @@ std::is_copy_constructible,std::is_trivially_copy_constructible, \- std::is_copy
    struct is_copy_constructible :
        std::is_constructible<T, typename std::add_lvalue_reference<
            typename std::add_const<T>::type>::type>> {};
-    
+
    template<class T>
    struct is_trivially_copy_constructible :
        std::is_trivially_constructible<T, typename std::add_lvalue_reference<
            typename std::add_const<T>::type>::type>> {};
-    
+
    template<class T>
    struct is_nothrow_copy_constructible :
        std::is_nothrow_constructible<T, typename std::add_lvalue_reference<
            typename std::add_const<T>::type>::type>> {};
+
+.SH Notes
+
+   In many implementations, is_nothrow_copy_constructible also checks if the destructor
+   throws because it is effectively noexcept(T(arg)). Same applies to
+   is_trivially_copy_constructible, which, in these implementations, also requires that
+   the destructor is trivial: GCC bug 51452 LWG issue 2116.
 
 .SH Example
 
@@ -65,7 +73,7 @@ std::is_copy_constructible,std::is_trivially_copy_constructible, \- std::is_copy
 
  #include <iostream>
  #include <type_traits>
-  
+
  struct Ex1 {
      std::string str; // member has a non-trivial copy ctor
  };
@@ -73,7 +81,7 @@ std::is_copy_constructible,std::is_trivially_copy_constructible, \- std::is_copy
      int n;
      Ex2(const Ex2&) = default; // trivial and non-throwing
  };
-  
+
  int main() {
      std::cout << std::boolalpha << "Ex1 is copy-constructible? "
                << std::is_copy_constructible<Ex1>::value << '\\n'
@@ -97,27 +105,27 @@ std::is_copy_constructible,std::is_trivially_copy_constructible, \- std::is_copy
 is_constructible
 is_trivially_constructible                           checks if a type has a constructor for
 is_nothrow_constructible                             specific arguments
-\fI(C++11)\fP                                              \fI(class template)\fP 
+\fI(C++11)\fP                                              \fI(class template)\fP
 \fI(C++11)\fP
 \fI(C++11)\fP
 is_default_constructible
 is_trivially_default_constructible
 is_nothrow_default_constructible                     checks if a type has a default constructor
-\fI(C++11)\fP                                              \fI(class template)\fP 
+\fI(C++11)\fP                                              \fI(class template)\fP
 \fI(C++11)\fP
 \fI(C++11)\fP
 is_move_constructible
-is_trivially_move_constructible
-is_nothrow_move_constructible                        checks if a type has a move constructor
-\fI(C++11)\fP                                              \fI(class template)\fP 
+is_trivially_move_constructible                      checks if a type can be constructed from an
+is_nothrow_move_constructible                        rvalue reference
+\fI(C++11)\fP                                              \fI(class template)\fP
 \fI(C++11)\fP
 \fI(C++11)\fP
 std::experimental::is_copy_constructible_v           variable template alias of
 (library fundamentals TS)                            std::is_copy_constructible::value
-                                                     (variable template) 
+                                                     (variable template)
 std::experimental::is_trivially_copy_constructible_v variable template alias of
 (library fundamentals TS)                            std::is_trivially_copy_constructible::value
-                                                     (variable template) 
+                                                     (variable template)
 std::experimental::is_nothrow_copy_constructible_v   variable template alias of
 (library fundamentals TS)                            std::is_nothrow_copy_constructible::value
-                                                     (variable template) 
+                                                     (variable template)

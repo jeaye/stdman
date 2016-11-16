@@ -1,4 +1,4 @@
-.TH std::unordered_map::operator[] 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::unordered_map::operator[] 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unordered_map::operator[] \- std::unordered_map::operator[]
 
@@ -9,28 +9,37 @@ std::unordered_map::operator[] \- std::unordered_map::operator[]
    Returns a reference to the value that is mapped to a key equivalent to key,
    performing an insertion if such key does not already exist.
 
-   If an insertion is performed, the mapped value is value-initialized
-   (default-constructed for class types, zero-initialized otherwise) and a reference to
-   it is returned.
-
-   1) Inserts value_type(key, T())
-
-   -
-   key_type must meet the requirements of CopyConstructible.
-   -
-   mapped_type must meet the requirements of DefaultConstructible. \fI(since C++11)\fP
-
-   2) Inserts value_type(std::move(key), T())
+   1) Inserts a value_type object constructed in-place from std::piecewise_construct,
+   std::forward_as_tuple(key), std::tuple<>() if the key does not exist.
+   This function is equivalent to return this->try_emplace(key).first->second;.
+   \fI(since C++17)\fP
+   When the default allocator is used, this results in the key being copy constructed
+   from key and the mapped value being value-initialized.
 
    -
-   key_type must meet the requirements of MoveConstructible. \fI(since C++11)\fP
+   value_type must be EmplaceConstructible from std::piecewise_construct,
+   std::forward_as_tuple(key), std::tuple<>(). When the default allocator is used, this
+   means that key_type must be CopyConstructible and mapped_type must be
+   DefaultConstructible.
+
+   2) Inserts a value_type object constructed in-place from std::piecewise_construct,
+   std::forward_as_tuple(std::move(key)), std::tuple<>() if the key does not exist.
+   This function is equivalent to return
+   this->try_emplace(std::move(key)).first->second;.
+   \fI(since C++17)\fP
+   When the default allocator is used, this results in the key being move constructed
+   from key and the mapped value being value-initialized.
+
    -
-   mapped_type must meet the requirements of DefaultConstructible. \fI(since C++11)\fP
+   value_type must be EmplaceConstructible from std::piecewise_construct,
+   std::forward_as_tuple(std::move(key)), std::tuple<>(). When the default allocator is
+   used, this means that key_type must be MoveConstructible and mapped_type must be
+   DefaultConstructible.
 
    If an insertion occurs and results in a rehashing of the container, all iterators
    are invalidated. Otherwise iterators are not affected. References are not
-   invalidated. Rehashing occurs only if the new number of elements is equal to or
-   greater than max_load_factor()*bucket_count().
+   invalidated. Rehashing occurs only if the new number of elements is greater than
+   max_load_factor()*bucket_count().
 
 .SH Parameters
 
@@ -50,37 +59,61 @@ std::unordered_map::operator[] \- std::unordered_map::operator[]
 
    Average case: constant, worst case: linear in size.
 
-.SH Example
+.SH Notes
 
-   This example demonstrates how to modify existing values and insert new values using
-   operator[]:
+   In the published C++11 and C++14 standards, this function was specified to require
+   mapped_type to be DefaultInsertable and key_type to be CopyInsertable or
+   MoveInsertable into *this. This specification was defective and was fixed by LWG
+   issue 2469, and the description above incorporates the resolution of that issue.
+
+   However, one implementation (libc++) is known to construct the key_type and
+   mapped_type objects via two separate allocator construct() calls, as arguably
+   required by the standards as published, rather than emplacing a value_type object.
+
+   operator[] is non-const because it inserts the key if it doesn't exist. If this
+   behavior is undesirable or if the container is const, at() may be used.
+
+.SH Example
 
    
 // Run this code
 
  #include <iostream>
+ #include <string>
+ #include <vector>
  #include <unordered_map>
-  
+
  int main()
  {
      std::unordered_map<char, int> letter_counts {{'a', 27}, {'b', 3}, {'c', 1}};
-  
+
      std::cout << "initially:\\n";
      for (const auto &pair : letter_counts) {
          std::cout << pair.first << ": " << pair.second << '\\n';
      }
-  
+
      letter_counts['b'] = 42;  // update an existing value
-  
      letter_counts['x'] = 9;  // insert a new value
-  
+
      std::cout << "after modifications:\\n";
      for (const auto &pair : letter_counts) {
          std::cout << pair.first << ": " << pair.second << '\\n';
      }
+
+     // count the number of occurrences of each word
+     // (the first call to operator[] initialized the counter with zero)
+     std::unordered_map<std::string, size_t>  word_map;
+     for (const auto &w : { "this", "sentence", "is", "not", "a", "sentence",
+                            "this", "sentence", "is", "a", "hoax"}) {
+         ++word_map[w];
+     }
+
+     for (const auto &pair : word_map) {
+         std::cout << pair.second << " occurrences of word '" << pair.first << "'\\n";
+     }
  }
 
-.SH Output:
+.SH Possible output:
 
  initially:
  a: 27
@@ -91,49 +124,20 @@ std::unordered_map::operator[] \- std::unordered_map::operator[]
  b: 42
  c: 1
  x: 9
-
-   The following example counts the occurrences of each word in a vector of strings:
-
-   
-// Run this code
-
- #include <string>
- #include <iostream>
- #include <vector>
- #include <unordered_map>
-  
- int main()
- {
-     std::vector<std::string> words = {
-         "this", "sentence", "is", "not", "a", "sentence",
-         "this", "sentence", "is", "a", "hoax"
-     };
-  
-     std::unordered_map<std::string, size_t>  word_map;
-     for (const auto &w : words) {
-         ++word_map[w];
-     }
-  
-     for (const auto &pair : word_map) {
-         std::cout << pair.second
-                   << " occurrences of word '"
-                   << pair.first << "'\\n";
-     }
- }
-
-.SH Output:
-
- 1 occurrences of word 'hoax'
- 2 occurrences of word 'this'
  2 occurrences of word 'a'
+ 1 occurrences of word 'hoax'
  2 occurrences of word 'is'
  1 occurrences of word 'not'
  3 occurrences of word 'sentence'
+ 2 occurrences of word 'this'
 
 .SH See also
 
    at               access specified element with bounds checking
-                    \fI(public member function)\fP 
+                    \fI(public member function)\fP
    insert_or_assign inserts an element or assigns to the current element if the key
    \fI(C++17)\fP          already exists
-                    \fI(public member function)\fP 
+                    \fI(public member function)\fP
+   try_emplace      inserts in-place if the key does not exist, does nothing if the key
+   \fI(C++17)\fP          exists
+                    \fI(public member function)\fP

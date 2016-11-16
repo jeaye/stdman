@@ -1,4 +1,4 @@
-.TH std::condition_variable_any::notify_all 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::condition_variable_any::notify_all 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::condition_variable_any::notify_all \- std::condition_variable_any::notify_all
 
@@ -17,16 +17,17 @@ std::condition_variable_any::notify_all \- std::condition_variable_any::notify_a
 
 .SH Exceptions
 
-   noexcept specification:  
+   noexcept specification:
    noexcept
-     
 
 .SH Notes
 
-   The effects of notify_one()/notify_all() and wait()/wait_for()/wait_until() take
-   place in a single total order, so it's impossible for notify_one() to, for example,
-   be delayed and unblock a thread that started waiting just after the call to
-   notify_one() was made.
+   The effects of notify_one()/notify_all() and each of the three atomic parts of
+   wait()/wait_for()/wait_until() (unlock+wait, wakeup, and lock) take place in a
+   single total order that can be viewed as modification order of an atomic variable:
+   the order is specific to this individual condition_variable. This makes it
+   impossible for notify_one() to, for example, be delayed and unblock a thread that
+   started waiting just after the call to notify_one() was made.
 
    The notifying thread does not need to hold the lock on the same mutex as the one
    held by the waiting thread(s); in fact doing so is a pessimization, since the
@@ -36,21 +37,20 @@ std::condition_variable_any::notify_all \- std::condition_variable_any::notify_a
 .SH Example
 
    
-   
 // Run this code
 
  #include <iostream>
  #include <condition_variable>
  #include <thread>
  #include <chrono>
-  
+
  std::condition_variable_any cv;
  std::mutex cv_m; // This mutex is used for three purposes:
                   // 1) to synchronize accesses to i
                   // 2) to synchronize accesses to std::cerr
                   // 3) for the condition variable cv
  int i = 0;
-  
+
  void waits()
  {
      std::unique_lock<std::mutex> lk(cv_m);
@@ -58,7 +58,7 @@ std::condition_variable_any::notify_all \- std::condition_variable_any::notify_a
      cv.wait(lk, []{return i == 1;});
      std::cerr << "...finished waiting. i == 1\\n";
  }
-  
+
  void signals()
  {
      std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -67,9 +67,9 @@ std::condition_variable_any::notify_all \- std::condition_variable_any::notify_a
          std::cerr << "Notifying...\\n";
      }
      cv.notify_all();
-  
+
      std::this_thread::sleep_for(std::chrono::seconds(1));
-  
+
      {
          std::lock_guard<std::mutex> lk(cv_m);
          i = 1;
@@ -77,7 +77,7 @@ std::condition_variable_any::notify_all \- std::condition_variable_any::notify_a
      }
      cv.notify_all();
  }
-  
+
  int main()
  {
      std::thread t1(waits), t2(waits), t3(waits), t4(signals);
@@ -101,7 +101,7 @@ std::condition_variable_any::notify_all \- std::condition_variable_any::notify_a
 .SH See also
 
    notify_one notifies one waiting thread
-              \fI(public member function)\fP 
+              \fI(public member function)\fP
 
 .SH Category:
 
