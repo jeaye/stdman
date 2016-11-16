@@ -1,4 +1,4 @@
-.TH std::printf,std::fprintf,std::sprintf,std::snprintf 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::printf,std::fprintf,std::sprintf,std::snprintf 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::printf,std::fprintf,std::sprintf,std::snprintf \- std::printf,std::fprintf,std::sprintf,std::snprintf
 
@@ -18,9 +18,12 @@ std::printf,std::fprintf,std::sprintf,std::snprintf \- std::printf,std::fprintf,
    3) Writes the results to a character string buffer.
    4) Writes the results to a character string buffer. At most buf_size - 1 characters
    are written. The resulting character string will be terminated with a null
-   character, unless buf_size is zero. If bufsz is zero, nothing is written and buffer
-   may be a null pointer, however the return value (number of bytes that would be
-   written) is still calculated and returned.
+   character, unless buf_size is zero. If buf_size is zero, nothing is written and
+   buffer may be a null pointer, however the return value (number of bytes that would
+   be written) is still calculated and returned.
+
+   If a call to sprintf or snprintf causes copying to take place between objects that
+   overlap, the behavior is undefined.
 
 .SH Parameters
 
@@ -243,11 +246,11 @@ buf_size - up to buf_size - 1 characters may be written, plus the null terminato
                       in the style
                       [-]ddd.ddd.
 
-format   -            Precision
+                      Precision
                       specifies the
                       minimum number
                       of digits to
-                      appear after the
+format   -            appear after the
                f      decimal point
                F      character. The   N/A      N/A                        N/A      N/A       N/A     N/A
                       default
@@ -327,9 +330,9 @@ format   -            Precision
                       digit is 0 if
                       the argument is
                       not a normalized
-                      floating point
-                      value. If the                      double   double                                         long
-                      value is 0,                                                                              double
+                      floating point                              double
+                      value. If the                      double   (since                                         long
+                      value is 0,                               C99)                                           double
                a      the exponent is  N/A      N/A                        N/A      N/A       N/A     N/A
                A      also 0.
                       Precision
@@ -428,14 +431,17 @@ format   -            Precision
                       written so far
                       by this call to
                       the function.
-               n                       signed   short*   int*     long*    long     intmax_t* signed  ptrdiff_t* N/A
-                      The result is    char*                               long*              size_t*
-                      written to the
+
+                      The result is    signed                              long               signed
+               n      written to the   char*    short*   int*     long*    long*    intmax_t* size_t* ptrdiff_t* N/A
                       value pointed to
                       by the argument.
-                      The complete
+                      The
                       specification
-                      must be %n.
+                      may not contain
+                      any flag, field
+                      width, or
+                      precision.
                       writes an
                       implementation
                       defined
@@ -460,27 +466,31 @@ format   -            Precision
 
            The memory-writing conversion specifier %n is a common target of security exploits where format strings
            depend on user input and is not supported by the bounds-checked printf_s family of functions.
+
+           There is a sequence point after the action of each conversion specifier; this permits storing multiple %n
+           results in the same variable and printing the value stored by %n earlier within the same call.
+
+           If a conversion specification is invalid, the behavior is undefined.
            arguments specifying data to print. If any argument is not the type expected by the corresponding conversion
 ...      - specifier, or if there are fewer arguments than required by format, the behavior is undefined. If there are
            more arguments than required by format, the extraneous arguments are evaluated and ignored
 
 .SH Return value
 
-   1-2) Number of characters written if successful or negative value if an error
+   1-2) Number of characters written if successful or a negative value if an error
    occurred.
-   3) Number of characters written if successful (not including the terminating
-   null-byte) or negative value if an error occurred.
-   4) Number of characters written if successful (not including the terminating
-   null-byte) or negative value if an error occurred. If the resulting string gets
-   truncated due to buf_size limit, function returns the total number of characters
-   (not including the terminating null-byte) which would have been written, if the
-   limit was not imposed.
+   3) Number of characters written if successful (not including the terminating null
+   character) or a negative value if an error occurred.
+   4) Number of characters that would have been written for a sufficiently large buffer
+   if successful (not including the terminating null character), or a negative value if
+   an error occurred. Thus, the (null-terminated) output has been completely written if
+   and only if the returned value is nonnegative and less than buf_size.
 
 .SH Notes
 
    POSIX specifies that errno is set on error.
 
-   Calling std::snprintf with zero bufsz and null pointer for buffer is useful to
+   Calling std::snprintf with zero buf_size and null pointer for buffer is useful to
    determine the necessary buffer size to contain the output:
 
  const char *fmt = "sqrt\fB(2)\fP = %f";
@@ -497,33 +507,34 @@ format   -            Precision
  #include <limits>
  #include <cstdint>
  #include <cinttypes>
-  
+
  int main()
  {
      std::printf("Strings:\\n");
-  
+
      const char* s = "Hello";
-     std::printf("\\t.%10s.\\n\\t.%-10s.\\n\\t.%*s.\\n", s, s, 10, s);
-  
+     std::printf("\\t[%10s]\\n\\t[%-10s]\\n\\t[%*s]\\n\\t[%-10.*s]\\n\\t[%-*.*s]\\n",
+         s, s, 10, s, 4, s, 10, 4, s);
+
      std::printf("Characters:\\t%c %%\\n", 65);
-  
+
      std::printf("Integers\\n");
      std::printf("Decimal:\\t%i %d %.6i %i %.0i %+i %u\\n", 1, 2, 3, 0, 0, 4, -1);
      std::printf("Hexadecimal:\\t%x %x %X %#x\\n", 5, 10, 10, 6);
      std::printf("Octal:\\t%o %#o %#o\\n", 10, 10, 4);
-  
+
      std::printf("Floating point\\n");
      std::printf("Rounding:\\t%f %.0f %.32f\\n", 1.5, 1.5, 1.3);
      std::printf("Padding:\\t%05.2f %.2f %5.2f\\n", 1.5, 1.5, 1.5);
      std::printf("Scientific:\\t%E %e\\n", 1.5, 1.5);
      std::printf("Hexadecimal:\\t%a %A\\n", 1.5, 1.5);
      std::printf("Special values:\\t0/0=%g 1/0=%g\\n", 0./0, 1./0);
-  
+
      std::printf("Variable width control:\\n");
      std::printf("right-justified variable width: '%*c'\\n", 5, 'x');
      int r = std::printf("left-justified variable width : '%*c'\\n", -5, 'x');
      std::printf("(the last printf printed %d characters)\\n", r);
-  
+
      // fixed-width types
      std::uint32_t val = std::numeric_limits<std::uint32_t>::max();
      std::printf("Largest 32-bit value is %" PRIu32 " or %#" PRIx32 "\\n", val, val);
@@ -532,9 +543,11 @@ format   -            Precision
 .SH Output:
 
  Strings:
-         .     Hello.
-         .Hello     .
-         .     Hello.
+         [     Hello]
+         [Hello     ]
+         [     Hello]
+         [Hell      ]
+         [Hell      ]
  Characters:     A %
  Integers
  Decimal:        1 2 000003 0  +4 4294967295
@@ -556,16 +569,16 @@ format   -            Precision
 
    wprintf   prints formatted wide character output to stdout, a file stream or a
    fwprintf  buffer
-   swprintf  \fI(function)\fP 
+   swprintf  \fI(function)\fP
    vprintf
    vfprintf  prints formatted output to stdout, a file stream or a buffer
    vsprintf  using variable argument list
-   vsnprintf \fI(function)\fP 
+   vsnprintf \fI(function)\fP
    \fI(C++11)\fP
    fputs     writes a character string to a file stream
-             \fI(function)\fP 
+             \fI(function)\fP
    scanf     reads formatted input from stdin, a file stream or a buffer
-   fscanf    \fI(function)\fP 
+   fscanf    \fI(function)\fP
    sscanf
    C documentation for
    printf,

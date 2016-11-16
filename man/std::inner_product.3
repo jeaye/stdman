@@ -1,4 +1,4 @@
-.TH std::inner_product 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::inner_product 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::inner_product \- std::inner_product
 
@@ -6,22 +6,43 @@ std::inner_product \- std::inner_product
    Defined in header <numeric>
    template< class InputIt1, class InputIt2, class T >
 
-   T inner_product( InputIt1 first1, InputIt1 last1,        \fB(1)\fP
+   T inner_product( InputIt1 first1, InputIt1 last1,                  \fB(1)\fP
 
-                    InputIt2 first2, T value );
+   InputIt2 first2, T value );
+   template< class ExecutionPolicy, class InputIt1, class InputIt2,
+   class T >
+
+   T inner_product( ExecutionPolicy&& policy, InputIt1 first1,        \fB(2)\fP \fI(since C++17)\fP
+   InputIt1 last1,
+
+   InputIt2 first2, T value );
    template<class InputIt1, class InputIt2, class T,
 
-            class BinaryOperation1, class BinaryOperation2>
-   T inner_product( InputIt1 first1, InputIt1 last1,        \fB(2)\fP
-                    InputIt2 first2, T value,
-                    BinaryOperation1 op1,
+   class BinaryOperation1, class BinaryOperation2>
+   T inner_product( InputIt1 first1, InputIt1 last1,                  \fB(3)\fP
+   InputIt2 first2, T value,
+   BinaryOperation1 op1,
 
-                    BinaryOperation2 op2 );
+   BinaryOperation2 op2 );
+   template< class ExecutionPolicy,class InputIt1, class InputIt2,
+   class T,
+
+   class BinaryOperation1, class BinaryOperation2>
+   T inner_product( ExecutionPolicy&& policy, InputIt1 first1,        \fB(4)\fP \fI(since C++17)\fP
+   InputIt1 last1,
+   InputIt2 first2, T value,
+   BinaryOperation1 op1,
+
+   BinaryOperation2 op2 );
 
    Computes inner product (i.e. sum of products) of the range [first1, last1) and
-   another range beginning at first2. The first version uses operator* to compute
-   product of the element pairs and operator+ to sum up the products, the second
-   version uses op2 and op1 for these tasks respectively.
+   another range beginning at first2.
+
+   1) Products are calculated using operator* and sums are calculated using operator+.
+   3) Products are calculated using op2 and sums are calculated using op1.
+   2,4) Same as (1,3), but executed according to policy. These overloads do not
+   participate in overload resolution unless
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
 
    op1 and op2 must not have side effects.                                \fI(until C++11)\fP
    op1 and op2 must not invalidate any iterators, including the end       \fI(since C++11)\fP
@@ -32,6 +53,7 @@ std::inner_product \- std::inner_product
    first1, last1 - the first range of elements
    first2        - the beginning of the second range of elements
    value         - initial value of the sum of the products
+   policy        - the execution policy to use. See execution policy for details.
                    binary operation function object that will be applied. This "sum"
                    function takes a value returned by op2 and the current value of the
                    accumulator and produces a new value to be stored in the
@@ -39,7 +61,7 @@ std::inner_product \- std::inner_product
 
                    The signature of the function should be equivalent to the following:
    op1           -
-                    Ret fun(const Type1 &a, const Type2 &b);
+                   Ret fun(const Type1 &a, const Type2 &b);
 
                    The signature does not need to have const &.
                    The types Type1 and Type2 must be such that objects of types T and
@@ -52,7 +74,7 @@ std::inner_product \- std::inner_product
 
                    The signature of the function should be equivalent to the following:
 
-   op2           -  Ret fun(const Type1 &a, const Type2 &b);
+   op2           - Ret fun(const Type1 &a, const Type2 &b);
 
                    The signature does not need to have const &.
                    The types Type1 and Type2 must be such that objects of types
@@ -68,6 +90,15 @@ std::inner_product \- std::inner_product
 .SH Return value
 
    The inner product of two ranges.
+
+.SH Exceptions
+
+   The overloads with a template parameter named ExecutionPolicy report errors as
+   follows:
+
+     * If execution of a function invoked as part of the algorithm throws an exception,
+       std::terminate is called.
+     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
 .SH Possible implementation
 
@@ -113,10 +144,10 @@ std::inner_product \- std::inner_product
  {
      std::vector<int> a{0, 1, 2, 3, 4};
      std::vector<int> b{5, 4, 2, 3, 1};
-  
+
      int r1 = std::inner_product(a.begin(), a.end(), b.begin(), 0);
      std::cout << "Inner product of a and b: " << r1 << '\\n';
-  
+
      int r2 = std::inner_product(a.begin(), a.end(), b.begin(), 0,
                                  std::plus<int>(), std::equal_to<int>());
      std::cout << "Number of pairwise matches between a and b: " <<  r2 << '\\n';
@@ -130,10 +161,10 @@ std::inner_product \- std::inner_product
 .SH See also
 
    accumulate                                 sums up a range of elements
-                                              \fI(function template)\fP 
+                                              \fI(function template)\fP
                                               computes the partial sum of a range of
    partial_sum                                elements
-                                              \fI(function template)\fP 
+                                              \fI(function template)\fP
    std::experimental::parallel::inner_product parallelized version of
    (parallelism TS)                           std::inner_product
-                                              \fI(function template)\fP 
+                                              \fI(function template)\fP

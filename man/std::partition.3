@@ -1,29 +1,39 @@
-.TH std::partition 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::partition 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::partition \- std::partition
 
 .SH Synopsis
    Defined in header <algorithm>
-   template< class BidirIt, class UnaryPredicate >                        \fI(until C++11)\fP
-   BidirIt partition( BidirIt first, BidirIt last, UnaryPredicate p );
-   template< class ForwardIt, class UnaryPredicate >
-   ForwardIt partition( ForwardIt first, ForwardIt last, UnaryPredicate   \fI(since C++11)\fP
+   template< class BidirIt, class UnaryPredicate >
+   BidirIt partition( BidirIt first, BidirIt last, UnaryPredicate         \fI(until C++11)\fP
    p );
+   template< class ForwardIt, class UnaryPredicate >
+   ForwardIt partition( ForwardIt first, ForwardIt last,          \fB(1)\fP     \fI(since C++11)\fP
+   UnaryPredicate p );
+   template< class ExecutionPolicy, class ForwardIt, class
+   UnaryPredicate >                                                   \fB(2)\fP \fI(since C++17)\fP
+   ForwardIt partition( ExecutionPolicy&& policy, ForwardIt
+   first, ForwardIt last, UnaryPredicate p );
 
-   Reorders the elements in the range [first, last) in such a way that all elements for
-   which the predicate p returns true precede the elements for which predicate p
+   1) Reorders the elements in the range [first, last) in such a way that all elements
+   for which the predicate p returns true precede the elements for which predicate p
    returns false. Relative order of the elements is not preserved.
+   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
+   in overload resolution unless
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
 
 .SH Parameters
 
    first, last           -          the range of elements to reorder
+   policy                -          the execution policy to use. See execution policy
+                                    for details.
                                     unary predicate which returns true if the element
                                     should be ordered before other elements.
 
                                     The signature of the predicate function should be
                                     equivalent to the following:
 
-   p                     -           bool pred(const Type &a);
+   p                     -          bool pred(const Type &a);
 
                                     The signature does not need to have const &, but
                                     the function must not modify the objects passed to
@@ -51,21 +61,28 @@ std::partition \- std::partition
    std::distance(first,last) swaps. If ForwardIt meets the requirements of
    BidirectionalIterator at most std::distance(first,last)/2 swaps are done.
 
+.SH Exceptions
+
+   The overload with a template parameter named ExecutionPolicy reports errors as
+   follows:
+
+     * If execution of a function invoked as part of the algorithm throws an exception,
+       std::terminate is called.
+     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
+
 .SH Possible implementation
 
-   template<class BidirIt, class UnaryPredicate>
-   BidirIt partition(BidirIt first, BidirIt last, UnaryPredicate p)
+   template<class ForwardIt, class UnaryPredicate>
+   ForwardIt partition(ForwardIt first, ForwardIt last, UnaryPredicate p)
    {
-       while \fB(1)\fP {
-           while ((first != last) && p(*first)) {
+       first = std::find_if_not(first, last, p);
+       if (first == last) return first;
+
+       for(ForwardIt i = std::next(first); i != last; ++i){
+           if(p(*i)){
+               std::iter_swap(i, first);
                ++first;
            }
-           if (first == last--) break;
-           while ((first != last) && !p(*last)) {
-               --last;
-           }
-           if (first == last) break;
-           std::iter_swap(first++, last);
        }
        return first;
    }
@@ -80,7 +97,7 @@ std::partition \- std::partition
  #include <iterator>
  #include <vector>
  #include <forward_list>
-  
+
  template <class ForwardIt>
   void quicksort(ForwardIt first, ForwardIt last)
   {
@@ -93,25 +110,25 @@ std::partition \- std::partition
      quicksort(first, middle1);
      quicksort(middle2, last);
   }
-  
+
  int main()
  {
      std::vector<int> v = {0,1,2,3,4,5,6,7,8,9};
      std::cout << "Original vector:\\n    ";
      for (int elem : v) std::cout << elem << ' ';
-  
+
      auto it = std::partition(v.begin(), v.end(), [](int i){return i % 2 == 0;});
-  
+
      std::cout << "\\nPartitioned vector:\\n    ";
      std::copy(std::begin(v), it, std::ostream_iterator<int>(std::cout, " "));
      std::cout << " * ";
      std::copy(it, std::end(v), std::ostream_iterator<int>(std::cout, " "));
-  
+
      std::forward_list<int> fl = {1, 30, -4, 3, 5, -4, 1, 6, -8, 2, -5, 64, 1, 92};
      std::cout << "\\nUnsorted list:\\n    ";
      for(int n : fl) std::cout << n << ' ';
      std::cout << '\\n';
-  
+
      quicksort(std::begin(fl), std::end(fl));
      std::cout << "Sorted using quicksort:\\n    ";
      for(int fi : fl) std::cout << fi << ' ';
@@ -133,9 +150,9 @@ std::partition \- std::partition
 
    is_partitioned                         determines if the range is partitioned by the
    \fI(C++11)\fP                                given predicate
-                                          \fI(function template)\fP 
+                                          \fI(function template)\fP
                                           divides elements into two groups while
    stable_partition                       preserving their relative order
-                                          \fI(function template)\fP 
+                                          \fI(function template)\fP
    std::experimental::parallel::partition parallelized version of std::partition
-   (parallelism TS)                       \fI(function template)\fP 
+   (parallelism TS)                       \fI(function template)\fP

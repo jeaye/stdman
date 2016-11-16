@@ -1,4 +1,4 @@
-.TH std::basic_string::insert 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_string::insert 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_string::insert \- std::basic_string::insert
 
@@ -11,30 +11,35 @@ std::basic_string::insert \- std::basic_string::insert
    CharT* s, size_type count );
    basic_string& insert( size_type index, const \fB(4)\fP
    basic_string& str );
-   basic_string& insert( size_type index, const
-   basic_string& str,                                   (until
-                         size_type index_str,           C++14)
-   size_type count );
+   basic_string& insert( size_type index, const         (until
+   basic_string& str,                                   C++14)
+   size_type index_str, size_type count );
    basic_string& insert( size_type index, const
    basic_string& str,                                   (since
-                         size_type index_str,           C++14)
-   size_type count = npos);
+   size_type index_str, size_type count =               C++14)
+   npos);
    iterator insert( iterator pos, CharT ch );                   (until
                                                                 C++11)
    iterator insert( const_iterator pos, CharT                   (since
-   ch );                                        \fB(5)\fP             C++11)
+   ch );                                                        C++11)
    void insert( iterator pos, size_type count,                          (until
    CharT ch );                                                          C++11)
    iterator insert( const_iterator pos,                                 (since
-   size_type count, CharT ch );                     \fB(6)\fP                 C++11)
+   size_type count, CharT ch );                 \fB(5)\fP                     C++11)
    template< class InputIt >                                                    (until
-   void insert( iterator pos, InputIt first,            \fB(7)\fP                     C++11)
-   InputIt last );
-   template< class InputIt >                                    \fB(8)\fP             (since
-   iterator insert( const_iterator pos, InputIt                                 C++11)
+   void insert( iterator pos, InputIt first,                                    C++11)
+   InputIt last );                                  \fB(6)\fP
+   template< class InputIt >                                                    (since
+   iterator insert( const_iterator pos, InputIt         \fB(7)\fP                     C++11)
    first, InputIt last );
-   iterator insert( const_iterator pos,                                 \fB(9)\fP     (since
+   iterator insert( const_iterator pos,                         \fB(8)\fP     \fB(9)\fP     (since
    std::initializer_list<CharT> ilist );                                        C++11)
+   basic_string& insert( size_type pos,                                 \fB(10)\fP    (since
+   basic_string_view<CharT, Traits> sv );                                       C++17)
+   basic_string& insert( size_type index,
+   std::basic_string_view<CharT, Traits> sv,                            \fB(11)\fP    (since
+   size_type index_str, size_type count =                                       C++17)
+   npos);
 
    Inserts characters into the string.
 
@@ -54,6 +59,12 @@ std::basic_string::insert \- std::basic_string::insert
    satisfy InputIterator.
    \fI(since C++11)\fP
    9) Inserts elements from initializer list ilist before the element pointed by pos
+   10) Inserts the elements from the string view sv before the element pointed by pos,
+   as if by insert(pos, sv.data(), sv.size())
+   11) Inserts, before the element pointed by pos, the characters from the subview
+   [index_str, index_str+count) of sv. If the requested subview lasts past the end of
+   sv, or if count == npos, the resulting subview is [index_str, sv.size()). If
+   index_str > sv.size(), or if index > size(), std::out_of_range is thrown.
 
 .SH Parameters
 
@@ -65,14 +76,15 @@ std::basic_string::insert \- std::basic_string::insert
    str         - string to insert
    first, last - range defining characters to insert
    index_str   - position of the first character in the string str to insert
-   ilist       - initializer list to insert the characters from
+   ilist       - std::initializer_list to insert the characters from
+   sv          - std::basic_string_view to insert the characters from
 .SH Type requirements
    -
    InputIt must meet the requirements of InputIterator.
 
 .SH Return value
 
-   1-5) *this
+   1-5,10-11) *this
    6-9) An iterator which refers to the copy of the first inserted character or pos if
    no characters were inserted (count==0 or first==last or ilist.size()==0)
 
@@ -84,70 +96,26 @@ std::basic_string::insert \- std::basic_string::insert
    Traits::length(s) > max_size().
    3) std::out_of_range if index > size() and std::length_error if size() + count >
    max_size().
-   4) Throws exceptions on the following conditions:
-   a) std::out_of_range if index > size().
-   b) std::length_error if size() + str.size() > max_size() where ins_count is the
-   number of characters that will be inserted.
+   4) std::out_of_range if index > size() and std::length_error if size() + str.size()
+   > max_size().
    5) Throws exceptions on the following conditions:
    a) std::out_of_range if index > size().
    b) std::out_of_range if index_str > str.size().
    c) std::length_error if size() + ins_count > max_size() where ins_count is the
    number of characters that will be inserted.
    6-9) \fI(none)\fP
+   10) std::out_of_range if index > size() and std::length_error if size() + sv.size()
+   > max_size().
+   11) Throws exceptions on the following conditions:
+   a) std::out_of_range if index > size().
+   b) std::out_of_range if index_str > sv.size().
+   c) std::length_error if size() + ins_count > max_size() where ins_count is the
+   number of characters that will be inserted.
 
-   In any case, if an exception is thrown for any reason, this function has no effect
-   \fI(strong exception guarantee)\fP.
-   \fI(since C++11)\fP
+   In any case, if an exception is thrown for any reason, this function   \fI(since C++11)\fP
+   has no effect \fI(strong exception guarantee)\fP.
 
 .SH Example
-
-   Until C++
-
-   
-// Run this code
-
- #include <cassert>
- #include <string>
-  
- int main()
- {
-     std::string s("xmplr");
-  
-     // insert(size_type index, size_type count, char ch)
-     s.insert(0, 1, 'E');
-     assert("Exmplr" == s);
-  
-     // insert(size_type index, char* s)
-     s.insert(2, "e");
-     assert("Exemplr" == s);
-  
-     // insert(size_type index, string const& str)
-     s.insert(6, std::string("a"));
-     assert("Exemplar" == s);
-  
-     // insert(size_type index, string const& str,
-     //     size_type index_str, size_type count)
-     s.insert(8, std::string(" is an example string."), 0, 14);
-     assert("Exemplar is an example" == s);
-  
-     // insert(iterator pos, char ch)
-     s.insert(s.begin() + s.find_first_of('n') + 1, ':');
-     assert("Exemplar is an: example" == s);
-  
-     // insert(iterator pos, size_type count, char ch)
-     s.insert(s.begin() + s.find_first_of(':') + 1, 2, '=');
-     assert("Exemplar is an:== example" == s);
-  
-     // insert(iterator pos, InputIt first, InputIt last)
-     {
-         std::string const seq(" suitable");
-         s.insert(s.begin() + s.find_last_of('=') + 1,
-             seq.begin(), seq.end());
-         assert("Exemplar is an:== suitable example" == s);
-     }
- }
-
-   C++11
 
    
 // Run this code
@@ -155,55 +123,52 @@ std::basic_string::insert \- std::basic_string::insert
  #include <cassert>
  #include <iterator>
  #include <string>
-  
+ using namespace std::literals;
  int main()
  {
-     std::string s{ "xmplr" };
-  
+     std::string s = "xmplr";
+
      // insert(size_type index, size_type count, char ch)
      s.insert(0, 1, 'E');
      assert("Exmplr" == s);
-  
+
      // insert(size_type index, char* s)
      s.insert(2, "e");
      assert("Exemplr" == s);
-  
+
      // insert(size_type index, string const& str)
-     s.insert(6, std::string("a"));
+     s.insert(6, "a"s);
      assert("Exemplar" == s);
-  
+
      // insert(size_type index, string const& str,
      //     size_type index_str, size_type count)
-     s.insert(8, std::string(" is an example string."), 0, 14);
+     s.insert(8, " is an example string."s, 0, 14);
      assert("Exemplar is an example" == s);
-  
+
      // insert(const_iterator pos, char ch)
      s.insert(s.cbegin() + s.find_first_of('n') + 1, ':');
      assert("Exemplar is an: example" == s);
-  
+
      // insert(const_iterator pos, size_type count, char ch)
      s.insert(s.cbegin() + s.find_first_of(':') + 1, 2, '=');
      assert("Exemplar is an:== example" == s);
-  
+
      // insert(const_iterator pos, InputIt first, InputIt last)
      {
-         std::string const seq{ " string" };
+         std::string seq = " string";
          s.insert(s.begin() + s.find_last_of('e') + 1,
              std::begin(seq), std::end(seq));
          assert("Exemplar is an:== example string" == s);
      }
-  
+
      // insert(const_iterator pos, std::initializer_list<char>)
-     {
-         std::initializer_list<char> const period = { '.' };
-         s.insert(s.cbegin() + s.find_first_of('g') + 1, period);
-         assert("Exemplar is an:== example string." == s);
-     }
+     s.insert(s.cbegin() + s.find_first_of('g') + 1, { '.' });
+     assert("Exemplar is an:== example string." == s);
  }
 
 .SH See also
 
    append    appends characters to the end
-             \fI(public member function)\fP 
+             \fI(public member function)\fP
    push_back appends a character to the end
-             \fI(public member function)\fP 
+             \fI(public member function)\fP

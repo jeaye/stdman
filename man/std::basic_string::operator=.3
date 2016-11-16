@@ -1,29 +1,40 @@
-.TH std::basic_string::operator= 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_string::operator= 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_string::operator= \- std::basic_string::operator=
 
 .SH Synopsis
-   basic_string& operator=( const basic_string& str );            \fB(1)\fP
-   basic_string& operator=( basic_string&& str );                 \fB(2)\fP \fI(since C++11)\fP
-   basic_string& operator=( const CharT* s );                     \fB(3)\fP
-   basic_string& operator=( CharT ch );                           \fB(4)\fP
-   basic_string& operator=( std::initializer_list<CharT> ilist ); \fB(5)\fP \fI(since C++11)\fP
+   basic_string& operator=( const basic_string& str );                \fB(1)\fP
+   basic_string& operator=( basic_string&& str );                     \fB(2)\fP \fI(since C++11)\fP
+   basic_string& operator=( const CharT* s );                         \fB(3)\fP
+   basic_string& operator=( CharT ch );                               \fB(4)\fP
+   basic_string& operator=( std::initializer_list<CharT> ilist );     \fB(5)\fP \fI(since C++11)\fP
+   basic_string& operator=( std::basic_string_view<CharT, Traits>     \fB(6)\fP \fI(since C++17)\fP
+   sv);
 
    Replaces the contents of the string.
 
    1) Replaces the contents with a copy of str. If *this and str are the same object,
    this function has no effect.
-   2) Replaces the contents with those of str using move semantics. Leaves str in
-   valid, but unspecified state. If *this and str are the same object,
-   the function has no effect
-   \fI(until C++17)\fP
-   the behavior is undefined
-   \fI(since C++17)\fP.
+
+   2) Replaces the contents with those of str using move semantics. Leaves str   (until
+   in valid, but unspecified state. If *this and str are the same object, the    C++17)
+   function has no effect.
+   2) Replaces the contents with those of str using move semantics. str is in a
+   valid but unspecified state afterwards. If
+   std::allocator_traits<Allocator>::propagate_on_container_move_assignment() is
+   true, the target allocator is replaced by a copy of the source allocator. If  (since
+   it is false and the source and the target allocators do not compare equal,    C++17)
+   the target cannot take ownership of the source memory and must assign each
+   character individually, allocating additional memory using its own allocator
+   as needed. Unlike other container move assignments, references, pointers, and
+   iterators to str may be invalidated.
+
    3) Replaces the contents with those of null-terminated character string pointed to
    by s as if by *this = basic_string(s), which involves a call to Traits::length(s).
    4) Replaces the contents with character ch as if by *this = basic_string(1,c)
    5) Replaces the contents with those of the initializer list ilist as if by *this =
    basic_string(ilist)
+   6) Replaces the contents with those of the string view sv as if by assign(sv)
 
 .SH Parameters
 
@@ -31,7 +42,8 @@ std::basic_string::operator= \- std::basic_string::operator=
    str  - string to be used as source to initialize the string with
    s    - pointer to a null-terminated character string
           to use as source to initialize the string with
-   init - initializer list to initialize the string with
+   init - std::initializer_list to initialize the string with
+   sv   - std::basic_string_view to initialize the string with
 
 .SH Return value
 
@@ -41,7 +53,9 @@ std::basic_string::operator= \- std::basic_string::operator=
 
    1) linear in size of str
 
-   2) constant. If alloc is given and alloc != other.get_allocator(), then linear.
+   2) linear in the size of this (formally, each CharT has to be destroyed). If
+   allocators do not compare equal and do not propagate, then also linear in the size
+   of str (copy must be made)
 
    3) linear in size of s
 
@@ -51,10 +65,14 @@ std::basic_string::operator= \- std::basic_string::operator=
 
 .SH Exceptions
 
-   2)
-   noexcept specification:   \fI(since C++11)\fP
-   noexcept                  \fI(until C++17)\fP
-     
+2)                                                                                       (since
+noexcept specification:                                                                  C++11)
+noexcept                                                                                 (until
+                                                                                         C++17)
+2)
+noexcept specification:                                                                  (since
+noexcept(std::allocator_traits<Allocator>::propagate_on_container_move_assignment::value C++17)
+|| std::allocator_traits<Allocator>::is_always_equal::value)
 
    If the operation would result in size() > max_size(), throws std::length_error.
 
@@ -66,14 +84,24 @@ std::basic_string::operator= \- std::basic_string::operator=
     This section is incomplete
     Reason: no example
 
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to            Behavior as published              Correct behavior
+   LWG 2063 C++11      non-normative note stated that swap is a    corrected to support
+                       valid implementation of move assignment     allocators
+
 .SH See also
 
    constructor   constructs a basic_string
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    assign        assign characters to a string
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
 
    Categories:
 
      * unconditionally noexcept
+     * conditionally noexcept
      * Todo no example

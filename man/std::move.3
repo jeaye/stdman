@@ -1,22 +1,29 @@
-.TH std::move 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::move 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::move \- std::move
 
 .SH Synopsis
    Defined in header <algorithm>
-   template< class InputIt, class OutputIt >                        \fI(since C++11)\fP
+   template< class InputIt, class OutputIt >                          \fB(1)\fP \fI(since C++11)\fP
    OutputIt move( InputIt first, InputIt last, OutputIt d_first );
+   template< class ExecutionPolicy, class InputIt, class OutputIt >
+   OutputIt move( ExecutionPolicy&& policy, InputIt first, InputIt    \fB(2)\fP \fI(since C++17)\fP
+   last, OutputIt d_first );
 
-   Moves the elements in the range [first, last), to another range beginning at
+   1) Moves the elements in the range [first, last), to another range beginning at
    d_first. After this operation the elements in the moved-from range will still
    contain valid values of the appropriate type, but not necessarily the same values as
    before the move.
+   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
+   in overload resolution unless
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
 
 .SH Parameters
 
    first, last - the range of elements to move
    d_first     - the beginning of the destination range. If d_first is within [first,
                  last), std::move_backward must be used instead of std::move.
+   policy      - the execution policy to use. See execution policy for details.
 .SH Type requirements
    -
    InputIt must meet the requirements of InputIterator.
@@ -31,6 +38,15 @@ std::move \- std::move
 .SH Complexity
 
    Exactly last - first move assignments.
+
+.SH Exceptions
+
+   The overload with a template parameter named ExecutionPolicy reports errors as
+   follows:
+
+     * If execution of a function invoked as part of the algorithm throws an exception,
+       std::terminate is called.
+     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
 .SH Possible implementation
 
@@ -64,13 +80,13 @@ std::move \- std::move
  #include <iterator>
  #include <thread>
  #include <chrono>
-  
+
  void f(int n)
  {
      std::this_thread::sleep_for(std::chrono::seconds(n));
      std::cout << "thread " << n << " ended" << '\\n';
  }
-  
+
  int main()
  {
      std::vector<std::thread> v;
@@ -79,7 +95,7 @@ std::move \- std::move
      v.emplace_back(f, 3);
      std::list<std::thread> l;
      // copy() would not compile, because std::thread is noncopyable
-  
+
      std::move(v.begin(), v.end(), std::back_inserter(l));
      for (auto& t : l) t.join();
  }
@@ -93,6 +109,6 @@ std::move \- std::move
 .SH See also
 
    move_backward moves a range of elements to a new location in backwards order
-   \fI(C++11)\fP       \fI(function template)\fP 
+   \fI(C++11)\fP       \fI(function template)\fP
    move          obtains an rvalue reference
-   \fI(C++11)\fP       \fI(function template)\fP 
+   \fI(C++11)\fP       \fI(function template)\fP

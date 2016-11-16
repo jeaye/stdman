@@ -1,4 +1,4 @@
-.TH std::iterator 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::iterator 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::iterator \- std::iterator
 
@@ -6,11 +6,11 @@ std::iterator \- std::iterator
    Defined in header <iterator>
    template<
 
-       class Category,
-       class T,
-       class Distance = std::ptrdiff_t,
-       class Pointer = T*,
-       class Reference = T&
+   class Category,
+   class T,
+   class Distance = std::ptrdiff_t,  (deprecated in C++17)
+   class Pointer = T*,
+   class Reference = T&
 
    > struct iterator;
 
@@ -29,19 +29,72 @@ std::iterator \- std::iterator
 .SH Member types
 
    Member type       Definition
+   iterator_category Category
    value_type        T
    difference_type   Distance
    pointer           Pointer
    reference         Reference
-   iterator_category Category
+
+.SH Example
+
+   The following example shows how to implement a input iterator by inheriting from
+   std::iterator
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <algorithm>
+
+ template<long FROM, long TO>
+ class Range {
+ public:
+     // member typedefs provided through inheriting from std::iterator
+     class iterator: public std::iterator<
+                         std::input_iterator_tag,   // iterator_category
+                         long,                      // value_type
+                         long,                      // difference_type
+                         const long*,               // pointer
+                         long                       // reference
+                                       >{
+         long num = FROM;
+     public:
+         explicit iterator(long _num = 0) : num(_num) {}
+         iterator& operator++() {num = TO >= FROM ? num + 1: num - 1; return *this;}
+         iterator operator++(int) {iterator retval = *this; ++(*this); return retval;}
+         bool operator==(iterator other) const {return num == other.num;}
+         bool operator!=(iterator other) const {return !(*this == other);}
+         reference operator*() const {return num;}
+     };
+     iterator begin() {return iterator(FROM);}
+     iterator end() {return iterator(TO >= FROM? TO+1 : TO-1);}
+ };
+
+ int main() {
+     // std::find requires a input iterator
+     auto range = Range<15, 25>();
+     auto itr = std::find(range.begin(), range.end(), 18);
+     std::cout << *itr << '\\n'; // 18
+
+     // Range::iterator also satisfies range-based for requirements
+     for(long l : Range<3, 5>()) {
+         std::cout << l << ' '; // 3 4 5
+     }
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ 18
+ 3 4 5
 
 .SH See also
 
                               provides uniform interface to the properties of an
    iterator_traits            iterator
-                              \fI(class template)\fP 
+                              \fI(class template)\fP
    input_iterator_tag
    output_iterator_tag        empty class types used to indicate iterator categories
-   forward_iterator_tag       \fI(class)\fP 
+   forward_iterator_tag       \fI(class)\fP
    bidirectional_iterator_tag
    random_access_iterator_tag

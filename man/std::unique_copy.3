@@ -1,4 +1,4 @@
-.TH std::unique_copy 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::unique_copy 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unique_copy \- std::unique_copy
 
@@ -6,31 +6,51 @@ std::unique_copy \- std::unique_copy
    Defined in header <algorithm>
    template< class InputIt, class OutputIt >
 
-   OutputIt unique_copy( InputIt first, InputIt last,               \fB(1)\fP
+   OutputIt unique_copy( InputIt first, InputIt last,                 \fB(1)\fP
 
-                         OutputIt d_first );
+   OutputIt d_first );
+   template< class ExecutionPolicy, class InputIt, class OutputIt >
+
+   OutputIt unique_copy( ExecutionPolicy&& policy, InputIt first,     \fB(2)\fP \fI(since C++17)\fP
+   InputIt last,
+
+   OutputIt d_first );
    template< class InputIt, class OutputIt, class BinaryPredicate >
 
-   OutputIt unique_copy( InputIt first, InputIt last,               \fB(2)\fP
+   OutputIt unique_copy( InputIt first, InputIt last,                 \fB(3)\fP
 
-                         OutputIt d_first, BinaryPredicate p );
+   OutputIt d_first, BinaryPredicate p );
+   template< class ExecutionPolicy, class InputIt, class OutputIt,
+   class BinaryPredicate >
+
+   OutputIt unique_copy( ExecutionPolicy&& policy, InputIt first,     \fB(4)\fP \fI(since C++17)\fP
+   InputIt last,
+
+   OutputIt d_first, BinaryPredicate p );
 
    Copies the elements from the range [first, last), to another range beginning at
    d_first in such a way that there are no consecutive equal elements. Only the first
-   element of each group of equal elements is copied. The first version uses operator==
-   to compare the elements, the second version uses the given binary predicate p.
+   element of each group of equal elements is copied.
+
+   1) Elements are compared using operator==.
+   3) Elements are compared using the given binary predicate p.
+   2,4) Same as (1,3), but executed according to policy. These overloads do not
+   participate in overload resolution unless
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
 
 .SH Parameters
 
    first, last          -          the range of elements to process
    d_first              -          the beginning of the destination range
+   policy               -          the execution policy to use. See execution policy
+                                   for details.
                                    binary predicate which returns true if the elements
                                    should be treated as equal.
 
                                    The signature of the predicate function should be
                                    equivalent to the following:
 
-                                    bool pred(const Type1 &a, const Type2 &b);
+                                   bool pred(const Type1 &a, const Type2 &b);
    p                    -
                                    The signature does not need to have const &, but the
                                    function must not modify the objects passed to it.
@@ -61,6 +81,15 @@ std::unique_copy \- std::unique_copy
    For nonempty ranges, exactly std::distance(first, last) - 1 applications of the
    corresponding comparator.
 
+.SH Exceptions
+
+   The overloads with a template parameter named ExecutionPolicy report errors as
+   follows:
+
+     * If execution of a function invoked as part of the algorithm throws an exception,
+       std::terminate is called.
+     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
+
 .SH Notes
 
    If InputIt satisfies ForwardIterator, this function rereads the input in order to
@@ -80,16 +109,16 @@ std::unique_copy \- std::unique_copy
  #include <iostream>
  #include <algorithm>
  #include <iterator>
-  
+
  int main()
  {
      std::string s1 = "The      string    with many       spaces!";
      std::cout << "before: " << s1 << '\\n';
-  
+
      std::string s2;
      std::unique_copy(s1.begin(), s1.end(), std::back_inserter(s2),
                       [](char c1, char c2){ return c1 == ' ' && c2 == ' '; });
-  
+
      std::cout << "after:  " << s2 << '\\n';
  }
 
@@ -102,9 +131,9 @@ std::unique_copy \- std::unique_copy
 
                                             finds the first two adjacent items that are
    adjacent_find                            equal (or satisfy a given predicate)
-                                            \fI(function template)\fP 
+                                            \fI(function template)\fP
                                             removes consecutive duplicate elements in a
    unique                                   range
-                                            \fI(function template)\fP 
+                                            \fI(function template)\fP
    std::experimental::parallel::unique_copy parallelized version of std::unique_copy
-   (parallelism TS)                         \fI(function template)\fP 
+   (parallelism TS)                         \fI(function template)\fP

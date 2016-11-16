@@ -1,4 +1,4 @@
-.TH std::vector 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::vector 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::vector \- std::vector
 
@@ -6,12 +6,19 @@ std::vector \- std::vector
    Defined in header <vector>
    template<
 
-       class T,
-       class Allocator = std::allocator<T>
+   class T,                                                      \fB(1)\fP
+   class Allocator = std::allocator<T>
 
    > class vector;
+   namespace pmr {
 
-   std::vector is a sequence container that encapsulates dynamic size arrays.
+   template <class T>                                            \fB(2)\fP \fI(since C++17)\fP
+   using vector = std::vector<T, std::polymorphic_allocator<T>>;
+
+   }
+
+   1) std::vector is a sequence container that encapsulates dynamic size arrays.
+   2) std::pmr::vector is an alias template that uses a polymorphic allocator
 
    The elements are stored contiguously, which means that elements can be
    accessed not only through iterators, but also using offsets on regular
@@ -53,8 +60,8 @@ std::vector \- std::vector
                on the actual operations performed on the container.       \fI(since C++11)\fP
                Generally, it is required that element type is a complete  \fI(until C++17)\fP
                type and meets the requirements of Erasable, but many
-               member functions impose stricter requirements.
-   T         - The requirements that are imposed on the elements depend
+   T         - member functions impose stricter requirements.
+               The requirements that are imposed on the elements depend
                on the actual operations performed on the container.
                Generally, it is required that element type meets the
                requirements of Erasable, but many member functions impose \fI(since C++17)\fP
@@ -62,10 +69,9 @@ std::vector \- std::vector
                members) can be instantiated with an incomplete element
                type if the allocator satisfies the allocator completeness
                requirements.
-
-               
-   Allocator - An allocator that is used to acquire memory to store the elements. The
-               type must meet the requirements of Allocator. 
+               An allocator that is used to acquire memory to store the elements. The
+   Allocator - type must meet the requirements of Allocator. The behavior is undefined
+               if Allocator::value_type is not the same as T.
 
 .SH Specializations
 
@@ -73,7 +79,7 @@ std::vector \- std::vector
    which is optimized for space efficiency.
 
    vector<bool> space-efficient dynamic bitset
-                \fI(class template specialization)\fP 
+                \fI(class template specialization)\fP
 
    Iterator invalidation
 
@@ -85,8 +91,9 @@ std::vector \- std::vector
              Operations                                Invalidated
    All read only operations, swap, Never
    std::swap
-   reserve, shrink_to_fit, clear,  Always
-   operator=
+   clear, operator=, assign        Always
+   reserve, shrink_to_fit          If the vector changed capacity, all of them. If not,
+                                   none.
    erase                           Erased elements + all elements after them (including
                                    end())
    push_back, emplace_back         If the vector changed capacity, all of them. If not,
@@ -98,107 +105,131 @@ std::vector \- std::vector
 .SH Member types
 
    Member type            Definition
-   value_type             T 
-   allocator_type         Allocator 
-   size_type              Unsigned integral type (usually std::size_t) 
-   difference_type        Signed integer type (usually std::ptrdiff_t) 
-                          Allocator::reference \fI(until C++11)\fP
-   reference              value_type&          \fI(since C++11)\fP
-
-                          
-                          Allocator::const_reference \fI(until C++11)\fP
-   const_reference        const value_type&          \fI(since C++11)\fP
-
-                          
-                          Allocator::pointer                        \fI(until C++11)\fP
-   pointer                std::allocator_traits<Allocator>::pointer \fI(since C++11)\fP
-
-                          
-                          Allocator::const_pointer                        \fI(until C++11)\fP
-   const_pointer          std::allocator_traits<Allocator>::const_pointer \fI(since C++11)\fP
-
-                          
-   iterator               RandomAccessIterator 
-   const_iterator         Constant random access iterator 
-   reverse_iterator       std::reverse_iterator<iterator> 
-   const_reverse_iterator std::reverse_iterator<const_iterator> 
+   value_type             T
+   allocator_type         Allocator
+   size_type              Unsigned integer type (usually std::size_t)
+   difference_type        Signed integer type (usually std::ptrdiff_t)
+   reference              Allocator::reference \fI(until C++11)\fP
+                          value_type&          \fI(since C++11)\fP
+   const_reference        Allocator::const_reference \fI(until C++11)\fP
+                          const value_type&          \fI(since C++11)\fP
+   pointer                Allocator::pointer                        \fI(until C++11)\fP
+                          std::allocator_traits<Allocator>::pointer \fI(since C++11)\fP
+   const_pointer          Allocator::const_pointer                        \fI(until C++11)\fP
+                          std::allocator_traits<Allocator>::const_pointer \fI(since C++11)\fP
+   iterator               RandomAccessIterator
+   const_iterator         Constant random access iterator
+   reverse_iterator       std::reverse_iterator<iterator>
+   const_reverse_iterator std::reverse_iterator<const_iterator>
 
 .SH Member functions
 
    constructor   constructs the vector
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    destructor    destructs the vector
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    operator=     assigns values to the container
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    assign        assigns values to the container
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    get_allocator returns the associated allocator
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
 .SH Element access
    at            access specified element with bounds checking
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    operator[]    access specified element
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    front         access the first element
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    back          access the last element
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    data          direct access to the underlying array
-   \fI(C++11)\fP       \fI(public member function)\fP 
+   \fI(C++11)\fP       \fI(public member function)\fP
 .SH Iterators
    begin         returns an iterator to the beginning
-   cbegin        \fI(public member function)\fP 
+   cbegin        \fI(public member function)\fP
    end           returns an iterator to the end
-   cend          \fI(public member function)\fP 
+   cend          \fI(public member function)\fP
    rbegin        returns a reverse iterator to the beginning
-   crbegin       \fI(public member function)\fP 
+   crbegin       \fI(public member function)\fP
    rend          returns a reverse iterator to the end
-   crend         \fI(public member function)\fP 
+   crend         \fI(public member function)\fP
 .SH Capacity
    empty         checks whether the container is empty
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    size          returns the number of elements
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    max_size      returns the maximum possible number of elements
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    reserve       reserves storage
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
                  returns the number of elements that can be held in currently allocated
    capacity      storage
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    shrink_to_fit reduces memory usage by freeing unused memory
-   \fI(C++11)\fP       \fI(public member function)\fP 
+   \fI(C++11)\fP       \fI(public member function)\fP
 .SH Modifiers
    clear         clears the contents
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    insert        inserts elements
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    emplace       constructs element in-place
-   \fI(C++11)\fP       \fI(public member function)\fP 
+   \fI(C++11)\fP       \fI(public member function)\fP
    erase         erases elements
-                 \fI(public member function)\fP 
-   push_back     adds elements to the end
-                 \fI(public member function)\fP 
-   emplace_back  constructs elements in-place at the end
-   \fI(C++11)\fP       \fI(public member function)\fP 
+                 \fI(public member function)\fP
+   push_back     adds an element to the end
+                 \fI(public member function)\fP
+   emplace_back  constructs an element in-place at the end
+   \fI(C++11)\fP       \fI(public member function)\fP
    pop_back      removes the last element
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    resize        changes the number of elements stored
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    swap          swaps the contents
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
 
 .SH Non-member functions
 
    operator==
    operator!=
    operator<              lexicographically compares the values in the vector
-   operator<=             \fI(function template)\fP 
+   operator<=             \fI(function template)\fP
    operator>
    operator>=
    std::swap(std::vector) specializes the std::swap algorithm
-                          \fI(function template)\fP 
+                          \fI(function template)\fP
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <vector>
+
+ int main()
+ {
+     // Create a vector containing integers
+     std::vector<int> v = {7, 5, 16, 8};
+
+     // Add two more integers to vector
+     v.push_back(25);
+     v.push_back(13);
+
+     // Iterate and print values of vector
+     for(int n : v) {
+         std::cout << n << '\\n';
+     }
+ }
+
+.SH Output:
+
+ 7
+ 5
+ 16
+ 8
+ 25
+ 13
 
 .SH Category:
 

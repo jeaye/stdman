@@ -1,4 +1,4 @@
-.TH std::async 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::async 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::async \- std::async
 
@@ -8,22 +8,22 @@ template< class Function, class... Args>                                        
                                                                                      C++11)
 std::future<typename std::result_of<Function(Args...)>::type>                        (until
                                                                                      C++14)
-    async( Function&& f, Args&&... args );
+async( Function&& f, Args&&... args );
 template< class Function, class... Args>
                                                                                      (since
 std::future<std::result_of_t<std::decay_t<Function>(std::decay_t<Args>...)>>         C++14)
 
-    async( Function&& f, Args&&... args );                                   \fB(1)\fP
+async( Function&& f, Args&&... args );                                       \fB(1)\fP
 template< class Function, class... Args >                                                   (since
                                                                                             C++11)
 std::future<typename std::result_of<Function(Args...)>::type>                               (until
                                                                                             C++14)
-    async( std::launch policy, Function&& f, Args&&... args );                   \fB(2)\fP
+async( std::launch policy, Function&& f, Args&&... args );                       \fB(2)\fP
 template< class Function, class... Args >
                                                                                             (since
 std::future<std::result_of_t<std::decay_t<Function>(std::decay_t<Args>...)>>                C++14)
 
-    async( std::launch policy, Function&& f, Args&&... args );
+async( std::launch policy, Function&& f, Args&&... args );
 
    The template function async runs the function f asynchronously (potentially in a
    separate thread which may be part of a thread pool) and returns a std::future that
@@ -74,6 +74,9 @@ std::future<std::result_of_t<std::decay_t<Function>(std::decay_t<Args>...)>>    
              Bit                   Explanation
              std::launch::async    enable asynchronous evaluation
              std::launch::deferred enable lazy evaluation
+.SH Type requirements
+   -
+   Function, Args must meet the requirements of MoveConstructible.
 
 .SH Return value
 
@@ -96,10 +99,10 @@ std::future<std::result_of_t<std::decay_t<Function>(std::decay_t<Args>...)>>    
    immediately, within the async call) and the task policy (similar to async, but
    thread-locals are not cleared)
 
-   If the std::future obtained from std::async has temporary object lifetime (not moved
-   or bound to a variable), the destructor of the std::future will block at the end of
-   the full expression until the asynchronous operation completes, essentially code
-   such as the following synchronous:
+   If the std::future obtained from std::async is not moved from or bound to a
+   reference, the destructor of the std::future will block at the end of the full
+   expression until the asynchronous operation completes, essentially making code such
+   as the following synchronous:
 
  std::async(std::launch::async, []{ f(); }); // temporary's dtor waits for f()
  std::async(std::launch::async, []{ g(); }); // does not start until f() completes
@@ -117,21 +120,21 @@ std::future<std::result_of_t<std::decay_t<Function>(std::decay_t<Args>...)>>    
  #include <algorithm>
  #include <numeric>
  #include <future>
-  
+
  template <typename RAIter>
  int parallel_sum(RAIter beg, RAIter end)
  {
      auto len = end - beg;
      if(len < 1000)
          return std::accumulate(beg, end, 0);
-  
+
      RAIter mid = beg + len/2;
      auto handle = std::async(std::launch::async,
-                               parallel_sum<RAIter>, mid, end);
+                              parallel_sum<RAIter>, mid, end);
      int sum = parallel_sum(beg, mid);
      return sum + handle.get();
  }
-  
+
  int main()
  {
      std::vector<int> v(10000, 1);

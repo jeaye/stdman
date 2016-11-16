@@ -1,4 +1,4 @@
-.TH std::decay 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::decay 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::decay \- std::decay
 
@@ -9,8 +9,19 @@ std::decay \- std::decay
 
    Applies lvalue-to-rvalue, array-to-pointer, and function-to-pointer implicit
    conversions to the type T, removes cv-qualifiers, and defines the resulting type as
-   the member typedef type. This is the type conversion applied to all function
-   arguments when passed by value.
+   the member typedef type. Formally:
+
+     * If T names the type "array of U" or "reference to array of U", the member
+       typedef type is U*.
+
+     * Otherwise, if T is a function type F or a reference thereto, the member typedef
+       type is std::add_pointer<F>::type.
+
+     * Otherwise, the member typedef type is
+       std::remove_cv<std::remove_reference<T>::type>::type.
+
+   These conversions model the type conversion applied to all function arguments when
+   passed by value.
 
 .SH Member types
 
@@ -26,7 +37,9 @@ std::decay \- std::decay
 
    template< class T >
    struct decay {
+   private:
        typedef typename std::remove_reference<T>::type U;
+   public:
        typedef typename std::conditional<
            std::is_array<U>::value,
            typename std::remove_extent<U>::type*,
@@ -45,12 +58,12 @@ std::decay \- std::decay
 
  #include <iostream>
  #include <type_traits>
-  
+
  template <typename T, typename U>
  struct decay_equiv :
      std::is_same<typename std::decay<T>::type, U>::type
  {};
-  
+
  int main()
  {
      std::cout << std::boolalpha

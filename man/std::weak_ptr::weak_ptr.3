@@ -1,4 +1,4 @@
-.TH std::weak_ptr::weak_ptr 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::weak_ptr::weak_ptr 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::weak_ptr::weak_ptr \- std::weak_ptr::weak_ptr
 
@@ -18,7 +18,10 @@ std::weak_ptr::weak_ptr \- std::weak_ptr::weak_ptr
    1) Default constructor. Constructs empty weak_ptr.
    2) Constructs new weak_ptr which shares an object managed by r. If r manages no
    object, *this manages no object too. The templated overloads don't participate in
-   the overload resolution unless Y* is implicitly convertible to T*.
+   the overload resolution unless Y* is implicitly convertible to T*
+   , or Y is the type "array of N U" for some type U and some number N, and T is the
+   type "array of unknown bound of (possibly cv-qualified) U".
+   \fI(since C++17)\fP
    3) Move constructors. Moves a weak_ptr instance from r into *this. After this, r is
    empty and r.use_count()==0. The templated overload doesn't participate in the
    overload resolution unless Y* is implicitly convertible to T*
@@ -29,9 +32,14 @@ std::weak_ptr::weak_ptr \- std::weak_ptr::weak_ptr
 
 .SH Exceptions
 
-   noexcept specification:  
+   noexcept specification:
    noexcept
-     
+
+.SH Notes
+
+   Because the default constructor is constexpr, static weak_ptrs are initialized as
+   part of static non-local initialization, before any dynamic non-local initialization
+   begins. This makes it safe to use a weak_ptr in a constructor of any static object.
 
 .SH Example
 
@@ -40,31 +48,33 @@ std::weak_ptr::weak_ptr \- std::weak_ptr::weak_ptr
 
  #include <memory>
  #include <iostream>
-  
+
  struct Foo {};
-  
+
  int main()
  {
     std::weak_ptr<Foo> w_ptr;
-  
+
     {
        auto ptr = std::make_shared<Foo>();
        w_ptr = ptr;
        std::cout << "w_ptr.use_count() inside scope: " << w_ptr.use_count() << '\\n';
     }
-  
+
     std::cout << "w_ptr.use_count() out of scope: " << w_ptr.use_count() << '\\n';
+    std::cout << "w_ptr.expired() out of scope: " << std::boolalpha << w_ptr.expired() << '\\n';
  }
 
 .SH Output:
 
  w_ptr.use_count() inside scope: 1
  w_ptr.use_count() out of scope: 0
+ w_ptr.expired() out of scope: true
 
 .SH See also
 
    operator= assigns the weak_ptr
-             \fI(public member function)\fP 
+             \fI(public member function)\fP
 
 .SH Category:
 

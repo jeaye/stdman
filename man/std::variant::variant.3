@@ -1,0 +1,159 @@
+.TH std::variant::variant 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::variant::variant \- std::variant::variant
+
+.SH Synopsis
+   constexpr variant();                                              \fB(1)\fP  \fI(since C++17)\fP
+   variant(const variant& other);                                    \fB(2)\fP  \fI(since C++17)\fP
+   variant(variant&& other);                                         \fB(3)\fP  \fI(since C++17)\fP
+   template< class T >                                               \fB(4)\fP  \fI(since C++17)\fP
+   constexpr variant(T&& t);
+   template< class T, class... Args >
+   constexpr explicit variant(std::in_place_type_t<T>, Args&&...     \fB(5)\fP  \fI(since C++17)\fP
+   args);
+   template< class T, class U, class... Args >
+
+   constexpr explicit variant(std::in_place_type_t<T>,               \fB(6)\fP  \fI(since C++17)\fP
+
+   std::initializer_list<U> il, Args&&... args);
+   template< std::size_t I, class... Args >
+   constexpr explicit variant(std::in_place_index_t<I>, Args&&...    \fB(7)\fP  \fI(since C++17)\fP
+   args);
+   template <size_t I, class U, class... Args>
+
+   constexpr explicit variant(std::in_place_index_t<I>,              \fB(8)\fP  \fI(since C++17)\fP
+
+   std::initializer_list<U> il, Args&&... args);
+   template <class Alloc>                                            \fB(9)\fP  \fI(since C++17)\fP
+   variant(std::allocator_arg_t, const Alloc& a);
+   template <class Alloc>
+   variant(std::allocator_arg_t, const Alloc& a, const variant&      \fB(10)\fP \fI(since C++17)\fP
+   other);
+   template <class Alloc>                                            \fB(11)\fP \fI(since C++17)\fP
+   variant(std::allocator_arg_t, const Alloc& a, variant&& other);
+   template <class Alloc, class T>                                   \fB(12)\fP \fI(since C++17)\fP
+   variant(std::allocator_arg_t, const Alloc& a, T&& t);
+   template <class Alloc, class T, class... Args>
+
+   variant(std::allocator_arg_t, const Alloc& a,                     \fB(13)\fP \fI(since C++17)\fP
+
+   std::in_place_type_t<T>, Args&&... args);
+   template <class Alloc, class T, class U, class... Args>
+
+   variant(std::allocator_arg_t, const Alloc& a,                     \fB(14)\fP \fI(since C++17)\fP
+
+   std::in_place_type_t<T>, std::initializer_list<U> il, Args&&...
+   args);
+   template <class Alloc, size_t I, class... Args>
+
+   variant(std::allocator_arg_t, const Alloc& a,                     \fB(15)\fP \fI(since C++17)\fP
+
+   std::in_place_index_t<I>, Args&&... args);
+   template <class Alloc, size_t I, class U, class... Args>
+
+   variant(std::allocator_arg_t, const Alloc& a,                     \fB(16)\fP \fI(since C++17)\fP
+
+   std::in_place_index_t<I>, std::initializer_list<U> il, Args&&...
+   args);
+
+   Constructs a new variant object.
+
+   1) Default constructor. Constructs a variant holding the value-initialized value of
+   the first alternative (index() is zero). This constructor is constexpr if and only
+   if the value initialization of the alternative type T_0 would satisfy the
+   requirements for a constexpr function. This overload only participates in overload
+   resolution if std::is_default_constructible_v<T_0> is true.
+   2) Copy constructor. If other is not valueless_by_exception, constructs a variant
+   holding the same alternative as other and direct-initializes the contained value
+   with std::get<other.index()>(other). Otherwise, initializes a valueless_by_exception
+   variant. This overload only participates in overload resolution if
+   std::is_copy_constructible_v<T_i> is true for all T_i in Types....
+   3) Move constructor. If other is not valueless_by_exception, constructs a variant
+   holding the same alternative as other and direct-initializes the contained value
+   with std::get<other.index()>(std::move(other)). Otherwise, initializes a
+   valueless_by_exception variant. This overload only participates in overload
+   resolution if std::is_move_constructible_v<T_i> is true for all T_i in Types...
+   4) Converting constructor. Constructs a variant holding the alternative type T_j
+   that would be selected by overload resolution for the expression
+   F(std::forward<T>(t) if there was an overload of imaginary function F(T_i) for every
+   T_i from Types... in scope at the same time. Direct-initializes the contained value
+   as if by direct non-list-initialization from std::forward<T>(t). This overload only
+   participates in overload resolution if std::is_same_v<std::decay_t<T>, variant> is
+   false, std::is_constructible_v<T_j, T> is true, and the expression
+   F(std::forward<T>(t)) (with F being the above-mentioned set of imaginary functions)
+   is well formed. This constructor is a constexpr constructor if T_j's selected
+   constructor is a constexpr constructor.
+
+ variant<string> v("abc"); // OK
+ variant<string, string> w("abc"); // ill-formed, can't select the alternative to convert to
+ variant<string, bool> x("abc"); // OK, but chooses bool
+
+   5) Constructs a variant with the specified alternative T and initializes the
+   contained value with the arguments std::forward<Args>(args).... If T's selected
+   constructor is a constexpr constructor, this constructor is also a constexpr
+   constructor. This overload only participates in overload resolution if there is
+   exactly one occurrence of T in Types... and std::is_constructible_v<T, Args...> is
+   true.
+   6) Constructs a variant with the specified alternative T and initializes the
+   contained value with the arguments il, std::forward<Args>(args)..... If T's selected
+   constructor is a constexpr constructor, this constructor is also a constexpr
+   constructor. This overload only participates in overload resolution if there is
+   exactly one occurrence of T in Types... and std::is_constructible_v<T,
+   initializer_list<U>&, Args...> is true.
+   7) Constructs a variant with the alternative T_i specified by the index I and
+   initializes the contained value with the arguments std::forward<Args>(args).... If
+   T_i's selected constructor is a constexpr constructor, this constructor is also a
+   constexpr constructor. This overload only participates in overload resolution if I <
+   sizeof...(Types) and std::is_constructible_v<T_i, Args...> is true.
+   8) Constructs a variant with the alternative T_i specified by the index I and
+   initializes the contained value with the arguments il, std::forward<Args>(args)....
+   If T_i's selected constructor is a constexpr constructor, this constructor is also a
+   constexpr constructor. This overload only participates in overload resolution if I <
+   sizeof...(Types) and std::is_constructible_v<T_i, std::initializer_list<U>&,
+   Args...> is true.
+   9-16) Same as (1-8), except the contained value is constructed following the
+   uses-allocator protocol
+
+.SH Parameters
+
+   other      -    another variant object whose contained value to copy/move
+   t          -    value to initialize the contained value with
+   args...    -    arguments to initialize the contained value with
+   il         -    initializer list to initialize the contained value with
+   a          -    allocator to pass to the contained value
+.SH Type requirements
+   -
+   Alloc must meet the requirements of Allocator in order to use overloads \fB(9)\fP.
+
+.SH Exceptions
+
+   1) May throw any exception thrown by the value initialization of the first
+   alternative.
+   noexcept specification:
+   noexcept(std::is_nothrow_default_constructible_v<T_0>)
+   2) May throw any exception thrown by direct-initializing any T_i in Types...
+   3) May throw any exception thrown by move-constructing any T_i in Types....
+   noexcept specification:
+   noexcept( (std::is_nothrow_move_constructible_v<Types> && ...))
+   4) May throw any exception thrown by the initialization of the selected alternative
+   T_j.
+   noexcept specification:
+   noexcept(std::is_nothrow_constructible_v<T_j, T>)
+   5-8) May throw any exception thrown by calling the selected constructor of the
+   selected alternative
+
+.SH Notes
+
+   A variant that holds no alternatives (std::variant<>) is a valid type, but it is
+   intentionally not constructible: all constructors remove themselves from overload
+   resolution.
+
+.SH Example
+
+    This section is incomplete
+    Reason: no example
+
+   Categories:
+
+     * conditionally noexcept
+     * Todo no example

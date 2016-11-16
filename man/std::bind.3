@@ -1,4 +1,4 @@
-.TH std::bind 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::bind 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::bind \- std::bind
 
@@ -23,7 +23,7 @@ std::bind \- std::bind
 .SH Return value
 
    A function object of unspecified type T, for which std::is_bind_expression<T>::value
-   == true, and which can be stored in std::function. It has the following members:
+   == true. It has the following members:
 
 std::bind return type
 
@@ -41,34 +41,52 @@ std::bind return type
 
 .SH Member type result_type
 
-   1) If F is a pointer to function or a pointer to member function, result_type is the
-   return type of F. If F is a class type with nested typedef result_type, then
-   result_type is F::result_type. Otherwise no result_type is defined.
+   1) (deprecated in C++17) If F is a pointer to function or a pointer to member
+   function, result_type is the return type of F. If F is a class type with nested
+   typedef result_type, then result_type is F::result_type. Otherwise no result_type is
+   defined.
 
-   2) result_type is exactly R.
+   2) (deprecated in C++17) result_type is exactly R.
 
 .SH Member function operator()
 
    Given an object g obtained from an earlier call to bind, when it is invoked in a
-   function call expression g(u1, u2, ... uM), an invocation of the stored object of
-   type std::decay<F>::type takes place, with arguments defined as follows:
+   function call expression g(u1, u2, ... uM), an invocation of the stored object takes
+   place, as if by std::invoke(fd, std::forward<V1>(v1), std::forward<V2>(v2), ...,
+   std::forward<VN>(vN)), where fd is a value of type std::decay_t<F> the values and
+   types of the bound arguments v1, v2, ..., vN are determined as specified below.
 
-     * If the argument is of type std::reference_wrapper<T> (for example, std::ref or
-       std::cref was used in the initial call to bind), then the reference T& stored in
-       the bound argument is passed to the invocable object.
-     * If std::is_bind_expression<T>::value == true (i.e. another bind subexpression
-       was used as an argument in the initial call to bind), then that bind
-       subexpression is invoked immediately and its result is passed to the invocable
-       object. If the bind subexpression has any placeholder arguments, they are picked
-       from u1, u2, ....
-     * If std::is_placeholder<T>::value != 0 (i.e., std::placeholders::_1, _2, _3, ...
-       was used as the argument to the initial call to bind), then the argument
-       indicated by the placeholder (u1 for _1, u2 for _2, etc) is passed to the
-       invocable object as std::forward<Uj>(uj).
-     * Otherwise, the stored argument is passed to the invocable object as-is.
+     * If the stored argument arg is of type std::reference_wrapper<T> (for example,
+       std::ref or std::cref was used in the initial call to bind), then the argument
+       vn in the std::invoke call above is arg.get() and the type Vn in the same call
+       is T&: the stored argument is passed by reference into the invoked function
+       object.
+     * If the stored argument arg is of type T for which
+       std::is_bind_expression<T>::value == true (for example, another bind expression
+       was passed directly into the initial call to bind), then bind performs function
+       composition: instead of passing the function object that the bind subexpression
+       would return, the subexpression is invoked eagerly, and its return value is
+       passed to the outer invokable object. If the bind subexpression has any
+       placeholder arguments, they are shared with the outer bind (picked out of u1,
+       u2, ...). Specifically, the argument vn in the std::invoke call above is
+       arg(std::forward<Uj>(uj)...) and the type Vn in the same call is
+       std::result_of_t<T cv &(Uj&&...)>&& (cv qualification is the same as that of g).
+     * If the stored argument arg is of type T, for which std::is_placeholder<T>::value
+       != 0 (meaning, a placeholder such as std::placeholders::_1, _2, _3, ... was used
+       as the argument to the initial call to bind), then the argument indicated by the
+       placeholder (u1 for _1, u2 for _2, etc) is passed to the invokable object: the
+       argument vn in the std::invoke call above is std::forward<Uj>(uj) and the
+       corresponding type Vn in the same call is Uj&&.
+     * Otherwise, the ordinary stored argument arg is passed to the invokable object as
+       lvalue argument: the argument vn in the std::invoke call above is simply arg and
+       the corresponding type Vn is T cv &, where cv is the same cv-qualification as
+       that of g.
 
    If some of the arguments that are supplied in the call to g() are not matched by any
    placeholders stored in g, the unused arguments are evaluated and discarded.
+
+   If g is volatile-qualified (i.e., its cv-qualifiers are either volatile or const
+   volatile), the behavior is undefined.
 
 .SH Exceptions
 
@@ -100,17 +118,17 @@ std::bind return type
  #include <iostream>
  #include <memory>
  #include <functional>
-  
+
  void f(int n1, int n2, int n3, const int& n4, int n5)
  {
      std::cout << n1 << ' ' << n2 << ' ' << n3 << ' ' << n4 << ' ' << n5 << '\\n';
  }
-  
+
  int g(int n1)
  {
      return n1;
  }
-  
+
  struct Foo {
      void print_sum(int n1, int n2)
      {
@@ -118,23 +136,24 @@ std::bind return type
      }
      int data = 10;
  };
-  
+
  int main()
  {
      using namespace std::placeholders;  // for _1, _2, _3...
-  
+
      // demonstrates argument reordering and pass-by-reference
      int n = 7;
      // (_1 and _2 are from std::placeholders, and represent future
      // arguments that will be passed to f1)
      auto f1 = std::bind(f, _2, _1, 42, std::cref(n), n);
      n = 10;
-     f1(1, 2, 1001); // 1 is bound by _2, 2 is bound by _1, 1001 is unused
-  
+     f1(1, 2, 1001); // 1 is bound by _1, 2 is bound by _2, 1001 is unused
+                     // makes a call to f(2, 1, 42, n, 7)
+
      // nested bind subexpressions share the placeholders
      auto f2 = std::bind(f, _3, std::bind(g, _3), _3, 4, 5);
      f2(10, 11, 12);
-  
+
      // common use case: binding a RNG with a distribution
      std::default_random_engine e;
      std::uniform_int_distribution<> d(0, 10);
@@ -142,19 +161,20 @@ std::bind return type
      for(int n=0; n<10; ++n)
          std::cout << rnd() << ' ';
      std::cout << '\\n';
-  
-     // bind to a member function
+
+     // bind to a pointer to member function
      Foo foo;
      auto f3 = std::bind(&Foo::print_sum, &foo, 95, _1);
      f3(5);
-  
-     // bind to member data
+
+     // bind to a pointer to data member
      auto f4 = std::bind(&Foo::data, _1);
      std::cout << f4(foo) << '\\n';
-  
+
      // smart pointers can be used to call members of the referenced objects, too
      std::cout << f4(std::make_shared<Foo>(foo)) << '\\n'
-               << f4(std::unique_ptr<Foo>(new Foo(foo))) << '\\n';}
+               << f4(std::make_unique<Foo>(foo)) << '\\n';
+ }
 
 .SH Output:
 
@@ -169,6 +189,6 @@ std::bind return type
 .SH See also
 
    _1, _2, _3, _4, ... placeholders for the unbound arguments in a std::bind expression
-   \fI(C++11)\fP             (constant) 
+   \fI(C++11)\fP             (constant)
    mem_fn              creates a function object out of a pointer to a member
-   \fI(C++11)\fP             \fI(function template)\fP 
+   \fI(C++11)\fP             \fI(function template)\fP

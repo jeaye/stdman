@@ -1,20 +1,19 @@
-.TH std::condition_variable_any::wait_for 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::condition_variable_any::wait_for 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::condition_variable_any::wait_for \- std::condition_variable_any::wait_for
 
 .SH Synopsis
    template< class Lock, class Rep, class Period >
 
-   std::cv_status wait_for( Lock& lock,                               \fB(1)\fP \fI(since C++11)\fP
+   std::cv_status wait_for( Lock& lock,                             \fB(1)\fP \fI(since C++11)\fP
 
-                            const std::chrono::duration<Rep, Period>&
-   rel_time);
+   const std::chrono::duration<Rep, Period>& rel_time);
    template< class Lock, class Rep, class Period, class Predicate >
 
-   bool wait_for( Lock& lock,                                         \fB(2)\fP \fI(since C++11)\fP
-                  const std::chrono::duration<Rep, Period>& rel_time,
+   bool wait_for( Lock& lock,                                       \fB(2)\fP \fI(since C++11)\fP
+   const std::chrono::duration<Rep, Period>& rel_time,
 
-                  Predicate pred);
+   Predicate pred);
 
    1) Atomically releases lock, blocks the current executing thread, and adds it to the
    list of threads waiting on *this. The thread will be unblocked when notify_all() or
@@ -24,7 +23,8 @@ std::condition_variable_any::wait_for \- std::condition_variable_any::wait_for
    If this function exits via exception, lock is also reacquired.
    \fI(until C++14)\fP
    2) Equivalent to return wait_until(lock, std::chrono::steady_clock::now() +
-   rel_time, std::move(pred). This overload may be used to ignore spurious awakenings.
+   rel_time, std::move(pred));. This overload may be used to ignore spurious
+   awakenings.
 
    A steady clock is used to measure the duration. This function may block for longer
    than timeout_duration due to scheduling or resource contention delays.
@@ -44,7 +44,7 @@ std::condition_variable_any::wait_for \- std::condition_variable_any::wait_for
    pred     - The signature of the predicate function should be equivalent to the
               following:
 
-               bool pred();
+              bool pred();
 
 .SH Return value
 
@@ -55,11 +55,27 @@ std::condition_variable_any::wait_for \- std::condition_variable_any::wait_for
 
 .SH Exceptions
 
+   1)
+
    May throw std::system_error, may also propagate exceptions thrown by   \fI(until C++14)\fP
    lock.lock() or lock.unlock().
    Any exception thrown by clock, time_point, or duration during the
    execution (clocks, time points, and durations provided by the standard \fI(since C++14)\fP
    library never throw)
+
+   2) Same as \fB(1)\fP but may also propagate exceptions thrown by pred
+
+.SH Notes
+
+   Even if notified under lock, overload \fB(1)\fP makes no guarantees about the state of the
+   associated predicate when returning due to timeout.
+
+   The effects of notify_one()/notify_all() and each of the three atomic parts of
+   wait()/wait_for()/wait_until() (unlock+wait, wakeup, and lock) take place in a
+   single total order that can be viewed as modification order of an atomic variable:
+   the order is specific to this individual condition_variable. This makes it
+   impossible for notify_one() to, for example, be delayed and unblock a thread that
+   started waiting just after the call to notify_one() was made.
 
 .SH Example
 
@@ -71,11 +87,11 @@ std::condition_variable_any::wait_for \- std::condition_variable_any::wait_for
  #include <condition_variable>
  #include <thread>
  #include <chrono>
-  
+
  std::condition_variable_any cv;
  std::mutex cv_m;
- std::atomic<int> i{0};
-  
+ int i;
+
  void waits(int idx)
  {
      std::unique_lock<std::mutex> lk(cv_m);
@@ -84,18 +100,21 @@ std::condition_variable_any::wait_for \- std::condition_variable_any::wait_for
      else
          std::cerr << "Thread " << idx << " timed out. i == " << i << '\\n';
  }
-  
+
  void signals()
  {
      std::this_thread::sleep_for(std::chrono::milliseconds(120));
      std::cerr << "Notifying...\\n";
      cv.notify_all();
      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-     i = 1;
+     {
+         std::lock_guard<std::mutex> lk(cv_m);
+         i = 1;
+     }
      std::cerr << "Notifying again...\\n";
      cv.notify_all();
  }
-  
+
  int main()
  {
      std::thread t1(waits, 1), t2(waits, 2), t3(waits, 3), t4(signals);
@@ -113,7 +132,7 @@ std::condition_variable_any::wait_for \- std::condition_variable_any::wait_for
 .SH See also
 
    wait       blocks the current thread until the condition variable is woken up
-              \fI(public member function)\fP 
+              \fI(public member function)\fP
               blocks the current thread until the condition variable is woken up or
    wait_until until specified time point has been reached
-              \fI(public member function)\fP 
+              \fI(public member function)\fP

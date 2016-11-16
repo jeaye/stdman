@@ -1,0 +1,81 @@
+.TH std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relative, 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relative, \- std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relative,
+
+.SH Synopsis
+
+   path lexically_normal() const;                    \fB(1)\fP \fI(since C++17)\fP
+   path lexically_relative(const path& base) const;  \fB(2)\fP \fI(since C++17)\fP
+   path lexically_proximate(const path& base) const; \fB(3)\fP \fI(since C++17)\fP
+
+   1) Returns *this converted to normal form (no redundant dot or dot-dot elements, and
+   if the last element is a non-root directory separator, dot is added)
+   2) Returns *this made relative to base. Effectively does the following:
+
+   First, determines the first mismatched element of *this and base using
+   std::mismatch(begin(), end(), base.begin(), base.end()), then
+
+     * if the first mismatched element of *this is equal to begin() or the first
+       mismatched element of base is equal to base.begin(), returns path() (empty
+       path).
+     * otherwise, if the first mismatched element of *this is equal to end() and the
+       first mismatched element of base is equal to base.end(), returns path(".")
+     * otherwise returns an object of class path composed via application of
+       operator/=(path("..")) for each element in the half-open range [first mismatched
+       element of base, base.end()), and then application of for each element in the
+       half-open range [first mismatched element of *this, end()).
+
+   3) If the value of lexically_relative(base) is not an empty path, return it.
+   Otherwise return *this.
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   1) The normal form of the path
+   2) The relative form of the path
+   3) The proximate form of the path
+
+.SH Exceptions
+
+   \fI(none)\fP
+
+.SH Notes
+
+   These conversions are purely lexical. They do not check that the paths exist, do not
+   follow symlinks, and do not access the filesystem at all. For symlink-following
+   counterparts of lexically_relative and lexically_proximate, see relative and
+   proximate.
+
+   On Windows, the returned path has backslashes (the preferred separators),
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <filesystem>
+ #include <cassert>
+ namespace fs = std::filesystem;
+
+ int main()
+ {
+     assert(fs::path("foo/./bar/..").lexically_normal() == "foo");
+     assert(fs::path("foo/.///bar/../").lexically_normal() == "foo/.");
+
+     assert(path("/a/d").lexically_relative("/a/b/c") == "../../d");
+     assert(path("/a/b/c").lexically_relative("/a/d") == "../b/c");
+     assert(path("a/b/c").lexically_relative("a") == "b/c");
+     assert(path("a/b/c").lexically_relative("a/b/c/x/y") == "../..");
+     assert(path("a/b/c").lexically_relative("a/b/c") == ".");
+     assert(path("a/b").lexically_relative("c/d") == "");
+ }
+
+.SH See also
+
+   relative  composes a relative path
+   proximate \fI(function)\fP
+   \fI(C++17)\fP

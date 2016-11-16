@@ -1,0 +1,115 @@
+.TH std::clamp 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::clamp \- std::clamp
+
+.SH Synopsis
+   Defined in header <algorithm>
+   template<class T>                                                  \fB(1)\fP \fI(since C++17)\fP
+   constexpr const T& clamp( const T& v, const T& lo, const T& hi );
+   template<class T, class Compare>
+   constexpr const T& clamp( const T& v, const T& lo, const T& hi,    \fB(2)\fP \fI(since C++17)\fP
+   Compare comp );
+
+   1) If v compares less than hi, returns the larger of v and lo, otherwise returns the
+   smaller of v and hi. Uses operator< to compare the values.
+   2) Same as \fB(1)\fP, but uses comp to compare the values.
+
+   The behavior is undefined if the value of lo is greater than hi
+
+.SH Parameters
+
+   v     - the value to clamp
+   lo,hi - the boundaries to clamp v to
+           comparison function object (i.e. an object that satisfies the requirements
+           of Compare) which returns true if lo is less than v and v is less than hi.
+
+           The signature of the comparison function should be equivalent to the
+           following:
+   comp  -
+           bool cmp(const Type1 &a, const Type2 &b);
+
+           The signature does not need to have const &, but the function object must
+           not modify the objects passed to it.
+           The types Type1 and Type2 must be such that an object of type T can be
+           implicitly converted to both of them. 
+.SH Type requirements
+   -
+   T must meet the requirements of LessThanComparable in order to use overloads \fB(1)\fP.
+
+.SH Return value
+
+   Reference to lo if v is less than lo, reference to hi if hi is less than v,
+   otherwise reference to v.
+
+.SH Complexity
+
+   1) At most two comparisons
+
+.SH Possible implementation
+
+.SH First version
+   template<class T>
+   constexpr const T& clamp( const T& v, const T& lo, const T& hi )
+   {
+       return clamp( v, lo, hi, std::less<>() );
+   }
+.SH Second version
+   template<class T, class Compare>
+   constexpr const T& clamp( const T& v, const T& lo, const T& hi, Compare comp )
+   {
+       return assert( !comp(hi, lo) ),
+           comp(v, lo) ? lo : comp(hi, v) ? hi : v;
+   }
+
+.SH Notes
+
+   Capturing the result of std::clamp by reference if one of the parameters is rvalue
+   produces a dangling reference if that parameter is returned:
+
+ int n = -1;
+ const int& r = std::clamp(n, 0, 255);
+ // r is dangling
+
+   If v compares equivalent to either bound, returns a reference to v, not the bound.
+
+   Only works for floating-point T if NaNs are avoided.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <cstdint>
+ #include <algorithm>
+ #include <iostream>
+ #include <iomanip>
+ #include <random>
+
+ int main()
+ {
+     std::mt19937 g(std::random_device{}());
+     std::uniform_int_distribution<> d(-300, 300);
+     std::cout << " raw   clamped to int8_t   clamped to uint8_t\\n";
+     for(int n = 0; n < 5; ++n) {
+         int v = d(g);
+         std::cout << std::setw(4) << v
+                   << std::setw(20) << std::clamp(v, INT8_MIN, INT8_MAX)
+                   << std::setw(21) << std::clamp(v, 0, UINT8_MAX) << '\\n';
+     }
+ }
+
+.SH Possible output:
+
+ .raw   clamped to int8_t   clamped to uint8_t
+  168                 127                  168
+  128                 127                  128
+ -137                -128                    0
+   40                  40                   40
+  -66                 -66                    0
+
+.SH See also
+
+   min returns the smaller of the given values
+       \fI(function template)\fP
+   max returns the greater of the given values
+       \fI(function template)\fP

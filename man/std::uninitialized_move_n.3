@@ -1,0 +1,103 @@
+.TH std::uninitialized_move_n 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::uninitialized_move_n \- std::uninitialized_move_n
+
+.SH Synopsis
+   Defined in header <memory>
+   template< class InputIt, class Size, class ForwardIt >
+
+   std::pair<InputIt, ForwardIt> uninitialized_move_n( InputIt first, \fB(1)\fP \fI(since C++17)\fP
+   Size count,
+
+   ForwardIt d_first );
+   template< class ExecutionPolicy, class InputIt, class Size, class
+   ForwardIt >
+
+   std::pair<InputIt, ForwardIt> uninitialized_move_n(                \fB(2)\fP \fI(since C++17)\fP
+   ExecutionPolicy&& policy,
+   InputIt first, Size count,
+
+   ForwardIt d_first );
+
+   1) Moves count elements from a range beginning at first to an uninitialized memory
+   area beginning at d_first as if by
+
+ for ( ; n > 0; ++d_first, (void) ++first, --n)
+    ::new (static_cast<void*>(std::addressof(*d_first)))
+       typename std::iterator_traits<ForwardIt>::value_type(std::move(*first));
+
+   If an exception is thrown during the initialization, some objects in the source
+   range are left in a valid but unspecified state.
+   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
+   in overload resolution unless
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
+
+.SH Parameters
+
+   first            -         the beginning of the range of the elements to move
+   d_first          -         the beginning of the destination range
+   policy           -         the execution policy to use. See execution policy for
+                              details.
+.SH Type requirements
+   -
+   InputIt must meet the requirements of InputIterator.
+   -
+   ForwardIt must meet the requirements of ForwardIterator.
+   -
+   No increment, assignment, comparison, or indirection through valid instances of
+   ForwardIt may throw exceptions.
+
+.SH Return value
+
+   A pair whose first element is an iterator to the element past the last element moved
+   in the source range, and whose second element is an iterator to the element past the
+   last element moved in the destination range.
+
+.SH Complexity
+
+   Linear in count.
+
+.SH Exceptions
+
+   The overload with a template parameter named ExecutionPolicy reports errors as
+   follows:
+
+     * If execution of a function invoked as part of the algorithm throws an exception,
+       std::terminate is called.
+     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
+
+.SH Possible implementation
+
+template<class InputIt, class Size, class ForwardIt>
+std::pair<InputIt, ForwardIt> uninitialized_move_n(InputIt first, Size count, ForwardIt d_first)
+{
+    typedef typename std::iterator_traits<ForwardIt>::value_type Value;
+    ForwardIt current = d_first;
+    try {
+        for (; count > 0; ++first, (void) ++current, --count) {
+            ::new (static_cast<void*>(std::addressof(*current))) Value(*first);
+        }
+    } catch (...) {
+        for (; d_first != current; ++d_first) {
+            d_first->~Value();
+        }
+        throw;
+    }
+    return {first, current};
+}
+
+.SH Example
+
+    This section is incomplete
+    Reason: no example
+
+.SH See also
+
+   uninitialized_move   moves a range of objects to an uninitialized area of memory
+   \fI(C++17)\fP              \fI(function template)\fP
+   uninitialized_copy_n copies a number of objects to an uninitialized area of memory
+   \fI(C++11)\fP              \fI(function template)\fP
+
+.SH Category:
+
+     * Todo no example

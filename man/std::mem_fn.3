@@ -1,4 +1,4 @@
-.TH std::mem_fn 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::mem_fn 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::mem_fn \- std::mem_fn
 
@@ -52,23 +52,35 @@ std::mem_fn Return type
 
 .SH Member types
 
-   type                 definition
-   result_type          the return type of pm if pm is a pointer to member function,
-                        not defined for pointer to member object
-   argument_type        T*, possibly cv-qualified, if pm is a pointer to member
-                        function taking no arguments
-   first_argument_type  T* if pm is a pointer to member function taking one argument
-   second_argument_type T1 if pm is a pointer to member function taking one argument of
-                        type T1
+   type                                      definition
+                                             the return type of pm if pm is a pointer
+   result_type(deprecated in C++17)          to member function, not defined for
+                                             pointer to member object
+                                             T*, possibly cv-qualified, if pm is a
+   argument_type(deprecated in C++17)        pointer to member function taking no
+                                             arguments
+   first_argument_type(deprecated in C++17)  T* if pm is a pointer to member function
+                                             taking one argument
+   second_argument_type(deprecated in C++17) T1 if pm is a pointer to member function
+                                             taking one argument of type T1
 
 .SH Member function
 
-   operator() invokes the target on a specified object, with optional parameters
-              \fI(public member function)\fP
+   template<class... Args>
+   /* see below */ operator()(Args&&... args);
+
+   Let fn be the call wrapper returned by a call to std::mem_fn with a pointer to
+   member pm. Then the expression fn(t, a2, ..., aN) is equivalent to INVOKE(pm, t, a2,
+   ..., aN), where INVOKE is the operation defined in Callable. (Thus, the return type
+   of operator() is std::result_of<decltype(pm)(Args&&...)>::type.)
+
+   Each argument in args is perfectly forwarded, as if by std::forward<Args>(args)....
 
 .SH Exceptions
 
-   None.
+   \fI(none)\fP                  \fI(until C++17)\fP
+   noexcept specification: \fI(since C++17)\fP
+   noexcept
 
 .SH Example 1
 
@@ -79,7 +91,7 @@ std::mem_fn Return type
 
  #include <functional>
  #include <iostream>
-  
+
  struct Foo {
      void display_greeting() {
          std::cout << "Hello, world.\\n";
@@ -89,16 +101,16 @@ std::mem_fn Return type
      }
      int data = 7;
  };
-  
+
  int main() {
      Foo f;
-  
+
      auto greet = std::mem_fn(&Foo::display_greeting);
      greet(f);
-  
+
      auto print_num = std::mem_fn(&Foo::display_number);
      print_num(f, 42);
-  
+
      auto access_data = std::mem_fn(&Foo::data);
      std::cout << "data: " << access_data(f) << '\\n';
  }
@@ -118,23 +130,23 @@ std::mem_fn Return type
 
  #include <iostream>
  #include <functional>
-  
+
  struct X {
      int x;
-  
+
      int&       easy()      {return x;}
      int&       get()       {return x;}
      const int& get() const {return x;}
  };
-  
-  
+
+
  int main(void)
  {
      auto a = std::mem_fn        (&X::easy); // no problem at all
  //  auto b = std::mem_fn<int&  >(&X::get ); // no longer works in C++14
      auto c = std::mem_fn<int&()>(&X::get ); // works with both C++11 and C++14
      auto d = [] (X& x) {return x.get();};   // another approach to overload resolution
-  
+
      X x = {33};
      std::cout << "a() = " << a(x) << '\\n';
      std::cout << "c() = " << c(x) << '\\n';
@@ -150,6 +162,10 @@ std::mem_fn Return type
 .SH See also
 
    function wraps callable object of any type with specified function call signature
-   \fI(C++11)\fP  \fI(class template)\fP 
+   \fI(C++11)\fP  \fI(class template)\fP
    bind     binds one or more arguments to a function object
-   \fI(C++11)\fP  \fI(function template)\fP 
+   \fI(C++11)\fP  \fI(function template)\fP
+
+.SH Category:
+
+     * unconditionally noexcept

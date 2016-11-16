@@ -1,0 +1,142 @@
+.TH std::filesystem::perms 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::filesystem::perms \- std::filesystem::perms
+
+.SH Synopsis
+   Defined in header <filesystem>
+   enum class perms;               \fI(since C++17)\fP
+
+   This type represents file access permissions. perms satisfies the requirements of
+   BitmaskType (which means the bitwise operators operator&, operator|, operator^,
+   operator~, operator&=, operator|=, and operator^= are defined for this type)
+
+   Access permissions model POSIX permission bits, and any individual file permissions
+   (as reported by status) are a combination of some of the following bits:
+
+.SH Member constants
+
+   Member constant Value (octal) POSIX equivalent                Meaning
+   none            0                            no permission bits are set
+   owner_read      0400          S_IRUSR          File owner has read permission
+   owner_write     0200          S_IWUSR          File owner has write permission
+   owner_exec      0100          S_IXUSR          File owner has execute/search
+                                                  permission
+                                                  File owner has read, write, and
+                                                  execute/search permissions
+   owner_all       0700          S_IRWXU
+                                                  Equivalent to owner_read |
+                                                  owner_write | owner_exec
+   group_read      040           S_IRGRP          The file's user group has read
+                                                  permission
+   group_write     020           S_IWGRP          The file's user group has write
+                                                  permission
+   group_exec      010           S_IXGRP          The file's user group has
+                                                  execute/search permission
+                                                  The file's user group has read,
+                                                  write, and execute/search permissions
+   group_all       070           S_IRWXG
+                                                  Equivalent to group_read |
+                                                  group_write | group_exec
+   others_read     04            S_IROTH          Other users have read permission
+   others_write    02            S_IWOTH          Other users have write permission
+   others_exec     01            S_IXOTH          Other users have execute/search
+                                                  permission
+                                                  Other users have read, write, and
+                                                  execute/search permissions
+   others_all      07            S_IRWXO
+                                                  Equivalent to others_read |
+                                                  others_write | others_exec
+                                                  All users have read, write, and
+                                                  execute/search permissions
+   all             0777
+                                                  Equivalent to owner_all | group_all |
+                                                  others_all
+   set_uid         04000         S_ISUID          Set user ID to file owner user ID on
+                                                  execution
+   set_gid         02000         S_ISGID          Set group ID to file's user group ID
+                                                  on execution
+                                                  Implementation-defined meaning, but
+                                                  POSIX XSI specifies that when set on
+   sticky_bit      01000         S_ISVTX          a directory, only file owners may
+                                                  delete files even if the directory is
+                                                  writeable to others (used with /tmp)
+                                                  All valid permission bits.
+   mask            07777
+                                                  Equivalent to all | set_uid | set_gid
+                                                  | sticky_bit
+
+   Additionally, the following constants of this type are defined, which do not
+   represent permissions:
+
+   Member constant  Value (hex)                         Meaning
+   unknown          0xFFFF      Unknown permissions (e.g. when file_status is created
+                                without permissions)
+   add_perms        0x10000     Control bit that instructs permissions to add, but not
+                                clear permission bits.
+   remove_perms     0x20000     Control bit that instructs permissions to clear, but
+                                not add permission bits
+   resolve_symlinks 0x40000     Control bit that instructs permissions to resolve
+                                symlinks
+
+.SH Notes
+
+   Permissions may not necessarily be implemented as bits, but they are treated that
+   way conceptually.
+
+   Some permission bits may be ignored on some systems, and changing some bits may
+   automatically change others (e.g. on platforms without owner/group/all distinction,
+   setting any of the three write bits set all three)
+
+.SH Example
+
+   
+// Run this code
+
+ #include <fstream>
+ #include <bitset>
+ #include <iostream>
+ #include <filesystem>
+ namespace fs = std::filesystem;
+
+ void demo_perms(fs::perms p)
+ {
+     std::cout << ((p & fs::perms::owner_read) != fs::perms::none ? "r" : "-")
+               << ((p & fs::perms::owner_write) != fs::perms::none ? "w" : "-")
+               << ((p & fs::perms::owner_exec) != fs::perms::none ? "x" : "-")
+               << ((p & fs::perms::group_read) != fs::perms::none ? "r" : "-")
+               << ((p & fs::perms::group_write) != fs::perms::none ? "w" : "-")
+               << ((p & fs::perms::group_exec) != fs::perms::none ? "x" : "-")
+               << ((p & fs::perms::others_read) != fs::perms::none ? "r" : "-")
+               << ((p & fs::perms::others_write) != fs::perms::none ? "w" : "-")
+               << ((p & fs::perms::others_exec) != fs::perms::none ? "x" : "-")
+               << '\\n';
+ }
+ int main()
+ {
+     std::ofstream("test.txt"); // create file
+
+     std::cout << "Created file with permissions: ";
+     demo_perms(fs::status("test.txt").permissions());
+
+     fs::permissions("test.txt", fs::perms::add_perms |
+                                 fs::perms::owner_all | fs::perms::group_all);
+
+     std::cout << "After adding o+rwx and g+rwx:  ";
+     demo_perms(fs::status("test.txt").permissions());
+
+     fs::remove("test.txt");
+ }
+
+.SH Possible output:
+
+ Created file with permissions: rw-r--r--
+ After adding o+rwx and g+wrx:  rwxrwxr--
+
+.SH See also
+
+   status         determines file attributes
+   symlink_status determines file attributes, checking the symlink target
+   \fI(C++17)\fP        \fI(function)\fP
+   \fI(C++17)\fP
+   permissions    modifies file access permissions
+   \fI(C++17)\fP        \fI(function)\fP

@@ -1,4 +1,4 @@
-.TH std::is_move_constructible,std::is_trivially_move_constructible, 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::is_move_constructible,std::is_trivially_move_constructible, 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_move_constructible,std::is_trivially_move_constructible, \- std::is_move_constructible,std::is_trivially_move_constructible,
 
@@ -12,16 +12,17 @@ std::is_move_constructible,std::is_trivially_move_constructible, \- std::is_move
    template< class T >                     \fB(3)\fP \fI(since C++11)\fP
    struct is_nothrow_move_constructible;
 
-   1) Checks whether a type is MoveConstructible, that is, can be constructed from
-   rvalue argument. If the requirement is met, a member constant value equal to true is
-   provided; otherwise the value is false.
+   1) If T is not a referenceable type (i.e., possibly cv-qualified void or a function
+   type with a cv-qualifier-seq or a ref-qualifier), provides a member constant value
+   equal to false. Otherwise, provides a member constant value equal to
+   std::is_constructible<T, T&&>::value.
 
-   2) Same as 1), but the move constructor expression does not call any operation that
-   is not trivial.
+   2) Same as \fB(1)\fP, but uses std::is_trivially_constructible<T, T&&>.
 
-   3) Same as 1), but the move constructor expression is noexcept.
+   3) Same as \fB(1)\fP, but uses std::is_nothrow_constructible<T, T&&>.
 
-   
+   T shall be a complete type, (possibly cv-qualified) void, or an array of unknown
+   bound. Otherwise, the behavior is undefined.
 
 .SH Member constants
 
@@ -41,6 +42,20 @@ std::is_move_constructible,std::is_trivially_move_constructible, \- std::is_move
    value_type bool
    type       std::integral_constant<bool, value>
 
+.SH Possible implementation
+
+  template<class T>
+  struct is_move_constructible :
+        std::is_constructible<T, typename std::add_rvalue_reference<T>::type> {};
+
+  template<class T>
+  struct is_trivially_move_constructible :
+       std::is_trivially_constructible<T, typename std::add_rvalue_reference<T>::type> {};
+
+  template<class T>
+  struct is_nothrow_move_constructible :
+       std::is_nothrow_constructible<T, typename std::add_rvalue_reference<T>::type> {};
+
 .SH Notes
 
    Types without a move constructor, but with a copy constructor that accepts const T&
@@ -49,19 +64,10 @@ std::is_move_constructible,std::is_trivially_move_constructible, \- std::is_move
    Move constructors are usually noexcept, since otherwise they are unusable in any
    code that provides strong exception guarantee.
 
-.SH Possible implementation
-
-  template<class T>
-  struct is_move_constructible :
-        std::is_constructible<T, typename std::add_rvalue_reference<T>::type> {};
-   
-  template<class T>
-  struct is_trivially_move_constructible :
-       std::is_trivially_constructible<T, typename std::add_rvalue_reference<T>::type> {};
-   
-  template<class T>
-  struct is_nothrow_move_constructible :
-       std::is_nothrow_constructible<T, typename std::add_rvalue_reference<T>::type> {};
+   In many implementations, is_nothrow_move_constructible also checks if the destructor
+   throws because it is effectively noexept(T(arg)). Same applies to
+   is_trivially_move_constructible, which, in these implementations, also requires that
+   the destructor is trivial: GCC bug 51452 LWG issue 2116.
 
 .SH Example
 
@@ -70,7 +76,7 @@ std::is_move_constructible,std::is_trivially_move_constructible, \- std::is_move
 
  #include <iostream>
  #include <type_traits>
-  
+
  struct Ex1 {
      std::string str; // member has a non-trivial but non-throwing move ctor
  };
@@ -84,7 +90,7 @@ std::is_move_constructible,std::is_trivially_move_constructible, \- std::is_move
      // copy constructor can bind to an rvalue argument
      NoMove(const NoMove&) {}
  };
-  
+
  int main() {
      std::cout << std::boolalpha << "Ex1 is move-constructible? "
                << std::is_move_constructible<Ex1>::value << '\\n'
@@ -96,7 +102,7 @@ std::is_move_constructible,std::is_trivially_move_constructible, \- std::is_move
                << std::is_trivially_move_constructible<Ex2>::value << '\\n'
                << "Ex2 is nothrow move-constructible? "
                << std::is_nothrow_move_constructible<Ex2>::value << '\\n';
-  
+
      std::cout << std::boolalpha
                << "NoMove is move-constructible? "
                << std::is_move_constructible<NoMove>::value << '\\n'
@@ -119,30 +125,30 @@ std::is_move_constructible,std::is_trivially_move_constructible, \- std::is_move
 is_constructible
 is_trivially_constructible                           checks if a type has a constructor for
 is_nothrow_constructible                             specific arguments
-\fI(C++11)\fP                                              \fI(class template)\fP 
+\fI(C++11)\fP                                              \fI(class template)\fP
 \fI(C++11)\fP
 \fI(C++11)\fP
 is_default_constructible
 is_trivially_default_constructible
 is_nothrow_default_constructible                     checks if a type has a default constructor
-\fI(C++11)\fP                                              \fI(class template)\fP 
+\fI(C++11)\fP                                              \fI(class template)\fP
 \fI(C++11)\fP
 \fI(C++11)\fP
 is_copy_constructible
 is_trivially_copy_constructible
 is_nothrow_copy_constructible                        checks if a type has a copy constructor
-\fI(C++11)\fP                                              \fI(class template)\fP 
+\fI(C++11)\fP                                              \fI(class template)\fP
 \fI(C++11)\fP
 \fI(C++11)\fP
 move_if_noexcept                                     obtains an rvalue reference if the move
 \fI(C++11)\fP                                              constructor does not throw
-                                                     \fI(function template)\fP 
+                                                     \fI(function template)\fP
 std::experimental::is_move_constructible_v           variable template alias of
 (library fundamentals TS)                            std::is_move_constructible::value
-                                                     (variable template) 
+                                                     (variable template)
 std::experimental::is_trivially_move_constructible_v variable template alias of
 (library fundamentals TS)                            std::is_trivially_move_constructible::value
-                                                     (variable template) 
+                                                     (variable template)
 std::experimental::is_nothrow_move_constructible_v   variable template alias of
 (library fundamentals TS)                            std::is_nothrow_move_constructible::value
-                                                     (variable template) 
+                                                     (variable template)

@@ -1,4 +1,4 @@
-.TH std::strstream::str 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::strstream::str 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::strstream::str \- std::strstream::str
 
@@ -10,10 +10,16 @@ std::strstream::str \- std::strstream::str
 
 .SH Notes
 
+   Before a call to str() that uses the result as a C string, the stream buffer must be
+   null-terminated. Regular output such as with stream << 1.2 does not store a null
+   terminator, it must be appended explicitly, typically with the manipulator
+   std::ends.
+
    After a call to str(), dynamic streams become frozen. A call to freeze(false) is
    required before exiting the scope in which this strstream object was created.
    otherwise the destructor will leak memory. Also, additional output to a frozen
-   stream may be truncated once it reaches the end of the allocated buffer.
+   stream may be truncated once it reaches the end of the allocated buffer, which may
+   leave the buffer not null-terminated.
 
 .SH Parameters
 
@@ -31,18 +37,17 @@ std::strstream::str \- std::strstream::str
 
  #include <strstream>
  #include <iostream>
-  
+
  int main()
  {
      std::strstream dyn; // dynamically-allocated output buffer
-     dyn << "Test: " << 1.23;
-     std::cout << "The output stream holds \\"" << dyn.str() << "\\"\\n";
-  
-     dyn << "Test: " << 1.23;
-     std::cout << "The output stream holds \\"" << dyn.str() << "\\"\\n";
+     dyn << "Test: " << 1.23; // not adding std::ends to demonstrate append behavior
+     std::cout << "The output stream holds \\"";
+     std::cout.write(dyn.str(), dyn.pcount()) << "\\"\\n";
      // the stream is now frozen due to str()
-     dyn << " More text";
-     std::cout << "The output stream holds \\"" << dyn.str() << "\\"\\n";
+     dyn << " More text" << std::ends;
+     std::cout << "The output stream holds \\"";
+     std::cout.write(dyn.str(), dyn.pcount()) << "\\"\\n";
      dyn.freeze(false);
  }
 
@@ -54,4 +59,4 @@ std::strstream::str \- std::strstream::str
 .SH See also
 
    str marks the buffer frozen and returns the beginning pointer of the input sequence
-       \fI(public member function of std::strstreambuf)\fP 
+       \fI(public member function of std::strstreambuf)\fP

@@ -1,4 +1,4 @@
-.TH std::scanf,std::fscanf,std::sscanf 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::scanf,std::fscanf,std::sscanf 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::scanf,std::fscanf,std::sscanf \- std::scanf,std::fscanf,std::sscanf
 
@@ -21,10 +21,15 @@ stream - input file stream to read from
 buffer - pointer to a null-terminated character string to read from
          pointer to a null-terminated character string specifying how to read the input.
 
-         The format string consists of whitespace characters (any single whitespace character in the format string consumes
-         all available consecutive whitespace characters from the input), non-whitespace multibyte characters except % (each
-         such character in the format string consumes exactly one identical character from the input) and conversion
-         specifications. Each conversion specification has the following format:
+         The format string consists of
+
+           * non-whitespace multibyte characters except %: each such character in the format string consumes exactly one
+             identical character from the input stream, or causes the function to fail if the next character on the stream
+             does not compare equal.
+           * whitespace characters: any single whitespace character in the format string consumes all available consecutive
+             whitespace characters from the input (determined as if by calling isspace in a loop). Note that there is no
+             difference between "\\n", " ", "\\t\\t", or other whitespace in the format string.
+           * conversion specifications. Each conversion specification has the following format:
 
            * introductory % character
 
@@ -104,9 +109,9 @@ buffer - pointer to a null-terminated character string to read from
                     matches only up to
                     width. Always stores a
                     null character in
-                    addition to the
+format -            addition to the
                     characters matched (so
-format -            the argument array
+                    the argument array
                     must have room for at
                     least width+1
                     characters)
@@ -128,29 +133,26 @@ format -            the argument array
                     (base is determined by
                     the first characters
                     parsed)
-                    matches a unsigned
-                    integer.
+                    matches an unsigned
+                    decimal integer.
 
-                    The format of the
+             u      The format of the
                     number is the same as
-             u      expected by strtoul()
-                    with the value 0 for
-                    the base argument               signed                     signed
-                    (base is determined by signed   short*   signed   signed   long     intmax_t*
-                    the first characters   char* or or       int* or  long* or long* or or         size_t* ptrdiff_t* N/A
-                    parsed)                unsigned unsigned unsigned unsigned unsigned uintmax_t*
-                    matches an octal       char*    short*   int*     long*    long
-                    integer.                                                   long*
-
+                    expected by strtoul()                                      signed
+                    with the value 10 for  signed   signed   signed   signed   long
+                    the base argument.     char* or short*   int* or  long* or long* or intmax_t*
+                    matches an unsigned    unsigned or       unsigned unsigned unsigned or         size_t* ptrdiff_t* N/A
+                    octal integer.         char*    unsigned int*     long*    long     uintmax_t*
+                                                    short*                     long*
              o      The format of the
                     number is the same as
                     expected by strtoul()
                     with the value 8 for
                     the base argument
-                    matches an hexadecimal
-                    integer.
+                    matches an unsigned
+                    hexadecimal integer.
 
-             x      The format of the
+            x, X    The format of the
                     number is the same as
                     expected by strtoul()
                     with the value 16 for
@@ -187,7 +189,7 @@ format -            the argument array
          as if by calling isspace) before attempting to parse the input. These consumed characters do not count towards the
          specified maximum field width.
 
-         The conversion specifiers lc, ls, and l[ perform multibyte-to-wide character conversion as if by calling wcrtomb()
+         The conversion specifiers lc, ls, and l[ perform multibyte-to-wide character conversion as if by calling mbrtowc()
          with an mbstate_t object initialized to zero before the first character is converted.
 
          The conversion specifiers s and [ always store the null terminator in addition to the matched characters. The size
@@ -195,6 +197,9 @@ format -            the argument array
 
          The correct conversion specifications for the fixed-width integer types (int8_t, etc) are defined in the header
          <cinttypes>(C++) or <inttypes.h> (C) (although SCNdMAX, SCNuMAX, etc is synonymous with %jd, %ju, etc).
+
+         There is a sequence point after the action of each conversion specifier; this permits storing multiple fields in the
+         same "sink" variable.
 ...    - receiving arguments
 
 .SH Return value
@@ -228,7 +233,7 @@ format -            the argument array
  #include <iostream>
  #include <clocale>
  #include <cstdio>
-  
+
  int main()
  {
      int i, j;
@@ -236,7 +241,7 @@ format -            the argument array
      char str1[10], str2[4];
      wchar_t warr[2];
      std::setlocale(LC_ALL, "en_US.utf8");
-  
+
      char input[] = u8"25 54.32E-1 Thompson 56789 0123 56ß水";
      // parse as follows:
      // %d: an integer
@@ -250,7 +255,7 @@ format -            the argument array
      // %2lc: two wide characters, using multibyte to wide conversion
      int ret = std::sscanf(input, "%d%f%9s%2d%f%*d %3[0-9]%2lc",
                       &i, &x, str1, &j, &y, str2, warr);
-  
+
      std::cout << "Converted " << ret << " fields:\\n"
                << "i = " << i << "\\nx = " << x << '\\n'
                << "str1 = " << str1 << "\\nj = " << j << '\\n'
@@ -275,14 +280,14 @@ format -            the argument array
    vscanf
    vfscanf  reads formatted input from stdin, a file stream or a buffer
    vsscanf  using variable argument list
-   \fI(C++11)\fP  \fI(function)\fP 
+   \fI(C++11)\fP  \fI(function)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
    fgets    gets a character string from a file stream
-            \fI(function)\fP 
+            \fI(function)\fP
    printf
    fprintf  prints formatted output to stdout, a file stream or a buffer
-   sprintf  \fI(function)\fP 
+   sprintf  \fI(function)\fP
    snprintf
    \fI(C++11)\fP
    C documentation for

@@ -1,4 +1,4 @@
-.TH std::realloc 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::realloc 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::realloc \- std::realloc
 
@@ -27,6 +27,19 @@ std::realloc \- std::realloc
    returned, or some non-null pointer may be returned that may not be used to access
    storage).
 
+   The following functions are required to be thread-safe:
+
+     * The library versions of operator new and operator delete
+     * User replacement versions of global operator new and operator
+       delete
+     * std::calloc, std::malloc, std::realloc                             \fI(since C++11)\fP
+       , std::aligned_alloc
+       \fI(since C++17)\fP
+
+   Calls to these functions that allocate or deallocate a particular unit
+   of storage occur in a single total order, and each such deallocation
+   call happens-before the next allocation (if any) in this order.
+
 .SH Parameters
 
    ptr      - pointer to the memory area to be reallocated
@@ -49,12 +62,12 @@ std::realloc \- std::realloc
    access in the preserved part of the memory block after a call to realloc.
 
    Some non-standard libraries define a type trait "BitwiseMovable" or "Relocatable",
-   which describes a type that
+   which describes a type that doesn't have:
 
-     * does not have to register with an observer that maintains a pointer to this
-       object (e.g. nodes of a list or a tree)
-     * has no members of pointer type that point to members of the same object (like
-       std::experimental::optional)
+     * external references (e.g. nodes of a list or a tree that holds reference to
+       another element), and
+     * internal references (e.g. member pointer which might hold the address of another
+       member).
 
    Objects of such type can be accessed after their storage is reallocated even if
    their copy constructors are not trivial.
@@ -67,7 +80,7 @@ std::realloc \- std::realloc
  #include <cstdlib>
  #include <new>
  #include <cassert>
-  
+
  class MallocDynamicBuffer
  {
      char* p;
@@ -90,7 +103,7 @@ std::realloc \- std::realloc
      char& operator[](size_t n) { return p[n]; }
      char operator[](size_t n) const { return p[n]; }
  };
-  
+
  int main()
  {
      MallocDynamicBuffer buf1(1024);

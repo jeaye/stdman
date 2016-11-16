@@ -1,4 +1,4 @@
-.TH std::ferror 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::ferror 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ferror \- std::ferror
 
@@ -23,35 +23,39 @@ std::ferror \- std::ferror
 
  #include <cstdio>
  #include <cstdlib>
-  
- int main()
+ #include <clocale>
+ #include <cwchar>
+
+ int main(void)
  {
-     FILE* fp = std::fopen("test.txt", "r");
-     if(!fp) {
-         std::perror("File opening failed");
-         return EXIT_FAILURE;
-     }
-  
-     int c; // note: int, not char, required to handle EOF
-     while ((c = std::fgetc(fp)) != EOF) { // standard C I/O file reading loop
-        std::putchar(c);
-     }
-  
-     if (std::ferror(fp))
-         std::puts("I/O error when reading");
-     else if (std::feof(fp))
-         std::puts("End of file reached successfully");
-  
-     std::fclose(fp);
+     const char *fname = std::tmpnam(nullptr);
+     std::FILE* f = std::fopen(fname, "wb");
+     std::fputs("\\xff\\xff\\n", f); // not a valid UTF-8 character sequence
+     std::fclose(f);
+
+     std::setlocale(LC_ALL, "en_US.utf8");
+     f = std::fopen(fname, "rb");
+     std::wint_t ch;
+     while ((ch=std::fgetwc(f)) != WEOF) // attempt to read as UTF-8
+           std::printf("%#x ", ch);
+
+     if (std::feof(f))
+         puts("EOF indicator set");
+     if (std::ferror(f))
+         puts("Error indicator set");
  }
+
+.SH Output:
+
+ Error indicator set
 
 .SH See also
 
    clearerr clears errors
-            \fI(function)\fP 
+            \fI(function)\fP
    feof     checks for the end-of-file
-            \fI(function)\fP 
+            \fI(function)\fP
    perror   displays a character string corresponding of the current error to stderr
-            \fI(function)\fP 
+            \fI(function)\fP
    C documentation for
    ferror

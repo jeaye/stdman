@@ -1,0 +1,62 @@
+.TH std::launder 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::launder \- std::launder
+
+.SH Synopsis
+   Defined in header <new>
+   template <class T>          \fI(since C++17)\fP
+   constexpr T* launder(T* p)
+
+   Obtains a pointer to an object created in storage occupied by an existing object of
+   the same type, even if it has const or reference members.
+
+   Formally, given
+
+     * the pointer p represents the address A of a byte in memory
+     * an object X is located at the address A
+     * X is within its lifetime
+     * the type of X is the same as T, ignoring cv-qualifiers at every level
+     * Every byte that would be reachable through the result is reachable through p
+       (bytes are reachable through a pointer that points to an object if those bytes
+       are within that object's storage, or within the immediately enclosing array of
+       which the object is an element)
+
+   Then std::launder(p) returns a value of type T* that points to the object X.
+
+   The program is ill-formed if T is a function type or (possibly cv-qualified) void.
+
+   std::launder may be used in a core constant expression if the value of its argument
+   may be used in a core constant expression
+
+.SH Exceptions
+
+   noexcept specification:
+   noexcept
+
+.SH Notes
+
+   For objects that do not have const and reference members, std::launder is not
+   necessary; pointers and references can be reused
+
+.SH Example
+
+   
+// Run this code
+
+ #include <new>
+
+ struct X {
+   const int n; // note: X has a const member
+ };
+ int main()
+ {
+   X *p = new X{3};
+   const int a = p->n;
+   new (p) X{5};       // p does not point to new object because X::n is const
+   const int b = p->n; // undefined behavior
+   const int c = std::launder(p)->n; // OK, std::launder(p) points to new object
+ }
+
+.SH Category:
+
+     * unconditionally noexcept

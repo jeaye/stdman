@@ -1,0 +1,116 @@
+.TH std::filesystem::path::string,std::filesystem::path::wstring, 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::filesystem::path::string,std::filesystem::path::wstring, \- std::filesystem::path::string,std::filesystem::path::wstring,
+
+.SH Synopsis
+
+   template< class CharT, class Traits = std::char_traits<CharT>
+
+   class Alloc = std::allocator<CharT> >                         \fB(1)\fP \fI(since C++17)\fP
+   std::basic_string<CharT,Traits,Alloc>
+
+   string( const Alloc& a = Allocator() ) const;
+   std::string string() const;
+   std::wstring wstring() const;
+   std::string u8string() const;                                 \fB(2)\fP \fI(since C++17)\fP
+   std::u16string u16string() const;
+   std::u32string u32string() const;
+
+   Returns the internal pathname in native pathname format, converted to specific
+   string type. Conversion, if any, is performed as follows:
+
+     * If path::value_type is char, conversion, if any, is system-dependent. This is
+       the case on typical POSIX systems (such as Linux), where native encoding is
+       UTF-8 and string() performs no conversion.
+     * Otherwise, if path::value_type is wchar_t, conversion, if any, is unspecified.
+       This is the case on Windows, where wchar_t is 16 bit and the native encoding is
+       UTF-16.
+     * Otherwise, if path::value_type is char16_t, native encoding is UTF-16 and the
+       conversion method is unspecified.
+     * Otherwise, if path::value_type is char32_t, native encoding is UTF-32 and the
+       conversion method is unspecified.
+
+   1) All memory allocations are performed by a.
+   2) The result encoding in the case of u8string() is always UTF-8.
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   The internal pathname in native pathname format, converted to specified string type.
+
+.SH Exceptions
+
+   \fI(none)\fP
+
+.SH Example
+
+   
+// Run this code
+
+ #include <cstdio>
+ #ifdef _MSC_VER
+ #include <io.h>
+ #include <fcntl.h>
+ #else
+ #include <locale>
+ #include <clocale>
+ #endif
+ #include <fstream>
+ #include <iostream>
+ #include <filesystem>
+ namespace fs = std::filesystem;
+
+ int main()
+ {
+ #ifdef _MSC_VER
+     _setmode(_fileno(stderr), _O_WTEXT);
+ #else
+     std::setlocale(LC_ALL, "");
+     std::locale::global(std::locale(""));
+     std::cout.imbue(std::locale());
+     std::wcerr.imbue(std::locale());
+ #endif
+
+     fs::path p = fs::u8path(u8"要らない.txt");
+     std::ofstream(p) << "File contents"; // Prior to LWG2676 uses operator string_type()
+                                          // on MSVC, where string_type is wstring, only
+                                          // works due to non-standard extension.
+                                          // Post-LWG2676 uses new fstream constructors
+
+     // native string representation can be used with OS APIs
+     if (std::FILE* f =
+ #ifdef _MSC_VER
+                 _wfopen(p.c_str(), L"r")
+ #else
+                 std::fopen(p.c_str(), "r")
+ #endif
+         )
+     {
+         int ch;
+         while((ch=fgetc(f))!= EOF) putchar(ch);
+         std::fclose(f);
+     }
+
+     // multibyte and wide representation can be used for output
+     std::cout << "\\nFile name in narrow multibyte encoding: " << p.string() << '\\n';
+     std::wcerr << "File name in wide encoding: " << p.wstring() << '\\n';
+
+     fs::remove(p);
+ }
+
+.SH Output:
+
+ File contents
+ File name in narrow multibyte encoding: 要らない.txt
+ File name in wide encoding: 要らない.txt
+
+.SH See also
+
+   generic_string
+   generic_wstring   returns the path in generic pathname format converted to a string
+   generic_u8string  \fI(public member function)\fP
+   generic_u16string
+   generic_u32string

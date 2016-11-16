@@ -1,4 +1,4 @@
-.TH std::basic_ostream::operator<< 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_ostream::operator<< 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_ostream::operator<< \- std::basic_ostream::operator<<
 
@@ -9,7 +9,7 @@ std::basic_ostream::operator<< \- std::basic_ostream::operator<<
    basic_ostream& operator<<( unsigned int value );
    basic_ostream& operator<<( long value );                          \fB(3)\fP
    basic_ostream& operator<<( unsigned long value );
-   basic_ostream& operator<<( long long value );                     \fB(4)\fP \fI(since C++11)\fP
+   basic_ostream& operator<<( long long value );                     \fB(4)\fP  \fI(since C++11)\fP
    basic_ostream& operator<<( unsigned long long value );
    basic_ostream& operator<<( float value );
 
@@ -20,23 +20,23 @@ std::basic_ostream::operator<< \- std::basic_ostream::operator<<
    basic_ostream& operator<<( const void* value );                   \fB(7)\fP
    basic_ostream& operator<<( std::basic_streambuf<CharT, Traits>*   \fB(8)\fP
    sb);
+   basic_ostream& operator<<(                                        \fB(9)\fP
+   std::ios_base& (*func)(std::ios_base&) );
    basic_ostream& operator<<(
-       std::ios_base& (*func)(std::ios_base&) );
-   basic_ostream& operator<<(
-       std::basic_ios<CharT,Traits>&                                 \fB(9)\fP
+   std::basic_ios<CharT,Traits>&                                     \fB(10)\fP
    (*func)(std::basic_ios<CharT,Traits>&) );
    basic_ostream& operator<<(
-       std::basic_ostream<CharT,Traits>&
+   std::basic_ostream<CharT,Traits>&                                 \fB(11)\fP
    (*func)(std::basic_ostream<CharT,Traits>&) );
 
    Inserts data into the stream.
 
-   1-2) Behaves as an FormattedOutputFunction. After constructing and checking the
+   1-2) Behaves as a FormattedOutputFunction. After constructing and checking the
    sentry object, if value is short or int, then casts it to unsigned short or unsigned
    int if ios_base::flags() & ios_base::basefield is ios_base::oct or ios_base::hex.
    After that, casts to long in any case and outputs as in \fB(3)\fP. If value is unsigned
    short or unsigned int, casts to unsigned long and outputs as in \fB(3)\fP.
-   3-7) Behaves as an FormattedOutputFunction. After constructing and checking the
+   3-7) Behaves as a FormattedOutputFunction. After constructing and checking the
    sentry object, inserts an integer, floating point, boolean or generic pointer value
    by calling num_put::put(). If the end of file condition was encountered during
    output (put().failed() == true), sets ios::badbit.
@@ -50,10 +50,11 @@ std::basic_ostream::operator<< \- std::basic_ostream::operator<<
        inserted is not extracted);
      * an exception occurs (in which case the exception is caught).
 
-   If no characters were inserted, executes setstate(badbit). If an exception was
-   thrown while extracting, sets failbit
-   9) Calls func(*this);. These overloads are used to implement output I/O manipulators
-   such as std::endl.
+   If no characters were inserted, executes setstate(failbit). If an exception was
+   thrown while extracting, sets failbit and, if failbit is set in exceptions(),
+   rethrows the exception.
+   9-11) Calls func(*this);. These overloads are used to implement output I/O
+   manipulators such as std::endl.
 
 .SH Parameters
 
@@ -63,14 +64,19 @@ std::basic_ostream::operator<< \- std::basic_ostream::operator<<
 
 .SH Return value
 
-   *this
+   1-10) *this
+   11) func(*this)
 
 .SH Notes
 
-   There are no overload for pointers to volatile or function pointers (other than the
-   ones with signatures accepted by the \fB(9)\fP overload). Attempting to output such
-   objects invokes implicit conversion to bool, and, for any non-null pointer value,
-   the value 1 is printed (unless boolalpha was set).
+   There are no overload for pointers to non-static member, pointers to volatile, or
+   function pointers (other than the ones with signatures accepted by the (9-11)
+   overloads). Attempting to output such objects invokes implicit conversion to bool,
+   and, for any non-null pointer value, the value 1 is printed (unless boolalpha was
+   set).
+
+   The arguments of type char and const char* are handled by the non-member overloads
+   of operator<<.
 
 .SH Example
 
@@ -85,7 +91,7 @@ std::basic_ostream::operator<< \- std::basic_ostream::operator<<
      std::istringstream input(" \\"Some text.\\" ");
      volatile int n = 42;
      double f = 3.14;
-     bool b = true;;
+     bool b = true;
      std::cout << n   // int overload
                << ' ' // non-member overload
                << std::boolalpha << b // bool overload
@@ -103,7 +109,7 @@ std::basic_ostream::operator<< \- std::basic_ostream::operator<<
 .SH See also
 
    operator<<(std::basic_ostream) inserts character data
-                                  \fI(function template)\fP 
+                                  \fI(function template)\fP
    operator<<                     performs stream I/O of strings
    operator>>                     \fI(function template)\fP
    operator<<                     performs stream input and output of bitsets
@@ -112,11 +118,11 @@ std::basic_ostream::operator<< \- std::basic_ostream::operator<<
    operator>>                     \fI(function template)\fP
    operator<<                     performs stream input and output on pseudo-random
    operator>>                     number engine
-                                  \fI(function template)\fP 
+                                  \fI(function template)\fP
    operator<<                     performs stream input and output on pseudo-random
    operator>>                     number distribution
-                                  \fI(function template)\fP 
+                                  \fI(function template)\fP
    put                            inserts a character
-                                  \fI(public member function)\fP 
+                                  \fI(public member function)\fP
    write                          inserts blocks of characters
-                                  \fI(public member function)\fP 
+                                  \fI(public member function)\fP

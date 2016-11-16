@@ -1,19 +1,31 @@
-.TH std::remove,std::remove_if 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::remove,std::remove_if 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::remove,std::remove_if \- std::remove,std::remove_if
 
 .SH Synopsis
    Defined in header <algorithm>
-   template< class ForwardIt, class T >                                      \fB(1)\fP
-   ForwardIt remove( ForwardIt first, ForwardIt last, const T& value );
-   template< class ForwardIt, class UnaryPredicate >                         \fB(2)\fP
-   ForwardIt remove_if( ForwardIt first, ForwardIt last, UnaryPredicate p );
+   template< class ForwardIt, class T >
+   ForwardIt remove( ForwardIt first, ForwardIt last, const T& value  \fB(1)\fP
+   );
+   template< class ExecutionPolicy, class ForwardIt, class T >
+   ForwardIt remove( ExecutionPolicy&& policy, ForwardIt first,       \fB(2)\fP \fI(since C++17)\fP
+   ForwardIt last, const T& value );
+   template< class ForwardIt, class UnaryPredicate >
+   ForwardIt remove_if( ForwardIt first, ForwardIt last,              \fB(3)\fP
+   UnaryPredicate p );
+   template< class ExecutionPolicy, class ForwardIt, class
+   UnaryPredicate >                                                   \fB(4)\fP \fI(since C++17)\fP
+   ForwardIt remove_if( ExecutionPolicy&& policy, ForwardIt first,
+   ForwardIt last, UnaryPredicate p );
 
    Removes all elements satisfying specific criteria from the range [first, last) and
    returns a past-the-end iterator for the new end of the range.
 
-   The first version removes all elements that are equal to value, the second version
-   removes all elements for which predicate p returns true.
+   1) Removes all elements that are equal to value.
+   3) Removes all elements for which predicate p returns true.
+   2,4) Same as (1,3), but executed according to policy. These overloads do not
+   participate in overload resolution unless
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
 
    Removing is done by shifting (by means of move assignment) the elements in the range
    in such a way that the elements that are not to be removed appear in the beginning
@@ -29,12 +41,13 @@ std::remove,std::remove_if \- std::remove,std::remove_if
 
    first, last - the range of elements to process
    value       - the value of elements to remove
+   policy      - the execution policy to use. See execution policy for details.
                  unary predicate which returns true if the element should be removed.
 
                  The signature of the predicate function should be equivalent to the
                  following:
 
-   p           -  bool pred(const Type &a);
+   p           - bool pred(const Type &a);
 
                  The signature does not need to have const &, but the function must not
                  modify the objects passed to it.
@@ -50,11 +63,22 @@ std::remove,std::remove_if \- std::remove,std::remove_if
 
 .SH Return value
 
-   Iterator to the new end of the range
+   Past-the-end iterator for the new range of values (if this is not end, then it
+   points to an unspecified value, and so do iterators to any values between this
+   iterator and end)
 
 .SH Complexity
 
    Exactly std::distance(first, last) applications of the predicate.
+
+.SH Exceptions
+
+   The overloads with a template parameter named ExecutionPolicy report errors as
+   follows:
+
+     * If execution of a function invoked as part of the algorithm throws an exception,
+       std::terminate is called.
+     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
 .SH Notes
 
@@ -64,6 +88,9 @@ std::remove,std::remove_if \- std::remove,std::remove_if
    These algorithms cannot be used with associative containers such as std::set and
    std::map because ForwardIt does not dereference to a MoveAssignable type (the keys
    in these containers are not modifiable)
+
+   The standard library also defines an overload of std::remove taking const char*,
+   used to delete files: std::remove.
 
 .SH Possible implementation
 
@@ -103,14 +130,14 @@ std::remove,std::remove_if \- std::remove,std::remove_if
  #include <string>
  #include <iostream>
  #include <cctype>
-  
+
  int main()
  {
      std::string str1 = "Text with some   spaces";
      str1.erase(std::remove(str1.begin(), str1.end(), ' '),
                 str1.end());
      std::cout << str1 << '\\n';
-  
+
      std::string str2 = "Text\\n with\\tsome \\t  whitespaces\\n\\n";
      str2.erase(std::remove_if(str2.begin(),
                                str2.end(),
@@ -128,11 +155,11 @@ std::remove,std::remove_if \- std::remove,std::remove_if
 
    remove_copy                            copies a range of elements omitting those
    remove_copy_if                         that satisfy specific criteria
-                                          \fI(function template)\fP 
+                                          \fI(function template)\fP
                                           removes consecutive duplicate elements in a
    unique                                 range
-                                          \fI(function template)\fP 
+                                          \fI(function template)\fP
    std::experimental::parallel::remove    parallelized version of std::remove
-   (parallelism TS)                       \fI(function template)\fP 
+   (parallelism TS)                       \fI(function template)\fP
    std::experimental::parallel::remove_if parallelized version of std::remove_if
-   (parallelism TS)                       \fI(function template)\fP 
+   (parallelism TS)                       \fI(function template)\fP

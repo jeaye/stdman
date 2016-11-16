@@ -1,0 +1,165 @@
+.TH std::experimental::parallel::reduce 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::experimental::parallel::reduce \- std::experimental::parallel::reduce
+
+.SH Synopsis
+   Defined in header <experimental/numeric>
+   template<class InputIt>
+
+   typename std::iterator_traits<InputIt>::value_type reduce(      \fB(1)\fP (parallelism TS)
+
+   InputIt first, InputIt last);
+   template<class ExecutionPolicy, class InputIterator>
+
+   typename std::iterator_traits<InputIt>::value_type reduce(      \fB(2)\fP (parallelism TS)
+
+   ExecutionPolicy&& policy, InputIt first, InputIt last);
+   template<class InputIt, class T>                                \fB(3)\fP (parallelism TS)
+   T reduce(InputIt first, InputIt last, T init);
+   template<class ExecutionPolicy, class InputIt, class T>
+   T reduce(ExecutionPolicy&& policy, InputIt first, InputIt last, \fB(4)\fP (parallelism TS)
+   T init);
+   template<class InputIt, class T, class BinaryOp>
+   T reduce(InputIt first, InputIt last, T init, BinaryOp          \fB(5)\fP (parallelism TS)
+   binary_op);
+   template<class ExecutionPolicy, class InputIt, class T, class
+   BinaryOp>
+                                                                   \fB(6)\fP (parallelism TS)
+   T reduce(ExecutionPolicy&& policy,
+
+   InputIt first, InputIt last, T init, BinaryOp binary_op);
+
+   1) same as reduce(first, last, typename std::iterator_traits<InputIt>::value_type{})
+   3) same as reduce(first, last, init, std::plus<>())
+   5) Reduces the range [first; last), possibly permuted and aggregated in unspecified
+   manner, along with the initial value init over binary_op.
+   2,4,6) Same as (1,3,5), but executed according to policy
+
+   The behavior is non-deterministic if binary_op is not associative or not
+   commutative.
+
+   The behavior is undefined if binary_op modifies any element or invalidates any
+   iterator in [first; last).
+
+.SH Parameters
+
+   first, last - the range of elements to apply the algorithm to
+   init        - the initial value of the generalized sum
+   policy      - the execution policy
+                 binary FunctionObject that will be applied in unspecified order to the
+   binary_op   - result of dereferencing the input iterators, the results of other
+                 binary_op and init.
+.SH Type requirements
+   -
+   InputIt must meet the requirements of InputIterator.
+
+.SH Return value
+
+   Generalized sum of init and *first, *(first+1), ... *(last-1) over binary_op,
+
+   where generalized sum GSUM(op, a
+   1, ..., a
+   N) is defined as follows:
+
+     * if N=1, a
+       1
+     * if N > 1, op(GSUM(op, b
+       1, ..., b
+       K), GSUM(op, b
+       M, ..., b
+       N)) where
+
+     * b
+       1, ..., b
+       N may be any permutation of a1, ..., aN and
+     * 1 < K+1 = M ≤ N
+
+   in other words, the elements of the range may be grouped and rearranged in arbitrary
+   order
+
+.SH Complexity
+
+   O(last - first) applications of binary_op.
+
+.SH Exceptions
+
+     * If execution of a function invoked as part of the algorithm throws an exception,
+
+     * if policy is parallel_vector_execution_policy, std::terminate is called
+     * if policy is sequential_execution_policy or parallel_execution_policy, the
+       algorithm exits with an exception_list containing all uncaught exceptions. If
+       there was only one uncaught exception, the algorithm may rethrow it without
+       wrapping in exception_list. It is unspecified how much work the algorithm will
+       perform before returning after the first exception was encountered.
+     * if policy is some other type, the behavior is implementation-defined
+
+     * If the algorithm fails to allocate memory (either for itself or to construct an
+       exception_list when handling a user exception), std::bad_alloc is thrown.
+
+.SH Notes
+
+   If the range is empty, init is returned, unmodified
+
+     * If policy is an instance of sequential_execution_policy, all operations are
+       performed in the calling thread.
+     * If policy is an instance of parallel_execution_policy, operations may be
+       performed in unspecified number of threads, indeterminately sequenced with each
+       other
+     * If policy is an instance of parallel_vector_execution_policy, execution may be
+       both parallelized and vectorized: function body boundaries are not respected and
+       user code may be overlapped and combined in arbitrary manner (in particular,
+       this implies that a user-provided Callable must not acquire a mutex to access a
+       shared resource)
+
+.SH Example
+
+   reduce is the out-of-order version of std::accumulate:
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <chrono>
+ #include <vector>
+ #include <numeric>
+ #include <experimental/execution_policy>
+ #include <experimental/numeric>
+
+ int main()
+ {
+     std::vector<double> v(10'000'007, 0.5);
+
+     {
+         auto t1 = std::chrono::high_resolution_clock::now();
+         double result = std::accumulate(v.begin(), v.end(), 0.0);
+         auto t2 = std::chrono::high_resolution_clock::now();
+         std::chrono::duration<double, std::milli> ms = t2 - t1;
+         std::cout << std::fixed << "std::accumulate result " << result
+                   << " took " << ms.count() << " ms\\n";
+     }
+
+     {
+         auto t1 = std::chrono::high_resolution_clock::now();
+         double result = std::experimental::parallel::reduce(
+                             std::experimental::parallel::par,
+                             v.begin(), v.end());
+         auto t2 = std::chrono::high_resolution_clock::now();
+         std::chrono::duration<double, std::milli> ms = t2 - t1;
+         std::cout << "parallel::reduce result "
+                   << result << " took " << ms.count() << " ms\\n";
+     }
+ }
+
+.SH Possible output:
+
+ std::accumulate result 5000003.50000 took 12.7365 ms
+ parallel::reduce result 5000003.50000 took 5.06423 ms
+
+.SH See also
+
+   accumulate       sums up a range of elements
+                    \fI(function template)\fP
+   transform        applies a function to a range of elements
+                    \fI(function template)\fP
+   transform_reduce applies a functor, then reduces out of order
+   (parallelism TS) \fI(function template)\fP

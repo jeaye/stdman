@@ -1,4 +1,4 @@
-.TH std::search 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::search 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::search \- std::search
 
@@ -6,30 +6,73 @@ std::search \- std::search
    Defined in header <algorithm>
    template< class ForwardIt1, class ForwardIt2 >
 
-   ForwardIt1 search( ForwardIt1 first, ForwardIt1 last,                          \fB(1)\fP
+   ForwardIt1 search( ForwardIt1 first, ForwardIt1 last,              \fB(1)\fP
 
-                      ForwardIt2 s_first, ForwardIt2 s_last );
-   template< class ForwardIt1, class ForwardIt2, class BinaryPredicate >
+   ForwardIt2 s_first, ForwardIt2 s_last );
+   template< class ExecutionPolicy, class ForwardIt1, class
+   ForwardIt2 >
 
-   ForwardIt1 search( ForwardIt1 first, ForwardIt1 last,                          \fB(2)\fP
+   ForwardIt1 search( ExecutionPolicy&& policy, ForwardIt1 first,     \fB(2)\fP \fI(since C++17)\fP
+   ForwardIt1 last,
 
-                      ForwardIt2 s_first, ForwardIt2 s_last, BinaryPredicate p );
+   ForwardIt2 s_first, ForwardIt2 s_last );
+   template< class ForwardIt1, class ForwardIt2, class
+   BinaryPredicate >
+                                                                      \fB(3)\fP
+   ForwardIt1 search( ForwardIt1 first, ForwardIt1 last,
 
-   Searches for the first occurrence of the subsequence of elements [s_first, s_last)
-   in the range [first, last - (s_last - s_first)). The first version uses operator==
-   to compare the elements, the second version uses the given binary predicate p.
+   ForwardIt2 s_first, ForwardIt2 s_last, BinaryPredicate p );
+   template< class ExecutionPolicy, class ForwardIt1, class
+   ForwardIt2, class BinaryPredicate >
+
+   ForwardIt1 search( ExecutionPolicy&& policy, ForwardIt1 first,     \fB(4)\fP \fI(since C++17)\fP
+   ForwardIt1 last,
+
+   ForwardIt2 s_first, ForwardIt2 s_last, BinaryPredicate p );
+   template<class ForwardIterator, class Searcher>
+
+   ForwardIterator search( ForwardIterator first, ForwardIterator     \fB(5)\fP \fI(since C++17)\fP
+   last,
+
+   const Searcher& searcher );
+
+   1-4) Searches for the first occurrence of the subsequence of elements [s_first,
+   s_last) in the range [first, last - (s_last - s_first)).
+   1) Elements are compared using operator==.
+   3) Elements are compared using the given binary predicate p.
+   2,4) Same as (1,3), but executed according to policy. These overloads do not
+   participate in overload resolution unless
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
+   5) Searches the sequence [first, last) for the pattern specified in the constructor
+   of searcher. Effectively executes return searcher(first, last).first;. Searcher need
+   not be CopyConstructible.
+
+   The standard library provides the following searchers:
+
+   default_searcher              standard C++ library search algorithm
+   \fI(C++17)\fP                       implementation
+                                 \fI(class template)\fP
+   boyer_moore_searcher          Boyer-Moore search algorithm             \fI(since C++17)\fP
+   \fI(C++17)\fP                       implementation
+                                 \fI(class template)\fP
+   boyer_moore_horspool_searcher Boyer-Moore-Horspool search algorithm
+   \fI(C++17)\fP                       implementation
+                                 \fI(class template)\fP
 
 .SH Parameters
 
    first, last     - the range of elements to examine
    s_first, s_last - the range of elements to search for
+   policy          - the execution policy to use. See execution policy for details.
+   searcher        - the searcher encapsulating the search algorithm and the pattern to
+                     look for
                      binary predicate which returns true if the elements should be
                      treated as equal.
 
                      The signature of the predicate function should be equivalent to
                      the following:
 
-                      bool pred(const Type1 &a, const Type2 &b);
+                     bool pred(const Type1 &a, const Type2 &b);
    p               -
                      The signature does not need to have const &, but the function must
                      not modify the objects passed to it.
@@ -41,18 +84,32 @@ std::search \- std::search
 .SH Type requirements
    -
    ForwardIt1, ForwardIt2 must meet the requirements of ForwardIterator.
+   -
+   Searcher must meet the requirements of Searcher.
 
 .SH Return value
 
-   Iterator to the beginning of first subsequence [s_first, s_last) in the range
+   1-4) Iterator to the beginning of first subsequence [s_first, s_last) in the range
    [first, last - (s_last - s_first)). If no such subsequence is found, last is
    returned.
    If [s_first, s_last) is empty, first is returned. \fI(since C++11)\fP
+   5) Returns the result of searcher.operator(), that is, an iterator to the location
+   at which the substring is found or a copy of last if it was not found.
 
 .SH Complexity
 
-   At most S*N comparisons where S = std::distance(s_first, s_last) and N =
+   1-4) At most S*N comparisons where S = std::distance(s_first, s_last) and N =
    std::distance(first, last).
+   5) Depends on the searcher
+
+.SH Exceptions
+
+   The overloads with a template parameter named ExecutionPolicy report errors as
+   follows:
+
+     * If execution of a function invoked as part of the algorithm throws an exception,
+       std::terminate is called.
+     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
 .SH Possible implementation
 
@@ -107,23 +164,36 @@ std::search \- std::search
  #include <algorithm>
  #include <iostream>
  #include <vector>
-  
+
  template<typename Container>
  bool in_quote(const Container& cont, const std::string& s)
  {
      return std::search(cont.begin(), cont.end(), s.begin(), s.end()) != cont.end();
  }
-  
+
  int main()
  {
      std::string str = "why waste time learning, when ignorance is instantaneous?";
      // str.find() can be used as well
      std::cout << std::boolalpha << in_quote(str, "learning") << '\\n'
                                  << in_quote(str, "lemming")  << '\\n';
-  
+
      std::vector<char> vec(str.begin(), str.end());
      std::cout << std::boolalpha << in_quote(vec, "learning") << '\\n'
                                  << in_quote(vec, "lemming")  << '\\n';
+
+     // The C++17 overload demo:
+     std::string in = "Lorem ipsum dolor sit amet, consectetur adipiscing elit,"
+                      " sed do eiusmod tempor incididunt ut labore et dolore magna aliqua";
+     std::string needle = "pisci";
+     auto it = std::search(in.begin(), in.end(),
+                    std::make_boyer_moore_searcher(
+                        needle.begin(), needle.end()));
+     if(it != in.end())
+         std::cout << "The string " << needle << " found at offset "
+                   << it - in.begin() << '\\n';
+     else
+         std::cout << "The string " << needle << " not found\\n";
  }
 
 .SH Output:
@@ -132,29 +202,36 @@ std::search \- std::search
  false
  true
  false
+ The string pisci found at offset 43
 
 .SH See also
 
                                        finds the last sequence of elements in a certain
    find_end                            range
-                                       \fI(function template)\fP 
+                                       \fI(function template)\fP
    includes                            returns true if one set is a subset of another
-                                       \fI(function template)\fP 
+                                       \fI(function template)\fP
    equal                               determines if two sets of elements are the same
-                                       \fI(function template)\fP 
+                                       \fI(function template)\fP
    find                                finds the first element satisfying specific
    find_if                             criteria
-   find_if_not                         \fI(function template)\fP 
+   find_if_not                         \fI(function template)\fP
    \fI(C++11)\fP
                                        returns true if one range is lexicographically
    lexicographical_compare             less than another
-                                       \fI(function template)\fP 
+                                       \fI(function template)\fP
    mismatch                            finds the first position where two ranges differ
-                                       \fI(function template)\fP 
+                                       \fI(function template)\fP
                                        searches for a number consecutive copies of an
    search_n                            element in a range
-                                       \fI(function template)\fP 
-   std::experimental::search           applies a searcher to a sequence
-   (library fundamentals TS)           \fI(function template)\fP
+                                       \fI(function template)\fP
+   default_searcher                    standard C++ library search algorithm
+   \fI(C++17)\fP                             implementation
+                                       \fI(class template)\fP
+   boyer_moore_searcher                Boyer-Moore search algorithm implementation
+   \fI(C++17)\fP                             \fI(class template)\fP
+   boyer_moore_horspool_searcher       Boyer-Moore-Horspool search algorithm
+   \fI(C++17)\fP                             implementation
+                                       \fI(class template)\fP
    std::experimental::parallel::search parallelized version of std::search
-   (parallelism TS)                    \fI(function template)\fP 
+   (parallelism TS)                    \fI(function template)\fP

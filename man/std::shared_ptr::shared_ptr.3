@@ -1,58 +1,59 @@
-.TH std::shared_ptr::shared_ptr 3 "Nov 25 2015" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::shared_ptr::shared_ptr 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
 
 .SH Synopsis
-   constexpr shared_ptr();                               \fB(1)\fP
-   template< class Y >                                   \fB(2)\fP
+   constexpr shared_ptr();                                   \fB(1)\fP
+   constexpr shared_ptr( std::nullptr_t );                   \fB(2)\fP
+   template< class Y >                                       \fB(3)\fP
    explicit shared_ptr( Y* ptr );
-   template< class Y, class Deleter >                    \fB(3)\fP
+   template< class Y, class Deleter >                        \fB(4)\fP
    shared_ptr( Y* ptr, Deleter d );
-   template< class Y, class Deleter, class Alloc >       \fB(4)\fP
+   template< class Deleter >                                 \fB(5)\fP
+   shared_ptr( std::nullptr_t ptr, Deleter d );
+   template< class Y, class Deleter, class Alloc >           \fB(6)\fP
    shared_ptr( Y* ptr, Deleter d, Alloc alloc );
-   constexpr shared_ptr( std::nullptr_t );               \fB(5)\fP
-   template< class Deleter >                             \fB(6)\fP
-   shared_ptr( std::nullptr_t, Deleter d );
-   template< class Deleter, class Alloc >                \fB(7)\fP
-   shared_ptr( std::nullptr_t, Deleter d, Alloc alloc );
-   template< class Y >                                   \fB(8)\fP
-   shared_ptr( const shared_ptr<Y>& r, T *ptr );
-   shared_ptr( const shared_ptr& r );                    \fB(9)\fP
-   template< class Y >                                   \fB(9)\fP
+   template< class Deleter, class Alloc >                    \fB(7)\fP
+   shared_ptr( std::nullptr_t ptr, Deleter d, Alloc alloc );
+   template< class Y >                                       \fB(8)\fP
+   shared_ptr( const shared_ptr<Y>& r, element_type *ptr );
+   shared_ptr( const shared_ptr& r );                        \fB(9)\fP
+   template< class Y >                                       \fB(9)\fP
    shared_ptr( const shared_ptr<Y>& r );
-   shared_ptr( shared_ptr&& r );                         \fB(10)\fP
-   template< class Y >                                   \fB(10)\fP
+   shared_ptr( shared_ptr&& r );                             \fB(10)\fP
+   template< class Y >                                       \fB(10)\fP
    shared_ptr( shared_ptr<Y>&& r );
-   template< class Y >                                   \fB(11)\fP
+   template< class Y >                                       \fB(11)\fP
    explicit shared_ptr( const std::weak_ptr<Y>& r );
-   template< class Y >                                   \fB(12)\fP \fI(until C++17)\fP
+   template< class Y >                                       \fB(12)\fP \fI(until C++17)\fP
    shared_ptr( std::auto_ptr<Y>&& r );
-   template< class Y, class Deleter >                    \fB(13)\fP
+   template< class Y, class Deleter >                        \fB(13)\fP
    shared_ptr( std::unique_ptr<Y,Deleter>&& r );
 
    Constructs new shared_ptr from a variety of pointer types that refer to an object to
    manage.
 
-   An optional deleter d can be supplied that is later used to destroy the object when
-   no shared_ptr objects own it. By default, a delete-expression for type Y is used as
-   the deleter.
+   For the purposes of the description below, a pointer type Y* is said
+   to be compatible with a pointer type T* if either Y* is convertible to \fI(since C++17)\fP
+   T* or Y is the array type U[N] and T is U cv [] (where cv is some set
+   of cv-qualifiers).
 
-   1) Default constructor constructs a shared_ptr with no managed object, i.e. empty
-   shared_ptr
-   2-4) Constructs a shared_ptr with ptr as the pointer to the managed object. Y must
-   be a complete type and ptr must be convertible to T*. Additionally:
-   2) Uses the delete expression as the deleter. A valid delete expression must be
-   available, i.e. delete ptr must be well formed, have well-defined behavior and not
-   throw any exceptions.
-   3) Uses the specified deleter d as the deleter. Deleter must be callable for the
-   type Y, i.e. d(ptr) must be well formed, have well-defined behavior and not throw
-   any exceptions. Deleter must be CopyConstructible. The copy constructor and the
-   destructor must not throw exceptions.
-   4) Same as \fB(3)\fP, but additionally uses a copy of alloc for allocation of data for
-   internal use. Alloc must be a Allocator. The copy constructor and destructor must
-   not throw exceptions.
-   5-7) Analogous to \fB(2)\fP, \fB(3)\fP, \fB(4)\fP respectively, but constructs a shared_ptr with no
-   managed object, i.e. empty shared_ptr.
+   1-2) Constructs a shared_ptr with no managed object, i.e. empty shared_ptr
+   3-7) Constructs a shared_ptr with ptr as the pointer to the managed object.
+   If T is an array type U[N], Y(*)[N] must be convertible to T*. If T is an array type
+   U[], Y(*)[] must be convertible to T*. Otherwise,
+   \fI(since C++17)\fP Y* must be convertible to T*. Additionally:
+   3) Uses the delete-expression delete ptr
+   if T is not an array type; delete[] ptr if T is an array type
+   \fI(since C++17)\fP as the deleter. Y must be a complete type. The delete expression must
+   be well formed, have well-defined behavior and not throw any exceptions.
+   4-5) Uses the specified deleter d as the deleter. The expression d(ptr) must be well
+   formed, have well-defined behavior and not throw any exceptions. Deleter must be
+   CopyConstructible, and its copy constructor and destructor must not throw
+   exceptions.
+   6-7) Same as (4-5), but additionally uses a copy of alloc for allocation of data for
+   internal use. Alloc must be a Allocator, and its copy constructor and destructor
+   must not throw exceptions.
    8) The aliasing constructor: constructs a shared_ptr which shares ownership
    information with r, but holds an unrelated and unmanaged pointer ptr. Even if this
    shared_ptr is the last of the group to go out of scope, it will call the destructor
@@ -62,42 +63,77 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
    cases where ptr is a member of the object managed by r or is an alias (e.g.,
    downcast) of r.get()
    9) Constructs a shared_ptr which shares ownership of the object managed by r. If r
-   manages no object, *this manages no object too. This overload doesn't participate in
-   overload resolution if Y* is not implicitly convertible to T*.
+   manages no object, *this manages no object too. The template overload doesn't
+   participate in overload resolution if Y* is not
+   implicitly convertible to
+   \fI(until C++17)\fP
+   compatible with
+   \fI(since C++17)\fP T*.
    10) Move-constructs a shared_ptr from r. After the construction, *this contains a
-   copy of the previous state of r, r is empty. This overload doesn't participate in
-   overload resolution if Y* is not implicitly convertible to T*.
+   copy of the previous state of r, r is empty and its stored pointer is null. The
+   template overload doesn't participate in overload resolution if Y* is not
+   implicitly convertible to
+   \fI(until C++17)\fP
+   compatible with
+   \fI(since C++17)\fP T*.
    11) Constructs a shared_ptr which shares ownership of the object managed by r. Y*
-   must be convertible to T*. Note that r.lock() may be used for the same purpose: the
+   must be
+   implicitly convertible to
+   \fI(until C++17)\fP
+   compatible with
+   \fI(since C++17)\fP T*. Note that r.lock() may be used for the same purpose: the
    difference is that this constructor throws an exception if the argument is empty,
    while std::weak_ptr<T>::lock() constructs an empty std::shared_ptr in that case.
    12) Constructs a shared_ptr that stores and owns the object formerly owned by r. Y*
    must be convertible to T*. After construction, r is empty.
    13) Constructs a shared_ptr which manages the object currently managed by r. The
-   deleter associated to r is stored for future deletion of the managed object. r
+   deleter associated with r is stored for future deletion of the managed object. r
    manages no object after the call.
 
    This overload doesn't participate in overload resolution if
-   std::unique_ptr<Y, D>::pointer is not convertible to T*. If r.get() is \fI(since C++17)\fP
-   a null pointer, this overload is equivalent to the default constructor
-   \fB(1)\fP.
+   std::unique_ptr<Y, Deleter>::pointer is not
+   implicitly convertible to
+   \fI(until C++17)\fP                                                          \fI(since C++17)\fP
+   compatible with
+   \fI(since C++17)\fP T*. If r.get() is a null pointer, this overload is
+   equivalent to the default constructor \fB(1)\fP.
 
-   If D is a reference type, equivalent to shared_ptr(r.release(),
+   If Deleter is a reference type, equivalent to shared_ptr(r.release(),
    std::ref(r.get_deleter()). Otherwise, equivalent to shared_ptr(r.release(),
    r.get_deleter())
 
 .SH Notes
 
-   When constructing a shared_ptr from a raw pointer to an object of a type derived
-   from std::enable_shared_from_this, the constructors of shared_ptr update the private
-   weak_ptr member of the std::enable_shared_from_this base so that future calls to
+   The overloads \fB(3)\fP, \fB(4)\fP, and \fB(6)\fP enable shared_from_this with ptr, and the overload
+   \fB(13)\fP enables shared_from_this with the pointer returned by r.release(). This means
+   that these constructors determine if Y has an unambiguous and accessible base class
+   that is a specialization of std::enable_shared_from_this, and if so, the constructor
+   evaluates the statement:
+
+ if (ptr != nullptr && ptr->weak_this.expired())
+   ptr->weak_this = std::shared_ptr<std::remove_cv_t<Y>>(*this,
+                                   const_cast<std::remove_cv_t<Y>*>(p));
+
+   Where weak_this is the hidden mutable std::weak_ptr member of std::shared_from_this.
+   The assignment to the weak_this member is not atomic and conflicts with any
+   potentially concurrent access to the same object. This ensures that future calls to
    shared_from_this() would share ownership with the shared_ptr created by this raw
    pointer constructor.
 
-   Constructing a shared_ptr using the raw pointer overload for an object that is
-   already managed by a shared_ptr leads to undefined behavior, even if the object is
-   of a type derived from std::enable_shared_from_this (in other words, raw pointer
-   overloads assume ownership of the pointed-to object).
+   The test ptr->weak_this.expired() in the exposition code above makes sure that
+   weak_this is not reassigned if it already indicates an owner. This test is required
+   as of C++17.
+
+   The raw pointer overloads assume ownership of the pointed-to object. Therefore,
+   constructing a shared_ptr using the raw pointer overload for an object that is
+   already managed by a shared_ptr, such as by shared_ptr(ptr.get()) is likely to lead
+   to undefined behavior, even if the object is of a type derived from
+   std::enable_shared_from_this.
+
+   Because the default constructor is constexpr, static shared_ptrs are initialized as
+   part of static non-local initialization, before any dynamic non-local initialization
+   begins. This makes it safe to use a shared_ptr in a constructor of any static
+   object.
 
 .SH Parameters
 
@@ -109,28 +145,20 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
 
 .SH Exceptions
 
-   1)
-   noexcept specification:  
+   1-2)
+   noexcept specification:
    noexcept
-     
-   2) std::bad_alloc if required additional memory could not be obtained. May throw
-   implementation-defined exception for other errors. delete ptr is called if an
-   exception occurs.
-   3-4) std::bad_alloc if required additional memory could not be obtained. May throw
+   3) std::bad_alloc if required additional memory could not be obtained. May throw
+   implementation-defined exception for other errors. delete ptr
+   if T is not an array type, delete[] ptr otherwise)
+   \fI(since C++17)\fP is called if an exception occurs.
+   4-7) std::bad_alloc if required additional memory could not be obtained. May throw
    implementation-defined exception for other errors. d(ptr) is called if an exception
    occurs.
-   5)
-   noexcept specification:  
-   noexcept
-     
-   6-7) std::bad_alloc if required additional memory could not be obtained. May throw
-   implementation-defined exception for other errors. If an exception is thrown, d(ptr)
-   is executed.
    8-10)
-   noexcept specification:  
+   noexcept specification:
    noexcept
-     
-   11) std::bad_weak_ptr if r.expired == true. The constructor has no effect in this
+   11) std::bad_weak_ptr if r.expired() == true. The constructor has no effect in this
    case.
    12) std::bad_alloc if required additional memory could not be obtained. May throw
    implementation-defined exception for other errors. This constructor has no effect if
@@ -144,26 +172,26 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
 
  #include <memory>
  #include <iostream>
-  
+
  struct Foo {
      Foo() { std::cout << "Foo...\\n"; }
      ~Foo() { std::cout << "~Foo...\\n"; }
  };
-  
+
  struct D {
      void operator()(Foo* p) const {
-         std::cout << "Call delete for Foo object...\\n";
+         std::cout << "Call delete from function object...\\n";
          delete p;
      }
  };
-  
+
  int main()
  {
      {
          std::cout << "constructor with no managed object\\n";
          std::shared_ptr<Foo> sh1;
      }
-  
+
      {
          std::cout << "constructor with object\\n";
          std::shared_ptr<Foo> sh2(new Foo);
@@ -171,10 +199,14 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
          std::cout << sh2.use_count() << '\\n';
          std::cout << sh3.use_count() << '\\n';
      }
-  
+
      {
          std::cout << "constructor with object and deleter\\n";
          std::shared_ptr<Foo> sh4(new Foo, D());
+         std::shared_ptr<Foo> sh5(new Foo, [](auto p) {
+            std::cout << "Call delete from lambda...\\n";
+            delete p;
+         });
      }
  }
 
@@ -188,16 +220,19 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
  ~Foo...
  constructor with object and deleter
  Foo...
- Call delete for Foo object...
+ Foo...
+ Call delete from lambda...
  ~Foo...
+ Call delete from function object...
+ ~Foo..
 
 .SH See also
 
    make_shared     creates a shared pointer that manages a new object
-                   \fI(function template)\fP 
+                   \fI(function template)\fP
                    creates a shared pointer that manages a new object allocated using
    allocate_shared an allocator
-                   \fI(function template)\fP 
+                   \fI(function template)\fP
 
 .SH Category:
 
