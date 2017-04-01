@@ -1,4 +1,4 @@
-.TH std::unique_ptr 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::unique_ptr 3 "Apr  2 2017" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unique_ptr \- std::unique_ptr
 
@@ -118,7 +118,7 @@ std::unique_ptr \- std::unique_ptr
                  \fI(public member function)\fP
    get_deleter   returns the deleter that is used for destruction of the managed object
                  \fI(public member function)\fP
-   operator bool checks if there is associated managed object
+   operator bool checks if there is an associated managed object
                  \fI(public member function)\fP
 .SH Single-object version, unique_ptr<T>
    operator*     dereferences pointer to the managed object
@@ -151,43 +151,108 @@ std::unique_ptr \- std::unique_ptr
 // Run this code
 
  #include <iostream>
+ #include <vector>
  #include <memory>
+ #include <cstdio>
+ #include <fstream>
+ #include <cassert>
 
- struct Foo
+ struct B {
+   virtual void bar() { std::cout << "B::bar\\n"; }
+   virtual ~B() = default;
+ };
+ struct D : B
  {
-     Foo()      { std::cout << "Foo::Foo\\n";  }
-     ~Foo()     { std::cout << "Foo::~Foo\\n"; }
-     void bar() { std::cout << "Foo::bar\\n";  }
+     D() { std::cout << "D::D\\n";  }
+     ~D() { std::cout << "D::~D\\n";  }
+     void bar() override { std::cout << "D::bar\\n";  }
  };
 
- void f(const Foo &)
+ // a function consuming a unique_ptr can take it by value or by rvalue reference
+ std::unique_ptr<D> pass_through(std::unique_ptr<D> p)
  {
-     std::cout << "f(const Foo&)\\n";
+     p->bar();
+     return p;
  }
 
  int main()
  {
-     std::unique_ptr<Foo> p1(new Foo);  // p1 owns Foo
-     if (p1) p1->bar();
+   std::cout << "unique ownership semantics demo\\n";
+   {
+       auto p = std::make_unique<D>(); // p is a unique_ptr that owns a D
+       auto q = pass_through(std::move(p));
+       assert(!p); // now p owns nothing and holds a null pointer
+       q->bar();   // and q owns the D object
+   } // ~D called here
 
-     {
-         std::unique_ptr<Foo> p2(std::move(p1));  // now p2 owns Foo
-         f(*p2);
+   std::cout << "Runtime polymorphism demo\\n";
+   {
+     std::unique_ptr<B> p = std::make_unique<D>(); // p is a unique_ptr that owns a D
+                                                   // as a pointer to base
+     p->bar(); // virtual dispatch
 
-         p1 = std::move(p2);  // ownership returns to p1
-         std::cout << "destroying p2...\\n";
-     }
+     std::vector<std::unique_ptr<B>> v;  // unique_ptr can be stored in a container
+     v.push_back(std::make_unique<D>());
+     v.push_back(std::move(p));
+     v.emplace_back(new D);
+     for(auto& p: v) p->bar(); // virtual dispatch
+   } // ~D called 3 times
 
-     if (p1) p1->bar();
+   std::cout << "Custom deleter demo\\n";
+   std::ofstream("demo.txt") << 'x'; // prepare the file to read
+   {
+       std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(std::fopen("demo.txt", "r"),
+                                                             &std::fclose);
+       if(fp) // fopen could have failed; in which case fp holds a null pointer
+         std::cout << (char)std::fgetc(fp.get()) << '\\n';
+   } // fclose() called here, but only if FILE* is not a null pointer
+     // (that is, if fopen succeeded)
 
-     // Foo instance is destroyed when p1 goes out of scope
+   std::cout << "Custom lambda-expression deleter demo\\n";
+   {
+     std::unique_ptr<D, std::function<void(D*)>> p(new D, [&](D* ptr)
+         {
+             std::cout << "destroying from a custom deleter...\\n";
+             delete ptr;
+         });  // p owns D
+     p->bar();
+   } // the lamdba above is called and D is destroyed
+
+   std::cout << "Array form of unique_ptr demo\\n";
+   {
+       std::unique_ptr<D[]> p{new D[3]};
+   } // calls ~D 3 times
  }
 
 .SH Output:
 
- Foo::Foo
- Foo::bar
- f(const Foo&)
- destroying p2...
- Foo::bar
- Foo::~Foo
+ unique ownership semantics demo
+ D::D
+ D::bar
+ D::bar
+ D::~D
+ Runtime polymorphism demo
+ D::D
+ D::bar
+ D::D
+ D::D
+ D::bar
+ D::bar
+ D::bar
+ D::~D
+ D::~D
+ D::~D
+ Custom deleter demo
+ x
+ Custom lambda-expression deleter demo
+ D::D
+ D::bar
+ destroying from a custom deleter...
+ D::~D
+ Array form of unique_ptr demo
+ D::D
+ D::D
+ D::D
+ D::~D
+ D::~D
+ D::~D

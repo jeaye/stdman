@@ -1,4 +1,4 @@
-.TH std::basic_ostream::operator<< 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_ostream::operator<< 3 "Apr  2 2017" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_ostream::operator<< \- std::basic_ostream::operator<<
 
@@ -18,15 +18,16 @@ std::basic_ostream::operator<< \- std::basic_ostream::operator<<
    basic_ostream& operator<<( long double value );
    basic_ostream& operator<<( bool value );                          \fB(6)\fP
    basic_ostream& operator<<( const void* value );                   \fB(7)\fP
-   basic_ostream& operator<<( std::basic_streambuf<CharT, Traits>*   \fB(8)\fP
+   basic_ostream& operator<<( std::nullptr_t );                      \fB(8)\fP  \fI(since C++17)\fP
+   basic_ostream& operator<<( std::basic_streambuf<CharT, Traits>*   \fB(9)\fP
    sb);
-   basic_ostream& operator<<(                                        \fB(9)\fP
+   basic_ostream& operator<<(                                        \fB(10)\fP
    std::ios_base& (*func)(std::ios_base&) );
    basic_ostream& operator<<(
-   std::basic_ios<CharT,Traits>&                                     \fB(10)\fP
+   std::basic_ios<CharT,Traits>&                                     \fB(11)\fP
    (*func)(std::basic_ios<CharT,Traits>&) );
    basic_ostream& operator<<(
-   std::basic_ostream<CharT,Traits>&                                 \fB(11)\fP
+   std::basic_ostream<CharT,Traits>&                                 \fB(12)\fP
    (*func)(std::basic_ostream<CharT,Traits>&) );
 
    Inserts data into the stream.
@@ -40,20 +41,22 @@ std::basic_ostream::operator<< \- std::basic_ostream::operator<<
    sentry object, inserts an integer, floating point, boolean or generic pointer value
    by calling num_put::put(). If the end of file condition was encountered during
    output (put().failed() == true), sets ios::badbit.
-   8) Behaves as an UnformattedOutputFunction. After constructing and checking the
+   8) Outputs an implementation-defined string as if by *this << s, where s is a
+   null-terminated character type string.
+   9) Behaves as an UnformattedOutputFunction. After constructing and checking the
    sentry object, checks if sb is a null pointer. If it is, executes setstate(badbit)
    and exits. Otherwise, extracts characters from the input sequence controlled by sb
    and inserts them into *this until one of the following conditions are met:
 
-     * end-of-file occurs on the input sequence;
-     * inserting in the output sequence fails (in which case the character to be
-       inserted is not extracted);
-     * an exception occurs (in which case the exception is caught).
+              * end-of-file occurs on the input sequence;
+              * inserting in the output sequence fails (in which case the character to
+                be inserted is not extracted);
+              * an exception occurs (in which case the exception is caught).
 
    If no characters were inserted, executes setstate(failbit). If an exception was
    thrown while extracting, sets failbit and, if failbit is set in exceptions(),
    rethrows the exception.
-   9-11) Calls func(*this);. These overloads are used to implement output I/O
+   10-12) Calls func(*this);. These overloads are used to implement output I/O
    manipulators such as std::endl.
 
 .SH Parameters
@@ -64,19 +67,23 @@ std::basic_ostream::operator<< \- std::basic_ostream::operator<<
 
 .SH Return value
 
-   1-10) *this
-   11) func(*this)
+   1-11) *this
+   12) func(*this)
 
 .SH Notes
 
    There are no overload for pointers to non-static member, pointers to volatile, or
-   function pointers (other than the ones with signatures accepted by the (9-11)
+   function pointers (other than the ones with signatures accepted by the (10-12)
    overloads). Attempting to output such objects invokes implicit conversion to bool,
    and, for any non-null pointer value, the value 1 is printed (unless boolalpha was
    set).
 
-   The arguments of type char and const char* are handled by the non-member overloads
-   of operator<<.
+   Character and character string arguments (e.g., of type char or const char*) are
+   handled by the non-member overloads of operator<<. Attempting to output a character
+   using the member function call syntax (e.g., std::cout.operator<<('c');) will call
+   one of overloads (2-4) and output the numerical value. Attempting to output a
+   character string using the member function call syntax will call overload \fB(7)\fP and
+   print the pointer value instead.
 
 .SH Example
 
@@ -98,7 +105,7 @@ std::basic_ostream::operator<< \- std::basic_ostream::operator<<
                << " " // non-member overload
                << std::fixed << f // double overload
                << input.rdbuf() // streambuf overload
-               << &n // bool overload
+               << &n // bool overload: volatile int* doesn't convert to const void*
                << std::endl; // function overload
  }
 
@@ -126,3 +133,6 @@ std::basic_ostream::operator<< \- std::basic_ostream::operator<<
                                   \fI(public member function)\fP
    write                          inserts blocks of characters
                                   \fI(public member function)\fP
+   to_chars                       converts an integer or floating-point value to a
+   \fI(C++17)\fP                        character sequence
+                                  \fI(function)\fP
