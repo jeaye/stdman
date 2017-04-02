@@ -1,4 +1,4 @@
-.TH std::optional::optional 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::optional::optional 3 "Apr  2 2017" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::optional::optional \- std::optional::optional
 
@@ -7,8 +7,10 @@ std::optional::optional \- std::optional::optional
    constexpr optional( std::nullopt_t );
    optional( const optional& other );                              \fB(2)\fP \fI(since C++17)\fP
    optional( optional&& other );                                   \fB(3)\fP \fI(since C++17)\fP
-   constexpr optional( const T& value );                           \fB(4)\fP \fI(since C++17)\fP
-   constexpr optional( T&& value );                                \fB(5)\fP \fI(since C++17)\fP
+   template < class U >                                            \fB(4)\fP \fI(since C++17)\fP
+   /* EXPLICIT */ optional( const optional<U>& other );
+   template < class U >                                            \fB(5)\fP \fI(since C++17)\fP
+   /* EXPLICIT */ optional( optional<U>&& other );
    template< class... Args >                                       \fB(6)\fP \fI(since C++17)\fP
    constexpr explicit optional( std::in_place_t, Args&&... args );
    template< class U, class... Args >
@@ -17,6 +19,8 @@ std::optional::optional \- std::optional::optional
    std::initializer_list<U> ilist,
 
    Args&&... args );
+   template < class U = T >                                        \fB(8)\fP \fI(since C++17)\fP
+   /* EXPLICIT */ constexpr optional( U&& value );
 
    Constructs a new optional object.
 
@@ -24,40 +28,84 @@ std::optional::optional \- std::optional::optional
    2) Copy constructor: If other contains a value, initializes the contained value as
    if direct-initializing (but not direct-list-initializing) an object of type T with
    the expression *other. If other does not contain a value, constructs an object that
-   does not contain a value.
+   does not contain a value. This constructor is defined as deleted if
+   std::is_copy_constructible_v<T> is false.
    3) Move constructor: If other contains a value, initializes the contained value as
    if direct-initializing (but not direct-list-initializing) an object of type T with
    the expression std::move(*other) and does not make other empty: a moved-from
    optional still contains a value, but the value itself is moved from. If other does
-   not contain a value, constructs an object that does not contain a value.
-   4) Constructs an optional object that contains a value, initialized as if
-   direct-initializing (but not direct-list-initializing) an object of type T with the
-   expression value. This constructor is constexpr if the constructor of T selected by
-   direct-initialization is constexpr.
-   5) Constructs an optional object that contains a value, initialized as if
-   direct-initializing (but not direct-list-initializing) an object of type T with the
-   expression std::move(value). This constructor is constexpr if the constructor of T
-   selected by direct-initialization is constexpr.
+   not contain a value, constructs an object that does not contain a value. This
+   constructor does not participate in overload resolution unless
+   std::is_move_constructible_v<T> is true.
+   4) Converting copy constructor: If other doesn't contain a value, constructs an
+   optional object that does not contain a value. Otherwise, constructs an optional
+   object that contains a value, initialized as if direct-initializing (but not
+   direct-list-initializing) an object of type T with the expression *other. This
+   constructor does not participate in overload resolution unless the following
+   conditions are met:
+
+     * std::is_constructible_v<T, const U&> is true.
+     * T is not constructible or convertible from any expression of type (possibly
+       const) std::optional<U>, i.e., the following 8 type traits are all false:
+
+          * std::is_constructible_v<T, std::optional<U>&>
+          * std::is_constructible_v<T, const std::optional<U>&>
+          * std::is_constructible_v<T, std::optional<U>&&>
+          * std::is_constructible_v<T, const std::optional<U>&&>
+          * std::is_convertible_v<std::optional<U>&, T>
+          * std::is_convertible_v<const std::optional<U>&, T>
+          * std::is_convertible_v<std::optional<U>&&, T>
+          * std::is_convertible_v<const std::optional<U>&&, T>
+
+   This constructor is explicit if and only if std::is_convertible_v<const U&, T> is
+   false.
+   5) Converting move constructor: If other doesn't contain a value, constructs an
+   optional object that does not contain a value. Otherwise, constructs an optional
+   object that contains a value, initialized as if direct-initializing (but not
+   direct-list-initializing) an object of type T with the expression std::move(*other).
+   This constructor does not participate in overload resolution unless the following
+   conditions are met:
+
+     * std::is_constructible_v<T, U&&> is true.
+     * T is not constructible or convertible from any expression of type (possibly
+       const) std::optional<U>, i.e., the following 8 type traits are all false:
+
+          * std::is_constructible_v<T, std::optional<U>&>
+          * std::is_constructible_v<T, const std::optional<U>&>
+          * std::is_constructible_v<T, std::optional<U>&&>
+          * std::is_constructible_v<T, const std::optional<U>&&>
+          * std::is_convertible_v<std::optional<U>&, T>
+          * std::is_convertible_v<const std::optional<U>&, T>
+          * std::is_convertible_v<std::optional<U>&&, T>
+          * std::is_convertible_v<const std::optional<U>&&, T>
+
+   This constructor is explicit if and only if std::is_convertible_v<U&&, T> is false.
    6) Constructs an optional object that contains a value, initialized as if
    direct-initializing (but not direct-list-initializing) an object of type T from the
-   arguments std::forward<Args>(args)...
+   arguments std::forward<Args>(args).... If the selected constructor of T is a
+   constexpr constructor, this constructor is a constexpr constructor. The function
+   does not participate in the overload resolution unless std::is_constructible_v<T,
+   Args...> is true
    7) Constructs an optional object that contains a value, initialized as if
    direct-initializing (but not direct-list-initializing) an object of type T from the
-   arguments ilist, std::forward<Args>(args).... The function does not participate in
-   the overload resolution if std::is_constructible<T, std::initializer_list<U>&,
-   Args&&...>::value != true
+   arguments ilist, std::forward<Args>(args).... If the selected constructor of T is a
+   constexpr constructor, this constructor is a constexpr constructor. The function
+   does not participate in the overload resolution unless std::is_constructible_v<T,
+   std::initializer_list<U>&, Args&&...> is true
+   8) Constructs an optional object that contains a value, initialized as if
+   direct-initializing (but not direct-list-initializing) an object of type T with the
+   expression std::forward<U>(value). If the selected constructor of T is a constexpr
+   constructor, this constructor is a constexpr constructor. This constructor does not
+   participate in overload resolution unless std::is_constructible_v<T, U&&> is true
+   and std::decay_t<U> is neither std::in_place_t nor std::optional<T>. This
+   constructor is explicit if and only if std::is_convertible_v<U&&, T> is false.
 
 .SH Parameters
 
-   other         -       another optional object whose contained value to copy
-   value         -       value to initialize the contained value with
-   args...       -       arguments to initialize the contained value with
-   ilist         -       initializer list to initialize the contained value with
-.SH Type requirements
-   -
-   T must meet the requirements of CopyConstructible in order to use overloads (2,4).
-   -
-   T must meet the requirements of MoveConstructible in order to use overloads (3,5).
+   other   - another optional object whose contained value to copy
+   value   - value to initialize the contained value with
+   args... - arguments to initialize the contained value with
+   ilist   - initializer list to initialize the contained value with
 
 .SH Exceptions
 
@@ -70,7 +118,7 @@ std::optional::optional \- std::optional::optional
    noexcept specification:
    noexcept(std::is_nothrow_move_constructible<T>::value)
    .
-   4-7) Throws any exception thrown by the constructor of T.
+   4-8) Throws any exception thrown by the constructor of T.
 
 .SH Example
 

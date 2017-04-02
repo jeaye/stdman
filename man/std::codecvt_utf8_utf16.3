@@ -1,4 +1,4 @@
-.TH std::codecvt_utf8_utf16 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::codecvt_utf8_utf16 3 "Apr  2 2017" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::codecvt_utf8_utf16 \- std::codecvt_utf8_utf16
 
@@ -13,9 +13,13 @@ std::codecvt_utf8_utf16 \- std::codecvt_utf8_utf16
 
    std::codecvt_utf8_utf16 is a std::codecvt facet which encapsulates conversion
    between a UTF-8 encoded byte string and UTF-16 encoded character string. If Elem is
-   a 32-bit type, one UTF-16 codepoint will be stored in each 32-bit character of the
+   a 32-bit type, one UTF-16 code unit will be stored in each 32-bit character of the
    output sequence. This codecvt facet can be used to read and write UTF-8 files, both
    text and binary.
+
+   This is an N:M conversion facet, and cannot be used with std::basic_filebuf (which
+   only permits 1:N conversions, such as UTF-32/UTF-8, between the internal and the
+   external encodings). This facet can be used with std::wstring_convert.
 
 .SH Template Parameters
 
@@ -116,46 +120,44 @@ Inherited from std::codecvt_base
 
 .SH Example
 
-   The following example demonstrates reading a UTF-8 file into a UTF-16 string on a
-   system with 32-bit wchar_t
-
    
 // Run this code
 
- #include <fstream>
  #include <iostream>
  #include <string>
- #include <locale>
  #include <codecvt>
+ #include <cassert>
 
  int main()
  {
-     std::ofstream("text.txt") << u8"z\\u6c34\\U0001d10b";
+     std::string u8 = u8"z\\u00df\\u6c34\\U0001f34c";
+     std::u16string u16 = u"z\\u00df\\u6c34\\U0001f34c";
 
-     std::wifstream file1("text.txt");
-     file1.imbue(std::locale("en_US.UTF8"));
-     std::cout << "Normal read from file (using default UTF-8/UTF-32 codecvt)\\n";
-     for (wchar_t c; file1 >> c; )
-         std::cout << std::hex << std::showbase << c << '\\n';
+     // UTF-8 to UTF-16/char16_t
+     std::u16string u16_conv = std::wstring_convert<
+         std::codecvt_utf8_utf16<char16_t>, char16_t>{}.from_bytes(u8);
+     assert(u16 == u16_conv);
+     std::cout << "UTF-8 to UTF-16 conversion produced "
+               << u16_conv.size() << " code units:\\n";
+     for (char16_t c : u16_conv)
+         std::cout << std::hex << std::showbase << c << ' ';
 
-     std::wifstream file2("text.txt");
-     file2.imbue(std::locale(file2.getloc(), new std::codecvt_utf8_utf16<wchar_t>));
-     std::cout << "UTF-16 read from the same file (using codecvt_utf8_utf16)\\n";
-     for (wchar_t c; file2 >> c; )
-         std::cout << std::hex << std::showbase << c << '\\n';
+     // UTF-16/char16_t to UTF-8
+     std::string u8_conv = std::wstring_convert<
+         std::codecvt_utf8_utf16<char16_t>, char16_t>{}.to_bytes(u16);
+     assert(u8 == u8_conv);
+     std::cout << "\\nUTF-16 to UTF-8 conversion produced "
+               << std::dec << u8_conv.size() << " bytes:\\n" << std::hex;
+     for (char c : u8_conv)
+         std::cout << +(unsigned char)c << ' ';
  }
 
 .SH Output:
 
- Normal read from file (using default UTF-8/UTF-32 codecvt)
- 0x7a
- 0x6c34
- 0x1d10b
- UTF-16 read from the same file (using codecvt_utf8_utf16)
- 0x7a
- 0x6c34
- 0xd834
- 0xdd0b
+ UTF-8 to UTF-16 conversion produced 5 code units:
+ 0x7a 0xdf 0x6c34 0xd83c 0xdf4c
+ UTF-16 to UTF-8 conversion produced 10 bytes:
+ 0x7a 0xc3 0x9f 0xe6 0xb0 0xb4 0xf0 0x9f 0x8d 0x8c
 
 .SH See also
 

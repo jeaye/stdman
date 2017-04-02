@@ -1,4 +1,4 @@
-.TH std::forward 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::forward 3 "Apr  2 2017" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::forward \- std::forward
 
@@ -17,18 +17,22 @@ std::forward \- std::forward
    constexpr T&& forward( typename std::remove_reference<T>::type&& t \fB(2)\fP \fI(since C++14)\fP
    ) noexcept;
 
-   When used according to the following recipe in a function template, forwards the
-   argument to another function with the value category it had when passed to the
-   calling function.
+   1) Forwards lvalues as either lvalues or as rvalues, depending on T
+
+   When t is a forwarding reference (a function argument that is an rvalue reference to
+   a cv-unqualified function template parameter), this overload forwards the argument
+   to another function with the value category it had when passed to the calling
+   function.
 
    For example, if used in wrapper such as the following, the template behaves as
    described below:
 
-   template<class T>
-   void wrapper(T&& arg)
-   {
-   foo(std::forward<T>(arg)); // Forward a single argument.
-   }
+ template<class T>
+ void wrapper(T&& arg)
+ {
+     // arg is always lvalue
+     foo(std::forward<T>(arg)); // Forward as lvalue or as rvalue, depending on T
+ }
 
      * If a call to wrapper() passes an rvalue std::string, then T is deduced to
        std::string (not std::string&, const std::string&, or std::string&&), and
@@ -40,13 +44,38 @@ std::forward \- std::forward
        to std::string&, and std::forward ensures that a non-const lvalue reference is
        passed to foo.
 
-.SH Notes
+   2) Forwards rvalues as rvalues and prohibits forwarding of rvalues as lvalues
+
+   This overload makes it possible to forward a result of an expression (such as
+   function call), which may be rvalue or lvalue, as the original value category of a
+   forwarding reference argument.
+
+   For example, if a wrapper does not just forward its argument, but calls a member
+   function on the argument, and forwards its result:
+
+ // transforming wrapper
+ template<class T>
+ void wrapper(T&& arg)
+ {
+     foo(forward<decltype(forward<T>(arg).get())>(forward<T>(arg).get()));
+ }
+
+   where the type of arg may be
+
+ struct Arg
+ {
+     int i = 1;
+     int  get() && { return i; } // call to this overload is rvalue
+     int& get() &  { return i; } // call to this overload is lvalue
+ };
 
    Attempting to forward an rvalue as an lvalue, such as by instantiating the form \fB(2)\fP
    with lvalue reference type T, is a compile-time error.
 
-   See template argument deduction for the special rules behind T&& used as a function
-   parameter.
+.SH Notes
+
+   See template argument deduction for the special rules behind forwarding references
+   (T&& used as a function parameter) and forwarding references for other detail.
 
 .SH Parameters
 

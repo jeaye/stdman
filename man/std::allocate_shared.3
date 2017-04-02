@@ -1,4 +1,4 @@
-.TH std::allocate_shared 3 "Nov 16 2016" "2.1 | http://cppreference.com" "C++ Standard Libary"
+.TH std::allocate_shared 3 "Apr  2 2017" "2.1 | http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::allocate_shared \- std::allocate_shared
 
@@ -10,9 +10,11 @@ std::allocate_shared \- std::allocate_shared
    Constructs an object of type T and wraps it in a std::shared_ptr using args as the
    parameter list for the constructor of T.
 
-   All memory allocation is done using a copy of alloc, which satisfies the Allocator
-   requirements. The copy constructor and the destructor of Alloc must not throw
-   exceptions.
+   All memory allocation is done using a copy of alloc, which must satisfy the
+   Allocator requirements.
+
+   The std::shared_ptr constructor called by this function enables shared_from_this
+   with a pointer to the newly constructed object of type T.
 
 .SH Parameters
 
@@ -37,6 +39,28 @@ std::allocate_shared \- std::allocate_shared
 
    A copy of alloc is stored as part of the control block so that it can be used to
    deallocate it once both shared and weak reference counts reach zero.
+
+   Although std::shared_ptr supports array types (as of C++17), std::allocate_shared
+   does not. This functionality is supported by boost::allocate_shared
+
+   A constructor enables shared_from_this with a pointer ptr of type U* means that it
+   determines if U has an unambiguous and accessible base class that is a
+   specialization of std::enable_shared_from_this, and if so, the constructor evaluates
+   the statement:
+
+ if (ptr != nullptr && ptr->weak_this.expired())
+   ptr->weak_this = std::shared_ptr<std::remove_cv_t<U>>(*this,
+                                   const_cast<std::remove_cv_t<U>*>(ptr));
+
+   Where weak_this is the hidden mutable std::weak_ptr member of std::shared_from_this.
+   The assignment to the weak_this member is not atomic and conflicts with any
+   potentially concurrent access to the same object. This ensures that future calls to
+   shared_from_this() would share ownership with the shared_ptr created by this raw
+   pointer constructor.
+
+   The test ptr->weak_this.expired() in the exposition code above makes sure that
+   weak_this is not reassigned if it already indicates an owner. This test is required
+   as of C++17.
 
 .SH See also
 
