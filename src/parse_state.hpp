@@ -13,11 +13,13 @@
 #include <vector>
 #include <unistd.h>
 
+#define STR_(x) #x
+#define STR(x) STR_(x)
+
 struct parse_state
 {
   std::string const name{ "stdman" };
-  std::string const version{ "2.1" };
-  std::string const creation_date{ __DATE__ }; /* Relies on `make generate` for usage. */
+  std::string const version{ STR(STDMAN_VERSION) };
 
   std::string prog;
   std::string input_file, output_file;
