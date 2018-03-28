@@ -1,0 +1,89 @@
+.TH std::filesystem::perm_options 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::filesystem::perm_options \- std::filesystem::perm_options
+
+.SH Synopsis
+   Defined in header <filesystem>
+   enum class perm_options {
+
+       replace = /* unspecified */,
+       add = /* unspecified */,      \fI(since C++17)\fP
+       remove = /* unspecified */,
+       nofollow = /* unspecified */
+
+   };
+
+   This type represents available options that control the behavior of the function
+   permissions().
+
+   perm_options satisfies the requirements of BitmaskType (which means the bitwise
+   operators operator&, operator|, operator^, operator~, operator&=, operator|=, and
+   operator^= are defined for this type)
+
+.SH Member constants
+
+   At most one of add, remove, replace may be present, otherwise the behavior of the
+   permissions function is undefined.
+
+   Member constant                               Meaning
+   replace         Permissions will be completely replaced by the argument to
+                   permissions() (default behavior)
+   add             permissions will be replaced by the bitwise OR of the argument and
+                   the current permissions
+   remove          permissions will be replaced by the bitwise AND of the negated
+                   argument and current permissions
+   nofollow        permissions will be changed on the symlink itself, rather than on
+                   the file it resolves to
+
+.SH Example
+
+   
+// Run this code
+
+ #include <fstream>
+ #include <bitset>
+ #include <iostream>
+ #include <filesystem>
+ namespace fs = std::filesystem;
+  
+ void demo_perms(fs::perms p)
+ {
+     std::cout << ((p & fs::perms::owner_read) != fs::perms::none ? "r" : "-")
+               << ((p & fs::perms::owner_write) != fs::perms::none ? "w" : "-")
+               << ((p & fs::perms::owner_exec) != fs::perms::none ? "x" : "-")
+               << ((p & fs::perms::group_read) != fs::perms::none ? "r" : "-")
+               << ((p & fs::perms::group_write) != fs::perms::none ? "w" : "-")
+               << ((p & fs::perms::group_exec) != fs::perms::none ? "x" : "-")
+               << ((p & fs::perms::others_read) != fs::perms::none ? "r" : "-")
+               << ((p & fs::perms::others_write) != fs::perms::none ? "w" : "-")
+               << ((p & fs::perms::others_exec) != fs::perms::none ? "x" : "-")
+               << '\\n';
+ }
+ int main()
+ {
+     std::ofstream("test.txt"); // create file
+  
+     std::cout << "Created file with permissions: ";
+     demo_perms(fs::status("test.txt").permissions());
+  
+     fs::permissions("test.txt",
+                     fs::perms::owner_all | fs::perms::group_all,
+                     fs::perm_options::add);
+  
+     std::cout << "After adding o+rwx and g+rwx:  ";
+     demo_perms(fs::status("test.txt").permissions());
+  
+     fs::remove("test.txt");
+ }
+
+.SH Possible output:
+
+ Created file with permissions: rw-r--r--
+ After adding o+rwx and g+wrx:  rwxrwxr--
+
+.SH See also
+
+   permissions modifies file access permissions
+   \fI(C++17)\fP     \fI(function)\fP 
+   perms       identifies file system permissions
+   \fI(C++17)\fP     \fI(enum)\fP 
