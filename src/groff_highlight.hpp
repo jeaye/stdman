@@ -66,6 +66,8 @@ namespace groff_detail
       highlight_impl(l, "(since C++14)", fmt::italic);
       highlight_impl(l, "(until C++17)", fmt::italic);
       highlight_impl(l, "(since C++17)", fmt::italic);
+      highlight_impl(l, "(until C++20)", fmt::italic);
+      highlight_impl(l, "(since C++20)", fmt::italic);
 
       /* Description of members. */
       highlight_impl(l, "[static]", fmt::bold);
