@@ -1,4 +1,4 @@
-.TH std::disjunction 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::disjunction 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::disjunction \- std::disjunction
 
@@ -8,7 +8,7 @@ std::disjunction \- std::disjunction
    struct disjunction;
 
    Forms the logical disjunction of the type traits B..., effectively performing a
-   logical or on the sequence of traits.
+   logical OR on the sequence of traits.
 
    The specialization std::disjunction<B1, ..., BN> has a public and unambiguous base
    that is
@@ -31,8 +31,8 @@ std::disjunction \- std::disjunction
 
    Helper variable template
 
-   template<class... B>                                      \fI(since C++17)\fP
-   constexpr bool disjunction_v = disjunction<B...>::value;
+   template<class... B>                                             \fI(since C++17)\fP
+   inline constexpr bool disjunction_v = disjunction<B...>::value;
 
 .SH Possible implementation
 
@@ -45,37 +45,60 @@ std::disjunction \- std::disjunction
 .SH Notes
 
    A specialization of disjunction does not necessarily inherit from of either
-   std::true_type or std::false_type: it simply inherits from the first B
-   whose ::value, converted to bool, is true, or from the very last B when all of them
-   convert to false. For example, std::disjunction<std::integral_constant<int, 2>,
+   std::true_type or std::false_type: it simply inherits from the first B whose
+   ::value, explicitly converted to bool, is true, or from the very last B when all of
+   them convert to false. For example, std::disjunction<std::integral_constant<int, 2>,
    std::integral_constant<int, 4>>::value is 2.
+
+   The short-circuit instantiation differentiates disjunction from fold expressions: a
+   fold expression like (... || Bs::value) instantiates every B in Bs, while
+   std::disjunction_v<Bs...> stops instantiation once the value can be determined. This
+   is particularly useful if the later type is expensive to instantiate or can cause a
+   hard error when instantiated with the wrong type.
 
 .SH Example
 
    
 // Run this code
 
- #include <iostream>
  #include <type_traits>
+ #include <string>
   
- using result0 =
-     std::disjunction<std::bool_constant<false>, std::bool_constant<false>,
-                      std::bool_constant<false>>;
- using result1 =
-     std::disjunction<std::bool_constant<true>, std::bool_constant<false>,
-                      std::bool_constant<false>>;
+ // checking if Foo is constructible from double will cause a hard error
+ struct Foo {
+     template<class T>
+     struct sfinae_unfriendly_check { static_assert(!std::is_same_v<T, double>); };
   
- int main()
- {
-     std::cout << std::boolalpha;
-     std::cout << result0::value << '\\n';
-     std::cout << result1::value << '\\n';
- }
-
-.SH Output:
-
- false
- true
+     template<class T>
+     Foo(T, sfinae_unfriendly_check<T> = {} );
+ };
+  
+ template<class... Ts>
+ struct first_constructible {
+     template<class T, class...Args>
+     struct is_constructible_x : std::is_constructible<T, Args...> {
+         using type = T;
+     };
+     struct fallback {
+         static constexpr bool value = true;
+         using type = void; // type to return if nothing is found
+     };
+  
+     template<class... Args>
+     using with = typename std::disjunction<is_constructible_x<Ts, Args...>...,
+                                            fallback>::type;
+ };
+  
+ // OK, is_constructible<Foo, double> not instantiated
+ static_assert(std::is_same_v<first_constructible<std::string, int, Foo>::with<double>,
+                              int>);
+  
+ static_assert(std::is_same_v<first_constructible<std::string, int>::with<>, std::string>);
+ static_assert(std::is_same_v<first_constructible<std::string, int>::with<const char*>,
+                              std::string>);
+ static_assert(std::is_same_v<first_constructible<std::string, int>::with<void*>, void>);
+  
+ int main() { }
 
 .SH See also
 

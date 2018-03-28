@@ -1,9 +1,9 @@
-.TH std::to_chars 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::to_chars 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::to_chars \- std::to_chars
 
 .SH Synopsis
-   Defined in header <utility>
+   Defined in header <charconv>
    std::to_chars_result to_chars(char* first, char* last,             \fB(1)\fP \fI(since C++17)\fP
                                  /*see below*/ value, int base = 10);
    std::to_chars_result to_chars(char* first, char* last, float      
@@ -42,7 +42,7 @@ std::to_chars \- std::to_chars
    struct to_chars_result {
 
        char* ptr;                                                     \fB(5)\fP \fI(since C++17)\fP
-       std::error_code ec;
+       std::errc ec;
 
    };
 
@@ -55,12 +55,15 @@ std::to_chars \- std::to_chars
    representation starts with a minus sign. The library provides overloads for all
    signed and unsigned integer types and for the type char as the type of the parameter
    value.
-   2) value is converted to a string as if by std::sprintf in the default ("C") locale.
+   2) value is converted to a string as if by std::printf in the default ("C") locale.
    The conversion specifier is f or e (resolving in favor of f in case of a tie),
    chosen according to the requirement for a shortest representation: the string
    representation consists of the smallest number of characters such that there is at
    least one digit before the radix point (if present) and parsing the representation
-   using the corresponding std::from_chars function recovers value exactly.
+   using the corresponding std::from_chars function recovers value exactly. If there
+   are several such representations, one with the smallest difference to value is
+   chosen, resolving any remaining ties using rounding according to
+   std::round_to_nearest
    3) same as \fB(2)\fP, but the conversion specified for the as-if printf is f if fmt is
    std::chars_format::fixed, e if fmt is std::chars_format::scientific, a (but without
    leading "0x" in the result) if fmt is std::chars_format::hex, and g if fmt is
@@ -79,8 +82,9 @@ std::to_chars \- std::to_chars
 
 .SH Return value
 
-   On success, returns a value of type to_chars_result such that ec is false when
-   converted to bool and ptr is the one-past-the-end pointer of the characters written.
+   On success, returns a value of type to_chars_result such that ec equals
+   value-initialized std::errc and ptr is the one-past-the-end pointer of the
+   characters written. Note that the string is not NUL-terminated.
 
    On error, returns a value of type to_chars_result holding std::errc::value_too_large
    in ec, a copy of the value last in ptr, and leaves the contents of the range [first,
@@ -104,11 +108,41 @@ std::to_chars \- std::to_chars
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+   
+// Run this code
+
+ #include <iostream>
+ #include <charconv>
+ #include <system_error>
+ #include <string_view>
+ #include <array>
+  
+ int main()
+ {
+     std::array<char, 10> str;
+  
+     if(auto [p, ec] = std::to_chars(str.data(), str.data() + str.size(), 42);
+        ec == std::errc())
+         std::cout << std::string_view(str.data(), p - str.data());
+ }
+
+.SH Output:
+
+ 42
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to          Behavior as published              Correct behavior
+   LWG 2955 C++17      this function was in <utility> and used  moved to <charconv> and
+                       std::error_code                          uses std::errc
 
 .SH See also
 
+   from_chars converts a character sequence to an integer or floating-point value
+   \fI(C++17)\fP    \fI(function)\fP 
    to_string  converts an integral or floating point value to string
    \fI(C++11)\fP    \fI(function)\fP 
    printf
@@ -118,7 +152,3 @@ std::to_chars \- std::to_chars
    \fI(C++11)\fP
    operator<< inserts formatted data
               \fI(public member function of std::basic_ostream)\fP 
-
-.SH Category:
-
-     * Todo no example

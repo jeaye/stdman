@@ -1,4 +1,4 @@
-.TH std::char_traits 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::char_traits 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::char_traits \- std::char_traits
 
@@ -18,21 +18,32 @@ std::char_traits \- std::char_traits
 
    The char_traits class template serves as a basis for explicit instantiations. The
    user can provide a specialization for any custom character types. Several
-   specializations are defined for the standard character types. The values of the
-   member typedefs are as follows.
+   specializations are defined for the standard character types.
 
-    Instantiation     char_type      int_type          off_type         pos_type        state_type
-char_traits<char>     char      int                 std::streamoff  std::streampos    std::mbstate_t
-char_traits<wchar_t>  wchar_t   std::wint_t         std::wstreamoff std::wstreampos   std::mbstate_t
-char_traits<char16_t> char16_t  std::uint_least16_t std::streamoff  std::u16streampos std::mbstate_t
+   If an operation on traits emits an exception, the behavior is undefined.
+
+   The values of the member typedefs are as follows.
+
+   Specialization     char_type      int_type          off_type        pos_type        state_type
+char_traits<char>     char      int                 std::streamoff std::streampos    std::mbstate_t
+char_traits<wchar_t>  wchar_t   std::wint_t         std::streamoff std::wstreampos   std::mbstate_t
+char_traits<char16_t> char16_t  std::uint_least16_t std::streamoff std::u16streampos std::mbstate_t
 \fI(C++11)\fP
-char_traits<char32_t> char32_t  std::uint_least32_t std::streamoff  std::u32streampos std::mbstate_t
+char_traits<char32_t> char32_t  std::uint_least32_t std::streamoff std::u32streampos std::mbstate_t
 \fI(C++11)\fP
+
+   The semantics of the member functions are defined are as follows.
+
+          Specialization         assign       eq              lt              eof
+   char_traits<char>             =      == for unsigned < for unsigned  EOF
+                                        char            char
+   char_traits<wchar_t>          =      ==              <               WEOF
+   char_traits<char16_t> \fI(C++11)\fP =      ==              <               invalid UTF-16
+                                                                        code unit
+   char_traits<char32_t> \fI(C++11)\fP =      ==              <               invalid UTF-32
+                                                                        code unit
 
    The char_traits class template satisfies the requirements of CharTraits.
-
-    This section is incomplete
-    Reason: simplify the description, emphasize that char_traits can be user defined
 
 .SH Member types
 
@@ -83,25 +94,28 @@ char_traits<char32_t> char32_t  std::uint_least32_t std::streamoff  std::u32stre
  #include <cctype>
   
  struct ci_char_traits : public std::char_traits<char> {
+     static char to_upper(char ch) {
+         return std::toupper((unsigned char) ch);
+     }
      static bool eq(char c1, char c2) {
-          return std::toupper(c1) == std::toupper(c2);
+          return to_upper(c1) == to_upper(c2);
       }
      static bool lt(char c1, char c2) {
-          return std::toupper(c1) <  std::toupper(c2);
+          return to_upper(c1) <  to_upper(c2);
      }
      static int compare(const char* s1, const char* s2, size_t n) {
          while ( n-- != 0 ) {
-             if ( std::toupper(*s1) < std::toupper(*s2) ) return -1;
-             if ( std::toupper(*s1) > std::toupper(*s2) ) return 1;
+             if ( to_upper(*s1) < to_upper(*s2) ) return -1;
+             if ( to_upper(*s1) > to_upper(*s2) ) return 1;
              ++s1; ++s2;
          }
          return 0;
      }
      static const char* find(const char* s, int n, char a) {
-         auto const ua (std::toupper(a));
+         auto const ua (to_upper(a));
          while ( n-- != 0 )
          {
-             if (std::toupper(*s) == ua)
+             if (to_upper(*s) == ua)
                  return s;
              s++;
          }
@@ -109,7 +123,7 @@ char_traits<char32_t> char32_t  std::uint_least32_t std::streamoff  std::u32stre
      }
  };
   
- typedef std::basic_string<char, ci_char_traits> ci_string;
+ using ci_string = std::basic_string<char, ci_char_traits>;
   
  std::ostream& operator<<(std::ostream& os, const ci_string& str) {
      return os.write(str.data(), str.size());
@@ -131,7 +145,3 @@ char_traits<char32_t> char32_t  std::uint_least32_t std::streamoff  std::u32stre
 
    basic_string stores and manipulates sequences of characters
                 \fI(class template)\fP 
-
-.SH Category:
-
-     * Todo with reason

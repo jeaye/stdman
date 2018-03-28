@@ -1,11 +1,13 @@
-.TH std::map::begin,std::map::cbegin 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::map::begin,std::map::cbegin 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::map::begin,std::map::cbegin \- std::map::begin,std::map::cbegin
 
 .SH Synopsis
-   iterator begin();
-   const_iterator begin() const;
-   const_iterator cbegin() const;  \fI(since C++11)\fP
+   iterator begin();                        \fI(until C++11)\fP
+   iterator begin() noexcept;               \fI(since C++11)\fP
+   const_iterator begin() const;            \fI(until C++11)\fP
+   const_iterator begin() const noexcept;   \fI(since C++11)\fP
+   const_iterator cbegin() const noexcept;  \fI(since C++11)\fP
 
    Returns an iterator to the first element of the container.
 
@@ -20,13 +22,6 @@ std::map::begin,std::map::cbegin \- std::map::begin,std::map::cbegin
 .SH Return value
 
    Iterator to the first element
-
-.SH Exceptions
-
-   \fI(none)\fP                    \fI(until C++11)\fP
-   noexcept specification:  
-   noexcept                  \fI(since C++11)\fP
-     
 
 .SH Complexity
 
@@ -45,7 +40,8 @@ std::map::begin,std::map::cbegin \- std::map::begin,std::map::cbegin
    num_map[4] = 4.13;
    num_map[9] = 9.24;
    num_map[1] = 1.09;
-   for (auto it = num_map.begin(); it != num_map.end(); ++it) { // calls a_map.begin() and a_map.end()
+   // calls a_map.begin() and a_map.end()
+   for (auto it = num_map.begin(); it != num_map.end(); ++it) {
      std::cout << it->first << ", " << it->second << '\\n';
    }
  }
@@ -56,11 +52,76 @@ std::map::begin,std::map::cbegin \- std::map::begin,std::map::cbegin
  4, 4.13
  9, 9.24
 
+    Example using a custom comparison function
+
+   
+// Run this code
+
+ #include <cmath>
+ #include <iostream>
+ #include <map>
+  
+ struct Point { double x, y; };
+  
+ typedef Point * PointPtr;
+ //Compare the x-coordinates of two Point pointers
+ struct PointCmp {
+     bool operator()(const PointPtr &lhs, const PointPtr &rhs) const {
+         return lhs->x < rhs->x;
+     }
+ };
+  
+ int main() {
+     //Note that although the x-coordinates are out of order, the
+     // map will be iterated through by increasing x-coordinates
+     Point points[3] = { {2, 0}, {1, 0}, {3, 0} };
+  
+     //mag is a map sending the address of node to its magnitude in the x-y plane
+     //Although the keys are pointers-to-Point, we want to order the map by the
+     // x-coordinates of the points and NOT by the addresses of the Points. This
+     // is done by using the PointCmp class's comparison method.
+     std::map<Point *, double, PointCmp> mag({
+         { points,     2 },
+         { points + 1, 1 },
+         { points + 2, 3 }
+     });
+  
+     //Change each y-coordinate from 0 to the magnitude
+     for(auto iter = mag.begin(); iter != mag.end(); ++iter){
+         auto cur = iter->first; // pointer to Node
+         cur->y = mag[cur]; // could also have used  cur->y = iter->second;
+     }
+  
+     //Update and print the magnitude of each node
+     for(auto iter = mag.begin(); iter != mag.end(); ++iter){
+         auto cur = iter->first;
+         mag[cur] = std::hypot(cur->x, cur->y);
+         std::cout << "The magnitude of (" << cur->x << ", " << cur->y << ") is ";
+         std::cout << iter->second << '\\n';
+     }
+  
+     //Repeat the above with the range-based for loop
+     for(auto i : mag) {
+         auto cur = i.first;
+         cur->y = i.second;
+         mag[cur] = std::hypot(cur->x, cur->y);
+         std::cout << "The magnitude of (" << cur->x << ", " << cur->y << ") is ";
+         std::cout << mag[cur] << '\\n';
+         //Note that in contrast to std::cout << iter->second << '\\n'; above,
+         // std::cout << i.second << '\\n'; will NOT print the updated magnitude
+     }
+ }
+
+.SH Output:
+
+ The magnitude of (1, 1) is 1.41421
+ The magnitude of (2, 2) is 2.82843
+ The magnitude of (3, 3) is 4.24264
+ The magnitude of (1, 1.41421) is 1.73205
+ The magnitude of (2, 2.82843) is 3.4641
+ The magnitude of (3, 4.24264) is 5.19615
+
 .SH See also
 
    end  returns an iterator to the end
    cend \fI(public member function)\fP 
-
-.SH Category:
-
-     * unconditionally noexcept

@@ -1,4 +1,4 @@
-.TH std::variant::operator= 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::variant::operator= 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::variant::operator= \- std::variant::operator=
 
@@ -12,44 +12,35 @@ std::variant::operator= \- std::variant::operator=
 
    1) Copy-assignment:
 
-     * if both *this and rhs are valueless by exception, does nothing
-     * otherwise, if rhs is valueless, but *this is not, destroys the value contained
-       in *this and makes it valueless
-     * otherwise, if rhs holds the same alternative as *this, assigns the value
+     * If both *this and rhs are valueless by exception, does nothing.
+     * Otherwise, if rhs is valueless, but *this is not, destroys the value contained
+       in *this and makes it valueless.
+     * Otherwise, if rhs holds the same alternative as *this, assigns the value
        contained in rhs to the value contained in *this. If an exception is thrown,
        *this does not become valueless: the value depends on the exception safety
        guarantee of the alternative's copy assignment.
-     * otherwise (if rhs and *this hold different alternatives)
+     * Otherwise, if the alternative held by other is either nothrow copy constructible
+       or not nothrow move constructible (as determined by
+       std::is_nothrow_copy_constructible and std::is_nothrow_move_constructible,
+       respectively), equivalent to
+       this->emplace<other.index()>(get<other.index()>(other)).
+     * Otherwise, equivalent to this->operator=(variant(rhs)).
 
-     * copies the value contained in rhs to a temporary. If an exception is thrown by
-       the copy constructor, *this remains unchanged
-     * destroys any value contained in *this
-     * sets *this to hold the same alternative as rhs
-     * initializes the value contained in *this as if direct-non-list-initializing an
-       object of type T_j with std::forward<T_j>(TMP), with TMP being the temporary and
-       j being rhs.index(). If an exception is thrown by T_j's move constructor, *this
-       becomes valueless_by_exception
-
-   This overload only participates in overload resolution if
-   std::is_copy_constructible_v<T_i> && std::is_move_constructible_v<T_i> &&
-   std::is_copy_assignable_v<T_i> is true for all T_i in Types...
+   This overload is defined as deleted unless std::is_copy_constructible_v<T_i> &&
+   std::is_copy_assignable_v<T_i> is true for all T_i in Types....
    2) Move-assignment:
 
-     * if both *this and rhs are valueless by exception, does nothing
-     * otherwise, if rhs is valueless, but *this is not, destroys the value contained
+     * If both *this and rhs are valueless by exception, does nothing
+     * Otherwise, if rhs is valueless, but *this is not, destroys the value contained
        in *this and makes it valueless
-     * otherwise, if rhs holds the same alternative as *this, assigns
+     * Otherwise, if rhs holds the same alternative as *this, assigns
        std::get<j>(std::move(rhs)) to the value contained in *this, with j being
        index(). If an exception is thrown, *this does not become valueless: the value
        depends on the exception safety guarantee of the alternative's move assignment.
-     * otherwise (if rhs and *this hold different alternatives)
-
-     * destroys any value contained in *this
-     * sets *this to hold the same alternative as rhs
-     * initializes the value contained in *this as if direct-non-list-initializing an
-       object of type T_j with std::get<j>(std::move(rhs)) with j being rhs.index(). If
-       an exception is thrown by T_i's move constructor, *this becomes
-       valueless_by_exception
+     * Otherwise (if rhs and *this hold different alternatives), equivalent to
+       this->emplace<other.index()>(get<other.index()>(std::move(other))). If an
+       exception is thrown by T_i's move constructor, *this becomes
+       valueless_by_exception.
 
    This overload only participates in overload resolution if
    std::is_move_constructible_v<T_i> && std::is_move_assignable_v<T_i> is true for all
@@ -62,17 +53,17 @@ std::variant::operator= \- std::variant::operator=
      * If *this already holds a T_j, assigns std::forward<T>(t) to the value contained
        in *this. If an exception is thrown, *this does not become valueless: the value
        depends on the exception safety guarantee of the assignment called.
-     * Otherwise,
-
-     * destroys the value contained in *this (if any)
-     * sets this to hold the alternative T_j as selected above
-     * direct-initializes the contained value as if by direct-non-list-initialization
-       with std::forward<T>(t) as the initializer. If an exception is thrown during
-       this initialization, *this becomes valueless_by_exception
+     * Otherwise, if std::is_nothrow_constructible_v<T_j, T> ||
+       !std::is_nothrow_move_constructible_v<T_j> is true, equivalent to
+       this->emplace<j>(std::forward<T>(t));
+     * Otherwise, equivalent to this->operator=(variant(std::forward<T>(t))).
 
    This overload only participates in overload resolution if
-   std::is_same_v<std::decay_t<T>, variant> is false and std::is_assignable_v<T_j&, T>
-   is true and std::is_constructible_v<T_j, T> is true and the expression
+   std::decay_t<T>
+   (until C++20)
+   std::remove_cvref_t<T>
+   (since C++20) is not the same type as variant and std::is_assignable_v<T_j&, T> is
+   true and std::is_constructible_v<T_j, T> is true and the expression
    F(std::forward<T>(t)) (with F being the above-mentioned set of imaginary functions)
    is well formed
 
@@ -109,6 +100,16 @@ std::variant::operator= \- std::variant::operator=
 
     This section is incomplete
     Reason: no example
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to             Behavior as published              Correct behavior
+                       copy assignment operator doesn't participate  defined as deleted
+   LWG 3024 C++17      in overload resolution if any member type is  instead
+                       not copyable
 
 .SH See also
 

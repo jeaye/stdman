@@ -1,4 +1,4 @@
-.TH std::enable_if 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::enable_if 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::enable_if \- std::enable_if
 
@@ -54,6 +54,41 @@ std::enable_if \- std::enable_if
      >
      T(Floating) : m_type(float_t) {} // error: cannot overload
  };
+
+   Care should be taken when using enable_if in the type of a template non-type
+   parameter of a namespace-scope function template. Some ABI specifications like the
+   Itanium ABI do not include the instantiation-dependent portions of non-type template
+   parameters in the mangling, meaning that specializations of two distinct function
+   templates might end up with the same mangled name and be erroneously linked
+   together. For example:
+
+ // first translation unit
+  
+ struct X {
+     enum { value1 = true, value2 = true };
+ };
+  
+ template<class T, std::enable_if_t<T::value1, int> = 0>
+ void func() {} // #1
+  
+ template void func<X>(); // #2
+  
+ // second translation unit
+  
+ struct X {
+     enum { value1 = true, value2 = true };
+ };
+  
+ template<class T, std::enable_if_t<T::value2, int> = 0>
+ void func() {} // #3
+  
+ template void func<X>(); //#4
+
+   The function templates #1 and #3 have different signatures and are distinct
+   templates. Nonetheless, #2 and #4, despite being instantiations of different
+   function templates, have the same mangled name in the Itanium C++ ABI
+   (_Z4funcI1XLi0EEvv), meaning that the linker will erroneously consider them to be
+   the same entity.
 
 .SH Example
 

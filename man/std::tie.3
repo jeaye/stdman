@@ -1,13 +1,13 @@
-.TH std::tie 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::tie 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::tie \- std::tie
 
 .SH Synopsis
    Defined in header <tuple>
-   template< class... Types >                         \fI(since C++11)\fP
-   tuple<Types&...> tie( Types&... args );            \fI(until C++14)\fP
-   template< class... Types >                         \fI(since C++14)\fP
-   constexpr tuple<Types&...> tie( Types&... args );
+   template< class... Types >                                  \fI(since C++11)\fP
+   tuple<Types&...> tie( Types&... args ) noexcept;            \fI(until C++14)\fP
+   template< class... Types >                                  \fI(since C++14)\fP
+   constexpr tuple<Types&...> tie( Types&... args ) noexcept;
 
    Creates a tuple of lvalue references to its arguments or instances of std::ignore.
 
@@ -19,11 +19,20 @@ std::tie \- std::tie
 
    A std::tuple object containing lvalue references.
 
-.SH Exceptions
+.SH Possible implementation
 
-   noexcept specification:  
-   noexcept
-     
+   namespace detail {
+   struct ignore_t {
+       template <typename T>
+       const ignore_t& operator=(const T&) const { return *this; }
+   };
+   }
+   const detail::ignore_t ignore;
+    
+   template <typename... Args>
+   auto tie(Args&... args) {
+       return std::tuple<Args&...>(args...);
+   }
 
 .SH Notes
 
@@ -78,6 +87,8 @@ std::tie \- std::tie
 
  Value was inserted successfully
 
+.SH See also
+
    make_tuple       creates a tuple object of the type defined by the argument types
                     \fI(function template)\fP 
    forward_as_tuple creates a tuple of rvalue references
@@ -86,7 +97,3 @@ std::tie \- std::tie
                     \fI(function template)\fP 
    ignore           placeholder to skip an element when unpacking a tuple using tie
                     (constant) 
-
-.SH Category:
-
-     * unconditionally noexcept

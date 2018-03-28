@@ -1,4 +1,4 @@
-.TH std::filesystem::equivalent 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::equivalent 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::equivalent \- std::filesystem::equivalent
 
@@ -10,13 +10,11 @@ std::filesystem::equivalent \- std::filesystem::equivalent
    bool equivalent( const std::filesystem::path& p1,   \fB(1)\fP \fI(since C++17)\fP
                     const std::filesystem::path& p2,
 
-                    std::error_code& ec );
+                    std::error_code& ec ) noexcept;
 
-   Checks whether the paths p1 and p2 refer to the same file or directory and have the
-   same file status as determined by status (symlinks are followed).
+   Checks whether the paths p1 and p2 resolve to the same file system entity.
 
-   If neither p1 nor p2 exists, or if both exist but neither is a file, directory, or
-   symlink (as determined by is_other), an error is reported.
+   If either p1 or p2 does not exist, an error is reported.
 
    The non-throwing overload returns false on errors.
 
@@ -34,22 +32,28 @@ std::filesystem::equivalent \- std::filesystem::equivalent
 
    The overload that does not take a std::error_code& parameter throws filesystem_error
    on underlying OS API errors, constructed with p1 as the first argument, p2 as the
-   second argument, and the OS error code as the error code argument. std::bad_alloc
-   may be thrown if memory allocation fails. The overload taking a std::error_code&
-   parameter sets it to the OS API error code if an OS API call fails, and executes
-   ec.clear() if no errors occur. This overload has
-   noexcept specification:  
-   noexcept
-     
+   second argument, and the OS error code as the error code argument. The overload
+   taking a std::error_code& parameter sets it to the OS API error code if an OS API
+   call fails, and executes ec.clear() if no errors occur. Any overload not marked
+   noexcept may throw std::bad_alloc if memory allocation fails.
 
 .SH Notes
 
-   Two paths are considered to resolve to the same file system entity if st_dev and
-   st_ino of their POSIX stat structure, obtained as if by POSIX stat, are equal.
-   (meaning, the files are locate on the same device at the same location)
+   Two paths are considered to resolve to the same file system entity if the two
+   candidate entities the paths resolve to are located on the same device at the same
+   location. For POSIX, this means that the st_dev and st_ino members of their POSIX
+   stat structure, obtained as if by POSIX stat, are equal.
 
    In particular, all hard links for the same file or directory are equivalent, and a
    symlink and its target on the same file system are equivalent.
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to         Behavior as published         Correct behavior
+   LWG 2937 C++17      error condition specified incorrectly corrected
 
 .SH Example
 
@@ -86,7 +90,3 @@ std::filesystem::equivalent \- std::filesystem::equivalent
    symlink_status determines file attributes, checking the symlink target
    \fI(C++17)\fP        \fI(function)\fP 
    \fI(C++17)\fP
-
-.SH Category:
-
-     * unconditionally noexcept

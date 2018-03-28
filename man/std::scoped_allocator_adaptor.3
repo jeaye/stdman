@@ -1,4 +1,4 @@
-.TH std::scoped_allocator_adaptor 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::scoped_allocator_adaptor 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::scoped_allocator_adaptor \- std::scoped_allocator_adaptor
 
@@ -17,6 +17,12 @@ std::scoped_allocator_adaptor \- std::scoped_allocator_adaptor
    If there are more levels to the container than there are inner allocators, the last
    inner allocator is reused for all further nested containers.
 
+   The purpose of this adaptor is to correctly initialize stateful allocators in nested
+   containers, such as when all levels of a nested container must be placed in the same
+   shared memory segment. The adaptor's constructor takes the arguments for all
+   allocators in the list, and each nested container obtains its allocator's state from
+   the adaptor as needed.
+
    For the purpose of scoped_allocator_adaptor, if the next inner allocator is A, any
    class T for which std::uses_allocator<T,A>::value == true participates in the
    recursion as if it was a container. Additionally, std::pair is treated as such a
@@ -27,36 +33,37 @@ std::scoped_allocator_adaptor \- std::scoped_allocator_adaptor
 
 .SH Member types
 
-   Type                       Definition
-   outer_allocator_type       OuterAlloc
-                              scoped_allocator_adaptor<InnerAllocs...> or, if
-   inner_allocator_type       sizeof...(InnerAllocs) == 0,
-                              scoped_allocator_adaptor<OuterAlloc>
-   value_type                 std::allocator_traits<OuterAlloc>::value_type
-   size_type                  std::allocator_traits<OuterAlloc>::size_type
-   difference_type            std::allocator_traits<OuterAlloc>::difference_type
-   pointer                    std::allocator_traits<OuterAlloc>::pointer
-   const_pointer              std::allocator_traits<OuterAlloc>::const_pointer
-   void_pointer               std::allocator_traits<OuterAlloc>::void_pointer
-   const_void_pointer         std::allocator_traits<OuterAlloc>::const_void_pointer
+   Type                      Definition
+   outer_allocator_type      OuterAlloc
+                             scoped_allocator_adaptor<InnerAllocs...> or, if
+   inner_allocator_type      sizeof...(InnerAllocs) == 0,
+                             scoped_allocator_adaptor<OuterAlloc>
+   value_type                std::allocator_traits<OuterAlloc>::value_type
+   size_type                 std::allocator_traits<OuterAlloc>::size_type
+   difference_type           std::allocator_traits<OuterAlloc>::difference_type
+   pointer                   std::allocator_traits<OuterAlloc>::pointer
+   const_pointer             std::allocator_traits<OuterAlloc>::const_pointer
+   void_pointer              std::allocator_traits<OuterAlloc>::void_pointer
+   const_void_pointer        std::allocator_traits<OuterAlloc>::const_void_pointer
    propagate_on_container_copy_assignment
 
-   std::true_type if
-   std::allocator_traits<A>::propagate_on_container_copy_assignment::value is true for
-   at least one allocator A among OuterAlloc and InnerAlloc...
+              std::true_type if
+              std::allocator_traits<A>::propagate_on_container_copy_assignment::value
+              is true for at least one allocator A among OuterAlloc and InnerAlloc...
    propagate_on_container_move_assignment
 
-   std::true_type if
-   std::allocator_traits<A>::propagate_on_container_move_assignment::value is true for
-   at least one allocator A among OuterAlloc and InnerAlloc...
+              std::true_type if
+              std::allocator_traits<A>::propagate_on_container_move_assignment::value
+              is true for at least one allocator A among OuterAlloc and InnerAlloc...
    propagate_on_container_swap
 
-   std::true_type if std::allocator_traits<A>::propagate_on_container_swap::value is
-   true for at least one allocator A among OuterAlloc and InnerAlloc...
+              std::true_type if
+              std::allocator_traits<A>::propagate_on_container_swap::value is true for
+              at least one allocator A among OuterAlloc and InnerAlloc...
    is_always_equal\fI(C++17)\fP
 
-   std::true_type if std::allocator_traits<A>::is_always_equal::value is true for every
-   allocator A among OuterAlloc and InnerAlloc...
+              std::true_type if std::allocator_traits<A>::is_always_equal::value is
+              true for every allocator A among OuterAlloc and InnerAlloc...
    rebind
 
    template< class T >
@@ -102,6 +109,39 @@ std::scoped_allocator_adaptor \- std::scoped_allocator_adaptor
 
    operator== compares two scoped_allocator_adaptor instances
    operator!= \fI(public member function)\fP 
+
+   Deduction guides\fI(since C++17)\fP
+
+.SH Example
+
+   
+// Run this code
+
+ #include <vector>
+ #include <scoped_allocator>
+ #include <boost/interprocess/managed_shared_memory.hpp>
+ #include <boost/interprocess/allocators/adaptive_pool.hpp>
+ namespace bi = boost::interprocess;
+ template<class T> using alloc = bi::adaptive_pool<T,
+                                     bi::managed_shared_memory::segment_manager>;
+ using ipc_row = std::vector<int, alloc<int>>;
+ using ipc_matrix = std::vector<ipc_row, std::scoped_allocator_adaptor<alloc<ipc_row>>>;
+ int main ()
+ {
+    bi::managed_shared_memory s(bi::create_only, "Demo", 65536);
+  
+    // create vector of vectors in shared memory
+    ipc_matrix v(s.get_segment_manager());
+  
+    // for all these additions, the inner vectors obtain their allocator arguments
+    // from the outer vector's scoped_allocator_adaptor
+    v.resize(1); v[0].push_back(1);
+    v.emplace_back(2);
+    std::vector<int> local_row = {1,2,3};
+    v.emplace_back(local_row.begin(), local_row.end());
+  
+    bi::shared_memory_object::remove("Demo");
+ }
 
 .SH See also
 

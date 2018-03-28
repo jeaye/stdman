@@ -1,4 +1,4 @@
-.TH std::chrono::duration_cast 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::chrono::duration_cast 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::chrono::duration_cast \- std::chrono::duration_cast
 
@@ -23,16 +23,18 @@ std::chrono::duration_cast \- std::chrono::duration_cast
 
 .SH Notes
 
-   The function does not participate in the overload resolution unless ToDuration is an
+   The function does not participate in overload resolution unless ToDuration is an
    instance of std::chrono::duration.
 
-   Casting between floating-point durations or between integer durations where the
-   source period is exactly divisible by the target period (e.g. hours to minutes) can
-   be performed implicitly, no duration_cast is needed.
+   Casting between integer durations where the source period is exactly divisible by
+   the target period (e.g. hours to minutes) or between floating-point durations can be
+   performed with ordinary casts or implicitly via std::chrono::duration constructors,
+   no duration_cast is needed.
 
    Casting from a floating-point duration to an integer duration is subject to
    undefined behavior when the floating-point value is NaN, infinity, or too large to
-   be representable by the target's integer type.
+   be representable by the target's integer type. Otherwise, casting to an integer
+   duration is subject to truncation as with any static_cast to an integer type.
 
 .SH Example
 
@@ -57,19 +59,24 @@ std::chrono::duration_cast \- std::chrono::duration_cast
      f();
      auto t2 = std::chrono::high_resolution_clock::now();
   
+     // floating-point duration: no duration_cast needed
+     std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+  
      // integral duration: requires duration_cast
      auto int_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
   
-     // fractional duration: no duration_cast needed
-     std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+     // converting integral duration to integral duration of shorter divisible time unit:
+     // no duration_cast needed
+     std::chrono::duration<long, std::micro> int_usec = int_ms;
   
      std::cout << "f() took " << fp_ms.count() << " ms, "
-               << "or " << int_ms.count() << " whole milliseconds\\n";
+               << "or " << int_ms.count() << " whole milliseconds "
+               << "(which is " << int_usec.count() << " whole microseconds)" << std::endl;
  }
 
 .SH Possible output:
 
- f() took 1000.23 ms, or 1000 whole milliseconds
+ f() took 1000.23 ms, or 1000 whole milliseconds (which is 1000000 whole microseconds)
 
 .SH See also
 

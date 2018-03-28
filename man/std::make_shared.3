@@ -1,21 +1,48 @@
-.TH std::make_shared 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::make_shared 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::make_shared \- std::make_shared
 
 .SH Synopsis
    Defined in header <memory>
-   template< class T, class... Args >            \fI(since C++11)\fP
-   shared_ptr<T> make_shared( Args&&... args );
+   template< class T, class... Args >                              \fB(1)\fP \fI(since C++11)\fP
+   shared_ptr<T> make_shared( Args&&... args );                        (T is not array)
+   template<class T>                                               \fB(2)\fP (since C++20)
+   shared_ptr<T> make_shared(std::size_t N);                           (T is U[])
+   template<class T>                                               \fB(3)\fP (since C++20)
+   shared_ptr<T> make_shared();                                        (T is U[N])
+   template<class T>                                                   (since C++20)
+   shared_ptr<T> make_shared(std::size_t N, const                  \fB(4)\fP (T is U[])
+   std::remove_extent_t<T>& u);
+   template<class T>                                               \fB(5)\fP (since C++20)
+   shared_ptr<T> make_shared(const std::remove_extent_t<T>& u);        (T is U[N])
 
-   Constructs an object of type T and wraps it in a std::shared_ptr using args as the
-   parameter list for the constructor of T.
-
-   The std::shared_ptr constructor called by this function enables shared_from_this
-   with a pointer to the newly constructed object of type T.
+   1) Constructs an object of type T and wraps it in a std::shared_ptr using args as
+   the parameter list for the constructor of T. The object is constructed as if by the
+   expression ::new (pv) T(std::forward<Args>(args)...), where pv is an internal void*
+   pointer to storage suitable to hold an object of type T. The storage is typically
+   larger than sizeof(T) in order to use one allocation for both the control block of
+   the shared pointer and the T object. The std::shared_ptr constructor called by this
+   function enables shared_from_this with a pointer to the newly constructed object of
+   type T. This overload only participates in overload resolution if T is not an array
+   type
+   2,3) Same as \fB(1)\fP, but the element constructed is a possibly-multidimensional array
+   whose non-array elements of type std::remove_all_extents_t<T> are value-initialized
+   as if by placement-new expression ::new(pv) std::remove_all_extents_t<T>(). The
+   overload \fB(2)\fP creates an array of size N along the first dimension. The array
+   elements are initialized in ascending order of their addresses.
+   4,5) Same as (2,3), but every element is initialized from the default value u. If U
+   is not an array type, then this is performed as if by the same placement-new
+   expression as in \fB(1)\fP; otherwise, this is performed as if by initializing every
+   non-array element of the (possibly multidimensional) array with the corresponding
+   element from u with the same placement-new expression as in \fB(1)\fP. The overload \fB(4)\fP
+   creates an array of size N along the first dimension. The array elements are
+   initialized in ascending order of their addresses.
 
 .SH Parameters
 
    args - list of arguments with which an instance of T will be constructed.
+   N    - array size to use
+   u    - the initial value to initialize every element of the array
 
 .SH Return value
 
@@ -24,29 +51,47 @@ std::make_shared \- std::make_shared
 .SH Exceptions
 
    May throw std::bad_alloc or any exception thrown by the constructor of T. If an
-   exception is thrown, this function has no effect.
+   exception is thrown, the functions have no effect.
+   If an exception is thrown during the construction of the array, already-initialized
+   elements are destroyed in reverse order.
+   (since C++20)
 
 .SH Notes
 
-   This function is typically used to replace the construction std::shared_ptr<T>(new
-   T(args...)) of a shared pointer from the raw pointer returned by a call to new. In
-   contrast to that expression, std::make_shared<T> typically allocates memory for the
-   T object and for the std::shared_ptr's control block with a single memory allocation
-   (this is a non-binding requirement in the Standard), where std::shared_ptr<T>(new
-   T(args...)) performs at least two memory allocations.
+   This function may be used as an alternative to std::shared_ptr<T>(new T(args...)).
+   The trade-offs are:
 
-   Moreover, code such as f(std::shared_ptr<int>(new int\fB(42)\fP), g()) can cause a memory
-   leak if g throws an exception because g() may be called after new int\fB(42)\fP and before
-   the constructor of shared_ptr<int>. This doesn't occur in
-   f(std::make_shared<int>\fB(42)\fP, g()), since two function calls are never interleaved.
+     * std::shared_ptr<T>(new T(args...)) performs at least two allocations (one for
+       the object T and one for the control block of the shared pointer), while
+       std::make_shared<T> typically performs only one allocation (the standard
+       recommends, but does not require this, all known implementations do this)
+     * If any std::weak_ptr references the control block created by std::make_shared
+       after the lifetime of all shared owners ended, the memory occupied by T persists
+       until all weak owners get destroyed as well, which may be undesirable if
+       sizeof(T) is large.
+     * std::shared_ptr<T>(new T(args...)) may call a non-public constructor of T if
+       executed in context where it is accessible, while std::make_shared requires
+       public access to the selected constructor.
+     * Unlike the std::shared_ptr constructors, std::make_shared does not allow a
+       custom deleter.
+     * std::make_shared uses ::new, so if any special behavior has been set up using a
+       class-specific operator new, it will differ from std::shared_ptr<T>(new
+       T(args...)).
 
-   Although std::shared_ptr supports array types (as of C++17), std::make_shared does
-   not. This functionality is supported by boost::make_shared
+     * std::shared_ptr supports array types (as of C++17), but
+       std::make_shared does not. This functionality is supported by      (until C++20)
+       boost::make_shared
+
+     * code such as f(std::shared_ptr<int>(new int\fB(42)\fP), g()) can cause a
+       memory leak if g gets called after new int\fB(42)\fP and throws an       \fI(until C++17)\fP
+       exception, while f(std::make_shared<int>\fB(42)\fP, g()) is safe, since
+       two function calls are never interleaved.
 
    A constructor enables shared_from_this with a pointer ptr of type U* means that it
-   determines if U has an unambiguous and accessible base class that is a
-   specialization of std::enable_shared_from_this, and if so, the constructor evaluates
-   the statement:
+   determines if U has an
+   unambiguous and accessible
+   \fI(since C++17)\fP base class that is a specialization of std::enable_shared_from_this,
+   and if so, the constructor evaluates the statement:
 
  if (ptr != nullptr && ptr->weak_this.expired())
    ptr->weak_this = std::shared_ptr<std::remove_cv_t<U>>(*this,
@@ -79,7 +124,7 @@ std::make_shared \- std::make_shared
  {
      auto sp = std::make_shared<int>(12);
      foo(sp);
-     std::cout << *sp << std::endl;
+     std::cout << *sp << '\\n';
  }
 
 .SH Output:
@@ -95,3 +140,5 @@ std::make_shared \- std::make_shared
                    \fI(function template)\fP 
    make_unique     creates a unique pointer that manages a new object
    \fI(C++14)\fP         \fI(function template)\fP 
+   operator new    allocation functions
+   operator new[]  \fI(function)\fP 

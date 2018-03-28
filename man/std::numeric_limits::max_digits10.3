@@ -1,4 +1,4 @@
-.TH std::numeric_limits::max_digits10 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::numeric_limits::max_digits10 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::numeric_limits::max_digits10 \- std::numeric_limits::max_digits10
 
@@ -46,6 +46,67 @@ std::numeric_limits::max_digits10 \- std::numeric_limits::max_digits10
    for double): it is guaranteed to produce the same floating-point value, even though
    the intermediate text representation is not exact. It may take over a hundred
    decimal digits to represent the precise value of a float in decimal notation.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <limits>
+ #include <sstream>
+ #include <iomanip>
+ #include <cmath>
+ #include <iostream>
+  
+ template< typename FloatingType >
+ std::string to_string_scientific( FloatingType value, int precision )
+ {
+     std::ostringstream oss;
+     oss << std::scientific << std::setprecision( precision ) << value;
+     return oss.str();
+ }
+  
+ template< typename FloatingType >
+ constexpr int max_fractional_digits10()
+ {
+     constexpr auto max_digits10 = std::numeric_limits<FloatingType>::max_digits10;
+     constexpr auto one_digit10_in_integer_part = 1;
+     return max_digits10 - one_digit10_in_integer_part;
+ }
+  
+ template< typename FloatingType >
+ std::string to_string_complete( FloatingType value )
+ {
+     return to_string_scientific( value, max_fractional_digits10<FloatingType>() );
+ }
+  
+ template< typename FloatingType >
+ std::string to_string_incomplete( FloatingType value )
+ {
+     return to_string_scientific( value, max_fractional_digits10<FloatingType>() - 1 );
+ }
+  
+ int main()
+ {
+     float f = 1.00000086e+01f;
+  
+     for( auto i = 0; i < 4; ++i )
+     {
+         std::cout
+             << "incomplete: " << to_string_incomplete( f )
+             << ", complete: " << to_string_complete( f )
+             << '\\n';
+  
+         f = std::nextafter( f, std::numeric_limits<decltype(f)>::max() );
+     }
+ }
+
+.SH Output:
+
+ incomplete: 1.0000009e+01, complete: 1.00000086e+01
+ incomplete: 1.0000010e+01, complete: 1.00000095e+01
+ incomplete: 1.0000010e+01, complete: 1.00000105e+01
+ incomplete: 1.0000011e+01, complete: 1.00000114e+01
 
 .SH See also
 

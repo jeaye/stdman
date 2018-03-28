@@ -1,4 +1,4 @@
-.TH std::is_base_of 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_base_of 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_base_of \- std::is_base_of
 
@@ -7,8 +7,9 @@ std::is_base_of \- std::is_base_of
    template< class Base, class Derived >  \fI(since C++11)\fP
    struct is_base_of;
 
-   If Derived is derived from Base or if both are the same non-union class, provides
-   the member constant value equal to true. Otherwise value is false.
+   If Derived is derived from Base or if both are the same non-union class (in both
+   cases ignoring cv-qualification), provides the member constant value equal to true.
+   Otherwise value is false.
 
    If both Base and Derived are non-union class types, and they are not the same type
    (ignoring cv-qualification), Derived shall be a complete type; otherwise the
@@ -16,8 +17,9 @@ std::is_base_of \- std::is_base_of
 
 .SH Member constants
 
-   value    true if Derived is derived from Base , false otherwise
-   \fB[static]\fP \fI(public static member constant)\fP
+   value    true if Derived is derived from Base or if both are the same non-union
+   \fB[static]\fP class (in both cases ignoring cv-qualification), false otherwise
+            \fI(public static member constant)\fP
 
 .SH Member functions
 
@@ -34,6 +36,10 @@ std::is_base_of \- std::is_base_of
 
 .SH Notes
 
+   std::is_base_of<A, B>::value is true even if A is a private, protected, or ambiguous
+   base class of B. In many situations, std::is_convertible<B*, A*> is the more
+   appropriate test.
+
    Although no class is its own base, std::is_base_of<T, T>::value is true because the
    intent of the trait is to model the "is-a" relationship, and T is a T. Despite that,
    std::is_base_of<int, int>::value is false because only classes participate in the
@@ -42,8 +48,8 @@ std::is_base_of \- std::is_base_of
    Possible Implementation
 
 namespace details {
-    template <typename Base> std::true_type is_base_of_test_func(Base*);
-    template <typename Base> std::false_type is_base_of_test_func(void*);
+    template <typename Base> std::true_type is_base_of_test_func(const volatile Base*);
+    template <typename Base> std::false_type is_base_of_test_func(const volatile void*);
     template <typename Base, typename Derived>
     using pre_is_base_of = decltype(is_base_of_test_func<Base>(std::declval<Derived*>()));
  
@@ -98,5 +104,5 @@ struct is_base_of :
 
 .SH See also
 
-   std::experimental::is_base_of_v variable template alias of std::is_base_of::value
-   (library fundamentals TS)       (variable template) 
+   is_convertible checks if a type can be converted to the other type
+   \fI(C++11)\fP        \fI(class template)\fP 

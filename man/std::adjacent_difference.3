@@ -1,4 +1,4 @@
-.TH std::adjacent_difference 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::adjacent_difference 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::adjacent_difference \- std::adjacent_difference
 
@@ -6,39 +6,73 @@ std::adjacent_difference \- std::adjacent_difference
    Defined in header <numeric>
    template< class InputIt, class OutputIt >
 
-   OutputIt adjacent_difference( InputIt first, InputIt last,         \fB(1)\fP
+   OutputIt adjacent_difference( InputIt first,
+   InputIt last,                                            (until C++20)
 
-                                 OutputIt d_first );
-   template< class ExecutionPolicy, class InputIt, class OutputIt >
-
-   OutputIt adjacent_difference( ExecutionPolicy&& policy, InputIt    \fB(2)\fP \fI(since C++17)\fP
-   first, InputIt last,
-
-                                 OutputIt d_first );
-   template< class InputIt, class OutputIt, class BinaryOperation >
-
-   OutputIt adjacent_difference( InputIt first, InputIt last,         \fB(3)\fP
-
-                                 OutputIt d_first, BinaryOperation op
+                                 OutputIt d_first
    );
-   template< class ExecutionPolicy, class InputIt, class OutputIt,
-   class BinaryOperation >
+   template< class InputIt, class OutputIt >
 
-   OutputIt adjacent_difference( ExecutionPolicy&& policy, InputIt    \fB(4)\fP \fI(since C++17)\fP
-   first, InputIt last,
+   constexpr OutputIt adjacent_difference( InputIt
+   first, InputIt last,                                     (since C++20)
 
-                                 OutputIt d_first, BinaryOperation op
-   );
+                                           OutputIt
+   d_first );
+   template< class ExecutionPolicy, class
+   ForwardIt1, class ForwardIt2 >
+
+   ForwardIt2 adjacent_difference(
+   ExecutionPolicy&& policy, ForwardIt1 first,          \fB(2)\fP \fI(since C++17)\fP
+   ForwardIt1 last,
+
+                                   ForwardIt2
+   d_first );
+   template< class InputIt, class OutputIt, class
+   BinaryOperation >                                \fB(1)\fP
+
+   OutputIt adjacent_difference( InputIt first,                           (until C++20)
+   InputIt last,
+
+                                 OutputIt d_first,
+   BinaryOperation op );
+   template< class InputIt, class OutputIt, class
+   BinaryOperation >
+
+   constexpr OutputIt adjacent_difference( InputIt                        (since C++20)
+   first, InputIt last,                                 \fB(3)\fP
+
+                                           OutputIt
+   d_first, BinaryOperation op );
+   template< class ExecutionPolicy, class
+   ForwardIt1, class ForwardIt2, class
+   BinaryOperation >
+
+   ForwardIt2 adjacent_difference(                          \fB(4)\fP           \fI(since C++17)\fP
+   ExecutionPolicy&& policy, ForwardIt1 first,
+   ForwardIt1 last,
+
+                                   ForwardIt2
+   d_first, BinaryOperation op );
 
    Computes the differences between the second and the first of each adjacent pair of
    elements of the range [first, last) and writes them to the range beginning at
-   d_first + 1. Unmodified copy of first is written to d_first.
+   d_first + 1. An unmodified copy of *first is written to *d_first.
 
-   1) Differences are calculated using operator-.
-   3) Differences are calculated using the given binary function op.
-   2,4) Same as (1,3), but executed according to policy. These overloads do not
-   participate in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
+   1,3) First, creates an accumulator acc whose type is InputIt's value type,
+   initializes it with *first, and assigns the result to *d_first. Then, for every
+   iterator i in [first + 1, last) in order, creates an object val whose type is
+   InputIt's value type, initializes it with *i, computes val - acc (overload \fB(1)\fP) or
+   op(val, acc) (overload \fB(3)\fP), assigns the result to *(d_first + (i - first)), and
+   move assigns from val to acc.
+   first may be equal to d_first.
+   2,4) First, creates an object whose type is ForwardIt1's value type, initializes it
+   with *first, and assigns the result to *d_first. Then for every d in [1, last -
+   first - 1], creates an object val whose type is ForwardIt1's value type, initializes
+   it with *(first + d) - *(first + d - 1) (overload \fB(2)\fP) or op(*(first + d), *(first +
+   d - 1)) (overload \fB(4)\fP), and assigns the result to *(d_first + d). This is executed
+   according to policy. This overload only participates in overload resolution if
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.
+   The behavior is undefined if the input and output ranges overlap in any way.
 
    Equivalent operation:
 
@@ -70,13 +104,19 @@ std::adjacent_difference \- std::adjacent_difference
                  OutputIt can be dereferenced and assigned a value of type Ret. 
 .SH Type requirements
    -
-   InputIt must meet the requirements of InputIterator.
+   InputIt must meet the requirements of InputIterator. InputIt's value type must be
+   MoveAssignable and constructible from the type of *first
    -
-   OutputIt must meet the requirements of OutputIterator.
+   OutputIt must meet the requirements of OutputIterator. both acc (the accumulated
+   value) and the result of val-acc or op(val, acc) must be writable to OutputIt
+   -
+   ForwardIt1, ForwardIt2 must meet the requirements of ForwardIterator. ForwardIt1's
+   value_type must be CopyConstructible, constructible from the expression *first -
+   *first or op(*first, *first), and assignable to ForwardIt2's value_type
 
 .SH Return value
 
-   It to the element past the last element written.
+   Iterator pointing just past the last element written.
 
 .SH Notes
 
@@ -135,9 +175,6 @@ std::adjacent_difference \- std::adjacent_difference
 
 .SH Example
 
-   The following code converts a sequence of even numbers to repetitions of the number
-   2 and converts a sequence of ones to a sequence of Fibonacci numbers.
-
    
 // Run this code
 
@@ -148,6 +185,8 @@ std::adjacent_difference \- std::adjacent_difference
   
  int main()
  {
+     // Default implementation - the difference b/w two adjacent items
+  
      std::vector<int> v{2, 4, 6, 8, 10, 12, 14, 16, 18, 20};
      std::adjacent_difference(v.begin(), v.end(), v.begin());
   
@@ -156,7 +195,12 @@ std::adjacent_difference \- std::adjacent_difference
      }
      std::cout << '\\n';
   
-     v = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+     // Fibonacci
+     // Notice, next item on the list is the result of the current iteration
+  
+     v = std::vector<int>(10);
+     v[0] = 1;
+  
      std::adjacent_difference(v.begin(), v.end() - 1, v.begin() + 1, std::plus<int>());
   
      for (auto n : v) {

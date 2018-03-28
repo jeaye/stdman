@@ -1,4 +1,4 @@
-.TH std::variant 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::variant 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::variant \- std::variant
 
@@ -9,7 +9,8 @@ std::variant \- std::variant
 
    The class template std::variant represents a type-safe union. An instance of
    std::variant at any given time either holds a value of one of its alternative types,
-   or it holds no value (this state is hard to achieve, see valueless_by_exception).
+   or in the case of error - no value (this state is hard to achieve, see
+   valueless_by_exception).
 
    As with unions, if a variant holds a value of some object type T, the object
    representation of T is allocated directly within the object representation of the
@@ -21,10 +22,11 @@ std::variant \- std::variant
    A variant is permitted to hold the same type more than once, and to hold differently
    cv-qualified versions of the same type.
 
-   As with unions, the default-initialized variant holds a value of its first
-   alternative, unless that alternative is not default-constructible (in which case
-   default constructor won't compile: the helper class std::monostate can be used to
-   make such variants default-constructible)
+   Consistent with the behavior of unions during aggregate initialization, a
+   default-constructed variant holds a value of its first alternative, unless that
+   alternative is not default-constructible (in which case the variant is not
+   default-constructible either). The helper class std::monostate can be used to make
+   such variants default-constructible.
 
 .SH Template parameters
 
@@ -56,7 +58,7 @@ std::variant \- std::variant
    visit                   calls the provided functor with the arguments held by one or
    \fI(C++17)\fP                 more variants
                            \fI(function template)\fP 
-   holds_alternative       checks if a given type appears exactly once in a variant
+   holds_alternative       checks if a variant currently holds a given type
    \fI(C++17)\fP                 \fI(function template)\fP 
    std::get(std::variant)  reads the value of the variant given the index or the type
    \fI(C++17)\fP                 (if the type is unique), throws on error
@@ -76,27 +78,35 @@ std::variant \- std::variant
 
 .SH Helper classes
 
-   monostate                         placeholder type for use as the first alternative
-   \fI(C++17)\fP                           in a variant of non-default-contructible types
-                                     \fI(class)\fP 
-   bad_variant_access                exception thrown on invalid accesses to the value
-   \fI(C++17)\fP                           of a variant
-                                     \fI(class)\fP 
-   variant_size                      obtains the size of the variant's list of
-   variant_size_v                    alternatives at compile time
-   \fI(C++17)\fP                           \fI(class template)\fP (variable template) 
-   variant_alternative               obtains the type of the alternative specified by
-   variant_alternative_t             its index, at compile time
-   \fI(C++17)\fP                           \fI(class template)\fP (alias template) 
-   std::hash<std::variant>           specializes the std::hash algorithm
-   \fI(C++17)\fP                           \fI(class template specialization)\fP 
-   std::uses_allocator<std::variant> specializes the std::uses_allocator type trait
-   \fI(C++17)\fP                           \fI(class template specialization)\fP 
+   monostate               placeholder type for use as the first alternative in a
+   \fI(C++17)\fP                 variant of non-default-contructible types
+                           \fI(class)\fP 
+   bad_variant_access      exception thrown on invalid accesses to the value of a
+   \fI(C++17)\fP                 variant
+                           \fI(class)\fP 
+   variant_size            obtains the size of the variant's list of alternatives at
+   variant_size_v          compile time
+   \fI(C++17)\fP                 \fI(class template)\fP (variable template) 
+   variant_alternative     obtains the type of the alternative specified by its index,
+   variant_alternative_t   at compile time
+   \fI(C++17)\fP                 \fI(class template)\fP (alias template) 
+   std::hash<std::variant> specializes the std::hash algorithm
+   \fI(C++17)\fP                 \fI(class template specialization)\fP 
 
    Helper objects
 
    variant_npos index of the variant in the invalid state
    \fI(C++17)\fP      (constant) 
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to           Behavior as published              Correct behavior
+                       specialization of std::uses_allocator
+   LWG 2901 C++17      provided, but variant can't properly      specialization removed
+                       support allocators
 
 .SH Example
 
@@ -105,6 +115,9 @@ std::variant \- std::variant
 
  #include <variant>
  #include <string>
+ #include <cassert>
+  
+ using namespace std::literals;
   
  int main()
  {
@@ -121,10 +134,15 @@ std::variant \- std::variant
      try {
        std::get<float>(w); // w contains int, not float: will throw
      }
-     catch (std::bad_variant_access&) {}
+     catch (const std::bad_variant_access&) {}
   
-     std::variant<std::string> v("abc"); // converting constructors work when unambiguous
-     v = "def"; // converting assignment also works when unambiguous
+     std::variant<std::string> x("abc"); // converting constructors work when unambiguous
+     x = "def"; // converting assignment also works when unambiguous
+  
+     std::variant<std::string, bool> y("abc"); // casts to bool when passed a char const *
+     assert(std::holds_alternative<bool>(y)); // succeeds
+     y = "xyz"s;
+     assert(std::holds_alternative<std::string>(y)); //succeeds
  }
 
 .SH See also
@@ -137,6 +155,6 @@ std::variant \- std::variant
    in_place_index_t
    \fI(C++17)\fP
    optional         a wrapper that may or may not hold an object
-   \fI(since C++17)\fP    \fI(class template)\fP 
+   \fI(C++17)\fP          \fI(class template)\fP 
    any              Objects that hold instances of any CopyConstructible type.
-   \fI(since C++17)\fP    \fI(class)\fP 
+   \fI(C++17)\fP          \fI(class)\fP 

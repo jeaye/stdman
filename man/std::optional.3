@@ -1,4 +1,4 @@
-.TH std::optional 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::optional 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::optional \- std::optional
 
@@ -29,16 +29,20 @@ std::optional \- std::optional
 
    The optional object contains a value in the following conditions:
 
-     * The object is initialized with a value of type T
-     * The object is assigned from another optional that contains a value.
+     * The object is initialized with/assigned from a value of type T or another
+       optional that contains a value.
 
    The object does not contain a value in the following conditions:
 
      * The object is default-initialized.
-     * The object is initialized with a value of std::nullopt_t or an optional object
-       that does not contain a value.
-     * The object is assigned from a value of std::nullopt_t or from an optional that
-       does not contain a value
+     * The object is initialized with/assigned from a value of type std::nullopt_t or
+       an optional object that does not contain a value.
+
+   There are no optional references; a program is ill-formed if it instantiates an
+   optional with a reference type. Alternatively, an optional of a
+   std::reference_wrapper of type T may be used to hold a reference. In addition, a
+   program is ill-formed if it instantiates an optional with the tag types
+   std::nullopt_t or std::in_place_t.
 
 .SH Template parameters
 
@@ -111,21 +115,35 @@ std::optional \- std::optional
    in_place_index_t
    \fI(C++17)\fP
 
+   Deduction guides
+
 .SH Example
 
    
 // Run this code
 
  #include <string>
+ #include <functional>
  #include <iostream>
  #include <optional>
   
  // optional can be used as the return type of a factory that may fail
  std::optional<std::string> create(bool b) {
-     if(b)
+     if (b)
          return "Godzilla";
-     else
-         return {};
+     return {};
+ }
+  
+ // std::nullopt can be used to create any (empty) std::optional
+ auto create2(bool b) {
+     return b ? std::optional<std::string>{"Godzilla"} : std::nullopt;
+ }
+  
+ // std::reference_wrapper may be used to return a reference
+ auto create_ref(bool b) {
+     static std::string value = "Godzilla";
+     return b ? std::optional<std::reference_wrapper<std::string>>{value}
+              : std::nullopt;
  }
   
  int main()
@@ -134,12 +152,28 @@ std::optional \- std::optional
                << create(false).value_or("empty") << '\\n';
   
      // optional-returning factory functions are usable as conditions of while and if
-     if(auto str = create(true)) {
-         std::cout << "create(true) returned " << *str << '\\n';
+     if (auto str = create2(true)) {
+         std::cout << "create2(true) returned " << *str << '\\n';
+     }
+  
+     if (auto str = create_ref(true)) {
+         // using get() to access the reference_wrapper's value
+         std::cout << "create_ref(true) returned " << str->get() << '\\n';
+         str->get() = "Mothra";
+         std::cout << "modifying it changed it to " << str->get() << '\\n';
      }
  }
 
 .SH Output:
 
  create(false) returned empty
- create(true) returned Godzilla
+ create2(true) returned Godzilla
+ create_ref(true) returned Godzilla
+ modifying it changed it to Mothra
+
+.SH See also
+
+   variant a type-safe discriminated union
+   \fI(C++17)\fP \fI(class template)\fP 
+   any     Objects that hold instances of any CopyConstructible type.
+   \fI(C++17)\fP \fI(class)\fP 
