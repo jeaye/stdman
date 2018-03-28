@@ -1,4 +1,4 @@
-.TH std::visit 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::visit 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::visit \- std::visit
 
@@ -51,25 +51,28 @@ std::visit \- std::visit
  #include <type_traits>
  #include <iomanip>
  #include <vector>
-  
-  
+
+
  template<class T> struct always_false : std::false_type {};
-  
+
  using var_t = std::variant<int, long, double, std::string>;
-  
+
+ template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+ template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
  int main() {
      std::vector<var_t> vec = {10, 15l, 1.5, "hello"};
-     for(auto v: vec) {
+     for(auto& v: vec) {
          // void visitor, only called for side-effects
          std::visit([](auto&& arg){std::cout << arg;}, v);
-  
+
          // value-returning visitor. A common idiom is to return another variant
          var_t w = std::visit([](auto&& arg) -> var_t {return arg + arg;}, v);
-  
+
          std::cout << ". After doubling, variant holds ";
          // type-matching visitor: can also be a class with 4 overloaded operator()'s
          std::visit([](auto&& arg) {
-             using T = std::remove_cv_t<std::remove_reference_t<decltype(arg)>>;
+             using T = std::decay_t<decltype(arg)>;
              if constexpr (std::is_same_v<T, int>)
                  std::cout << "int with value " << arg << '\\n';
              else if constexpr (std::is_same_v<T, long>)
@@ -82,6 +85,15 @@ std::visit \- std::visit
                  static_assert(always_false<T>::value, "non-exhaustive visitor!");
          }, w);
      }
+
+     for (auto& v: vec) {
+         std::visit(overloaded {
+             [](int arg) { std::cout << arg << ' '; },
+             [](long arg) { std::cout << arg << ' '; },
+             [](double arg) { std::cout << arg << ' '; },
+             [](const std::string& arg) { std::cout << std::quoted(arg) << ' '; },
+         }, v);
+     }
  }
 
 .SH Output:
@@ -90,8 +102,9 @@ std::visit \- std::visit
  15. After doubling, variant holds long with value 30
  1.5. After doubling, variant holds double with value 3
  hello. After doubling, variant holds std::string with value "hellohello"
+ 10 15 1.5 "hello"
 
 .SH See also
 
    swap swaps with another variant
-        \fI(public member function)\fP 
+        \fI(public member function)\fP

@@ -1,4 +1,4 @@
-.TH std::adjacent_difference 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::adjacent_difference 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::adjacent_difference \- std::adjacent_difference
 
@@ -8,37 +8,47 @@ std::adjacent_difference \- std::adjacent_difference
 
    OutputIt adjacent_difference( InputIt first, InputIt last,         \fB(1)\fP
 
-                                 OutputIt d_first );
-   template< class ExecutionPolicy, class InputIt, class OutputIt >
+   OutputIt d_first );
+   template< class ExecutionPolicy, class ForwardIt1, class
+   ForwardIt2 >
 
-   OutputIt adjacent_difference( ExecutionPolicy&& policy, InputIt    \fB(2)\fP \fI(since C++17)\fP
-   first, InputIt last,
+   ForwardIt2 adjacent_difference( ExecutionPolicy&& policy,          \fB(2)\fP \fI(since C++17)\fP
+   ForwardIt1 first, ForwardIt1 last,
 
-                                 OutputIt d_first );
+   ForwardIt2 d_first );
    template< class InputIt, class OutputIt, class BinaryOperation >
 
    OutputIt adjacent_difference( InputIt first, InputIt last,         \fB(3)\fP
 
-                                 OutputIt d_first, BinaryOperation op
-   );
-   template< class ExecutionPolicy, class InputIt, class OutputIt,
-   class BinaryOperation >
+   OutputIt d_first, BinaryOperation op );
+   template< class ExecutionPolicy, class ForwardIt1, class
+   ForwardIt2, class BinaryOperation >
 
-   OutputIt adjacent_difference( ExecutionPolicy&& policy, InputIt    \fB(4)\fP \fI(since C++17)\fP
-   first, InputIt last,
+   ForwardIt2 adjacent_difference( ExecutionPolicy&& policy,          \fB(4)\fP \fI(since C++17)\fP
+   ForwardIt1 first, ForwardIt1 last,
 
-                                 OutputIt d_first, BinaryOperation op
-   );
+   ForwardIt2 d_first, BinaryOperation op );
 
    Computes the differences between the second and the first of each adjacent pair of
    elements of the range [first, last) and writes them to the range beginning at
    d_first + 1. Unmodified copy of first is written to d_first.
 
-   1) Differences are calculated using operator-.
-   3) Differences are calculated using the given binary function op.
-   2,4) Same as (1,3), but executed according to policy. These overloads do not
-   participate in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
+   1,3) First, creates an accumulator acc whose type is InputIt's value type,
+   initializes it with *first, and assigns the result to *d_first. Then, for every
+   iterator i in [first + 1, last) in order, creates an object val whose type is
+   InputIt's value type, initializes it with *i, computes val - acc (overload \fB(1)\fP) or
+   op(val, acc) (overload \fB(3)\fP), assigns the result to *(d_first + (i - first)), and
+   move assigns from val to acc.
+   The input ranges may overlap, but cannot be identical: the behavior is undefined if
+   first==d_first
+   2,4) First, creates an object whose type is ForwardIt1's value type, initializes it
+   with *first, and assigns the result to *d_first. Then for every d in [1, last -
+   first - 1], creates an object val whose type is ForwardIt1's value type, initializes
+   it with *(first + d) - *(first + d - 1) (overload \fB(2)\fP) or op(*(first + d), *(first +
+   d - 1)) (overload \fB(4)\fP), and assigns the result to *(d_first + d). This is executed
+   according to policy. This overload only participates in overload resolution if
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.
+   The behavior is undefined if the input ranges overlap in any way.
 
    Equivalent operation:
 
@@ -61,7 +71,7 @@ std::adjacent_difference \- std::adjacent_difference
 
                  The signature of the function should be equivalent to the following:
 
-                  Ret fun(const Type1 &a, const Type2 &b);
+                 Ret fun(const Type1 &a, const Type2 &b);
    op          -
                  The signature does not need to have const &.
                  The types Type1 and Type2 must be such that an object of type
@@ -70,9 +80,15 @@ std::adjacent_difference \- std::adjacent_difference
                  OutputIt can be dereferenced and assigned a value of type Ret. 
 .SH Type requirements
    -
-   InputIt must meet the requirements of InputIterator.
+   InputIt must meet the requirements of InputIterator. InputIt's value type must be
+   MoveAssignable and constructible from the type of *first
    -
-   OutputIt must meet the requirements of OutputIterator.
+   OutputIt must meet the requirements of OutputIterator. both acc (the accumulated
+   value) and the result of val-acc or op(val, acc) must be writable to OutputIt
+   -
+   ForwardIt1, ForwardIt2 must meet the requirements of ForwardIterator. ForwardIt1's
+   value_type must be CopyConstructible, constructible from the expression *first -
+   *first or op(*first, *first), and assignable to ForwardIt2's value_type
 
 .SH Return value
 
@@ -104,7 +120,7 @@ std::adjacent_difference \- std::adjacent_difference
                                 OutputIt d_first)
    {
        if (first == last) return d_first;
-    
+
        typedef typename std::iterator_traits<InputIt>::value_type value_t;
        value_t acc = *first;
        *d_first = acc;
@@ -121,7 +137,7 @@ std::adjacent_difference \- std::adjacent_difference
                                 OutputIt d_first, BinaryOperation op)
    {
        if (first == last) return d_first;
-    
+
        typedef typename std::iterator_traits<InputIt>::value_type value_t;
        value_t acc = *first;
        *d_first = acc;
@@ -145,20 +161,20 @@ std::adjacent_difference \- std::adjacent_difference
  #include <vector>
  #include <iostream>
  #include <functional>
-  
+
  int main()
  {
      std::vector<int> v{2, 4, 6, 8, 10, 12, 14, 16, 18, 20};
      std::adjacent_difference(v.begin(), v.end(), v.begin());
-  
+
      for (auto n : v) {
          std::cout << n << ' ';
      }
      std::cout << '\\n';
-  
+
      v = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
      std::adjacent_difference(v.begin(), v.end() - 1, v.begin() + 1, std::plus<int>());
-  
+
      for (auto n : v) {
          std::cout << n << ' ';
      }
@@ -173,6 +189,6 @@ std::adjacent_difference \- std::adjacent_difference
 .SH See also
 
    partial_sum computes the partial sum of a range of elements
-               \fI(function template)\fP 
+               \fI(function template)\fP
    accumulate  sums up a range of elements
-               \fI(function template)\fP 
+               \fI(function template)\fP

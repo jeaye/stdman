@@ -1,24 +1,26 @@
-.TH std::result_of 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::result_of,std::invoke_result 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
-std::result_of \- std::result_of
+std::result_of,std::invoke_result \- std::result_of,std::invoke_result
 
 .SH Synopsis
    Defined in header <type_traits>
    template< class >
 
-   class result_of; // not defined
-                                           \fI(since C++11)\fP
+   class result_of; // not defined            \fI(since C++11)\fP
+                                          \fB(1)\fP (deprecated in C++17)
    template< class F, class... ArgTypes >
 
    class result_of<F(ArgTypes...)>;
+   template< class F, class... ArgTypes>  \fB(2)\fP \fI(since C++17)\fP
+   class invoke_result;
 
-   Deduces the return type of a function call expression at compile time.
+   Deduces the return type of an INVOKE expression at compile time.
 
    F must be a callable type, reference to function, or reference to
    callable type. Invoking F with ArgTypes... must be a well-formed       \fI(since C++11)\fP
    expression
    F and all types in ArgTypes can be any complete type, array of unknown \fI(since C++14)\fP
-   bound, or (cv-qualified) void
+   bound, or (possibly cv-qualified) void
 
 .SH Member types
 
@@ -31,8 +33,11 @@ std::result_of \- std::result_of
 
 .SH Helper types
 
-   template< class T >                               \fI(since C++14)\fP
-   using result_of_t = typename result_of<T>::type;
+   template< class T >                                        \fB(1)\fP \fI(since C++14)\fP
+   using result_of_t = typename result_of<T>::type;               (deprecated in C++17)
+   template< class F, class... ArgTypes>
+   using invoke_result_t = typename invoke_result<F,          \fB(2)\fP \fI(since C++17)\fP
+   ArgTypes...>::type;
 
 .SH Possible implementation
 
@@ -42,59 +47,62 @@ std::result_of \- std::result_of
      decltype(forward<F>(f)(forward<Args>(args)...)) {
        return forward<F>(f)(forward<Args>(args)...);
  }
-  
+
  template <class Base, class T, class Derived>
  inline auto INVOKE(T Base::*pmd, Derived&& ref) ->
      decltype(forward<Derived>(ref).*pmd) {
        return forward<Derived>(ref).*pmd;
  }
-  
+
  template <class PMD, class Pointer>
  inline auto INVOKE(PMD&& pmd, Pointer&& ptr) ->
      decltype((*forward<Pointer>(ptr)).*forward<PMD>(pmd)) {
        return (*forward<Pointer>(ptr)).*forward<PMD>(pmd);
  }
-  
+
  template <class Base, class T, class Derived, class... Args>
  inline auto INVOKE(T Base::*pmf, Derived&& ref, Args&&... args) ->
      decltype((forward<Derived>(ref).*pmf)(forward<Args>(args)...)) {
        return (forward<Derived>(ref).*pmf)(forward<Args>(args)...);
  }
-  
+
  template <class PMF, class Pointer, class... Args>
  inline auto INVOKE(PMF&& pmf, Pointer&& ptr, Args&&... args) ->
      decltype(((*forward<Pointer>(ptr)).*forward<PMF>(pmf))(forward<Args>(args)...)) {
        return ((*forward<Pointer>(ptr)).*forward<PMF>(pmf))(forward<Args>(args)...);
  }
  } // namespace detail
-  
+
  // Minimal C++11 implementation:
  template <class> struct result_of;
  template <class F, class... ArgTypes>
  struct result_of<F(ArgTypes...)> {
      using type = decltype(detail::INVOKE(std::declval<F>(), std::declval<ArgTypes>()...));
  };
-  
+
  // Conforming C++14 implementation (is also a valid C++11 implementation):
  namespace detail {
- template <typename, typename = void>
- struct result_of {};
+ template <typename AlwaysVoid, typename, typename...>
+ struct invoke_result { };
  template <typename F, typename...Args>
- struct result_of<F(Args...),
-                  decltype(void(detail::INVOKE(std::declval<F>(), std::declval<Args>()...)))> {
+ struct invoke_result<decltype(void(detail::INVOKE(std::declval<F>(), std::declval<Args>()...))),
+                  F, Args...> {
      using type = decltype(detail::INVOKE(std::declval<F>(), std::declval<Args>()...));
  };
  } // namespace detail
-  
+
  template <class> struct result_of;
  template <class F, class... ArgTypes>
- struct result_of<F(ArgTypes...)> : detail::result_of<F(ArgTypes...)> {};
+ struct result_of<F(ArgTypes...)> : detail::invoke_result<void, F, ArgTypes...> {};
+
+ template <class F, class... ArgTypes>
+ struct invoke_result : detail::invoke_result<void, F, ArgTypes...> {};
 
 .SH Notes
 
-   As formulated in C++11, the behavior is undefined when INVOKE(std::declval<F>(),
-   std::declval<ArgTypes>()...) is ill-formed (e.g. when F is not a callable type at
-   all). C++14 changes that to a SFINAE (when F is not callable,
+   As formulated in C++11, the behavior of std::result_of is undefined when
+   INVOKE(std::declval<F>(), std::declval<ArgTypes>()...) is ill-formed (e.g. when F is
+   not a callable type at all). C++14 changes that to a SFINAE (when F is not callable,
    std::result_of<F(ArgTypes...)> simply doesn't have the type member).
 
    The motivation behind std::result_of is to determine the result of invoking a
@@ -112,41 +120,41 @@ std::result_of \- std::result_of
 
  #include <type_traits>
  #include <iostream>
-  
+
  struct S {
      double operator()(char, int&);
      float operator()(int) { return 1.0;}
  };
-  
+
  template<class T>
  typename std::result_of<T(int)>::type f(T& t)
  {
      std::cout << "overload of f for callable T\\n";
      return t(0);
  }
-  
+
  template<class T, class U>
  int f(U u)
  {
      std::cout << "overload of f for non-callable T\\n";
      return u;
  }
-  
+
  int main()
  {
      // the result of invoking S with char and int& arguments is double
      std::result_of<S(char, int&)>::type d = 3.14; // d has type double
      static_assert(std::is_same<decltype(d), double>::value, "");
-  
+
      // the result of invoking S with int argument is float
      std::result_of<S(int)>::type x = 3.14; // x has type float
      static_assert(std::is_same<decltype(x), float>::value, "");
-  
+
      // result_of can be used with a pointer to member function as follows
      struct C { double Func(char, int&); };
      std::result_of<decltype(&C::Func)(C, char, int&)>::type g = 3.14;
      static_assert(std::is_same<decltype(g), double>::value, "");
-  
+
      f<C>(1); // may fail to compile in C++11; calls the non-callable overload in C++14
  }
 
@@ -156,11 +164,13 @@ std::result_of \- std::result_of
 
 .SH See also
 
-   invoke              invokes any Callable object with given arguments
-   \fI(C++17)\fP             \fI(function template)\fP 
-   is_callable         checks if a type can be invoked (as if by std::invoke) with the
-   is_nothrow_callable given argument types
-   \fI(C++17)\fP             \fI(class template)\fP 
-   declval             obtains a reference to its argument for use in unevaluated
-   \fI(C++11)\fP             context
-                       \fI(function template)\fP 
+   invoke                 invokes any Callable object with given arguments
+   \fI(C++17)\fP                \fI(function template)\fP
+   is_invocable
+   is_invocable_r         checks if a type can be invoked (as if by std::invoke) with
+   is_nothrow_invocable   the given argument types
+   is_nothrow_invocable_r \fI(class template)\fP
+   \fI(C++17)\fP
+   declval                obtains a reference to its argument for use in unevaluated
+   \fI(C++11)\fP                context
+                          \fI(function template)\fP

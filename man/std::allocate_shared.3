@@ -1,4 +1,4 @@
-.TH std::allocate_shared 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::allocate_shared 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::allocate_shared \- std::allocate_shared
 
@@ -8,7 +8,11 @@ std::allocate_shared \- std::allocate_shared
    shared_ptr<T> allocate_shared( const Alloc& alloc, Args&&... args );
 
    Constructs an object of type T and wraps it in a std::shared_ptr using args as the
-   parameter list for the constructor of T.
+   parameter list for the constructor of T. The object is constructed as if by the
+   expression ::new (pv) T(std::forward<Args>(args)...), where pv is an internal void*
+   pointer to storage suitable to hold an object of type T. The storage is typically
+   larger than sizeof(T) in order to use one allocation for both the control block of
+   the shared pointer and the T object.
 
    All memory allocation is done using a copy of alloc, which must satisfy the
    Allocator requirements.
@@ -32,16 +36,18 @@ std::allocate_shared \- std::allocate_shared
 
 .SH Notes
 
-   This function typically allocates memory for the T object and for the shared_ptr's
-   control block with a single memory allocation (it is a non-binding requirement in
-   the Standard). In contrast, the declaration std::shared_ptr<T> p(new T(Args...))
-   performs at least two memory allocations, which may incur unnecessary overhead.
-
+   Like std::make_shared, this function typically performs only one allocation, and
+   places both the T object and the control block in the allocated memory block (the
+   standard recommends, but does not require this, all known implementations do this).
    A copy of alloc is stored as part of the control block so that it can be used to
    deallocate it once both shared and weak reference counts reach zero.
 
-   Although std::shared_ptr supports array types (as of C++17), std::allocate_shared
-   does not. This functionality is supported by boost::allocate_shared
+   Unlike the std::shared_ptr constructors, std::allocate_shared does not accept a
+   separate custom deleter: the supplied allocator is used for destruction of the
+   control block and the T object, and for deallocation of their shared memory block.
+
+   std::shared_ptr supports array types (as of C++17), but std::allocate_shared does
+   not. This functionality is supported by boost::allocate_shared
 
    A constructor enables shared_from_this with a pointer ptr of type U* means that it
    determines if U has an unambiguous and accessible base class that is a
@@ -65,6 +71,6 @@ std::allocate_shared \- std::allocate_shared
 .SH See also
 
    constructor   constructs new shared_ptr
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    make_shared   creates a shared pointer that manages a new object
-                 \fI(function template)\fP 
+                 \fI(function template)\fP

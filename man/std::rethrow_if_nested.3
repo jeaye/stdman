@@ -1,4 +1,4 @@
-.TH std::rethrow_if_nested 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::rethrow_if_nested 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::rethrow_if_nested \- std::rethrow_if_nested
 
@@ -7,14 +7,13 @@ std::rethrow_if_nested \- std::rethrow_if_nested
    template< class E >                    \fI(since C++11)\fP
    void rethrow_if_nested( const E& e );
 
-   If E is not a polymorphic class type, does nothing.
+   If E is not a polymorphic class type, or if std::nested_exception is an inaccessible
+   or ambiguous base class of E, there is no effect.
 
-   Otherwise, if dynamic_cast<const std::nested_exception&>(e) would succeed (i.e., if
-   E or the dynamic type (the most derived type) of the object referenced by e is
-   std::nested_exception or publicly and unambiguously derived from
-   std::nested_exception), extracts and throws the nested exception as if by calling
-   dynamic_cast<const std::nested_exception&>(e).rethrow_nested(). Otherwise, does
-   nothing.
+   Otherwise, performs
+
+ if (auto p = dynamic_cast<const std::nested_exception*>(std::addressof(e)))
+     p->rethrow_nested();
 
 .SH Parameters
 
@@ -26,23 +25,32 @@ std::rethrow_if_nested \- std::rethrow_if_nested
 
 .SH Possible implementation
 
-   template <class T>
-   void rethrow_if_nested(const T& e,
-                          std::enable_if_t<std::is_polymorphic<T>::value>* = 0)
-   {
-       if(auto nep = dynamic_cast<const std::nested_exception*>(&e))
-           nep->rethrow_nested();
+   namespace details {
+       template <class E>
+       struct can_dynamic_cast
+           : std::integral_constant<bool,
+                 std::is_polymorphic<E>::value &&
+                 (!std::is_base_of<std::nested_exception, E>::value ||
+                   std::is_convertible<E*, std::nested_exception*>::value)
+             > { };
+
+       template <class T>
+       void rethrow_if_nested_impl(const T& e, std::true_type)
+       {
+           if(auto nep = dynamic_cast<const std::nested_exception*>(std::addressof(e)))
+               nep->rethrow_nested();
+       }
+
+       template <class T>
+       void rethrow_if_nested_impl(const T&, std::false_type) { }
    }
-    
+
    template <class T>
-   void rethrow_if_nested(const T&,
-                          std::enable_if_t<!std::is_polymorphic<T>::value>* = 0)
-   {
+   void rethrow_if_nested(const T& t){
+       details::rethrow_if_nested_impl(t, details::can_dynamic_cast<T>());
    }
 
 .SH Example
-
-   
 
    Demonstrates construction and recursion through a nested exception object
 
@@ -54,7 +62,7 @@ std::rethrow_if_nested \- std::rethrow_if_nested
  #include <exception>
  #include <string>
  #include <fstream>
-  
+
  // prints the explanatory string of an exception. If the exception is nested,
  // recurses to print the explanatory of the exception it holds
  void print_exception(const std::exception& e, int level =  0)
@@ -66,7 +74,7 @@ std::rethrow_if_nested \- std::rethrow_if_nested
          print_exception(e, level+1);
      } catch(...) {}
  }
-  
+
  // sample function that catches an exception and wraps it in a nested exception
  void open_file(const std::string& s)
  {
@@ -77,7 +85,7 @@ std::rethrow_if_nested \- std::rethrow_if_nested
          std::throw_with_nested( std::runtime_error("Couldn't open " + s) );
      }
  }
-  
+
  // sample function that catches an exception and wraps it in a nested exception
  void run()
  {
@@ -87,7 +95,7 @@ std::rethrow_if_nested \- std::rethrow_if_nested
          std::throw_with_nested( std::runtime_error("run() failed") );
      }
  }
-  
+
  // runs the sample function above and prints the caught exception
  int main()
  {
@@ -107,6 +115,6 @@ std::rethrow_if_nested \- std::rethrow_if_nested
 .SH See also
 
    nested_exception  a mixin type to capture and store current exceptions
-   \fI(C++11)\fP           \fI(class)\fP 
+   \fI(C++11)\fP           \fI(class)\fP
    throw_with_nested throws its argument with std::nested_exception mixed in
-   \fI(C++11)\fP           \fI(function template)\fP 
+   \fI(C++11)\fP           \fI(function template)\fP

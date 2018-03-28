@@ -1,4 +1,4 @@
-.TH std::merge 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::merge 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::merge \- std::merge
 
@@ -7,40 +7,39 @@ std::merge \- std::merge
    template< class InputIt1, class InputIt2, class OutputIt >
 
    OutputIt merge( InputIt1 first1, InputIt1 last1,                   \fB(1)\fP
-                   InputIt2 first2, InputIt2 last2,
+   InputIt2 first2, InputIt2 last2,
 
-                   OutputIt d_first );
-   template< class ExecutionPolicy, class InputIt1, class InputIt2,
-   class OutputIt >
+   OutputIt d_first );
+   template< class ExecutionPolicy, class ForwardIt1, class
+   ForwardIt2, class ForwardIt3 >
 
-   OutputIt merge( ExecutionPolicy&& policy, InputIt1 first1,         \fB(2)\fP \fI(since C++17)\fP
-   InputIt1 last1,
-                   InputIt2 first2, InputIt2 last2,
+   ForwardIt3 merge( ExecutionPolicy&& policy, ForwardIt1 first1,     \fB(2)\fP \fI(since C++17)\fP
+   ForwardIt1 last1,
 
-                   OutputIt d_first );
+   ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first );
    template< class InputIt1, class InputIt2, class OutputIt, class
    Compare>
 
    OutputIt merge( InputIt1 first1, InputIt1 last1,                   \fB(3)\fP
-                   InputIt2 first2, InputIt2 last2,
+   InputIt2 first2, InputIt2 last2,
 
-                   OutputIt d_first, Compare comp );
-   template< class ExecutionPolicy, class InputIt1, class InputIt2,
-   class OutputIt, class Compare>
+   OutputIt d_first, Compare comp );
+   template< class ExecutionPolicy, class ForwardIt1, class
+   ForwardIt2, class ForwardIt3, class Compare>
 
-   OutputIt merge( ExecutionPolicy&& policy, InputIt1 first1,         \fB(4)\fP \fI(since C++17)\fP
-   InputIt1 last1,
-                   InputIt2 first2, InputIt2 last2,
+   ForwardIt3 merge( ExecutionPolicy&& policy, ForwardIt1 first1,     \fB(4)\fP \fI(since C++17)\fP
+   ForwardIt1 last1,
 
-                   OutputIt d_first, Compare comp );
+   ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first, Compare
+   comp );
 
    Merges two sorted ranges [first1, last1) and [first2, last2) into one sorted range
    beginning at d_first.
 
    1) Elements are compared using operator<.
    3) Elements are compared using the given binary comparison function comp.
-   2,4) Same as (1,3), but executed according to policy. These overloads do not
-   participate in overload resolution unless
+   2,4) Same as (1,3), but executed according to policy. This overload only
+   participates in overload resolution if
    std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
 
    For equivalent elements in the original two ranges, the elements from the first
@@ -63,7 +62,7 @@ std::merge \- std::merge
                    The signature of the comparison function should be equivalent to the
                    following:
    comp          -
-                    bool cmp(const Type1 &a, const Type2 &b);
+                   bool cmp(const Type1 &a, const Type2 &b);
 
                    The signature does not need to have const &, but the function object
                    must not modify the objects passed to it.
@@ -72,9 +71,9 @@ std::merge \- std::merge
                    converted to both Type1 and Type2. 
 .SH Type requirements
    -
-   InputIt1 must meet the requirements of InputIterator.
+   InputIt1, InputIt2 must meet the requirements of InputIterator.
    -
-   InputIt2 must meet the requirements of InputIterator.
+   ForwardIt1, ForwardIt2, ForwardIt3 must meet the requirements of ForwardIterator.
    -
    OutputIt must meet the requirements of OutputIterator.
 
@@ -84,7 +83,9 @@ std::merge \- std::merge
 
 .SH Complexity
 
-   At most std::distance(first1, last1) + std::distance(first2, last2) - 1 comparisons.
+   1,3) At most std::distance(first1, last1) + std::distance(first2, last2) - 1
+   comparisons.
+   2,4) O(std::distance(last1, first1) + std::distance(last2, first2))
 
 .SH Exceptions
 
@@ -162,36 +163,36 @@ std::merge \- std::merge
  #include <vector>
  #include <random>
  #include <functional>
-  
+
  int main()
  {
      // fill the vectors with random numbers
      std::random_device rd;
      std::mt19937 mt(rd());
      std::uniform_int_distribution<> dis(0, 9);
-  
+
      std::vector<int> v1(10), v2(10);
      std::generate(v1.begin(), v1.end(), std::bind(dis, std::ref(mt)));
      std::generate(v2.begin(), v2.end(), std::bind(dis, std::ref(mt)));
-  
+
      // sort
      std::sort(v1.begin(), v1.end());
      std::sort(v2.begin(), v2.end());
-  
+
      // output v1
      std::cout << "v1 : ";
      std::copy(v1.begin(), v1.end(), std::ostream_iterator<int>(std::cout, " "));
      std::cout << '\\n';
-  
+
      // output v2
      std::cout << "v2 : ";
      std::copy(v2.begin(), v2.end(), std::ostream_iterator<int>(std::cout, " "));
      std::cout << '\\n';
-  
+
      // merge
      std::vector<int> dst;
      std::merge(v1.begin(), v1.end(), v2.begin(), v2.end(), std::back_inserter(dst));
-  
+
      // output
      std::cout << "dst: ";
      std::copy(dst.begin(), dst.end(), std::ostream_iterator<int>(std::cout, " "));
@@ -207,11 +208,11 @@ std::merge \- std::merge
 .SH See also
 
    inplace_merge merges two ordered ranges in-place
-                 \fI(function template)\fP 
+                 \fI(function template)\fP
    set_union     computes the union of two sets
-                 \fI(function template)\fP 
+                 \fI(function template)\fP
    sort          sorts a range into ascending order
-                 \fI(function template)\fP 
+                 \fI(function template)\fP
                  sorts a range of elements while preserving order between equal
    stable_sort   elements
-                 \fI(function template)\fP 
+                 \fI(function template)\fP

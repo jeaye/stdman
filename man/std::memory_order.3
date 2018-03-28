@@ -1,4 +1,4 @@
-.TH std::memory_order 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::memory_order 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::memory_order \- std::memory_order
 
@@ -6,12 +6,12 @@ std::memory_order \- std::memory_order
    Defined in header <atomic>
    enum memory_order {
 
-       memory_order_relaxed,
-       memory_order_consume,
-       memory_order_acquire,   \fI(since C++11)\fP
-       memory_order_release,
-       memory_order_acq_rel,
-       memory_order_seq_cst
+   memory_order_relaxed,
+   memory_order_consume,
+   memory_order_acquire,       \fI(since C++11)\fP
+   memory_order_release,
+   memory_order_acq_rel,
+   memory_order_seq_cst
 
    };
 
@@ -34,8 +34,9 @@ std::memory_order \- std::memory_order
    Defined in header <atomic>
    Value                Explanation
                         Relaxed operation: there are no synchronization or ordering
-   memory_order_relaxed constraints, only atomicity is required of this operation (see
-                        Relaxed ordering below)
+   memory_order_relaxed constraints imposed on other reads or writes, only this
+                        operation's atomicity is guaranteed (see Relaxed ordering
+                        below)
                         A load operation with this memory order performs a consume
                         operation on the affected memory location: no reads or writes
                         in the current thread dependent on the value currently loaded
@@ -253,16 +254,16 @@ std::memory_order \- std::memory_order
  #include <iostream>
  #include <thread>
  #include <atomic>
-  
+
  std::atomic<int> cnt = {0};
-  
+
  void f()
  {
      for (int n = 0; n < 1000; ++n) {
          cnt.fetch_add(1, std::memory_order_relaxed);
      }
  }
-  
+
  int main()
  {
      std::vector<std::thread> v;
@@ -313,17 +314,17 @@ std::memory_order \- std::memory_order
  #include <atomic>
  #include <cassert>
  #include <string>
-  
+
  std::atomic<std::string*> ptr;
  int data;
-  
+
  void producer()
  {
      std::string* p  = new std::string("Hello");
      data = 42;
      ptr.store(p, std::memory_order_release);
  }
-  
+
  void consumer()
  {
      std::string* p2;
@@ -332,7 +333,7 @@ std::memory_order \- std::memory_order
      assert(*p2 == "Hello"); // never fires
      assert(data == 42); // never fires
  }
-  
+
  int main()
  {
      std::thread t1(producer);
@@ -350,16 +351,16 @@ std::memory_order \- std::memory_order
  #include <atomic>
  #include <cassert>
  #include <vector>
-  
+
  std::vector<int> data;
  std::atomic<int> flag = {0};
-  
+
  void thread_1()
  {
      data.push_back\fB(42)\fP;
      flag.store(1, std::memory_order_release);
  }
-  
+
  void thread_2()
  {
      int expected=1;
@@ -367,14 +368,14 @@ std::memory_order \- std::memory_order
          expected = 1;
      }
  }
-  
+
  void thread_3()
  {
      while (flag.load(std::memory_order_acquire) < 2)
          ;
      assert(data.at\fB(0)\fP == 42); // will never fire
  }
-  
+
  int main()
  {
      std::thread a(thread_1);
@@ -431,17 +432,17 @@ std::memory_order \- std::memory_order
  #include <atomic>
  #include <cassert>
  #include <string>
-  
+
  std::atomic<std::string*> ptr;
  int data;
-  
+
  void producer()
  {
      std::string* p  = new std::string("Hello");
      data = 42;
      ptr.store(p, std::memory_order_release);
  }
-  
+
  void consumer()
  {
      std::string* p2;
@@ -450,7 +451,7 @@ std::memory_order \- std::memory_order
      assert(*p2 == "Hello"); // never fires: *p2 carries dependency from ptr
      assert(data == 42); // may or may not fire: data does not carry dependency from ptr
  }
-  
+
  int main()
  {
      std::thread t1(producer);
@@ -529,21 +530,21 @@ std::memory_order \- std::memory_order
  #include <thread>
  #include <atomic>
  #include <cassert>
-  
+
  std::atomic<bool> x = {false};
  std::atomic<bool> y = {false};
  std::atomic<int> z = {0};
-  
+
  void write_x()
  {
      x.store(true, std::memory_order_seq_cst);
  }
-  
+
  void write_y()
  {
      y.store(true, std::memory_order_seq_cst);
  }
-  
+
  void read_x_then_y()
  {
      while (!x.load(std::memory_order_seq_cst))
@@ -552,7 +553,7 @@ std::memory_order \- std::memory_order
          ++z;
      }
  }
-  
+
  void read_y_then_x()
  {
      while (!y.load(std::memory_order_seq_cst))
@@ -561,7 +562,7 @@ std::memory_order \- std::memory_order
          ++z;
      }
  }
-  
+
  int main()
  {
      std::thread a(write_x);
@@ -574,10 +575,10 @@ std::memory_order \- std::memory_order
 
 .SH Relationship with volatile
 
-   Within a thread of execution, accesses (reads and writes) to volatile objects cannot
-   be reordered past observable side-effects (including other volatile accesses) that
-   are sequenced-before or sequenced-after within the same thread, but this order is
-   not guaranteed to be observed by another thread, since volatile access does not
+   Within a thread of execution, accesses (reads and writes) through volatile glvalues
+   cannot be reordered past observable side-effects (including other volatile accesses)
+   that are sequenced-before or sequenced-after within the same thread, but this order
+   is not guaranteed to be observed by another thread, since volatile access does not
    establish inter-thread synchronization.
 
    In addition, volatile accesses are not atomic (concurrent read and write is a data

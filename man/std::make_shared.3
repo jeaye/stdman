@@ -1,4 +1,4 @@
-.TH std::make_shared 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::make_shared 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::make_shared \- std::make_shared
 
@@ -8,7 +8,11 @@ std::make_shared \- std::make_shared
    shared_ptr<T> make_shared( Args&&... args );
 
    Constructs an object of type T and wraps it in a std::shared_ptr using args as the
-   parameter list for the constructor of T.
+   parameter list for the constructor of T. The object is constructed as if by the
+   expression ::new (pv) T(std::forward<Args>(args)...), where pv is an internal void*
+   pointer to storage suitable to hold an object of type T. The storage is typically
+   larger than sizeof(T) in order to use one allocation for both the control block of
+   the shared pointer and the T object.
 
    The std::shared_ptr constructor called by this function enables shared_from_this
    with a pointer to the newly constructed object of type T.
@@ -28,20 +32,29 @@ std::make_shared \- std::make_shared
 
 .SH Notes
 
-   This function is typically used to replace the construction std::shared_ptr<T>(new
-   T(args...)) of a shared pointer from the raw pointer returned by a call to new. In
-   contrast to that expression, std::make_shared<T> typically allocates memory for the
-   T object and for the std::shared_ptr's control block with a single memory allocation
-   (this is a non-binding requirement in the Standard), where std::shared_ptr<T>(new
-   T(args...)) performs at least two memory allocations.
+   This function may be used as an alternative to std::shared_ptr<T>(new T(args...)).
+   The trade-offs are:
 
-   Moreover, code such as f(std::shared_ptr<int>(new int\fB(42)\fP), g()) can cause a memory
-   leak if g throws an exception because g() may be called after new int\fB(42)\fP and before
-   the constructor of shared_ptr<int>. This doesn't occur in
-   f(std::make_shared<int>\fB(42)\fP, g()), since two function calls are never interleaved.
+     * std::shared_ptr<T>(new T(args...)) performs at least two allocations (one for
+       the object T and one for the control block of the shared pointer), while
+       std::make_shared<T> typically performs only one allocation (the standard
+       recommends, but does not require this, all known implementations do this)
+     * If any std::weak_ptr references the control block created by std::make_shared
+       after the lifetime of all shared owners ended, the memory occupied by T persists
+       until all weak owners get destroyed as well, which may be undesirable if
+       sizeof(T) is large.
+     * std::shared_ptr<T>(new T(args...)) may call a non-public constructor of T if
+       executed in context where it is accessible, while std::make_shared requires
+       public access to the selected constructor.
+     * Unlike the std::shared_ptr constructors, std::make_shared does not allow a
+       custom deleter.
+     * std::shared_ptr supports array types (as of C++17), but std::make_shared does
+       not. This functionality is supported by boost::make_shared
 
-   Although std::shared_ptr supports array types (as of C++17), std::make_shared does
-   not. This functionality is supported by boost::make_shared
+     * code such as f(std::shared_ptr<int>(new int\fB(42)\fP), g()) can cause a
+       memory leak if g gets called after new int\fB(42)\fP and throws an       \fI(until C++17)\fP
+       exception, while f(std::make_shared<int>\fB(42)\fP, g()) is safe, since
+       two function calls are never interleaved.
 
    A constructor enables shared_from_this with a pointer ptr of type U* means that it
    determines if U has an unambiguous and accessible base class that is a
@@ -69,12 +82,12 @@ std::make_shared \- std::make_shared
 
  #include <iostream>
  #include <memory>
-  
+
  void foo(const std::shared_ptr<int>& i)
  {
      (*i)++;
  }
-  
+
  int main()
  {
      auto sp = std::make_shared<int>(12);
@@ -89,9 +102,9 @@ std::make_shared \- std::make_shared
 .SH See also
 
    constructor     constructs new shared_ptr
-                   \fI(public member function)\fP 
+                   \fI(public member function)\fP
                    creates a shared pointer that manages a new object allocated using
    allocate_shared an allocator
-                   \fI(function template)\fP 
+                   \fI(function template)\fP
    make_unique     creates a unique pointer that manages a new object
-   \fI(C++14)\fP         \fI(function template)\fP 
+   \fI(C++14)\fP         \fI(function template)\fP
