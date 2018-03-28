@@ -1,23 +1,26 @@
-.TH std::any_cast 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::any_cast 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::any_cast \- std::any_cast
 
 .SH Synopsis
-   template<class ValueType>                          \fB(1)\fP \fI(since C++17)\fP
-       ValueType any_cast(const any& operand);
-   template<class ValueType>                          \fB(2)\fP \fI(since C++17)\fP
-       ValueType any_cast(any& operand);
-   template<class ValueType>                          \fB(3)\fP \fI(since C++17)\fP
-       ValueType any_cast(any&& operand);
-   template<class ValueType>                          \fB(4)\fP \fI(since C++17)\fP
-       const ValueType* any_cast(const any* operand);
-   template<class ValueType>                          \fB(5)\fP \fI(since C++17)\fP
-       ValueType* any_cast(any* operand);
+   template<class ValueType>                      \fB(1)\fP \fI(since C++17)\fP
+   ValueType any_cast(const any& operand);
+   template<class ValueType>                      \fB(2)\fP \fI(since C++17)\fP
+   ValueType any_cast(any& operand);
+   template<class ValueType>                      \fB(3)\fP \fI(since C++17)\fP
+   ValueType any_cast(any&& operand);
+   template<class ValueType>                      \fB(4)\fP \fI(since C++17)\fP
+   const ValueType* any_cast(const any* operand);
+   template<class ValueType>                      \fB(5)\fP \fI(since C++17)\fP
+   ValueType* any_cast(any* operand);
 
    Performs type-safe access to the contained object.
 
-   For (1-3), the program is ill-formed if ValueType is not a reference and
-   std::is_copy_constructible<ValueType>::value is false.
+   Let U be std::remove_cv_t<std::remove_reference_t<ValueType>>.
+
+   1) The program is ill-formed if is_constructible_v<ValueType, const U&> is not true.
+   2) The program is ill-formed if is_constructible_v<ValueType, U&> is not true.
+   3) The program is ill-formed if is_constructible_v<ValueType, U> is not true.
 
 .SH Parameters
 
@@ -25,9 +28,8 @@ std::any_cast \- std::any_cast
 
 .SH Return value
 
-   1) Returns
-   *any_cast<std::add_const_t<std::remove_reference_t<ValueType>>>(&operand).
-   2-3) Returns *any_cast<std::remove_reference_t<ValueType>>(&operand).
+   1-2) Returns static_cast<ValueType>(*std::any_cast<U>(&operand))
+   3) Returns static_cast<ValueType>(std::move(*std::any_cast<U>(&operand))).
    4-5) If operand is not a null pointer, and the typeid of the requested ValueType
    matches that of the contents of operand, a pointer to the value contained by
    operand, otherwise a null pointer.
@@ -37,9 +39,13 @@ std::any_cast \- std::any_cast
    1-3) Throws std::bad_any_cast if the typeid of the requested ValueType does not
    match that of the contents of operand.
    4-5)
-   noexcept specification:  
+   noexcept specification:
    noexcept
-     
 .SH Category:
 
      * unconditionally noexcept
+
+   Hidden categories:
+
+     * Pages with unreviewed unconditional noexcept template
+     * Pages with unreviewed noexcept template

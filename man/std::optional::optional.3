@@ -1,12 +1,12 @@
-.TH std::optional::optional 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::optional::optional 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::optional::optional \- std::optional::optional
 
 .SH Synopsis
    constexpr optional();                                           \fB(1)\fP \fI(since C++17)\fP
    constexpr optional( std::nullopt_t );
-   optional( const optional& other );                              \fB(2)\fP \fI(since C++17)\fP
-   optional( optional&& other );                                   \fB(3)\fP \fI(since C++17)\fP
+   constexpr optional( const optional& other );                    \fB(2)\fP \fI(since C++17)\fP
+   constexpr optional( optional&& other );                         \fB(3)\fP \fI(since C++17)\fP
    template < class U >                                            \fB(4)\fP \fI(since C++17)\fP
    /* EXPLICIT */ optional( const optional<U>& other );
    template < class U >                                            \fB(5)\fP \fI(since C++17)\fP
@@ -16,10 +16,10 @@ std::optional::optional \- std::optional::optional
    template< class U, class... Args >
 
    constexpr explicit optional( std::in_place_t,                   \fB(7)\fP \fI(since C++17)\fP
-                                std::initializer_list<U> ilist,
+   std::initializer_list<U> ilist,
 
-                                Args&&... args );
-   template < class U = T >                                        \fB(8)\fP \fI(since C++17)\fP
+   Args&&... args );
+   template < class U = value_type >                               \fB(8)\fP \fI(since C++17)\fP
    /* EXPLICIT */ constexpr optional( U&& value );
 
    Constructs a new optional object.
@@ -29,14 +29,16 @@ std::optional::optional \- std::optional::optional
    if direct-initializing (but not direct-list-initializing) an object of type T with
    the expression *other. If other does not contain a value, constructs an object that
    does not contain a value. This constructor is defined as deleted if
-   std::is_copy_constructible_v<T> is false.
+   std::is_copy_constructible_v<T> is false. It is a constexpr constructor if
+   std::is_trivially_copy_constructible_v<T> is true.
    3) Move constructor: If other contains a value, initializes the contained value as
    if direct-initializing (but not direct-list-initializing) an object of type T with
    the expression std::move(*other) and does not make other empty: a moved-from
    optional still contains a value, but the value itself is moved from. If other does
    not contain a value, constructs an object that does not contain a value. This
    constructor does not participate in overload resolution unless
-   std::is_move_constructible_v<T> is true.
+   std::is_move_constructible_v<T> is true. It is a constexpr constructor if
+   std::is_trivially_move_constructible_v<T> is true.
    4) Converting copy constructor: If other doesn't contain a value, constructs an
    optional object that does not contain a value. Otherwise, constructs an optional
    object that contains a value, initialized as if direct-initializing (but not
@@ -93,12 +95,13 @@ std::optional::optional \- std::optional::optional
    does not participate in the overload resolution unless std::is_constructible_v<T,
    std::initializer_list<U>&, Args&&...> is true
    8) Constructs an optional object that contains a value, initialized as if
-   direct-initializing (but not direct-list-initializing) an object of type T with the
-   expression std::forward<U>(value). If the selected constructor of T is a constexpr
-   constructor, this constructor is a constexpr constructor. This constructor does not
-   participate in overload resolution unless std::is_constructible_v<T, U&&> is true
-   and std::decay_t<U> is neither std::in_place_t nor std::optional<T>. This
-   constructor is explicit if and only if std::is_convertible_v<U&&, T> is false.
+   direct-initializing (but not direct-list-initializing) an object of type T (where T
+   = value_type) with the expression std::forward<U>(value). If the selected
+   constructor of T is a constexpr constructor, this constructor is a constexpr
+   constructor. This constructor does not participate in overload resolution unless
+   std::is_constructible_v<T, U&&> is true and std::decay_t<U> is neither
+   std::in_place_t nor std::optional<T>. This constructor is explicit if and only if
+   std::is_convertible_v<U&&, T> is false.
 
 .SH Parameters
 
@@ -110,13 +113,12 @@ std::optional::optional \- std::optional::optional
 .SH Exceptions
 
    1)
-   noexcept specification:  
+   noexcept specification:
    noexcept
-     
    2) Throws any exception thrown by the constructor of T.
    3) Throws any exception thrown by the constructor of T. Has the following noexcept
    declaration:
-   noexcept specification:  
+   noexcept specification:
    noexcept(std::is_nothrow_move_constructible<T>::value)
    .
    4-8) Throws any exception thrown by the constructor of T.
@@ -134,13 +136,13 @@ std::optional::optional \- std::optional::optional
      std::optional<int> o1, // empty
                         o2 = 1, // init from rvalue
                         o3 = o2; // copy-constructor
-  
+
      // calls string( initializer_list<CharT> ) constructor
      std::optional<std::string> o4(std::in_place, {'a', 'b', 'c'});
-  
+
      // calls string( size_type count, CharT ch ) constructor
      std::optional<std::string> o5(std::in_place, 3, 'A');
-  
+
      std::cout << *o2 << ' ' << *o3 << ' ' << *o4 << ' ' << *o5  << '\\n';
  }
 
@@ -151,9 +153,13 @@ std::optional::optional \- std::optional::optional
 .SH See also
 
    make_optional creates an optional object
-   \fI(C++17)\fP       \fI(function template)\fP 
+   \fI(C++17)\fP       \fI(function template)\fP
 
    Categories:
 
      * unconditionally noexcept
      * conditionally noexcept
+
+   Hidden category:
+
+     * Pages with unreviewed noexcept template

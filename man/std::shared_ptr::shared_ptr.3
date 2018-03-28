@@ -1,4 +1,4 @@
-.TH std::shared_ptr::shared_ptr 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::shared_ptr::shared_ptr 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
 
@@ -40,20 +40,34 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
 
    1-2) Constructs a shared_ptr with no managed object, i.e. empty shared_ptr
    3-7) Constructs a shared_ptr with ptr as the pointer to the managed object.
-   If T is an array type U[N], Y(*)[N] must be convertible to T*. If T is an array type
-   U[], Y(*)[] must be convertible to T*. Otherwise,
-   \fI(since C++17)\fP Y* must be convertible to T*. Additionally:
+
+   Y* must be convertible to T*.                                          \fI(until C++17)\fP
+   If T is an array type U[N], these constructors do not participate in
+   overload resolution if Y(*)[N] is not convertible to T*. If T is an
+   array type U[], these constructors do not participate in overload      \fI(since C++17)\fP
+   resolution if Y(*)[] is not convertible to T*. Otherwise, these
+   constructors do not participate in overload resolution if Y* is not
+   convertible to T*.
+
+   Additionally:
    3) Uses the delete-expression delete ptr
    if T is not an array type; delete[] ptr if T is an array type
    \fI(since C++17)\fP as the deleter. Y must be a complete type. The delete expression must
-   be well formed, have well-defined behavior and not throw any exceptions.
+   be well-formed, have well-defined behavior and not throw any exceptions.
+   This constructor additionally does not participate in overload resolution if the
+   delete expression is not well-formed.
+   \fI(since C++17)\fP
    4-5) Uses the specified deleter d as the deleter. The expression d(ptr) must be well
-   formed, have well-defined behavior and not throw any exceptions. Deleter must be
-   CopyConstructible, and its copy constructor and destructor must not throw
-   exceptions.
+   formed, have well-defined behavior and not throw any exceptions. The construction of
+   d and of the stored deleter from d must not throw exceptions.
+
+   Deleter must be CopyConstructible.                                     \fI(until C++17)\fP
+   These constructors additionally do not participate in overload
+   resolution if the expression d(ptr) is not well-formed, or if          \fI(since C++17)\fP
+   std::is_move_constructible<D>::value is false.
+
    6-7) Same as (4-5), but additionally uses a copy of alloc for allocation of data for
-   internal use. Alloc must be a Allocator, and its copy constructor and destructor
-   must not throw exceptions.
+   internal use. Alloc must be a Allocator.
    8) The aliasing constructor: constructs a shared_ptr which shares ownership
    information with r, but holds an unrelated and unmanaged pointer ptr. Even if this
    shared_ptr is the last of the group to go out of scope, it will call the destructor
@@ -76,14 +90,13 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
    \fI(until C++17)\fP
    compatible with
    \fI(since C++17)\fP T*.
-   11) Constructs a shared_ptr which shares ownership of the object managed by r. Y*
-   must be
-   implicitly convertible to
+   11) Constructs a shared_ptr which shares ownership of the object managed by r.
+   Y* must be implicitly convertible to T*.
    \fI(until C++17)\fP
-   compatible with
-   \fI(since C++17)\fP T*. Note that r.lock() may be used for the same purpose: the
-   difference is that this constructor throws an exception if the argument is empty,
-   while std::weak_ptr<T>::lock() constructs an empty std::shared_ptr in that case.
+   This overload only participates in overload resolution if Y* is compatible with T*.
+   \fI(since C++17)\fP Note that r.lock() may be used for the same purpose: the difference is
+   that this constructor throws an exception if the argument is empty, while
+   std::weak_ptr<T>::lock() constructs an empty std::shared_ptr in that case.
    12) Constructs a shared_ptr that stores and owns the object formerly owned by r. Y*
    must be convertible to T*. After construction, r is empty.
    13) Constructs a shared_ptr which manages the object currently managed by r. The
@@ -91,12 +104,9 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
    manages no object after the call.
 
    This overload doesn't participate in overload resolution if
-   std::unique_ptr<Y, Deleter>::pointer is not
-   implicitly convertible to
-   \fI(until C++17)\fP                                                          \fI(since C++17)\fP
-   compatible with
-   \fI(since C++17)\fP T*. If r.get() is a null pointer, this overload is
-   equivalent to the default constructor \fB(1)\fP.
+   std::unique_ptr<Y, Deleter>::pointer is not compatible with T*. If     \fI(since C++17)\fP
+   r.get() is a null pointer, this overload is equivalent to the default
+   constructor \fB(1)\fP.
 
    If Deleter is a reference type, equivalent to shared_ptr(r.release(),
    std::ref(r.get_deleter()). Otherwise, equivalent to shared_ptr(r.release(),
@@ -137,6 +147,18 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
    begins. This makes it safe to use a shared_ptr in a constructor of any static
    object.
 
+   In C++11 and C++14 it is valid to construct a std::shared_ptr<T> from a
+   std::unique_ptr<T[]>:
+
+ std::unique_ptr<int[]> arr(new int[1]);
+ std::shared_ptr<int> ptr(std::move(arr));
+
+   Since the shared_ptr obtains its deleter (a std::default_delete<T[]> object) from
+   the unique_ptr, the array will be correctly deallocated.
+
+   This is no longer allowed in C++17. Instead the array form std::shared_ptr<T[]>
+   should be used.
+
 .SH Parameters
 
    ptr   - a pointer to an object to manage
@@ -148,9 +170,8 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
 .SH Exceptions
 
    1-2)
-   noexcept specification:  
+   noexcept specification:
    noexcept
-     
    3) std::bad_alloc if required additional memory could not be obtained. May throw
    implementation-defined exception for other errors. delete ptr
    if T is not an array type, delete[] ptr otherwise)
@@ -159,9 +180,8 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
    implementation-defined exception for other errors. d(ptr) is called if an exception
    occurs.
    8-10)
-   noexcept specification:  
+   noexcept specification:
    noexcept
-     
    11) std::bad_weak_ptr if r.expired() == true. The constructor has no effect in this
    case.
    12) std::bad_alloc if required additional memory could not be obtained. May throw
@@ -176,26 +196,26 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
 
  #include <memory>
  #include <iostream>
-  
+
  struct Foo {
      Foo() { std::cout << "Foo...\\n"; }
      ~Foo() { std::cout << "~Foo...\\n"; }
  };
-  
+
  struct D {
      void operator()(Foo* p) const {
          std::cout << "Call delete from function object...\\n";
          delete p;
      }
  };
-  
+
  int main()
  {
      {
          std::cout << "constructor with no managed object\\n";
          std::shared_ptr<Foo> sh1;
      }
-  
+
      {
          std::cout << "constructor with object\\n";
          std::shared_ptr<Foo> sh2(new Foo);
@@ -203,7 +223,7 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
          std::cout << sh2.use_count() << '\\n';
          std::cout << sh3.use_count() << '\\n';
      }
-  
+
      {
          std::cout << "constructor with object and deleter\\n";
          std::shared_ptr<Foo> sh4(new Foo, D());
@@ -233,11 +253,16 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
 .SH See also
 
    make_shared     creates a shared pointer that manages a new object
-                   \fI(function template)\fP 
+                   \fI(function template)\fP
                    creates a shared pointer that manages a new object allocated using
    allocate_shared an allocator
-                   \fI(function template)\fP 
+                   \fI(function template)\fP
 
 .SH Category:
 
      * unconditionally noexcept
+
+   Hidden categories:
+
+     * Pages with unreviewed unconditional noexcept template
+     * Pages with unreviewed noexcept template

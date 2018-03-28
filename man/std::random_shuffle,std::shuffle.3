@@ -1,4 +1,4 @@
-.TH std::random_shuffle,std::shuffle 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::random_shuffle,std::shuffle 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::random_shuffle,std::shuffle \- std::random_shuffle,std::shuffle
 
@@ -62,6 +62,10 @@ std::random_shuffle,std::shuffle \- std::random_shuffle,std::shuffle
        for (i = n-1; i > 0; --i) {
            using std::swap;
            swap(first[i], first[std::rand() % (i+1)]);
+           // rand() % (i+1) isn't actually correct, because the generated number
+           // is not uniformly distributed for most values of i. A correct implementation
+           // will need to essentially reimplement C++11 std::uniform_int_distribution,
+           // which is beyond the scope of this example.
        }
    }
 .SH Second version
@@ -75,16 +79,15 @@ std::random_shuffle,std::shuffle \- std::random_shuffle,std::shuffle
            swap(first[i], first[r(i+1)]);
        }
    }
-                                  Third version
+                                       Third version
    template<class RandomIt, class UniformRandomBitGenerator>
    void shuffle(RandomIt first, RandomIt last,
                 UniformRandomBitGenerator&& g)
    {
        typedef typename std::iterator_traits<RandomIt>::difference_type diff_t;
-       typedef typename std::make_unsigned<diff_t>::type udiff_t;
-       typedef typename std::uniform_int_distribution<udiff_t> distr_t;
+       typedef std::uniform_int_distribution<diff_t> distr_t;
        typedef typename distr_t::param_type param_t;
-    
+
        distr_t D;
        diff_t n = last - first;
        for (diff_t i = n-1; i > 0; --i) {
@@ -104,16 +107,16 @@ std::random_shuffle,std::shuffle \- std::random_shuffle,std::shuffle
  #include <algorithm>
  #include <iterator>
  #include <iostream>
-  
+
  int main()
  {
      std::vector<int> v = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-  
+
      std::random_device rd;
      std::mt19937 g(rd());
-  
+
      std::shuffle(v.begin(), v.end(), g);
-  
+
      std::copy(v.begin(), v.end(), std::ostream_iterator<int>(std::cout, " "));
      std::cout << "\\n";
  }
@@ -126,7 +129,7 @@ std::random_shuffle,std::shuffle \- std::random_shuffle,std::shuffle
 
                     generates the next greater lexicographic permutation of a range of
    next_permutation elements
-                    \fI(function template)\fP 
+                    \fI(function template)\fP
                     generates the next smaller lexicographic permutation of a range of
    prev_permutation elements
-                    \fI(function template)\fP 
+                    \fI(function template)\fP

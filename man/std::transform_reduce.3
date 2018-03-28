@@ -1,51 +1,100 @@
-.TH std::transform_reduce 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::transform_reduce 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::transform_reduce \- std::transform_reduce
 
 .SH Synopsis
    Defined in header <numeric>
-   template<class InputIt, class UnaryOp, class T, class BinaryOp>
+   template<class InputIt1, class InputIt2, class T>
+   T transform_reduce(InputIt1 first1, InputIt1 last1, InputIt2       \fB(1)\fP \fI(since C++17)\fP
+   first2, T init);
+   template <class InputIt1, class InputIt2, class T, class
+   BinaryOp1, class BinaryOp2>
 
-   T transform_reduce(InputIt first, InputIt last,                   \fB(1)\fP \fI(since C++17)\fP
+   T transform_reduce(InputIt1 first1, InputIt1 last1, InputIt2       \fB(2)\fP \fI(since C++17)\fP
+   first2,
 
-                      UnaryOp unary_op, T init, BinaryOp binary_op);
+   T init, BinaryOp1 binary_op1, BinaryOp2 binary_op2);
+   template<class InputIt, class T, class BinaryOp, class UnaryOp>
+
+   T transform_reduce(InputIt first, InputIt last,                    \fB(3)\fP \fI(since C++17)\fP
+
+   T init, BinaryOp binop, UnaryOp unary_op);
    template<class ExecutionPolicy,
 
-            class InputIt, class UnaryOp, class T, class BinaryOp>
-   T transform_reduce(ExecutionPolicy&& policy,                      \fB(2)\fP \fI(since C++17)\fP
-                      InputIt first, InputIt last,
+   class ForwardIt1, class ForwardIt2, class T>                       \fB(4)\fP \fI(since C++17)\fP
+   T transform_reduce(ExecutionPolicy&& policy,
 
-                      UnaryOp unary_op, T init, BinaryOp binary_op);
+   ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, T init);
+   template<class ExecutionPolicy,
 
-   1) Applies unary_op to each element in the range [first; last) and reduces the
+   class ForwardIt1, class ForwardIt2, class T, class BinaryOp1,
+   class BinaryOp2>                                                   \fB(5)\fP \fI(since C++17)\fP
+   T transform_reduce(ExecutionPolicy&& policy,
+   ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2,
+
+   T init, BinaryOp1 binary_op1, BinaryOp2 binary_op2);
+   template<class ExecutionPolicy,
+
+   class ForwardIt, class T, class BinaryOp, class UnaryOp>
+   T transform_reduce(ExecutionPolicy&& policy,                       \fB(6)\fP \fI(since C++17)\fP
+   ForwardIt first, ForwardIt last,
+
+   T init, BinaryOp binary_op, UnaryOp unary_op);
+
+   1) Equivalent to transform_reduce(first1, last1, first2, init, std::plus<>(),
+   std::multiplies<>());, effectively parallelized version of the default
+   std::inner_product
+   2) Applies binary_op2 to each pair of elements from the ranges [first; last) and the
+   range starting at first2 and reduces the results (possibly permuted and aggregated
+   in unspecified manner) along with the initial value init over binary_op1
+   3) Applies unary_op to each element in the range [first; last) and reduces the
    results (possibly permuted and aggregated in unspecified manner) along with the
    initial value init over binary_op.
-   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
-   in overload resolution unless
+   4-6) Same as (1-3), but executed according to policy. This overload only
+   participates in overload resolution if
    std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
 
-   The behavior is non-deterministic if binary_op is not associative or not
+   The behavior is non-deterministic if binary_op/binary_op2 is not associative or not
    commutative.
 
-   The behavior is undefined if unary_op or binary_op modifies any element or
-   invalidates any iterator in [first; last).
+   The behavior is undefined if unary_op, binary_op, binary_op1, or binary_op2 modifies
+   any element or invalidates any iterator in the input ranges, including their end
+   iterators.
 
 .SH Parameters
 
-   first, last - the range of elements to apply the algorithm to
-   init        - the initial value of the generalized sum
-   policy      - the execution policy to use. See execution policy for details.
-   unary_op    - unary FunctionObject that will be applied to each element of the input
-                 range. The return type must be acceptable as input to binary_op
-   binary_op   - binary FunctionObject that will be applied in unspecified order to the
-                 results of unary_op, the results of other binary_op and init.
+   first, last           -          the range of elements to apply the algorithm to
+   init                  -          the initial value of the generalized sum
+   policy                -          the execution policy to use. See execution policy
+                                    for details.
+                                    unary FunctionObject that will be applied to each
+   unary_op              -          element of the input range. The return type must be
+                                    acceptable as input to binary_op
+                                    binary FunctionObject that will be applied in
+   binary_op             -          unspecified order to the results of unary_op, the
+                                    results of other binary_op and init.
 .SH Type requirements
    -
+   T must meet the requirements of MoveConstructible in order to use overloads (3,6).
+   and the result of the expressions binary_op(init, unary_op(*first)),
+   binary_op(unary_op(*first), init), binary_op(init, init), and
+   binary_op(unary_op(*first), unary_op(*first)) must be convertible to T
+   -
+   T must meet the requirements of MoveConstructible in order to use overloads (2,5).
+   and the result of the expressions binary_op1(init, binary_op2(*first1, *first2)),
+   binary_op1(binary_op2(*first1, *first2), init), binary_op1(init, init), and
+   binary_op1(binary_op2(*first1, *first2), binary_op2(*first1, *first2)) must be
+   convertible to T
+   -
    InputIt must meet the requirements of InputIterator.
+   -
+   ForwardIt must meet the requirements of ForwardIterator.
 
 .SH Return value
 
-   Generalized sum of init and unary_op(*first), unary_op(*(first+1)), ...
+   2) Generalized sum of init and binary_op2(*first,*first2),
+   binary_op2(*(first+1),*(first2+1)), ..., over binary_op1
+   3) Generalized sum of init and unary_op(*first), unary_op(*(first+1)), ...
    unary_op(*(last-1)) over binary_op,
 
    where generalized sum GSUM(op, a
@@ -60,17 +109,18 @@ std::transform_reduce \- std::transform_reduce
        M, ..., b
        N)) where
 
-     * b
-       1, ..., b
-       N may be any permutation of a1, ..., aN and
-     * 1 < K+1 = M ≤ N
+              * b
+                1, ..., b
+                N may be any permutation of a1, ..., aN and
+              * 1 < K+1 = M ≤ N
 
-   in other words, the results of unary_op may be grouped and arranged in arbitrary
-   order.
+   in other words, the results of unary_op or of binary_op1 may be grouped and arranged
+   in arbitrary order.
 
 .SH Complexity
 
-   O(last - first) applications each of unary_op and binary_op.
+   1,2,4,5) O(last1 - first1) applications each of binary_op1 and binary_op2.
+   3,6) O(last - first) applications each of unary_op and binary_op.
 
 .SH Exceptions
 
@@ -84,9 +134,9 @@ std::transform_reduce \- std::transform_reduce
 
 .SH Notes
 
-   unary_op is not applied to init
+   In the unary-binary overload (3,6), unary_op is not applied to init
 
-   If the range is empty, init is returned, unmodified
+   If first == last or first1 == last1, init is returned, unmodified
 
 .SH Example
 
@@ -96,27 +146,19 @@ std::transform_reduce \- std::transform_reduce
 // Run this code
 
  #include <vector>
- #include <iterator>
  #include <functional>
  #include <iostream>
  #include <numeric>
- #include <execution_policy>
- #include <boost/iterator/zip_iterator.hpp>
- #include <boost/tuple.hpp>
-  
+ #include <execution>
+
  int main()
  {
      std::vector<double> xvalues(10007, 1.0), yvalues(10007, 1.0);
-  
+
      double result = std::transform_reduce(
-         std::par,
-         boost::iterators::make_zip_iterator(
-             boost::make_tuple(std::begin(xvalues), std::begin(yvalues))),
-         boost::iterators::make_zip_iterator(
-             boost::make_tuple(std::end(xvalues), std::end(yvalues))),
-         [](auto r) { return boost::get<0>(r) * boost::get<1>(r); }
-         0.0,
-         std::plus<>()
+         std::execution::par,
+         xvalues.begin(), xvalues.end()
+         yvalues.begin(), 0.0,
      );
      std::cout << result << '\\n';
  }
@@ -128,8 +170,8 @@ std::transform_reduce \- std::transform_reduce
 .SH See also
 
    accumulate sums up a range of elements
-              \fI(function template)\fP 
+              \fI(function template)\fP
    transform  applies a function to a range of elements
-              \fI(function template)\fP 
+              \fI(function template)\fP
    reduce     similar to std::accumulate, except out of order
-   \fI(C++17)\fP    \fI(function template)\fP 
+   \fI(C++17)\fP    \fI(function template)\fP

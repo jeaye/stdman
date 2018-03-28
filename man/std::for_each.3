@@ -1,4 +1,4 @@
-.TH std::for_each 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::for_each 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::for_each \- std::for_each
 
@@ -7,10 +7,10 @@ std::for_each \- std::for_each
    template< class InputIt, class UnaryFunction >
    UnaryFunction for_each( InputIt first, InputIt last, UnaryFunction \fB(1)\fP
    f );
-   template< class ExecutionPolicy, class InputIt, class
+   template< class ExecutionPolicy, class ForwardIt, class
    UnaryFunction2 >                                                   \fB(2)\fP \fI(since C++17)\fP
-   void for_each( ExecutionPolicy&& policy, InputIt first, InputIt
-   last, UnaryFunction2 f );
+   void for_each( ExecutionPolicy&& policy, ForwardIt first,
+   ForwardIt last, UnaryFunction2 f );
 
    1) Applies the given function object f to the result of dereferencing every iterator
    in the range [first, last), in order.
@@ -19,9 +19,12 @@ std::for_each \- std::for_each
    according to policy. This overload does not participate in overload resolution
    unless std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.
 
-   For both overloads, if InputIt is a mutable iterator, f may modify the elements of
+   For both overloads, if the iterator type is mutable, f may modify the elements of
    the range through the dereferenced iterator. If f returns a result, the result is
    ignored.
+
+   Unlike the rest of the algorithms, for_each is not allowed to make copies of the
+   elements in the sequence even if they are trivially copyable.
 
 .SH Parameters
 
@@ -32,7 +35,7 @@ std::for_each \- std::for_each
 
                  The signature of the function should be equivalent to the following:
 
-   f           -  void fun(const Type &a);
+   f           - void fun(const Type &a);
 
                  The signature does not need to have const &.
                  The type Type must be such that an object of type InputIt can be
@@ -42,6 +45,8 @@ std::for_each \- std::for_each
 .SH Type requirements
    -
    InputIt must meet the requirements of InputIterator.
+   -
+   ForwardIt must meet the requirements of ForwardIterator.
    -
    UnaryFunction must meet the requirements of MoveConstructible. Does not have to be
    CopyConstructible
@@ -93,35 +98,31 @@ std::for_each \- std::for_each
  #include <vector>
  #include <algorithm>
  #include <iostream>
-  
+
  struct Sum
  {
      Sum(): sum{0} { }
      void operator()(int n) { sum += n; }
      int sum;
  };
-  
+
  int main()
  {
      std::vector<int> nums{3, 4, 2, 8, 15, 267};
-  
+
+     auto print = [](const int& n) { std::cout << " " << n; };
+
      std::cout << "before:";
-     for (auto const &n : nums)
-     {
-         std::cout << ' ' << n;
-     }
+     std::for_each(nums.begin(), nums.end(), print);
      std::cout << '\\n';
-  
+
      std::for_each(nums.begin(), nums.end(), [](int &n){ n++; });
-  
+
      // calls Sum::operator() for each number
      Sum s = std::for_each(nums.begin(), nums.end(), Sum());
-  
+
      std::cout << "after: ";
-     for (auto const &n : nums)
-     {
-         std::cout << ' ' << n;
-     }
+     std::for_each(nums.begin(), nums.end(), print);
      std::cout << '\\n';
      std::cout << "sum: " << s.sum << '\\n';
  }
@@ -135,7 +136,7 @@ std::for_each \- std::for_each
 .SH See also
 
    transform      applies a function to a range of elements
-                  \fI(function template)\fP 
-   range-for loop executes loop over range \fI(since C++11)\fP 
+                  \fI(function template)\fP
+   range-for loop executes loop over range \fI(since C++11)\fP
    for_each_n     applies a function object to the first n elements of a sequence
-   \fI(C++17)\fP        \fI(function template)\fP 
+   \fI(C++17)\fP        \fI(function template)\fP
