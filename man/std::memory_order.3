@@ -1,19 +1,36 @@
-.TH std::memory_order 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::memory_order 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::memory_order \- std::memory_order
 
 .SH Synopsis
    Defined in header <atomic>
-   enum memory_order {
+   typedef enum memory_order {
 
        memory_order_relaxed,
        memory_order_consume,
-       memory_order_acquire,   \fI(since C++11)\fP
-       memory_order_release,
+       memory_order_acquire,                                              \fI(since C++11)\fP
+       memory_order_release,                                              \fI(until C++20)\fP
        memory_order_acq_rel,
        memory_order_seq_cst
 
+   } memory_order;
+   enum class memory_order : /*unspecified*/ {
+
+       relaxed, consume, acquire, release, acq_rel, seq_cst
    };
+   inline constexpr memory_order memory_order_relaxed =
+   memory_order::relaxed;
+   inline constexpr memory_order memory_order_consume =
+   memory_order::consume;
+   inline constexpr memory_order memory_order_acquire =                   \fI(since C++20)\fP
+   memory_order::acquire;
+   inline constexpr memory_order memory_order_release =
+   memory_order::release;
+   inline constexpr memory_order memory_order_acq_rel =
+   memory_order::acq_rel;
+
+   inline constexpr memory_order memory_order_seq_cst =
+   memory_order::seq_cst;
 
    std::memory_order specifies how regular, non-atomic memory accesses are to be
    ordered around an atomic operation. Absent any constraints on a multi-core system,
@@ -34,8 +51,9 @@ std::memory_order \- std::memory_order
    Defined in header <atomic>
    Value                Explanation
                         Relaxed operation: there are no synchronization or ordering
-   memory_order_relaxed constraints, only atomicity is required of this operation (see
-                        Relaxed ordering below)
+   memory_order_relaxed constraints imposed on other reads or writes, only this
+                        operation's atomicity is guaranteed (see Relaxed ordering
+                        below)
                         A load operation with this memory order performs a consume
                         operation on the affected memory location: no reads or writes
                         in the current thread dependent on the value currently loaded
@@ -65,10 +83,12 @@ std::memory_order \- std::memory_order
                         atomic variable are visible before the modification and the
                         modification is visible in other threads that acquire the same
                         atomic variable.
-                        Any operation with this memory order is both an acquire
-   memory_order_seq_cst operation and a release operation, plus a single total order
-                        exists in which all threads observe all modifications in the
-                        same order (see Sequentially-consistent ordering below)
+                        A load operation with this memory order performs an acquire
+                        operation, a store performs a release operation, and
+   memory_order_seq_cst read-modify-write performs both an acquire operation and a
+                        release operation, plus a single total order exists in which
+                        all threads observe all modifications in the same order (see
+                        Sequentially-consistent ordering below)
 
 .SH Formal description
 
@@ -223,7 +243,8 @@ std::memory_order \- std::memory_order
    appearing before A in the modification order of y, and B from appearing before C in
    the modification order of x. The side-effect of D on y could be visible to the load
    A in Thread 1 while the side effect of B on x could be visible to the load C in
-   Thread 2.
+   Thread 2. In particular, this may occur if D is completed before C in thread 2,
+   either due to compiler reordering or at runtime.
 
    Even with relaxed memory model, out-of-thin-air values are not allowed
    to circularly depend on their own computations, for example, with x
@@ -574,10 +595,10 @@ std::memory_order \- std::memory_order
 
 .SH Relationship with volatile
 
-   Within a thread of execution, accesses (reads and writes) to volatile objects cannot
-   be reordered past observable side-effects (including other volatile accesses) that
-   are sequenced-before or sequenced-after within the same thread, but this order is
-   not guaranteed to be observed by another thread, since volatile access does not
+   Within a thread of execution, accesses (reads and writes) through volatile glvalues
+   cannot be reordered past observable side-effects (including other volatile accesses)
+   that are sequenced-before or sequenced-after within the same thread, but this order
+   is not guaranteed to be observed by another thread, since volatile access does not
    establish inter-thread synchronization.
 
    In addition, volatile accesses are not atomic (concurrent read and write is a data

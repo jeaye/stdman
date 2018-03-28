@@ -1,4 +1,4 @@
-.TH std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relative, 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relative, 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relative, \- std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relative,
 
@@ -8,18 +8,31 @@ std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relativ
    path lexically_relative(const path& base) const;  \fB(2)\fP \fI(since C++17)\fP
    path lexically_proximate(const path& base) const; \fB(3)\fP \fI(since C++17)\fP
 
-   1) Returns *this converted to normal form (no redundant dot or dot-dot elements, and
-   if the last element is a non-root directory separator, dot is added)
-   2) Returns *this made relative to base. Effectively, first, determines the first
-   mismatched element of *this and base as if by auto [a, b] = mismatch(begin(), end(),
-   base.begin(), base.end()), then
+   1) Returns *this converted to normal form in its generic format
+   2) Returns *this made relative to base.
 
-     * if a == begin() and b == base.begin(), returns path() (empty path).
-     * otherwise, if a == end() and b == base.end(), returns path(".");
-     * otherwise returns an object composed from a default-constructed path() followed
-       by one application of operator/=(path("..")) for each each element in the
-       half-open range [b, base.end()), and then by one application of operator/= for
-       each element in the half-open range [a, end()).
+              * First, if root_name() != base.root_name() || is_absolute() !=
+                base.is_absolute() || (!has_root_directory() &&
+                base.has_root_directory()), returns a default-constructed path.
+              * Otherwise, first determines the first mismatched element of *this and
+                base as if by auto [a, b] = mismatch(begin(), end(), base.begin(),
+                base.end()), then
+
+                           * if a == end() and b == base.end(), returns path(".");
+                           * otherwise, if the number of dot-dot filename elements in
+                             [b, base.end()) is greater than the number of filename
+                             elements that are neither dot nor dot-dot, returns a
+                             default-constructed path.
+                           * otherwise returns an object composed from
+
+                                        * a default-constructed path() followed by
+                                        * as many applications of
+                                          operator/=(path("..")) as there were filename
+                                          elements in [b, base.end()) that are neither
+                                          dot nor dot-dot minus number of dot-dot
+                                          elements in that range, followed by
+                                        * one application of operator/= for each
+                                          element in the half-open range [a, end())
 
    3) If the value of lexically_relative(base) is not an empty path, return it.
    Otherwise return *this.
@@ -59,15 +72,15 @@ std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relativ
   
  int main()
  {
-     assert(fs::path("foo/./bar/..").lexically_normal() == "foo");
-     assert(fs::path("foo/.///bar/../").lexically_normal() == "foo/.");
+     assert(fs::path("foo/./bar/..").lexically_normal() == "foo/");
+     assert(fs::path("foo/.///bar/../").lexically_normal() == "foo/");
   
      assert(path("/a/d").lexically_relative("/a/b/c") == "../../d");
      assert(path("/a/b/c").lexically_relative("/a/d") == "../b/c");
      assert(path("a/b/c").lexically_relative("a") == "b/c");
      assert(path("a/b/c").lexically_relative("a/b/c/x/y") == "../..");
      assert(path("a/b/c").lexically_relative("a/b/c") == ".");
-     assert(path("a/b").lexically_relative("c/d") == "");
+     assert(path("a/b").lexically_relative("c/d") == "../../a/b");
  }
 
 .SH See also

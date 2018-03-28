@@ -1,4 +1,4 @@
-.TH std::basic_istream::read 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_istream::read 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_istream::read \- std::basic_istream::read
 
@@ -36,6 +36,12 @@ std::basic_istream::read \- std::basic_istream::read
    If an internal operation throws an exception, it is caught and badbit is set. If
    exceptions() is set for badbit, the exception is rethrown.
 
+.SH Notes
+
+   When using a non-converting locale (the default locale is non-converting), the
+   overrider of this function in std::basic_ifstream may be optimized for zero-copy
+   bulk I/O (by means of overriding std::streambuf::xsgetn)
+
 .SH Example
 
    
@@ -53,41 +59,28 @@ std::basic_istream::read \- std::basic_istream::read
      std::string bin = {'\\x12', '\\x12', '\\x12', '\\x12'};
      std::istringstream raw(bin);
      std::uint32_t n;
-     raw.read(reinterpret_cast<char*>(&n), sizeof n);
-     std::cout << std::hex << std::showbase << n << '\\n';
+     if(raw.read(reinterpret_cast<char*>(&n), sizeof n))
+         std::cout << std::hex << std::showbase << n << '\\n';
   
      // prepare file for next snippet
-     std::ofstream os("test.txt", std::ios::binary);
-     for (unsigned i = 0; i < 10; ++i) {
-         os << "abcd" << i << "\\n";
-     }
-     os.close();
+     std::ofstream("test.txt", std::ios::binary) << "abcd1\\nabcd2\\nabcd3";
   
      // read entire file into string
      if(std::ifstream is{"test.txt", std::ios::binary | std::ios::ate}) {
          auto size = is.tellg();
          std::string str(size, '\\0'); // construct string to stream size
          is.seekg(0);
-         is.read(&str[0], size);
-         std::cout << str << "\\n";
-     } else {
-         std::cerr << "Could not open test.txt\\n";
+         if(is.read(&str[0], size))
+             std::cout << str << '\\n';
      }
  }
 
 .SH Output:
 
  0x12121212
- abcd0
  abcd1
  abcd2
  abcd3
- abcd4
- abcd5
- abcd6
- abcd7
- abcd8
- abcd9
 
 .SH See also
 

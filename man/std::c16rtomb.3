@@ -1,4 +1,4 @@
-.TH std::c16rtomb 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::c16rtomb 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::c16rtomb \- std::c16rtomb
 
@@ -12,9 +12,10 @@ std::c16rtomb \- std::c16rtomb
    If s is not a null pointer and c16 is the last 16-bit code unit in a valid
    variable-length encoding of a code point, the function determines the number of
    bytes necessary to store the multibyte character representation of that code point
-   (including any shift sequences), and stores the multibyte character representation
-   in the character array whose first element is pointed to by s. At most MB_CUR_MAX
-   bytes can be written by this function.
+   (including any shift sequences, and taking into account the current multibyte
+   conversion state *ps), and stores the multibyte character representation in the
+   character array whose first element is pointed to by s, updating *ps as necessary.
+   At most MB_CUR_MAX bytes can be written by this function.
 
    If s is a null pointer, the call is equivalent to std::c16rtomb(buf, u'\\0', ps) for
    some internal buffer buf.
@@ -56,6 +57,8 @@ std::c16rtomb \- std::c16rtomb
 
 .SH Example
 
+   Note: this example assumes the fix for the defect report 488 is applied
+
    
 // Run this code
 
@@ -77,9 +80,11 @@ std::c16rtomb \- std::c16rtomb
      std::string out(MB_CUR_MAX, '\\0');
      for(size_t n = 0; n < str.size(); ++n)
      {
-         int rc = std::c16rtomb(&out[0], str[n], &state);
+         std::size_t rc = std::c16rtomb(&out[0], str[n], &state);
          std::cout << str[n] << " converted to [ ";
-         for(int x = 0; x < rc; ++x) std::cout << +(unsigned char)out[x] << ' ';
+         if(rc != (std::size_t)-1)
+             for(std::size_t x = 0; x < rc; ++x)
+                 std::cout << +(unsigned char)out[x] << ' ';
          std::cout << "]\\n";
      }
  }

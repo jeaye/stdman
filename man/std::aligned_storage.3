@@ -1,4 +1,4 @@
-.TH std::aligned_storage 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::aligned_storage 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::aligned_storage \- std::aligned_storage
 
@@ -8,7 +8,7 @@ std::aligned_storage \- std::aligned_storage
    >                                                                      \fI(since C++11)\fP
    struct aligned_storage;
 
-   Provides the member typedef type, which is a PODType suitable for use as
+   Provides the nested type type, which is a trivial type suitable for use as
    uninitialized storage for any object whose size is at most Len and whose alignment
    requirement is a divisor of Align.
 
@@ -17,6 +17,8 @@ std::aligned_storage \- std::aligned_storage
    must be the value of alignof(T) for some type T, or the behavior is undefined.
 
    The behavior is undefined if Len == 0.
+
+   It is implementation-defined whether any extended alignment is supported.
 
 .SH Member types
 
@@ -45,9 +47,9 @@ std::aligned_storage \- std::aligned_storage
 
    template<std::size_t Len, std::size_t Align /* default alignment not implemented */>
    struct aligned_storage {
-       typedef struct {
+       struct type {
            alignas(Align) unsigned char data[Len];
-       } type;
+       };
    };
 
 .SH Example
@@ -82,6 +84,7 @@ std::aligned_storage \- std::aligned_storage
      // Access an object in aligned storage
      const T& operator[](std::size_t pos) const
      {
+         // note: needs std::launder as of C++17
          return *reinterpret_cast<const T*>(data+pos);
      }
   
@@ -89,7 +92,8 @@ std::aligned_storage \- std::aligned_storage
      ~static_vector()
      {
          for(std::size_t pos = 0; pos < m_size; ++pos) {
-             reinterpret_cast<const T*>(data+pos)->~T();
+             // note: needs std::launder as of C++17
+             reinterpret_cast<T*>(data+pos)->~T();
          }
      }
  };
@@ -116,6 +120,6 @@ std::aligned_storage \- std::aligned_storage
    aligned_union     defines the type suitable for use as uninitialized storage for all
    \fI(C++11)\fP           given types
                      \fI(class template)\fP 
-   max_align_t       POD type with alignment requirement as great as any other scalar
-   \fI(C++11)\fP           type
+   max_align_t       trivial type with alignment requirement as great as any other
+   \fI(C++11)\fP           scalar type
                      \fI(typedef)\fP 

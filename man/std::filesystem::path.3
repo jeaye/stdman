@@ -1,4 +1,4 @@
-.TH std::filesystem::path 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::path 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::path \- std::filesystem::path
 
@@ -13,57 +13,97 @@ std::filesystem::path \- std::filesystem::path
    The path name has the following syntax:
 
     1. root-name(optional): identifies the root on a filesystem with multiple roots
-       (such as "C:" or "//myserver". POSIX filesystems have single root.
+       (such as "C:" or "//myserver"). In case of ambiguity, the longest sequence of
+       characters that forms a valid root-name is treated as the root-name. The
+       standard library may define additional root-names besides the ones understood by
+       the OS API.
     2. root-directory(optional): a directory separator that, if present, marks this
        path as absolute. If it is missing (and the first element other than the root
        name is a file name), then the path is relative and requires another path as the
-       starting location to resolve to a file name)
+       starting location to resolve to a file name.
     3. Zero or more of the following:
 
-     * file-name: sequence of characters that aren't directory separators or preferred
-       directory separators (additional limitations may be imposed by the OS or file
-       system). This name may identify a file, a hard link, a symbolic link, or a
-       directory. Two special file-names are recognized:
+              * file-name: sequence of characters that aren't directory separators or
+                preferred directory separators (additional limitations may be imposed
+                by the OS or file system). This name may identify a file, a hard link,
+                a symbolic link, or a directory. Two special file-names are recognized:
 
-     * dot: the file name consisting of a single dot character . is a directory name
-       that refers to the current directory
-     * dot-dot: the file name consisting of two dot characters .. is a directory name
-       that refers to the parent directory.
+                           * dot: the file name consisting of a single dot character .
+                             is a directory name that refers to the current directory
+                           * dot-dot: the file name consisting of two dot characters ..
+                             is a directory name that refers to the parent directory.
 
-     * directory-separators: the forward slash character / or the alternative character
-       provided as path::preferred_separator. If this character is repeated, it is
-       treated as a single directory separator: /usr///////lib is the same as /usr/lib
+              * directory-separators: the forward slash character / or the alternative
+                character provided as path::preferred_separator. If this character is
+                repeated, it is treated as a single directory separator: /usr///////lib
+                is the same as /usr/lib
 
-   A path in normal form has no redundant current directory (dot) elements, no
-   redundant parent directory (dot-dot) elements, and no redundant
-   directory-separators. The normal form for an empty path is an empty path. The normal
-   form for a path ending in a directory-separator that is not the root directory has a
-   current directory (dot) element appended.
+   A path can be normalized by following this algorithm:
+
+   1) If the path is empty, stop (normal form of an empty path is an empty path)
+   2) Replace each directory-separator (which may consist of multiple slashes) with a
+   single path::preferred_separator.
+   3) Replace each slash character in the root-name with path::preferred_separator.
+   4) Remove each dot and any immediately following directory-separator.
+   5) Remove each non-dot-dot filename immediately followed by a directory-separator
+   and a dot-dot, along with any immediately following directory-separator.
+   6) If there is root-directory, remove all dot-dots and any directory-separators
+   immediately following them.
+   7) If the last filename is dot-dot, remove any trailing directory-separator.
+   8) If the path is empty, add a dot (normal form of ./ is .)
 
    The path can be traversed element-wise via iterators returned by the begin() and
-   end() functions, which iterates over root name, root directory, and the subsequent
-   file name elements (directory separators are skipped except the one that identifies
-   the root directory). If the very last element in the path is a directory separator,
-   the last iterator will dereference to a file name dot.
+   end() functions, which views the path in generic format and iterates over root name,
+   root directory, and the subsequent file name elements (directory separators are
+   skipped except the one that identifies the root directory). If the very last element
+   in the path is a directory separator, the last iterator will dereference to an empty
+   element.
 
    Calling any non-const member function of a path invalidates all iterators referring
    to elements of that object.
 
    If the OS uses a native syntax that is different from the portable generic syntax
-   described above, all library functions accept path names in both formats.
+   described above, library functions that are defined to accept "detected format"
+   accept path names in both formats: a detected format argument is taken to be in the
+   generic format if and only if it matches the generic format but is not acceptable to
+   the operating system as a native path. On those OS where native format differs
+   between pathnames of directories and pathnames of files, a generic pathname is
+   treated as a directory path if it ends on a directory separator and a regular file
+   otherwise.
+
+   In any case, the path class behaves as if it stores a pathname in the native format
+   and automatically converts to generic format as needed (each member function
+   specifies which format it interprets the path as)
+
+   On POSIX systems, the generic format is the native format and there is no need to
+   distinguish or convert between them.
 
    Paths are implicitly convertible to and from std::basic_strings, which makes it
    possible to use them with over files APIs, e.g. as an argument to
    std::ifstream::open
 
-.SH Member types
+.SH Member types and constants
 
    Type           Definition
    value_type     character type used by the native encoding of the filesystem: char on
                   POSIX, wchar_t on Windows
    string_type    std::basic_string<value_type>
-   const_iterator a constant BidirectionalIterator with a value_type of path
+                  a constant BidirectionalIterator with a value_type of path, except
+   const_iterator that for dereferenceable iterators a and b of type path::iterator
+                  with a == b, there is no requirement that *a and *b are bound to the
+                  same object
    iterator       an alias to const_iterator
+                  determines how to interpret string representations of pathnames
+
+                  The following enumerators are also defined:
+
+                  Constant       Explanation
+   format         native_format  native pathname format
+                  generic_format generic pathname format
+                  auto_format    implementation-defined format, auto-detected where
+                                 possible
+
+                  \fI(enum)\fP
 
 .SH Member constants
 

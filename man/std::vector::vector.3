@@ -1,56 +1,65 @@
-.TH std::vector::vector 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::vector::vector 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::vector::vector \- std::vector::vector
 
 .SH Synopsis
-   explicit vector( const Allocator& alloc =                    (until
-   Allocator() );                                               C++14)
-   vector() : vector( Allocator() ) {}                          (since
-   explicit vector( const Allocator& alloc );                   C++14)
+   vector();                                            (until
+   explicit vector( const Allocator& alloc );           C++17)
+   vector() noexcept(noexcept(Allocator()));            (since
+   explicit vector( const Allocator& alloc )            C++17)
+   noexcept;
    explicit vector( size_type count,
 
-                    const T& value = T(),                               (until
-                                                                        C++11)
+                    const T& value = T(),                       (until
+                                                                C++11)
                     const Allocator& alloc =
    Allocator());
    vector( size_type count,
 
-                    const T& value,                                     (since
-                                                                        C++11)
+                    const T& value,                             (since
+                                                                C++11)
                     const Allocator& alloc =
    Allocator());
-                                                                                (since
-   explicit vector( size_type count );                  \fB(1)\fP                     C++11)
-                                                                                (until
-                                                            \fB(2)\fP                 C++14)
-   explicit vector( size_type count, const Allocator&                           (since
-   alloc = Allocator() );                                                       C++14)
-   template< class InputIt >
+                                                                        (since
+   explicit vector( size_type count );                                  C++11)
+                                                                        (until
+                                                                        C++14)
+   explicit vector( size_type count, const      \fB(1)\fP                     (since
+   Allocator& alloc = Allocator() );                                    C++14)
+   template< class InputIt >                        \fB(2)\fP
 
-   vector( InputIt first, InputIt last,                                 \fB(4)\fP
-                                                                \fB(3)\fP
-           const Allocator& alloc = Allocator() );
-   vector( const vector& other );                                       \fB(5)\fP
-   vector( const vector& other, const Allocator& alloc                  \fB(5)\fP     (since
-   );                                                                           C++11)
-   vector( vector&& other )                                             \fB(6)\fP     (since
-                                                                                C++11)
-   vector( vector&& other, const Allocator& alloc );                    \fB(6)\fP     (since
-                                                                                C++11)
-   vector( std::initializer_list<T> init,                               \fB(7)\fP     (since
-           const Allocator& alloc = Allocator() );                              C++11)
+   vector( InputIt first, InputIt last,                         \fB(4)\fP
+
+           const Allocator& alloc = Allocator()
+   );
+   vector( const vector& other );                       \fB(3)\fP     \fB(5)\fP
+   vector( const vector& other, const                           \fB(5)\fP     (since
+   Allocator& alloc );                                                  C++11)
+                                                                                (since
+   vector( vector&& other );                                                    C++11)
+                                                                                (until
+                                                                                C++17)
+   vector( vector&& other ) noexcept;                                           (since
+                                                                \fB(6)\fP             C++17)
+   vector( vector&& other, const Allocator&                             \fB(7)\fP     (since
+   alloc );                                                                     C++11)
+   vector( std::initializer_list<T> init,                                       (since
+           const Allocator& alloc = Allocator()                         \fB(8)\fP     C++11)
+   );
 
    Constructs a new container from a variety of data sources, optionally using a user
    supplied allocator alloc.
 
-   1) Default constructor. Constructs an empty container.
+   1) Default constructor. Constructs an empty container. If no allocator is supplied,
+   allocator is obtained from a default-constructed instance.
    2) Constructs the container with count copies of elements with value value.
    3) Constructs the container with count default-inserted instances of T. No copies
    are made.
    4) Constructs the container with the contents of the range [first, last).
 
-   This constructor has the same effect as overload \fB(2)\fP if InputIt is an  \fI(until C++11)\fP
-   integral type.
+   This constructor has the same effect as
+   vector(static_cast<size_type>(first), static_cast<value_type>(last),   \fI(until C++11)\fP
+   a) if InputIt is an integral type.
    This overload only participates in overload resolution if InputIt      \fI(since C++11)\fP
    satisfies InputIterator, to avoid ambiguity with the overload \fB(2)\fP.
 
@@ -58,9 +67,13 @@ std::vector::vector \- std::vector::vector
    other. If alloc is not provided, allocator is obtained as if by calling
    std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.get_allocator()).
    6) Move constructor. Constructs the container with the contents of other using move
-   semantics. If alloc is not provided, allocator is obtained by move-construction from
-   the allocator belonging to other.
-   7) Constructs the container with the contents of the initializer list init.
+   semantics. Allocator is obtained by move-construction from the allocator belonging
+   to other. After the move, other is guaranteed to be empty().
+   7) Allocator-extended move constructor. Using alloc as the allocator for the new
+   container, moving the contents from other; if alloc != other.get_allocator(), this
+   results in an element-wise move. (in that case, other is not guaranteed to be empty
+   after the move)
+   8) Constructs the container with the contents of the initializer list init.
 
 .SH Parameters
 
@@ -78,8 +91,13 @@ std::vector::vector \- std::vector::vector
    2-3) Linear in count
    4) Linear in distance between first and last
    5) Linear in size of other
-   6) Constant. If alloc is given and alloc != other.get_allocator(), then linear.
-   7) Linear in size of init
+   6) Constant.
+   7) Linear if alloc != other.get_allocator(), otherwise constant.
+   8) Linear in size of init.
+
+.SH Exceptions
+
+   Calls to Allocator::allocate may throw.
 
 .SH Notes
 
@@ -89,22 +107,9 @@ std::vector::vector \- std::vector::vector
    statement in §23.2.1[container.requirements.general]/12, and a more direct guarantee
    is under consideration via LWG 2321.
    The overload \fB(3)\fP zeroes out elements of non-class types such as int, which is
-   different from the behavior of new[] , which leaves them uninitialized. To match the
+   different from the behavior of new[], which leaves them uninitialized. To match the
    behavior of new[], a custom Allocator::construct can be provided which leaves such
    elements uninitialized.
-
-.SH Exceptions
-
-   1)
-   noexcept specification:  if alloc is not given
-   noexcept(noexcept(Allocator()))
-   noexcept specification:                        \fI(since C++17)\fP
-   noexcept
-     if alloc is given
-   6)
-   noexcept specification:  
-   noexcept
-     if alloc is not given
 
 .SH Example
 
@@ -152,14 +157,17 @@ std::vector::vector \- std::vector::vector
  words3: [the, frogurt, is, also, cursed]
  words4: [Mo, Mo, Mo, Mo, Mo]
 
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to        Behavior as published        Correct behavior
+   LWG 2193 C++11      the default constructor is explicit
+
 .SH See also
 
    assign    assigns values to the container
              \fI(public member function)\fP 
    operator= assigns values to the container
              \fI(public member function)\fP 
-
-   Categories:
-
-     * conditionally noexcept
-     * unconditionally noexcept

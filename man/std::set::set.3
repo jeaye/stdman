@@ -1,17 +1,13 @@
-.TH std::set::set 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::set::set 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::set::set \- std::set::set
 
 .SH Synopsis
-   explicit set( const Compare& comp = Compare(),               (until
-                 const Allocator& alloc = Allocator()           C++14)
-   );
-   set() : set( Compare() ) {}
+   set();
 
-   explicit set( const Compare& comp,                           (since
-                                                                C++14)
-                 const Allocator& alloc = Allocator()
-   );
+   explicit set( const Compare& comp,
+
+                 const Allocator& alloc = Allocator() );
    explicit set( const Allocator& alloc );                  \fB(1)\fP (since
                                                                 C++11)
    template< class InputIt >
@@ -21,7 +17,7 @@ std::set::set \- std::set::set
 
         const Allocator& alloc = Allocator() );
    template< class InputIt >
-                                                        \fB(1)\fP
+
    set( InputIt first, InputIt last, const Allocator&                   (since
    alloc)                                                               C++14)
 
@@ -47,7 +43,8 @@ std::set::set \- std::set::set
 
    1) Default constructor. Constructs empty container.
    2) Range constructor. Constructs the container with the contents of the range
-   [first, last).
+   [first, last). If multiple elements in the range have keys that compare equivalent,
+   it is unspecified which element is inserted (pending LWG2844).
    3) Copy constructor. Constructs the container with the copy of the contents of
    other. If alloc is not provided, allocator is obtained by calling
    std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.get_allocator()).
@@ -55,7 +52,8 @@ std::set::set \- std::set::set
    semantics. If alloc is not provided, allocator is obtained by move-construction from
    the allocator belonging to other.
    5) Initializer-list constructor. Constructs the container with the contents of the
-   initializer list init.
+   initializer list init. If multiple elements in the range have keys that compare
+   equivalent, it is unspecified which element is inserted (pending LWG2844).
 
 .SH Parameters
 
@@ -76,16 +74,16 @@ std::set::set \- std::set::set
 .SH Complexity
 
    1) Constant
-
    2) N log(N) where N = std::distance(first, last) in general, linear in N if the
    range is already sorted by value_comp().
-
    3) Linear in size of other
-
    4) Constant. If alloc is given and alloc != other.get_allocator(), then linear.
-
    5) N log(N) where N = init.size()) in general, linear in N if init is already sorted
    by value_comp().
+
+.SH Exceptions
+
+   Calls to Allocator::allocate may throw.
 
 .SH Notes
 
@@ -103,75 +101,73 @@ std::set::set \- std::set::set
  #include <iostream>
  #include <string>
  #include <set>
+ #include <cmath>
   
- // Helper function for printing pairs.
- template<class Ch, class Tr, class A, class B> inline
- std::basic_ostream<Ch, Tr>& operator<<(std::basic_ostream<Ch, Tr>& stream, std::pair<A,B> p)
- {
-   return stream << '(' << p.first << ", " << p.second << ')';
- }
-  
- // Helper function for printing containers.
- template<class Ch, class Tr, class Co>
- std::basic_ostream<Ch, Tr>& operator<<(std::basic_ostream<Ch, Tr>& stream, Co& c)
- {
-   stream << '{' << *c.begin();
-  
-   for(auto it = ++(c.begin()); it != c.end(); ++it)
-     stream << ", " << *it;
-  
-   stream << '}' << std::endl;
-   return stream;
- }
+ struct Point { double x, y; };
+ struct PointCmp {
+     bool operator()(const Point& lhs, const Point& rhs) const {
+         return std::hypot(lhs.x, lhs.y) < std::hypot(rhs.x, rhs.y);
+     }
+ };
   
  int main()
  {
    // (1) Default constructor
    std::set<std::string> a;
-   a.insert("something");
-   a.insert("anything");
-   a.insert("that thing");
-   std::cout << "a = " << a;
+   a.insert("cat");
+   a.insert("dog");
+   a.insert("horse");
+   for(auto& str: a) std::cout << str << ' ';
+   std::cout << '\\n';
   
    // (2) Iterator constructor
-   std::set<std::string> b(a.find("anything"), a.end());
-   std::cout << std::string(80, '-') << std::endl;
-   std::cout << "b = " << b;
+   std::set<std::string> b(a.find("dog"), a.end());
+   for(auto& str: b) std::cout << str << ' ';
+   std::cout << '\\n';
   
    // (3) Copy constructor
    std::set<std::string> c(a);
-   c.insert("another thing");
-   std::cout << std::string(80, '-') << std::endl;
-   std::cout << "a = " << a;
-   std::cout << "c = " << c;
+   c.insert("another horse");
+   for(auto& str: c) std::cout << str << ' ';
+   std::cout << '\\n';
   
    // (4) Move constructor
    std::set<std::string> d(std::move(a));
-   std::cout << std::string(80, '-') << std::endl;
-   std::cout << "a = nullptr" << std::endl;
-   std::cout << "d = " << d;
+   for(auto& str: d) std::cout << str << ' ';
+   std::cout << '\\n';
+   std::cout << "moved-from set is ";
+   for(auto& str: a) std::cout << str << ' ';
+   std::cout << '\\n';
   
    // (5) Initializer list constructor
-   std::set<std::string> e{
-     "one", "two", "three", "five", "eight"
-   };
-   std::cout << std::string(80, '-') << std::endl;
-   std::cout << "e = " << e;
+   std::set<std::string> e {"one", "two", "three", "five", "eight"};
+   for(auto& str: e) std::cout << str << ' ';
+   std::cout << '\\n';
+  
+   // custom comparison
+   std::set<Point, PointCmp> z = {{2, 5}, {3, 4}, {1, 1}};
+   z.insert({1, -1}); // this fails because the magnitude of 1,-1 equals 1,1
+   for(auto& p: z) std::cout << '(' << p.x << ',' << p.y << ") ";
+   std::cout << '\\n';
  }
 
 .SH Output:
 
- a = {anything, something, that thing}
- --------------------------------------------------------------------------------
- b = {anything, something, that thing}
- --------------------------------------------------------------------------------
- a = {anything, something, that thing}
- c = {another thing, anything, something, that thing}
- --------------------------------------------------------------------------------
- a = nullptr
- d = {anything, something, that thing}
- --------------------------------------------------------------------------------
- e = {eight, five, one, three, two}
+ cat dog horse
+ dog horse
+ another horse cat dog horse
+ cat dog horse
+ moved-from set is
+ eight five one three two
+ (1,1) (3,4) (2,5)
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to        Behavior as published        Correct behavior
+   LWG 2193 C++11      the default constructor is explicit
 
 .SH See also
 

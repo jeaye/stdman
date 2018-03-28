@@ -1,4 +1,4 @@
-.TH std::scoped_allocator_adaptor::scoped_allocator_adaptor 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::scoped_allocator_adaptor::scoped_allocator_adaptor 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::scoped_allocator_adaptor::scoped_allocator_adaptor \- std::scoped_allocator_adaptor::scoped_allocator_adaptor
 
@@ -7,21 +7,24 @@ std::scoped_allocator_adaptor::scoped_allocator_adaptor \- std::scoped_allocator
    scoped_allocator_adaptor();                                        \fB(1)\fP \fI(since C++11)\fP
    template< class OuterA2 >
    scoped_allocator_adaptor( OuterA2&& outerAlloc, const              \fB(2)\fP \fI(since C++11)\fP
-   InnerAllocs&... innerAllocs);
-   scoped_allocator_adaptor( const scoped_allocator_adaptor& other ); \fB(3)\fP \fI(since C++11)\fP
-   scoped_allocator_adaptor( scoped_allocator_adaptor&& other );      \fB(4)\fP \fI(since C++11)\fP
+   InnerAllocs&... innerAllocs) noexcept;
+   scoped_allocator_adaptor( const scoped_allocator_adaptor& other )  \fB(3)\fP \fI(since C++11)\fP
+   noexcept;
+   scoped_allocator_adaptor( scoped_allocator_adaptor&& other )       \fB(4)\fP \fI(since C++11)\fP
+   noexcept;
    template< class OuterA2 >
    scoped_allocator_adaptor( const scoped_allocator_adaptor<OuterA2,  \fB(5)\fP \fI(since C++11)\fP
-   InnerAllocs...>& other );
+   InnerAllocs...>& other )  noexcept;
    template< class OuterA2 >
    scoped_allocator_adaptor( scoped_allocator_adaptor<OuterA2,        \fB(6)\fP \fI(since C++11)\fP
-   InnerAllocs...>&& other );
+   InnerAllocs...>&& other ) noexcept;
 
    1) Default constructor: value-initializes the OuterAlloc base class and the inner
    allocator member object, if used by the implementation.
 
    2) Constructs the base class OuterAlloc from std::forward<OuterA2>(outerAlloc), and
-   the inner allocators with innerAllocs....
+   the inner allocators with innerAllocs.... This overload only participates in
+   overload resolution if std::is_constructible<OuterAlloc, OuterA2>::value is true.
 
    3) Copy-constructor: initializes each allocator from the corresponding allocator of
    other
@@ -29,10 +32,13 @@ std::scoped_allocator_adaptor::scoped_allocator_adaptor \- std::scoped_allocator
    4) Move-constructor: moves each allocator from the corresponding allocator of other
    into *this
 
-   5) Initializes each allocator from the corresponding allocator of other
+   5) Initializes each allocator from the corresponding allocator of other. This
+   overload only participates in overload resolution if
+   std::is_constructible<OuterAlloc, const OuterA2&>::value is true.
 
    6) Initializes each allocator from the corresponding allocator of other, using move
-   semantics.
+   semantics. This overload only participates in overload resolution if
+   std::is_constructible<OuterAlloc, OuterA2>::value is true.
 
 .SH Parameters
 
@@ -40,12 +46,14 @@ std::scoped_allocator_adaptor::scoped_allocator_adaptor \- std::scoped_allocator
    innerAllocs... - constructor arguments for the inner allocators
    other          - another std::scoped_allocator_adaptor
 
-.SH Exceptions
+   Defect reports
 
-   2-6)
-   noexcept specification:  
-   noexcept
-     
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 2782 C++11      constructors taking OuterA2 weren't             constraint added
+                       constrained, interfering with metaprogramming
 
 .SH See also
 
@@ -54,7 +62,3 @@ std::scoped_allocator_adaptor::scoped_allocator_adaptor \- std::scoped_allocator
              constructs an object in allocated storage, passing the inner allocator to
    construct its constructor if appropriate
              \fI(public member function)\fP 
-
-.SH Category:
-
-     * unconditionally noexcept

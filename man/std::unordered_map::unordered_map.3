@@ -1,30 +1,21 @@
-.TH std::unordered_map::unordered_map 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::unordered_map::unordered_map 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unordered_map::unordered_map \- std::unordered_map::unordered_map
 
 .SH Synopsis
-   explicit unordered_map( size_type bucket_count =
-   /*implementation-defined*/,
-
-                           const Hash& hash = Hash(),                     \fI(since C++11)\fP
-                           const KeyEqual& equal = KeyEqual(),            \fI(until C++14)\fP
-
-                           const Allocator& alloc = Allocator()
-   );
    unordered_map() : unordered_map(
    size_type(/*implementation-defined*/) ) {}
 
-   explicit unordered_map( size_type bucket_count,
-                           const Hash& hash = Hash(),                     \fI(since C++14)\fP
+   explicit unordered_map( size_type bucket_count,                    \fB(1)\fP \fI(since C++11)\fP
+                           const Hash& hash = Hash(),
                            const KeyEqual& equal = KeyEqual(),
 
-                           const Allocator& alloc = Allocator()
-   );
+                           const Allocator& alloc = Allocator() );
    unordered_map( size_type bucket_count,
 
                   const Allocator& alloc )
-                 : unordered_map(bucket_count, Hash(),
-   KeyEqual(), alloc) {}
+                 : unordered_map(bucket_count, Hash(), KeyEqual(),
+   alloc) {}
    unordered_map( size_type bucket_count,                             \fB(1)\fP \fI(since C++14)\fP
                   const Hash& hash,
                   const Allocator& alloc )
@@ -44,7 +35,7 @@ std::unordered_map::unordered_map \- std::unordered_map::unordered_map
    template< class InputIt >
 
    unordered_map( InputIt first, InputIt last,
-                  size_type bucket_count,                         \fB(1)\fP \fB(2)\fP \fI(since C++14)\fP
+                  size_type bucket_count,                             \fB(2)\fP \fI(since C++14)\fP
                   const Allocator& alloc )
                  : unordered_map(first, last,
 
@@ -59,11 +50,10 @@ std::unordered_map::unordered_map \- std::unordered_map::unordered_map
 
                      bucket_count, hash, KeyEqual(), alloc) {}
    unordered_map( const unordered_map& other );                       \fB(3)\fP \fI(since C++11)\fP
-   unordered_map( const unordered_map& other, const Allocator&        \fB(3)\fP \fI(since C++11)\fP
-   alloc );
-   unordered_map( unordered_map&& other );                            \fB(4)\fP \fI(since C++11)\fP
-   unordered_map( unordered_map&& other, const Allocator& alloc       \fB(4)\fP \fI(since C++11)\fP
+   unordered_map( const unordered_map& other, const Allocator& alloc  \fB(3)\fP \fI(since C++11)\fP
    );
+   unordered_map( unordered_map&& other );                            \fB(4)\fP \fI(since C++11)\fP
+   unordered_map( unordered_map&& other, const Allocator& alloc );    \fB(4)\fP \fI(since C++11)\fP
    unordered_map( std::initializer_list<value_type> init,
 
                   size_type bucket_count =
@@ -95,7 +85,8 @@ std::unordered_map::unordered_map \- std::unordered_map::unordered_map
    1) Constructs empty container. Sets max_load_factor() to 1.0. For the default
    constructor, the number of buckets is implementation-defined.
    2) constructs the container with the contents of the range [first, last). Sets
-   max_load_factor() to 1.0.
+   max_load_factor() to 1.0. If multiple elements in the range have keys that compare
+   equivalent, it is unspecified which element is inserted (pending LWG2844).
    3) copy constructor. Constructs the container with the copy of the contents of
    other, copies the load factor, the predicate, and the hash function as well. If
    alloc is not provided, allocator is obtained by calling
@@ -129,8 +120,13 @@ std::unordered_map::unordered_map \- std::unordered_map::unordered_map
    4) constant. If alloc is given and alloc != other.get_allocator(), then linear.
    5) average case linear worst case quadratic in size of init
 
+.SH Exceptions
+
+   Calls to Allocator::allocate may throw.
+
 .SH Notes
 
+   
    After container move construction (overload \fB(4)\fP), references, pointers, and
    iterators (other than the end iterator) to other remain valid, but refer to elements
    that are now in *this. The current standard makes this guarantee via the blanket
@@ -168,6 +164,20 @@ std::unordered_map::unordered_map \- std::unordered_map::unordered_map
   }
  };
   
+ struct Foo {
+     Foo(int val_) : val(val_) {}
+     int val;
+     bool operator==(const Foo &rhs) const { return val == rhs.val; }
+ };
+  
+ namespace std {
+     template<> struct hash<Foo> {
+         std::size_t operator()(const Foo &f) const {
+             return std::hash<int>{}(f.val);
+         }
+     };
+ }
+  
  int main()
  {
      // default constructor: empty map
@@ -191,12 +201,35 @@ std::unordered_map::unordered_map \- std::unordered_map::unordered_map
      std::vector<std::pair<std::bitset<8>, int>> v = { {0x12, 1}, {0x01,-1} };
      std::unordered_map<std::bitset<8>, double> m5(v.begin(), v.end());
   
-     // constructor for a custom type
+     //Option 1 for a constructor with a custom Key type
+     // Define the KeyHash and KeyEqual structs and use them in the template
      std::unordered_map<Key, std::string, KeyHash, KeyEqual> m6 = {
              { {"John", "Doe"}, "example"},
              { {"Mary", "Sue"}, "another"}
      };
+  
+     //Option 2 for a constructor with a custom Key type
+     // Define a const == operator for the class/struct and specialize std::hash
+     // structure in the std namespace
+     std::unordered_map<Foo, std::string> m7 = {
+         { Foo(1), "One"}, { 2, "Two"}, { 3, "Three"}
+     };
+  
+     //Option 3: Use lambdas
+     // Note that the initial bucket count has to be passed to the constructor
+     struct Goo {int val; };
+     auto hash = [](const Goo &g){ return std::hash<int>{}(g.val); };
+     auto comp = [](const Goo &l, const Goo &r){ return l.val == r.val; };
+     std::unordered_map<Goo, double, decltype(hash), decltype(comp)> m8(10, hash, comp);
  }
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to        Behavior as published        Correct behavior
+   LWG 2193 C++11      the default constructor is explicit
 
 .SH See also
 

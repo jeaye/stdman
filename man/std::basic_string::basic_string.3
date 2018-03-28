@@ -1,12 +1,14 @@
-.TH std::basic_string::basic_string 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_string::basic_string 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_string::basic_string \- std::basic_string::basic_string
 
 .SH Synopsis
-   explicit basic_string( const Allocator& alloc =          \fI(until C++14)\fP
-   Allocator() );
-   basic_string() : basic_string( Allocator() ) {}          \fI(since C++14)\fP
+   basic_string();                                          \fI(until C++17)\fP
    explicit basic_string( const Allocator& alloc );
+   basic_string() noexcept(noexcept( Allocator()
+   )): basic_string( Allocator() ) {}                       \fI(since C++17)\fP
+   explicit basic_string( const Allocator& alloc )
+   noexcept;
    basic_string( size_type count,
 
                  CharT ch,                              \fB(2)\fP
@@ -25,7 +27,8 @@ std::basic_string::basic_string \- std::basic_string::basic_string
 
                  size_type pos,                                           \fI(since C++17)\fP
 
-                 const Allocator& a = Allocator());
+                 const Allocator& alloc =
+   Allocator() );
    basic_string( const basic_string& other,
 
                  size_type pos,
@@ -33,14 +36,14 @@ std::basic_string::basic_string \- std::basic_string::basic_string
 
                  const Allocator& alloc =
    Allocator() );
-   basic_string( const CharT* s,
+   basic_string( const CharT* s,                    \fB(1)\fP
 
-                 size_type count,                   \fB(1)\fP     \fB(4)\fP
+                 size_type count,                           \fB(4)\fP
 
                  const Allocator& alloc =
    Allocator() );
-   basic_string( const CharT* s,
-                 const Allocator& alloc =               \fB(3)\fP \fB(5)\fP
+   basic_string( const CharT* s,                        \fB(3)\fP
+                 const Allocator& alloc =                   \fB(5)\fP
    Allocator() );
    template< class InputIt >
 
@@ -51,7 +54,7 @@ std::basic_string::basic_string \- std::basic_string::basic_string
    basic_string( const basic_string& other );               \fB(7)\fP
    basic_string( const basic_string& other, const           \fB(7)\fP           \fI(since C++11)\fP
    Allocator& alloc );
-   basic_string( basic_string&& other );                    \fB(8)\fP           \fI(since C++11)\fP
+   basic_string( basic_string&& other ) noexcept;           \fB(8)\fP           \fI(since C++11)\fP
    basic_string( basic_string&& other, const                \fB(8)\fP           \fI(since C++11)\fP
    Allocator& alloc );
    basic_string( std::initializer_list<CharT> init,
@@ -73,7 +76,8 @@ std::basic_string::basic_string \- std::basic_string::basic_string
    supplied allocator alloc.
 
    1) Default constructor. Constructs empty string (zero size and unspecified
-   capacity).
+   capacity). If no allocator is supplied, allocator is obtained from a
+   default-constructed instance.
    2) Constructs the string with count copies of character ch. The behavior is
    undefined if count >= npos.
    3) Constructs the string with a substring [pos, pos+count) of other. If count ==
@@ -88,8 +92,9 @@ std::basic_string::basic_string \- std::basic_string::basic_string
    determined by the first null character. The behavior is undefined if s does not
    point at an array of at least Traits::length(s)+1 elements of CharT, including the
    case when s is a null pointer.
-   6) Constructs the string with the contents of the range [first, last). This overload
-   has the same effect as overload \fB(2)\fP if InputIt is an integral type.
+   6) Constructs the string with the contents of the range [first, last). If InputIt is
+   an integral type, equivalent to basic_string(static_cast<size_type>(first),
+   static_cast<value_type>(last), a).
    7) Copy constructor. Constructs the string with the copy of the contents of other.
    8) Move constructor. Constructs the string with the contents of other using move
    semantics. other is left in valid, but unspecified state.
@@ -129,19 +134,10 @@ std::basic_string::basic_string \- std::basic_string::basic_string
 
 .SH Exceptions
 
-   1)
-   noexcept specification:  if alloc is not given
-   noexcept(noexcept(Allocator()))                \fI(since C++17)\fP
-   noexcept specification:  
-   noexcept
-     if alloc is given
-
    3) std::out_of_range if pos > other.size()
-   8)
-   noexcept specification:  
-   noexcept
-     if alloc is not given
-   . Throws nothing if alloc == str.get_allocator()
+   8) Throws nothing if alloc == str.get_allocator()
+
+   Calls to Allocator::allocate may throw.
 
 .SH Notes
 
@@ -162,6 +158,7 @@ std::basic_string::basic_string \- std::basic_string::basic_string
  #include <cassert>
  #include <iterator>
  #include <string>
+ #include <cctype>
   
  int main()
  {
@@ -220,6 +217,13 @@ std::basic_string::basic_string \- std::basic_string::basic_string
      std::string s({ 'C', '-', 's', 't', 'y', 'l', 'e' });
      std::cout << s << '\\n'; // "C-style"
    }
+  
+   {
+     // overload resolution selects string(InputIt first, InputIt last) [with InputIt = int]
+     // which behaves as if string(size_type count, charT ch) is called
+     std::string s(3, std::toupper('a'));
+     std::cout << s << '\\n'; // "AAA"
+   }
  }
 
 .SH Output:
@@ -232,6 +236,15 @@ std::basic_string::basic_string \- std::basic_string::basic_string
  Exemplar
  C++ by example
 .SH C-style
+ AAA
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to        Behavior as published        Correct behavior
+   LWG 2193 C++11      the default constructor is explicit
 
 .SH See also
 
@@ -239,8 +252,3 @@ std::basic_string::basic_string \- std::basic_string::basic_string
              \fI(public member function)\fP 
    operator= assigns values to the string
              \fI(public member function)\fP 
-
-   Categories:
-
-     * conditionally noexcept
-     * unconditionally noexcept

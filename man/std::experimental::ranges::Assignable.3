@@ -1,23 +1,73 @@
-.TH std::experimental::ranges::Assignable 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::experimental::ranges::Assignable 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::experimental::ranges::Assignable \- std::experimental::ranges::Assignable
 
 .SH Synopsis
    Defined in header <experimental/ranges/concepts>
-   template <class T, class U>
+   template < class T, class U >
 
-   concept bool Assignable() {
-       return ranges::CommonReference<const T&, const U&>() &&
-              requires(T&& t, U&& u) {                                      (ranges TS)
-                  { std::forward<T>(t) = std::forward<U>(u) } ->
-   ranges::Same<T&>;
-              };
+   concept bool Assignable =
+     std::is_lvalue_reference<T>::value &&
+     ranges::CommonReference<
+       const std::remove_reference_t<T>&,                (ranges TS)
+       const std::remove_reference_t<U>&> &&
+     requires(T t, U&& u) {
+       { t = std::forward<U>(u) } -> ranges::Same<T>&&;
 
-   }
+     };
 
-    This section is incomplete
-    Reason: add description and extra caveats
+   The concept Assignable<T, U> specifies that an expression of the type and value
+   category specified by U can be assigned to an lvalue expression whose type is
+   specified by T.
 
-.SH Category:
+   Given
 
-     * Todo with reason
+     * t, an lvalue of type std::remove_reference_t<T> that refers to an object o,
+     * u, an expression such that decltype((u)) is U,
+     * u2, a distinct object that is equal to u,
+
+   Assignable<T, U> is satisfied only if
+
+     * std::addressof(t = u) == std::addressof(o) (i.e., the assignment expression
+       yields an lvalue referring to the left operand);
+     * After evaluating t = u:
+
+          * t is equal to u2, unless u is a non-const xvalue that refers to o (i.e.,
+            the assignment is a self-move-assignment),
+          * if u is a glvalue:
+
+               * If it is a non-const xvalue, the object to which it refers is in a
+                 valid but unspecified state;
+               * Otherwise, the object it refers to is not modified;
+
+   There need not be any subsumption relationship between Assignable<T, U> and
+   std::is_lvalue_reference<T>::value.
+
+   Equality preservation
+
+   An expression is equality preserving if it results in equal outputs given equal
+   inputs.
+
+     * The inputs to an expression consist of its operands.
+     * The outputs of an expression consist of its result and all operands modified by
+       the expression (if any).
+
+   Every expression required to be equality preserving is further required to be
+   stable: two evaluations of such an expression with the same input objects must have
+   equal outputs absent any explicit intervening modification of those input objects.
+
+   Unless noted otherwise, every expression used in a requires-expression is required
+   to be equality preserving and stable, and the evaluation of the expression may only
+   modify its non-constant operands. Operands that are constant must not be modified.
+
+.SH Notes
+
+   A deduction constraint of the form { expression } -> Same<T>&& effectively requires
+   decltype((expression))&& to be the exact same type as T&&. This constrains both the
+   expression's type and its value category.
+
+   Assignment need not be a total function. In particular, if assigning to some object
+   x can cause some other object y to be modified, then x = y is likely not in the
+   domain of =. This typically happens if the right operand is owned directly or
+   indirectly by the left operand (e.g., with smart pointers to nodes in an node-based
+   data structure, or with something like std::vector<std::any>).

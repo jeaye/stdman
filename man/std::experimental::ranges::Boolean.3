@@ -1,4 +1,4 @@
-.TH std::experimental::ranges::Boolean 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::experimental::ranges::Boolean 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::experimental::ranges::Boolean \- std::experimental::ranges::Boolean
 
@@ -6,32 +6,77 @@ std::experimental::ranges::Boolean \- std::experimental::ranges::Boolean
    Defined in header <experimental/ranges/concepts>
    template <class B>
 
-   concept bool Boolean() {
-       return ranges::MoveConstructible<B>() &&
-              requires(const B b1, const B b2, const bool a) {
-                  bool(b1);
-                  { b1 } -> bool;
-                  bool(!b1);
-                  { !b1 } -> bool;
-                  { b1 && b2 } -> ranges::Same<bool>;
-                  { b1 && a }  -> ranges::Same<bool>;
-                  { a && b1 }  -> ranges::Same<bool>;           (ranges TS)
-                  { b1 || b2 } -> ranges::Same<bool>;
-                  { b1 || a }  -> ranges::Same<bool>;
-                  { a || b1 }  -> ranges::Same<bool>;
-                  { b1 == b2 } -> bool;
-                  { b1 != b2 } -> bool;
-                  { b1 == a }  -> bool;
-                  { a == b1 }  -> bool;
-                  { b1 != a }  -> bool;
-                  { a != b1 }  -> bool;
-             };
+   concept bool Boolean =
+     ranges::Movable<std::decay_t<B>> &&
+     requires(const std::remove_reference_t<B>& b1,
+              const std::remove_reference_t<B>& b2, const bool a) {
+       { b1 }       -> ranges::ConvertibleTo<bool>&&;
+       { !b1 }      -> ranges::ConvertibleTo<bool>&&;
+       { b1 && a }  -> ranges::Same<bool>&&;
+       { b1 || a }  -> ranges::Same<bool>&&;
+       { b1 && b2 } -> ranges::Same<bool>&&;                         (ranges TS)
+       { a && b2  } -> ranges::Same<bool>&&;
+       { b1 || b2 } -> ranges::Same<bool>&&;
+       { a || b2  } -> ranges::Same<bool>&&;
+       { b1 == b2 } -> ranges::ConvertibleTo<bool>&&;
+       { b1 == a  } -> ranges::ConvertibleTo<bool>&&;
+       { a == b2  } -> ranges::ConvertibleTo<bool>&&;
+       { b1 != b2 } -> ranges::ConvertibleTo<bool>&&;
+       { b1 != a  } -> ranges::ConvertibleTo<bool>&&;
+       { a != b2  } -> ranges::ConvertibleTo<bool>&&;
 
-   }
+     };
 
-    This section is incomplete
-    Reason: add description and extra caveats
+   The concept Boolean<B> specifies the requirements for a type usable in Boolean
+   contexts. For Boolean to be satisfied, the logical operators must have the usual
+   behavior (including short-circuiting). More precisely, given
 
-.SH Category:
+     * b1, b2, two lvalues of type const std::remove_reference_t<B>,
 
-     * Todo with reason
+   Boolean<B> is satisfied only if:
+
+     * bool(b1) == !bool(!b1)
+     * b1 && b2, b1 && bool(b2) and bool(b1) && b2 are all equal to bool(b1) &&
+       bool(b2) and have the same short-circuit evaluation;
+     * b1 || b2, b1 || bool(b2) and bool(b1) || b2 are all equal to bool(b1) ||
+       bool(b2) and have the same short-circuit evaluation;
+     * bool(b1 == b2), bool(b1 == bool(b2)), and bool(bool(b1) == b2) are all equal to
+       (bool(b1) == bool(b2));
+     * bool(b1 != b2), bool(b1 != bool(b2)), and bool(bool(b1) != b2) are all equal to
+       (bool(b1) != bool(b2)).
+
+   Equality preservation
+
+   An expression is equality preserving if it results in equal outputs given equal
+   inputs.
+
+     * The inputs to an expression consist of its operands.
+     * The outputs of an expression consist of its result and all operands modified by
+       the expression (if any).
+
+   Every expression required to be equality preserving is further required to be
+   stable: two evaluations of such an expression with the same input objects must have
+   equal outputs absent any explicit intervening modification of those input objects.
+
+   Unless noted otherwise, every expression used in a requires-expression is required
+   to be equality preserving and stable, and the evaluation of the expression may only
+   modify its non-constant operands. Operands that are constant must not be modified.
+
+   Implicit expression variations
+
+   A requires-expression that uses an expression that is non-modifying for some
+   constant lvalue operand also implicitly requires additional variations of that
+   expression that accept a non-constant lvalue or (possibly constant) rvalue for the
+   given operand unless such an expression variation is explicitly required with
+   differing semantics. These implicit expression variations must meet the same
+   semantic requirements of the declared expression. The extent to which an
+   implementation validates the syntax of the variations is unspecified.
+
+.SH Notes
+
+   Examples of Boolean types include bool, std::true_type, and
+   std::bitset<N>::reference. Pointers are not Boolean types.
+
+   A deduction constraint of the form { expression } -> Same<T>&& effectively requires
+   decltype((expression))&& to be the exact same type as T&&. This constrains both the
+   expression's type and its value category.

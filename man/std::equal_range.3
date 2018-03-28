@@ -1,4 +1,4 @@
-.TH std::equal_range 3 "2017.04.02" "http://cppreference.com" "C++ Standard Libary"
+.TH std::equal_range 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::equal_range \- std::equal_range
 
@@ -6,16 +6,35 @@ std::equal_range \- std::equal_range
    Defined in header <algorithm>
    template< class ForwardIt, class T >
 
-   std::pair<ForwardIt,ForwardIt>                      \fB(1)\fP
-       equal_range( ForwardIt first, ForwardIt last,
+   std::pair<ForwardIt,ForwardIt>
+       equal_range( ForwardIt first, ForwardIt              \fI(until C++20)\fP
+   last,
 
                     const T& value );
-   template< class ForwardIt, class T, class Compare >
+   template< class ForwardIt, class T >
 
-   std::pair<ForwardIt,ForwardIt>                      \fB(2)\fP
-       equal_range( ForwardIt first, ForwardIt last,
+   constexpr std::pair<ForwardIt,ForwardIt>
+                 equal_range( ForwardIt first,              \fI(since C++20)\fP
+   ForwardIt last,
+
+                              const T& value );
+   template< class ForwardIt, class T, class
+   Compare >                                        \fB(1)\fP
+
+   std::pair<ForwardIt,ForwardIt>                                         \fI(until C++20)\fP
+       equal_range( ForwardIt first, ForwardIt
+   last,
 
                     const T& value, Compare comp );
+   template< class ForwardIt, class T, class            \fB(2)\fP
+   Compare >
+
+   constexpr std::pair<ForwardIt,ForwardIt>
+                 equal_range( ForwardIt first,                            \fI(since C++20)\fP
+   ForwardIt last,
+
+                              const T& value,
+   Compare comp );
 
    Returns a range containing all elements equivalent to value in the range [first,
    last).
@@ -28,8 +47,7 @@ std::equal_range \- std::equal_range
      * for all elements, if element < value or comp(element, value) is true then
        !(value < element) or !comp(value, element) is also true
 
-   A fully-sorted range meets these criteria, as does a range resulting from a call to
-   std::partition.
+   A fully-sorted range meets these criteria.
 
    The returned range is defined by two iterators, one pointing to the first element
    that is not less than value and another pointing to the first element greater than
@@ -43,21 +61,26 @@ std::equal_range \- std::equal_range
 
    first, last - the range of elements to examine
    value       - value to compare the elements to
-                 comparison function which returns true if the first argument is less
-                 than the second.
+                 binary predicate which returns true if the first argument is less
+                 than (i.e. is ordered before) the second.
 
-                 The signature of the comparison function should be equivalent to the
+                 The signature of the predicate function should be equivalent to the
                  following:
-   comp        -
-                 bool cmp(const Type1 &a, const Type2 &b);
+
+   comp        -  bool pred(const Type1 &a, const Type2 &b);
 
                  The signature does not need to have const &, but the function must not
                  modify the objects passed to it.
-                 cmp will be called as both cmp(value, *iterator) and cmp(*iterator,
-                 value).
+                 The types Type1 and Type2 must be such that an object of type T can be
+                 implicitly converted to both Type1 and Type2, and an object of type
+                 ForwardIt can be dereferenced and then implicitly converted to both
+                 Type1 and Type2. 
 .SH Type requirements
    -
    ForwardIt must meet the requirements of ForwardIterator.
+   -
+   Compare must meet the requirements of BinaryPredicate. it is not required to satisfy
+   Compare
 
 .SH Return value
 
@@ -110,72 +133,8 @@ std::equal_range \- std::equal_range
  {
      int number;
      char name;
-  
-     S ( int number, char name  )
-         : number ( number ), name ( name )
-     {}
-  
-     // only the number is relevant with this comparison
-     bool operator< ( const S& s ) const
-     {
-         return number < s.number;
-     }
- };
-  
-  
- int main()
- {
-     // note: not ordered, only partitioned w.r.t. S defined below
-     std::vector<S> vec = { {1,'A'}, {2,'B'}, {2,'C'}, {2,'D'}, {4,'G'}, {3,'F'} };
-  
-     S value ( 2, '?' );
-  
-     auto p = std::equal_range(vec.begin(),vec.end(),value);
-  
-     for ( auto i = p.first; i != p.second; ++i )
-         std::cout << i->name << ' ';
- }
-
-.SH Output:
-
- B C D
-
-.SH Example With Comparator
-
-   
-// Run this code
-
- #include <algorithm>
- #include <vector>
- #include <iostream>
-  
- struct S
- {
-     int number;
-     char name;
-  
-     S ( int number, char name  )
-         : number ( number ), name ( name )
-     {}
-  
-     // only the number is relevant with this comparison
-     bool operator< ( const S& s ) const
-     {
-         return number < s.number;
-     }
- };
-  
- struct Comp
- {
-     bool operator() ( const S& s, int i )
-     {
-         return s.number < i;
-     }
-  
-     bool operator() ( int i, const S& s )
-     {
-         return i < s.number;
-     }
+     // note: name is ignored by this comparison operator
+     bool operator< ( const S& s ) const { return number < s.number; }
  };
   
  int main()
@@ -183,15 +142,39 @@ std::equal_range \- std::equal_range
      // note: not ordered, only partitioned w.r.t. S defined below
      std::vector<S> vec = { {1,'A'}, {2,'B'}, {2,'C'}, {2,'D'}, {4,'G'}, {3,'F'} };
   
-     auto p = std::equal_range(vec.begin(),vec.end(),2,Comp());
+     S value = {2, '?'};
+  
+     auto p = std::equal_range(vec.begin(), vec.end(), value);
   
      for ( auto i = p.first; i != p.second; ++i )
+         std::cout << i->name << ' ';
+  
+  
+     // heterogeneous comparison:
+     struct Comp
+     {
+         bool operator() ( const S& s, int i ) const { return s.number < i; }
+         bool operator() ( int i, const S& s ) const { return i < s.number; }
+     };
+  
+     auto p2 = std::equal_range(vec.begin(),vec.end(), 2, Comp{});
+  
+     for ( auto i = p2.first; i != p2.second; ++i )
          std::cout << i->name << ' ';
  }
 
 .SH Output:
 
- B C D
+ B C D B C D
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to    Behavior as published               Correct behavior
+   LWG 270 C++98      Compare was required to be a only a partitioning is needed;
+                      strict weak ordering         heterogeneous comparisons permitted
 
 .SH See also
 
