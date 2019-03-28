@@ -1,15 +1,16 @@
-.TH std::basic_string::operator= 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_string::operator= 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_string::operator= \- std::basic_string::operator=
 
 .SH Synopsis
    basic_string& operator=( const basic_string& str );                \fB(1)\fP
-   basic_string& operator=( basic_string&& str );                     \fB(2)\fP \fI(since C++11)\fP
+   basic_string& operator=( basic_string&& str ) noexcept(/* see      \fB(2)\fP \fI(since C++11)\fP
+   below */);
    basic_string& operator=( const CharT* s );                         \fB(3)\fP
    basic_string& operator=( CharT ch );                               \fB(4)\fP
    basic_string& operator=( std::initializer_list<CharT> ilist );     \fB(5)\fP \fI(since C++11)\fP
-   basic_string& operator=( std::basic_string_view<CharT, Traits>     \fB(6)\fP \fI(since C++17)\fP
-   sv);
+   template<class T>                                                  \fB(6)\fP \fI(since C++17)\fP
+   basic_string& operator=( const T& t );
 
    Replaces the contents of the string.
 
@@ -34,16 +35,20 @@ std::basic_string::operator= \- std::basic_string::operator=
    4) Replaces the contents with character ch as if by *this = basic_string(1,c)
    5) Replaces the contents with those of the initializer list ilist as if by *this =
    basic_string(ilist)
-   6) Replaces the contents with those of the string view sv as if by assign(sv)
+   6) Implicitly converts t to a string view sv as if by std::basic_string_view<CharT,
+   Traits> sv = t;, then replaces the contents with those of the sv as if by
+   assign(sv). This overload only participates in overload resolution if
+   std::is_convertible_v<const T&, std::basic_string_view<CharT, Traits>> is true and
+   std::is_convertible_v<const T&, const CharT*> is false.
 
 .SH Parameters
 
    ch   - value to initialize characters of the string with
    str  - string to be used as source to initialize the string with
-   s    - pointer to a null-terminated character string
-          to use as source to initialize the string with
+   s    - pointer to a null-terminated character string to use as source to initialize
+          the string with
    init - std::initializer_list to initialize the string with
-   sv   - std::basic_string_view to initialize the string with
+   t    - object convertible to std::basic_string_view to initialize the string with
 
 .SH Return value
 
@@ -52,15 +57,11 @@ std::basic_string::operator= \- std::basic_string::operator=
 .SH Complexity
 
    1) linear in size of str
-
    2) linear in the size of this (formally, each CharT has to be destroyed). If
    allocators do not compare equal and do not propagate, then also linear in the size
    of str (copy must be made)
-
    3) linear in size of s
-
    4) constant.
-
    5) linear in size of init
 
 .SH Exceptions
@@ -72,42 +73,38 @@ noexcept                                                                        
 2)
 noexcept specification:                                                                  (since
 noexcept(std::allocator_traits<Allocator>::propagate_on_container_move_assignment::value C++17)
-|| std::allocator_traits<Allocator>::is_always_equal::value)
+ || std::allocator_traits<Allocator>::is_always_equal::value)
 
    If the operation would result in size() > max_size(), throws std::length_error.
 
    If an exception is thrown for any reason, this function has no effect  \fI(since C++11)\fP
    \fI(strong exception guarantee)\fP.
 
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to           Behavior as published              Correct behavior
+   LWG 2063 C++11      non-normative note stated that swap is a  corrected to support
+                       valid implementation of move assignment   allocators
+   LWG 2946 C++17      string_view overload causes ambiguity in  avoided by making it a
+                       some cases                                template
+
 .SH Example
 
     This section is incomplete
     Reason: no example
 
-  Defect reports
-
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
-
-      DR    Applied to            Behavior as published              Correct behavior
-   LWG 2063 C++11      non-normative note stated that swap is a    corrected to support
-                       valid implementation of move assignment     allocators
-
 .SH See also
 
    constructor   constructs a basic_string
-                 \fI(public member function)\fP
+                 \fI(public member function)\fP 
    assign        assign characters to a string
-                 \fI(public member function)\fP
+                 \fI(public member function)\fP 
 
    Categories:
 
      * unconditionally noexcept
      * conditionally noexcept
      * Todo no example
-
-   Hidden categories:
-
-     * Pages with unreviewed unconditional noexcept template
-     * Pages with unreviewed noexcept template
-     * Pages with unreviewed conditional noexcept template

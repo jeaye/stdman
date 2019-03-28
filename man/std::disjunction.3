@@ -1,4 +1,4 @@
-.TH std::disjunction 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::disjunction 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::disjunction \- std::disjunction
 
@@ -8,7 +8,7 @@ std::disjunction \- std::disjunction
    struct disjunction;
 
    Forms the logical disjunction of the type traits B..., effectively performing a
-   logical or on the sequence of traits.
+   logical OR on the sequence of traits.
 
    The specialization std::disjunction<B1, ..., BN> has a public and unambiguous base
    that is
@@ -29,7 +29,7 @@ std::disjunction \- std::disjunction
    B... - every template argument Bi for which Bi::value is instantiated must be usable
           as a base class and define member value that is convertible to bool
 
-  Helper variable template
+   Helper variable template
 
    template<class... B>                                             \fI(since C++17)\fP
    inline constexpr bool disjunction_v = disjunction<B...>::value;
@@ -61,31 +61,48 @@ std::disjunction \- std::disjunction
    
 // Run this code
 
- #include <iostream>
  #include <type_traits>
-
- using result0 =
-     std::disjunction<std::bool_constant<false>, std::bool_constant<false>,
-                      std::bool_constant<false>>;
- using result1 =
-     std::disjunction<std::bool_constant<true>, std::bool_constant<false>,
-                      std::bool_constant<false>>;
-
- int main()
- {
-     std::cout << std::boolalpha;
-     std::cout << result0::value << '\\n';
-     std::cout << result1::value << '\\n';
- }
-
-.SH Output:
-
- false
- true
+ #include <string>
+  
+ // checking if Foo is constructible from double will cause a hard error
+ struct Foo {
+     template<class T>
+     struct sfinae_unfriendly_check { static_assert(!std::is_same_v<T, double>); };
+  
+     template<class T>
+     Foo(T, sfinae_unfriendly_check<T> = {} );
+ };
+  
+ template<class... Ts>
+ struct first_constructible {
+     template<class T, class...Args>
+     struct is_constructible_x : std::is_constructible<T, Args...> {
+         using type = T;
+     };
+     struct fallback {
+         static constexpr bool value = true;
+         using type = void; // type to return if nothing is found
+     };
+  
+     template<class... Args>
+     using with = typename std::disjunction<is_constructible_x<Ts, Args...>...,
+                                            fallback>::type;
+ };
+  
+ // OK, is_constructible<Foo, double> not instantiated
+ static_assert(std::is_same_v<first_constructible<std::string, int, Foo>::with<double>,
+                              int>);
+  
+ static_assert(std::is_same_v<first_constructible<std::string, int>::with<>, std::string>);
+ static_assert(std::is_same_v<first_constructible<std::string, int>::with<const char*>,
+                              std::string>);
+ static_assert(std::is_same_v<first_constructible<std::string, int>::with<void*>, void>);
+  
+ int main() { }
 
 .SH See also
 
    negation    logical NOT metafunction
-   \fI(C++17)\fP     \fI(class template)\fP
+   \fI(C++17)\fP     \fI(class template)\fP 
    conjunction variadic logical AND metafunction
-   \fI(C++17)\fP     \fI(class template)\fP
+   \fI(C++17)\fP     \fI(class template)\fP 

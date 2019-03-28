@@ -1,29 +1,40 @@
-.TH std::atomic_fetch_or,std::atomic_fetch_or_explicit 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::atomic_fetch_or,std::atomic_fetch_or_explicit 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::atomic_fetch_or,std::atomic_fetch_or_explicit \- std::atomic_fetch_or,std::atomic_fetch_or_explicit
 
 .SH Synopsis
    Defined in header <atomic>
-   template< class Integral >
-   Integral atomic_fetch_or(
-   std::atomic<Integral>* obj, Integral arg );
-   template< class Integral >
-   Integral atomic_fetch_or( volatile
-   std::atomic<Integral>* obj, Integral arg );
-   template< class Integral >
+   template< class T >
 
-   Integral atomic_fetch_or_explicit(
-   std::atomic<Integral>* obj,                    \fB(1)\fP \fI(since C++11)\fP
-   Integral arg,
+   T atomic_fetch_or( std::atomic<T>* obj,
 
-   std::memory_order order );                                       \fB(2)\fP \fI(since C++11)\fP
-   template< class Integral >
+                      typename
+   std::atomic<T>::value_type arg ) noexcept;
+   template< class T >
 
-   Integral atomic_fetch_or_explicit( volatile
-   std::atomic<Integral>* obj,
-   Integral arg,
+   T atomic_fetch_or( volatile std::atomic<T>*
+   obj,
 
-   std::memory_order order );
+                      typename
+   std::atomic<T>::value_type arg ) noexcept;
+   template< class T >
+
+   T atomic_fetch_or_explicit( std::atomic<T>*    \fB(1)\fP \fI(since C++11)\fP
+   obj,
+                               typename
+   std::atomic<T>::value_type arg,
+
+                               std::memory_order
+   order) noexcept;                                                 \fB(2)\fP \fI(since C++11)\fP
+   template< class T >
+
+   T atomic_fetch_or_explicit( volatile
+   std::atomic<T>* obj,
+                               typename
+   std::atomic<T>::value_type arg,
+
+                               std::memory_order
+   order) noexcept;
 
    Atomically replaces the value pointed by obj with the result of bitwise OR between
    the old value of obj and arg. Returns the value obj held previously.
@@ -33,11 +44,14 @@ std::atomic_fetch_or,std::atomic_fetch_or_explicit \- std::atomic_fetch_or,std::
    1) obj->fetch_or(arg)
    2) obj->fetch_or(arg, order)
 
+   If std::atomic<T> has no fetch_xor member (this member is only provided for integral
+   types), the program is ill-formed.
+
 .SH Parameters
 
    obj   - pointer to the atomic object to modify
    arg   - the value to bitwise OR to the value stored in the atomic object
-   order - the memory sycnhronization ordering for this operation: all values are
+   order - the memory synchronization ordering for this operation: all values are
            permitted.
 
 .SH Return value
@@ -45,22 +59,17 @@ std::atomic_fetch_or,std::atomic_fetch_or_explicit \- std::atomic_fetch_or,std::
    The value immediately preceding the effects of this function in the modification
    order of *obj.
 
-.SH Exceptions
-
-   noexcept specification:
-   noexcept
-
 .SH Possible implementation
 
-template< class T >
-typename std::enable_if<std::is_integral<T>::value && !std::is_same<T, bool>::value, T>::type
-atomic_fetch_or( std::atomic<T>* obj, T arg );
-{
-    return obj->fetch_or(arg);
-}
+   template< class T >
+   T atomic_fetch_or( std::atomic<T>* obj, typename std::atomic<T>::value_type  arg )
+   {
+       return obj->fetch_or(arg);
+   }
 
 .SH Example
 
+   
    
 // Run this code
 
@@ -69,7 +78,7 @@ atomic_fetch_or( std::atomic<T>* obj, T arg );
  #include <thread>
  #include <chrono>
  #include <functional>
-
+  
  // Binary semaphore for demonstrative purposes only
  // This is a simple yet meaningful example: atomic operations
  // are unnecessary without threads.
@@ -87,13 +96,13 @@ atomic_fetch_or( std::atomic<T>* obj, T arg );
              std::this_thread::sleep_for(std::chrono::milliseconds(10));
          }
      }
-
+  
      void put()
      {
          std::atomic_fetch_or(&m_signaled, true);
      }
  };
-
+  
  class ThreadedCounter {
      static const int N = 100;
      static const int REPORT_INTERVAL = 10;
@@ -101,7 +110,7 @@ atomic_fetch_or( std::atomic<T>* obj, T arg );
      bool m_done;
      Semaphore m_count_sem;
      Semaphore m_print_sem;
-
+  
      void count_up()
      {
          for (m_count = 1; m_count <= N; m_count++) {
@@ -115,7 +124,7 @@ atomic_fetch_or( std::atomic<T>* obj, T arg );
          m_done = true;
          m_print_sem.put();
      }
-
+  
      void print_count()
      {
          do {
@@ -125,7 +134,7 @@ atomic_fetch_or( std::atomic<T>* obj, T arg );
          } while (!m_done);
          std::cout << "print_count() done\\n";
      }
-
+  
    public:
      ThreadedCounter() : m_done(false) {}
      void run()
@@ -136,7 +145,7 @@ atomic_fetch_or( std::atomic<T>* obj, T arg );
          count_thread.join();
      }
  };
-
+  
  int main()
  {
      ThreadedCounter m_counter;
@@ -158,29 +167,33 @@ atomic_fetch_or( std::atomic<T>* obj, T arg );
  print_count() done
  count_up() done
 
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to            Behavior as published              Correct behavior
+   P0558R1 C++11      exact type match required because T is      T is deduced from the
+                      deduced from multiple arguments             atomic argument only
+
 .SH See also
 
                              atomically performs bitwise OR between the argument and
    fetch_or                  the value of the atomic object and obtains the value held
                              previously
-                             \fI(public member function of std::atomic)\fP
-   atomic_fetch_and          replaces the atomic object with the result of logical AND
+                             \fI(public member function of std::atomic)\fP 
+   atomic_fetch_and          replaces the atomic object with the result of bitwise AND
    atomic_fetch_and_explicit with a non-atomic argument and obtains the previous value
    \fI(C++11)\fP                   of the atomic
-   \fI(C++11)\fP                   \fI(function template)\fP
-   atomic_fetch_xor          replaces the atomic object with the result of logical XOR
+   \fI(C++11)\fP                   \fI(function template)\fP 
+   atomic_fetch_xor          replaces the atomic object with the result of bitwise XOR
    atomic_fetch_xor_explicit with a non-atomic argument and obtains the previous value
    \fI(C++11)\fP                   of the atomic
-   \fI(C++11)\fP                   \fI(function template)\fP
+   \fI(C++11)\fP                   \fI(function template)\fP 
    C documentation for
    atomic_fetch_or,
    atomic_fetch_or_explicit
 
 .SH Category:
 
-     * unconditionally noexcept
-
-   Hidden categories:
-
-     * Pages with unreviewed unconditional noexcept template
-     * Pages with unreviewed noexcept template
+     * Uses of dcl rev begin with nonempty note

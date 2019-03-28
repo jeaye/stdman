@@ -1,9 +1,9 @@
-.TH std::condition_variable::notify_one 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::condition_variable::notify_one 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::condition_variable::notify_one \- std::condition_variable::notify_one
 
 .SH Synopsis
-   void notify_one();  \fI(since C++11)\fP
+   void notify_one() noexcept;  \fI(since C++11)\fP
 
    If any threads are waiting on *this, calling notify_one unblocks one of the waiting
    threads.
@@ -15,11 +15,6 @@ std::condition_variable::notify_one \- std::condition_variable::notify_one
 .SH Return value
 
    \fI(none)\fP
-
-.SH Exceptions
-
-   noexcept specification:
-   noexcept
 
 .SH Notes
 
@@ -38,6 +33,12 @@ std::condition_variable::notify_one \- std::condition_variable::notify_one
    transferring the waiting thread from the condition variable's queue directly to the
    queue of the mutex within the notify call, without waking it up.
 
+   Notifying while under the lock may nevertheless be necessary when precise scheduling
+   of events is required, e.g. if the waiting thread would exit the program if the
+   condition is satisfied, causing destruction of the notifying thread's
+   condition_variable. A spurious wakeup after mutex unlock but before notify would
+   result in notify called on a destroyed object.
+
 .SH Example
 
    
@@ -47,12 +48,12 @@ std::condition_variable::notify_one \- std::condition_variable::notify_one
  #include <condition_variable>
  #include <thread>
  #include <chrono>
-
+  
  std::condition_variable cv;
  std::mutex cv_m;
  int i = 0;
  bool done = false;
-
+  
  void waits()
  {
      std::unique_lock<std::mutex> lk(cv_m);
@@ -61,14 +62,14 @@ std::condition_variable::notify_one \- std::condition_variable::notify_one
      std::cout << "...finished waiting. i == 1\\n";
      done = true;
  }
-
+  
  void signals()
  {
      std::this_thread::sleep_for(std::chrono::seconds(1));
      std::cout << "Notifying falsely...\\n";
      cv.notify_one(); // waiting thread is notified with i == 0.
                       // cv.wait wakes up, checks i, and goes back to waiting
-
+  
      std::unique_lock<std::mutex> lk(cv_m);
      i = 1;
      while (!done)
@@ -80,7 +81,7 @@ std::condition_variable::notify_one \- std::condition_variable::notify_one
          lk.lock();
      }
  }
-
+  
  int main()
  {
      std::thread t1(waits), t2(signals);
@@ -98,16 +99,10 @@ std::condition_variable::notify_one \- std::condition_variable::notify_one
 .SH See also
 
    notify_all notifies all waiting threads
-              \fI(public member function)\fP
+              \fI(public member function)\fP 
    C documentation for
    cnd_signal
 
-.SH Category:
+   Hidden category:
 
-     * unconditionally noexcept
-
-   Hidden categories:
-
-     * Pages with unreviewed unconditional noexcept template
-     * Pages with unreviewed noexcept template
      * Pages with unreviewed LWG DR marker

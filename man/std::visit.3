@@ -1,4 +1,4 @@
-.TH std::visit 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::visit 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::visit \- std::visit
 
@@ -14,7 +14,8 @@ std::visit \- std::visit
    std::invoke(std::forward<Visitor>(vis),
    std::get<is>(std::forward<Variants>(vars))...)
 
-   , where is... is vars.index()....
+   , where is... is vars.index().... The return type is deduced from the returned
+   expression as if by decltype.
 
    The call is ill-formed if the invocation above is not a valid expression of the same
    type and value category, for all combinations of alternative types of all variants.
@@ -26,8 +27,7 @@ std::visit \- std::visit
 
 .SH Return value
 
-   The value returned by the selected invocation of the visitor, converted to the
-   common type of all possible std::invoke expressions.
+   The value returned by the selected invocation of the visitor.
 
 .SH Exceptions
 
@@ -46,31 +46,35 @@ std::visit \- std::visit
    
 // Run this code
 
- #include <variant>
- #include <iostream>
- #include <type_traits>
  #include <iomanip>
+ #include <iostream>
+ #include <string>
+ #include <type_traits>
+ #include <variant>
  #include <vector>
-
-
- template<class T> struct always_false : std::false_type {};
-
+  
+ // the variant to visit
  using var_t = std::variant<int, long, double, std::string>;
-
+  
+ // helper type for the visitor #3
+ template<class T> struct always_false : std::false_type {};
+  
+ // helper type for the visitor #4
  template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
  template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-
+  
  int main() {
      std::vector<var_t> vec = {10, 15l, 1.5, "hello"};
      for(auto& v: vec) {
-         // void visitor, only called for side-effects
+  
+         // 1. void visitor, only called for side-effects (here, for I/O)
          std::visit([](auto&& arg){std::cout << arg;}, v);
-
-         // value-returning visitor. A common idiom is to return another variant
+  
+         // 2. value-returning visitor, demonstrates the idiom of returning another variant
          var_t w = std::visit([](auto&& arg) -> var_t {return arg + arg;}, v);
-
+  
+         // 3. type-matching visitor: a lambda that handles each type differently
          std::cout << ". After doubling, variant holds ";
-         // type-matching visitor: can also be a class with 4 overloaded operator()'s
          std::visit([](auto&& arg) {
              using T = std::decay_t<decltype(arg)>;
              if constexpr (std::is_same_v<T, int>)
@@ -85,12 +89,12 @@ std::visit \- std::visit
                  static_assert(always_false<T>::value, "non-exhaustive visitor!");
          }, w);
      }
-
+  
      for (auto& v: vec) {
+         // 4. another type-matching visitor: a class with 3 overloaded operator()'s
          std::visit(overloaded {
-             [](int arg) { std::cout << arg << ' '; },
-             [](long arg) { std::cout << arg << ' '; },
-             [](double arg) { std::cout << arg << ' '; },
+             [](auto arg) { std::cout << arg << ' '; },
+             [](double arg) { std::cout << std::fixed << arg << ' '; },
              [](const std::string& arg) { std::cout << std::quoted(arg) << ' '; },
          }, v);
      }
@@ -102,9 +106,9 @@ std::visit \- std::visit
  15. After doubling, variant holds long with value 30
  1.5. After doubling, variant holds double with value 3
  hello. After doubling, variant holds std::string with value "hellohello"
- 10 15 1.5 "hello"
+ 10 15 1.500000 "hello"
 
 .SH See also
 
    swap swaps with another variant
-        \fI(public member function)\fP
+        \fI(public member function)\fP 

@@ -1,14 +1,15 @@
-.TH std::launder 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::launder 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::launder \- std::launder
 
 .SH Synopsis
    Defined in header <new>
-   template <class T>          \fI(since C++17)\fP
-   constexpr T* launder(T* p)
+   template <class T>                                  \fI(since C++17)\fP
+   constexpr T* launder(T* p) noexcept;                \fI(until C++20)\fP
+   template <class T>                                  \fI(since C++20)\fP
+   [[nodiscard]] constexpr T* launder(T* p) noexcept;
 
-   Obtains a pointer to an object created in storage occupied by an existing object of
-   the same type, even if it has const or reference members.
+   Obtains a pointer to the object located at the address represented by p.
 
    Formally, given
 
@@ -16,27 +17,52 @@ std::launder \- std::launder
      * an object X is located at the address A
      * X is within its lifetime
      * the type of X is the same as T, ignoring cv-qualifiers at every level
-     * Every byte that would be reachable through the result is reachable through p
-       (bytes are reachable through a pointer that points to an object if those bytes
-       are within that object's storage, or within the immediately enclosing array of
-       which the object is an element)
+     * every byte that would be reachable through the result is reachable through p
+       (bytes are reachable through a pointer that points to an object Y if those bytes
+       are within the storage of an object Z that is pointer-interconvertible with Y,
+       or within the immediately enclosing array of which Z is an element)
 
    Then std::launder(p) returns a value of type T* that points to the object X.
+   Otherwise, the behavior is undefined.
 
    The program is ill-formed if T is a function type or (possibly cv-qualified) void.
 
    std::launder may be used in a core constant expression if the value of its argument
    may be used in a core constant expression
 
-.SH Exceptions
-
-   noexcept specification:
-   noexcept
-
 .SH Notes
 
-   For objects that do not have const or reference members, std::launder is not
-   necessary; pointers and references can be reused
+   Typical uses of std::launder include:
+
+     * Obtaining a pointer to an object created in the storage of an existing object of
+       the same type, where pointers to the old object cannot be reused because the
+       object has const or reference data members, or because either object is a base
+       class subobject;
+     * Obtaining a pointer to an object created by placement new from a pointer to an
+       object providing storage for that object.
+
+   The reachability restriction ensures that std::launder cannot be used to access
+   bytes not accessible through the original pointer, thereby interfering with the
+   compiler's escape analysis.
+
+ int x[10];
+ auto p = std::launder(reinterpret_cast<int(*)[10]>(&x[0])); // OK
+  
+ int x2[2][10];
+ auto p2 = std::launder(reinterpret_cast<int(*)[10]>(&x2[0][0]));
+ // Undefined behavior: x2[1] would be reachable through the resulting pointer to x2[0]
+ // but is not reachable from the source
+  
+ struct X { int a[10]; } x3, x4[2]; // standard layout; assume no padding
+ auto p3 = std::launder(reinterpret_cast<int(*)[10]>(&x3.a[0])); // OK
+ auto p4 = std::launder(reinterpret_cast<int(*)[10]>(&x4[0].a[0]));
+ // Undefined behavior: x4[1] would be reachable through the resulting pointer to x4[0].a
+ // (which is pointer-interconvertible with x4[0]) but is not reachable from the source
+  
+ struct Y { int a[10]; double y; } x5;
+ auto p5 = std::launder(reinterpret_cast<int(*)[10]>(&x5.a[0]));
+ // Undefined behavior: x5.y would be reachable through the resulting pointer to x5.a
+ // but is not reachable from the source
 
 .SH Example
 
@@ -44,26 +70,51 @@ std::launder \- std::launder
 // Run this code
 
  #include <new>
-
+ #include <cstddef>
+ #include <cassert>
+  
  struct X {
    const int n; // note: X has a const member
    int m;
  };
+  
+ struct Y {
+   int z;
+ };
+  
+ struct A {
+     virtual int transmogrify();
+ };
+  
+ struct B : A {
+     int transmogrify() override { new(this) A; return 2; }
+ };
+  
+ int A::transmogrify() { new(this) B; return 1; }
+  
+ static_assert(sizeof(B) == sizeof(A));
+  
  int main()
  {
-   X *p = new X{3};
+   X *p = new X{3, 4};
    const int a = p->n;
-   new (p) X{5};       // p does not point to new object because X::n is const
+   X* np = new (p) X{5, 6};    // p does not point to new object because X::n is const; np does
    const int b = p->n; // undefined behavior
-   const int x = p->m; // undefined behavior (even though m is non-const, p can't be used)
-   const int c = std::launder(p)->n; // OK, std::launder(p) points to new object
+   const int c = p->m; // undefined behavior (even though m is non-const, p can't be used)
+   const int d = std::launder(p)->n; // OK, std::launder(p) points to new object
+   const int e = np->n; // OK
+  
+   alignas(Y) std::byte s[sizeof(Y)];
+   Y* q = new(&s) Y{2};
+   const int f = reinterpret_cast<Y*>(&s)->z; // Class member access is undefined behavior:
+                                              // reinterpret_cast<Y*>(&s) has value "pointer to s"
+                                              // and does not point to a Y object
+   const int g = q->z; // OK
+   const int h = std::launder(reinterpret_cast<Y*>(&s))->z; // OK
+  
+   A i;
+   int n = i.transmogrify();
+   // int m = i.transmogrify(); // undefined behavior
+   int m = std::launder(&i)->transmogrify(); // OK
+   assert(m + n == 3);
  }
-
-.SH Category:
-
-     * unconditionally noexcept
-
-   Hidden categories:
-
-     * Pages with unreviewed unconditional noexcept template
-     * Pages with unreviewed noexcept template

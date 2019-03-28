@@ -1,4 +1,4 @@
-.TH std::filesystem::last_write_time 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::last_write_time 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::last_write_time \- std::filesystem::last_write_time
 
@@ -10,14 +10,15 @@ std::filesystem::last_write_time \- std::filesystem::last_write_time
    std::filesystem::file_time_type last_write_time(const              \fB(1)\fP \fI(since C++17)\fP
    std::filesystem::path& p,
 
-   std::error_code& ec)
+                                                   std::error_code&
+   ec) noexcept;
    void last_write_time(const std::filesystem::path& p,
 
-   std::filesystem::file_time_type new_time);
+                        std::filesystem::file_time_type new_time);
    void last_write_time(const std::filesystem::path& p,               \fB(2)\fP \fI(since C++17)\fP
-   std::filesystem::file_time_type new_time,
+                        std::filesystem::file_time_type new_time,
 
-   std::error_code& ec);
+                        std::error_code& ec) noexcept;
 
    1) Returns the time of the last modification of p, determined as if by accessing the
    member st_mtime of the POSIX stat (symlinks are followed) The non-throwing overload
@@ -39,13 +40,11 @@ std::filesystem::last_write_time \- std::filesystem::last_write_time
 .SH Exceptions
 
    The overload that does not take a std::error_code& parameter throws filesystem_error
-   on underlying OS API errors, constructed with p as the first argument and the OS
-   error code as the error code argument. std::bad_alloc may be thrown if memory
-   allocation fails. The overload taking a std::error_code& parameter sets it to the OS
-   API error code if an OS API call fails, and executes ec.clear() if no errors occur.
-   This overload has
-   noexcept specification:
-   noexcept
+   on underlying OS API errors, constructed with p as the first path argument and the
+   OS error code as the error code argument. The overload taking a std::error_code&
+   parameter sets it to the OS API error code if an OS API call fails, and executes
+   ec.clear() if no errors occur. Any overload not marked noexcept may throw
+   std::bad_alloc if memory allocation fails.
 
 .SH Notes
 
@@ -70,13 +69,15 @@ std::filesystem::last_write_time \- std::filesystem::last_write_time
      fs::path p = fs::current_path() / "example.bin";
      std::ofstream(p.c_str()).put('a'); // create file
      auto ftime = fs::last_write_time(p);
-
-     std::time_t cftime = decltype(ftime)::clock::to_time_t(ftime); // assuming system_clock
+  
+     // assuming system_clock for this demo
+     // note: not true on MSVC; C++20 will allow portable output
+     std::time_t cftime = decltype(ftime)::clock::to_time_t(ftime);
      std::cout << "File write time is " << std::asctime(std::localtime(&cftime)) << '\\n';
-
+  
      fs::last_write_time(p, ftime + 1h); // move file write time 1 hour to the future
      ftime = fs::last_write_time(p); // read back from the filesystem
-
+  
      cftime = decltype(ftime)::clock::to_time_t(ftime);
      std::cout << "File write time is " << std::asctime(std::localtime(&cftime)) << '\\n';
      fs::remove(p);
@@ -85,19 +86,13 @@ std::filesystem::last_write_time \- std::filesystem::last_write_time
 .SH Possible output:
 
  File write time is Tue Mar 31 19:47:04 2015
-
+  
  File write time is Tue Mar 31 20:47:04 2015
 
 .SH See also
 
-   file_time_type represents file time values
-   \fI(C++17)\fP        \fI(typedef)\fP
-
-.SH Category:
-
-     * unconditionally noexcept
-
-   Hidden categories:
-
-     * Pages with unreviewed unconditional noexcept template
-     * Pages with unreviewed noexcept template
+   file_time_type  represents file time values
+   \fI(C++17)\fP         \fI(typedef)\fP 
+                   gets or sets the time of the last data modification of the file to
+   last_write_time which the directory entry refers
+                   \fI(public member function of std::filesystem::directory_entry)\fP 

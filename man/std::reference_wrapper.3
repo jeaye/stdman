@@ -1,4 +1,4 @@
-.TH std::reference_wrapper 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::reference_wrapper 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::reference_wrapper \- std::reference_wrapper
 
@@ -17,66 +17,72 @@ std::reference_wrapper \- std::reference_wrapper
    but they are implicitly convertible to T&, so that they can be used as arguments
    with the functions that take the underlying type by reference.
 
+   If the stored reference is Callable, std::reference_wrapper is callable with the
+   same arguments.
+
    Helper functions std::ref and std::cref are often used to generate
    std::reference_wrapper objects.
 
-   std::reference_wrapper is also used to pass objects to std::bind or to the
-   constructor of std::thread by reference.
+   std::reference_wrapper is also used to pass objects by reference to std::bind, the
+   constructor of std::thread, or the helper functions std::make_pair and
+   std::make_tuple.
 
    std::reference_wrapper is guaranteed to be TriviallyCopyable. \fI(since C++17)\fP
 
 .SH Member types
 
-   type                                      definition
-   type                                      T
-   result_type(deprecated in C++17)          The return type of T if T is a function.
-                                             Otherwise, not defined
-                                             1) if T is a function or pointer to
-                                             function that takes one argument of type
-                                             A1, then argument_type is A1.
+   type                                       definition
+   type                                       T
+   result_type(deprecated in C++17)(removed   The return type of T if T is a function.
+   in C++20)                                  Otherwise, not defined
+                                              1) if T is a function or pointer to
+                                              function that takes one argument of type
+                                              A1, then argument_type is A1.
 
-                                             2) if T is a pointer to member function of
-   argument_type(deprecated in C++17)        class T0 that takes no arguments, then
-                                             argument_type is T0*, possibly
-                                             cv-qualified
-                                             3) if T is a class type with a member type
-                                             T::argument_type, then argument_type is an
-                                             alias of that
-                                             1) if T is a function or pointer to
-                                             function that takes two arguments of type
-                                             s A1 and A2, then first_argument_type is
-                                             A1.
+   argument_type(deprecated in C++17)(removed 2) if T is a pointer to member function
+   in C++20)                                  of class T0 that takes no arguments, then
+                                              argument_type is T0*, possibly
+                                              cv-qualified
+                                              3) if T is a class type with a member
+                                              type T::argument_type, then argument_type
+                                              is an alias of that
+                                              1) if T is a function or pointer to
+                                              function that takes two arguments of
+                                              types A1 and A2, then first_argument_type
+                                              is A1.
 
-   first_argument_type(deprecated in C++17)  2) if T is a pointer to member function of
-                                             class T0 that takes one argument, then
-                                             first_argument_type is T0*, possibly
-                                             cv-qualified
-                                             3) if T is a class type with a member type
-                                             T::first_argument_type, then
-                                             first_argument_type is an alias of that
-                                             1) if T is a function or pointer to
-                                             function that takes two arguments of type
-                                             s A1 and A2, then second_argument_type is
-                                             A2.
+   first_argument_type(deprecated in          2) if T is a pointer to member function
+   C++17)(removed in C++20)                   of class T0 that takes one argument, then
+                                              first_argument_type is T0*, possibly
+                                              cv-qualified
+                                              3) if T is a class type with a member
+                                              type T::first_argument_type, then
+                                              first_argument_type is an alias of that
+                                              1) if T is a function or pointer to
+                                              function that takes two arguments of type
+                                              s A1 and A2, then second_argument_type is
+                                              A2.
 
-   second_argument_type(deprecated in C++17) 2) if T is a pointer to member function of
-                                             class T0 that takes one argument A1, then
-                                             second_argument_type is A1, possibly
-                                             cv-qualified
-                                             3) if T is a class type with a member type
-                                             T::second_argument_type, then
-                                             second_argument_type is an alias of that
+   second_argument_type(deprecated in         2) if T is a pointer to member function
+   C++17)(removed in C++20)                   of class T0 that takes one argument A1,
+                                              then second_argument_type is A1, possibly
+                                              cv-qualified
+                                              3) if T is a class type with a member
+                                              type T::second_argument_type, then
+                                              second_argument_type is an alias of that
 
 .SH Member functions
 
    constructor   stores a reference in a new std::reference_wrapper object
-                 \fI(public member function)\fP
+                 \fI(public member function)\fP 
    operator=     rebinds a std::reference_wrapper
-                 \fI(public member function)\fP
+                 \fI(public member function)\fP 
    get           accesses the stored reference
-   operator T&   \fI(public member function)\fP
+   operator T&   \fI(public member function)\fP 
    operator()    calls the stored function
-                 \fI(public member function)\fP
+                 \fI(public member function)\fP 
+
+   Deduction guides\fI(since C++17)\fP
 
 .SH Possible implementation
 
@@ -85,28 +91,32 @@ std::reference_wrapper \- std::reference_wrapper
    public:
      // types
      typedef T type;
-
+    
      // construct/copy/destroy
      reference_wrapper(T& ref) noexcept : _ptr(std::addressof(ref)) {}
      reference_wrapper(T&&) = delete;
      reference_wrapper(const reference_wrapper&) noexcept = default;
-
+    
      // assignment
      reference_wrapper& operator=(const reference_wrapper& x) noexcept = default;
-
+    
      // access
      operator T& () const noexcept { return *_ptr; }
      T& get() const noexcept { return *_ptr; }
-
+    
      template< class... ArgTypes >
-     typename std::result_of<T&(ArgTypes&&...)>::type
+     std::invoke_result_t<T&, ArgTypes...>
        operator() ( ArgTypes&&... args ) const {
        return std::invoke(get(), std::forward<ArgTypes>(args)...);
      }
-
+    
    private:
      T* _ptr;
    };
+    
+   // deduction guides
+   template<class T>
+   reference_wrapper(reference_wrapper<T>) -> reference_wrapper<T>;
 
 .SH Example
 
@@ -123,29 +133,36 @@ std::reference_wrapper \- std::reference_wrapper
  #include <numeric>
  #include <random>
  #include <functional>
-
+  
  int main()
  {
      std::list<int> l(10);
+  
      std::iota(l.begin(), l.end(), -4);
-
      std::vector<std::reference_wrapper<int>> v(l.begin(), l.end());
+  
      // can't use shuffle on a list (requires random access), but can use it on a vector
      std::shuffle(v.begin(), v.end(), std::mt19937{std::random_device{}()});
-
+  
      std::cout << "Contents of the list: ";
-     for (int n : l) std::cout << n << ' '; std::cout << '\\n';
-
-     std::cout << "Contents of the list, as seen through a shuffled vector: ";
-     for (int i : v) std::cout << i << ' '; std::cout << '\\n';
-
-     std::cout << "Doubling the values in the initial list...\\n";
+     for (int n : l){
+         std::cout << n << ' ';
+     }
+  
+     std::cout << "\\nContents of the list, as seen through a shuffled vector: ";
+     for (int i : v){
+         std::cout << i << ' ';
+     }
+  
+     std::cout << "\\n\\nDoubling the values in the initial list...\\n\\n";
      for (int& i : l) {
          i *= 2;
      }
-
+  
      std::cout << "Contents of the list, as seen through a shuffled vector: ";
-     for (int i : v) std::cout << i << ' '; std::cout << '\\n';
+     for (int i : v){
+        std::cout << i << ' ';
+     }
  }
 
 .SH Possible output:
@@ -159,7 +176,7 @@ std::reference_wrapper \- std::reference_wrapper
 
    ref
    cref    creates a std::reference_wrapper with a type deduced from its argument
-   \fI(C++11)\fP \fI(function template)\fP
+   \fI(C++11)\fP \fI(function template)\fP 
    \fI(C++11)\fP
    bind    binds one or more arguments to a function object
-   \fI(C++11)\fP \fI(function template)\fP
+   \fI(C++11)\fP \fI(function template)\fP 

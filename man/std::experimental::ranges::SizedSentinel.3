@@ -1,4 +1,4 @@
-.TH std::experimental::ranges::SizedSentinel 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::experimental::ranges::SizedSentinel 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::experimental::ranges::SizedSentinel \- std::experimental::ranges::SizedSentinel
 
@@ -6,20 +6,59 @@ std::experimental::ranges::SizedSentinel \- std::experimental::ranges::SizedSent
    Defined in header <experimental/ranges/iterator>
    template <class S, class I>
 
-   concept bool SizedSentinel() {
-   return ranges::Sentinel<S, I>()
-   && !ranges::disable_sized_sentinel<std::remove_cv_t<S>,
-   std::remove_cv_t<I>>                                                     (ranges TS)
-   && requires(const I& i, const S& s) {
-   { s - i } -> ranges::Same<ranges::difference_type_t<I>>;
-   { i - s } -> ranges::Same<ranges::difference_type_t<I>>;
-   };
+   concept bool SizedSentinel =
+     Sentinel<S, I> &&
+     !ranges::disable_sized_sentinel<std::remove_cv_t<S>,
+   std::remove_cv_t<I>> &&                                              \fB(1)\fP (ranges TS)
+     requires(const I& i, const S& s) {
+       { s - i } -> Same<ranges::difference_type_t<I>>&&;
+       { i - s } -> Same<ranges::difference_type_t<I>>&&;
 
-   }
+     };
+   template <class S, class I>                                          \fB(1)\fP (ranges TS)
+   constexpr bool disable_sized_sentinel = false;
 
-    This section is incomplete
-    Reason: add description and extra caveats
+   The SizedSentinel concept specifies that an object of the iterator type I and an
+   object of the sentinel type S can be subtracted to compute the distance between them
+   in constant time.
 
-.SH Category:
+   Let i be an iterator of type I, and s a sentinel of type S such that [i, s) denotes
+   a range. Let N be the smallest number of applications of ++i necessary to make
+   bool(i == s) be true. Then SizedSentinel<S, I> is satisfied only if:
 
-     * Todo with reason
+     * If N is representable by ranges::difference_type_t<I>, then s - i is
+       well-defined and equals N; and
+     * If -N is representable by ranges::difference_type_t<I>, then i - s is
+       well-defined and equals -N.
+
+   The variable template disable_sized_sentinel provides a mechanism for iterators and
+   sentinels that can be subtracted but do not meet the semantic requirements of
+   SizedSentinel to opt out of the concept by specializing the variable template to
+   have the value true.
+
+   Equality preservation
+
+   An expression is equality preserving if it results in equal outputs given equal
+   inputs.
+
+     * The inputs to an expression consist of its operands.
+     * The outputs of an expression consist of its result and all operands modified by
+       the expression (if any).
+
+   Every expression required to be equality preserving is further required to be
+   stable: two evaluations of such an expression with the same input objects must have
+   equal outputs absent any explicit intervening modification of those input objects.
+
+   Unless noted otherwise, every expression used in a requires-expression is required
+   to be equality preserving and stable, and the evaluation of the expression may only
+   modify its non-constant operands. Operands that are constant must not be modified.
+
+   Implicit expression variations
+
+   A requires-expression that uses an expression that is non-modifying for some
+   constant lvalue operand also implicitly requires additional variations of that
+   expression that accept a non-constant lvalue or (possibly constant) rvalue for the
+   given operand unless such an expression variation is explicitly required with
+   differing semantics. These implicit expression variations must meet the same
+   semantic requirements of the declared expression. The extent to which an
+   implementation validates the syntax of the variations is unspecified.

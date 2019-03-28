@@ -1,4 +1,4 @@
-.TH std::aligned_alloc 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::aligned_alloc 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::aligned_alloc \- std::aligned_alloc
 
@@ -16,7 +16,7 @@ std::aligned_alloc \- std::aligned_alloc
        delete
      * std::calloc, std::malloc, std::realloc                             \fI(since C++11)\fP
        , std::aligned_alloc
-       \fI(since C++17)\fP
+       \fI(since C++17)\fP, std::free
 
    Calls to these functions that allocate or deallocate a particular unit
    of storage occur in a single total order, and each such deallocation
@@ -30,14 +30,15 @@ std::aligned_alloc \- std::aligned_alloc
 
 .SH Return value
 
-   On success, returns the pointer to the beginning of newly allocated memory. The
-   returned pointer must be deallocated with free() or realloc().
+   On success, returns the pointer to the beginning of newly allocated memory. To avoid
+   a memory leak, the returned pointer must be deallocated with std::free() or
+   std::realloc().
 
    On failure, returns a null pointer.
 
 .SH Notes
 
-   Passing a size which is not an integral multiple of alignment or a alignment which
+   Passing a size which is not an integral multiple of alignment or an alignment which
    is not valid or not supported by the implementation causes the function to fail and
    return a null pointer (C11, as published, specified undefined behavior in this case,
    this was corrected by DR 460).
@@ -58,25 +59,27 @@ std::aligned_alloc \- std::aligned_alloc
 
  #include <cstdio>
  #include <cstdlib>
-
+  
  int main()
  {
-     int* p1 = std::malloc(10*sizeof *p1);
-     std::printf("default-aligned addr:   %p\\n", (void*)p1);
+     int* p1 = static_cast<int*>(std::malloc(10*sizeof *p1));
+     std::printf("default-aligned address:   %p\\n", static_cast<void*>(p1));
      std::free(p1);
-
-     int* p2 = std::aligned_alloc(1024, 1024*sizeof *p2);
-     std::printf("1024-byte aligned addr: %p\\n", (void*)p2);
+  
+     int* p2 = static_cast<int*>(std::aligned_alloc(1024, 1024));
+     std::printf("1024-byte aligned address: %p\\n", static_cast<void*>(p2));
      std::free(p2);
  }
 
 .SH Possible output:
 
- default-aligned addr:   0x2221c20
- 1024-byte aligned addr: 0x2222000
+ default-aligned address:   0x2221c20
+ 1024-byte aligned address: 0x2222400
 
 .SH See also
 
    aligned_storage defines the type suitable for use as uninitialized storage for types
    \fI(C++11)\fP         of given size
-                   \fI(class template)\fP
+                   \fI(class template)\fP 
+   C documentation for
+   aligned_alloc

@@ -1,4 +1,4 @@
-.TH std::malloc 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::malloc 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::malloc \- std::malloc
 
@@ -22,7 +22,7 @@ std::malloc \- std::malloc
        delete
      * std::calloc, std::malloc, std::realloc                             \fI(since C++11)\fP
        , std::aligned_alloc
-       \fI(since C++17)\fP
+       \fI(since C++17)\fP, std::free
 
    Calls to these functions that allocate or deallocate a particular unit
    of storage occur in a single total order, and each such deallocation
@@ -34,8 +34,9 @@ std::malloc \- std::malloc
 
 .SH Return value
 
-   On success, returns the pointer to the beginning of newly allocated memory. The
-   returned pointer must be deallocated with std::free() or std::realloc().
+   On success, returns the pointer to the beginning of newly allocated memory. To avoid
+   a memory leak, the returned pointer must be deallocated with std::free() or
+   std::realloc().
 
    On failure, returns a null pointer.
 
@@ -54,37 +55,44 @@ std::malloc \- std::malloc
 
  #include <iostream>
  #include <cstdlib>
-
+ #include <string>
+  
  int main()
  {
-     int* p1 = (int*)std::malloc(4*sizeof(int));  // allocates enough for an array of 4 int
-     int* p2 = (int*)std::malloc(sizeof(int[4])); // same, naming the type directly
-     int* p3 = (int*)std::malloc(4*sizeof *p3);   // same, without repeating the type name
-
-     if(p1) {
-         for(int n=0; n<4; ++n) // populate the array
-             p1[n] = n*n;
-         for(int n=0; n<4; ++n) // print it back out
-             std::cout << "p1[" << n << "] == " << p1[n] << '\\n';
+     // allocates enough for an array of 4 strings
+     if(auto p = (std::string*)std::malloc(4 * sizeof(std::string)))
+     {
+         int i = 0;
+         try
+         {
+             for(; i != 4; ++i) // populate the array
+                 new(p + i) std::string(5, 'a' + i);
+  
+             for(int j = 0; j != 4; ++j) // print it back out
+                 std::cout << "p[" << j << "] == " << p[j] << '\\n';
+         }
+         catch(...) {}
+  
+         for(; i != 0; --i) // clean up
+             p[i - 1].~basic_string();
+  
+         std::free(p);
      }
-
-     std::free(p1);
-     std::free(p2);
-     std::free(p3);
  }
 
 .SH Output:
 
- p1[0] == 0
- p1[1] == 1
- p1[2] == 4
- p1[3] == 9
+ p[0] == aaaaa
+ p[1] == bbbbb
+ p[2] == ccccc
+ p[3] == ddddd
 
 .SH See also
 
    operator new          allocation functions
-   operator new[]        \fI(function)\fP
+   operator new[]        \fI(function)\fP 
    get_temporary_buffer  obtains uninitialized storage
-   (deprecated in C++17) \fI(function template)\fP
+   (deprecated in C++17) \fI(function template)\fP 
+   (removed in C++20)
    C documentation for
    malloc

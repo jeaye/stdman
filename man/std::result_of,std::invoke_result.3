@@ -1,4 +1,4 @@
-.TH std::result_of,std::invoke_result 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::result_of,std::invoke_result 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::result_of,std::invoke_result \- std::result_of,std::invoke_result
 
@@ -8,7 +8,7 @@ std::result_of,std::invoke_result \- std::result_of,std::invoke_result
 
    class result_of; // not defined            \fI(since C++11)\fP
                                           \fB(1)\fP (deprecated in C++17)
-   template< class F, class... ArgTypes >
+   template< class F, class... ArgTypes >     (removed in C++20)
 
    class result_of<F(ArgTypes...)>;
    template< class F, class... ArgTypes>  \fB(2)\fP \fI(since C++17)\fP
@@ -16,11 +16,11 @@ std::result_of,std::invoke_result \- std::result_of,std::invoke_result
 
    Deduces the return type of an INVOKE expression at compile time.
 
-   F must be a callable type, reference to function, or reference to
-   callable type. Invoking F with ArgTypes... must be a well-formed       \fI(since C++11)\fP
-   expression
+   F must be a callable type, reference to function, or reference to      \fI(since C++11)\fP
+   callable type. Invoking F with ArgTypes... must be a well-formed       \fI(until C++14)\fP
+   expression.
    F and all types in ArgTypes can be any complete type, array of unknown \fI(since C++14)\fP
-   bound, or (possibly cv-qualified) void
+   bound, or (possibly cv-qualified) void.
 
 .SH Member types
 
@@ -33,8 +33,9 @@ std::result_of,std::invoke_result \- std::result_of,std::invoke_result
 
 .SH Helper types
 
-   template< class T >                                        \fB(1)\fP \fI(since C++14)\fP
-   using result_of_t = typename result_of<T>::type;               (deprecated in C++17)
+   template< class T >                                            \fI(since C++14)\fP
+   using result_of_t = typename result_of<T>::type;           \fB(1)\fP (deprecated in C++17)
+                                                                  (removed in C++20)
    template< class F, class... ArgTypes>
    using invoke_result_t = typename invoke_result<F,          \fB(2)\fP \fI(since C++17)\fP
    ArgTypes...>::type;
@@ -42,44 +43,60 @@ std::result_of,std::invoke_result \- std::result_of,std::invoke_result
 .SH Possible implementation
 
  namespace detail {
- template <class F, class... Args>
- inline auto INVOKE(F&& f, Args&&... args) ->
-     decltype(forward<F>(f)(forward<Args>(args)...)) {
-       return forward<F>(f)(forward<Args>(args)...);
- }
-
- template <class Base, class T, class Derived>
- inline auto INVOKE(T Base::*pmd, Derived&& ref) ->
-     decltype(forward<Derived>(ref).*pmd) {
-       return forward<Derived>(ref).*pmd;
- }
-
- template <class PMD, class Pointer>
- inline auto INVOKE(PMD&& pmd, Pointer&& ptr) ->
-     decltype((*forward<Pointer>(ptr)).*forward<PMD>(pmd)) {
-       return (*forward<Pointer>(ptr)).*forward<PMD>(pmd);
- }
-
- template <class Base, class T, class Derived, class... Args>
- inline auto INVOKE(T Base::*pmf, Derived&& ref, Args&&... args) ->
-     decltype((forward<Derived>(ref).*pmf)(forward<Args>(args)...)) {
-       return (forward<Derived>(ref).*pmf)(forward<Args>(args)...);
- }
-
- template <class PMF, class Pointer, class... Args>
- inline auto INVOKE(PMF&& pmf, Pointer&& ptr, Args&&... args) ->
-     decltype(((*forward<Pointer>(ptr)).*forward<PMF>(pmf))(forward<Args>(args)...)) {
-       return ((*forward<Pointer>(ptr)).*forward<PMF>(pmf))(forward<Args>(args)...);
- }
+ template <class T>
+ struct is_reference_wrapper : std::false_type {};
+ template <class U>
+ struct is_reference_wrapper<std::reference_wrapper<U>> : std::true_type {};
+  
+ template<class T>
+ struct invoke_impl {
+     template<class F, class... Args>
+     static auto call(F&& f, Args&&... args)
+         -> decltype(std::forward<F>(f)(std::forward<Args>(args)...));
+ };
+  
+ template<class B, class MT>
+ struct invoke_impl<MT B::*> {
+     template<class T, class Td = typename std::decay<T>::type,
+         class = typename std::enable_if<std::is_base_of<B, Td>::value>::type
+     >
+     static auto get(T&& t) -> T&&;
+  
+     template<class T, class Td = typename std::decay<T>::type,
+         class = typename std::enable_if<is_reference_wrapper<Td>::value>::type
+     >
+     static auto get(T&& t) -> decltype(t.get());
+  
+     template<class T, class Td = typename std::decay<T>::type,
+         class = typename std::enable_if<!std::is_base_of<B, Td>::value>::type,
+         class = typename std::enable_if<!is_reference_wrapper<Td>::value>::type
+     >
+     static auto get(T&& t) -> decltype(*std::forward<T>(t));
+  
+     template<class T, class... Args, class MT1,
+         class = typename std::enable_if<std::is_function<MT1>::value>::type
+     >
+     static auto call(MT1 B::*pmf, T&& t, Args&&... args)
+         -> decltype((invoke_impl::get(std::forward<T>(t)).*pmf)(std::forward<Args>(args)...));
+  
+     template<class T>
+     static auto call(MT B::*pmd, T&& t)
+         -> decltype(invoke_impl::get(std::forward<T>(t)).*pmd);
+ };
+  
+ template<class F, class... Args, class Fd = typename std::decay<F>::type>
+ auto INVOKE(F&& f, Args&&... args)
+     -> decltype(invoke_impl<Fd>::call(std::forward<F>(f), std::forward<Args>(args)...));
+  
  } // namespace detail
-
+  
  // Minimal C++11 implementation:
  template <class> struct result_of;
  template <class F, class... ArgTypes>
  struct result_of<F(ArgTypes...)> {
      using type = decltype(detail::INVOKE(std::declval<F>(), std::declval<ArgTypes>()...));
  };
-
+  
  // Conforming C++14 implementation (is also a valid C++11 implementation):
  namespace detail {
  template <typename AlwaysVoid, typename, typename...>
@@ -90,11 +107,11 @@ std::result_of,std::invoke_result \- std::result_of,std::invoke_result
      using type = decltype(detail::INVOKE(std::declval<F>(), std::declval<Args>()...));
  };
  } // namespace detail
-
+  
  template <class> struct result_of;
  template <class F, class... ArgTypes>
  struct result_of<F(ArgTypes...)> : detail::invoke_result<void, F, ArgTypes...> {};
-
+  
  template <class F, class... ArgTypes>
  struct invoke_result : detail::invoke_result<void, F, ArgTypes...> {};
 
@@ -110,8 +127,24 @@ std::result_of,std::invoke_result \- std::result_of,std::invoke_result
    arguments.
 
    F(Args...) is a function type with Args... being the argument types and F being the
-   return type. As such, F cannot be a function type (but can be a reference to a
-   function type).
+   return type. As such, std::result_of suffers from several quirks that lead to its
+   deprecation in favor of std::invoke_result in C++17:
+
+     * F cannot be a function type or an array type (but can be a reference to them);
+     * if any of the Args has type "array of T" or a function type T, it is
+       automatically adjusted to T*;
+     * neither F nor any of Args... can be an abstract class type;
+     * if any of Args... has a top-level cv-qualifier, it is discarded;
+     * none of Args... may be of type void.
+
+   To avoid these quirks, result_of is often used with reference types as F and
+   Args.... For example:
+
+ template<class F, class... Args>
+ std::result_of_t<F&&(Args&&...)> // instead of std::result_of_t<F(Args...)>, which is wrong
+   my_invoke(F&& f, Args&&... args) {
+     /* implementation */
+ }
 
 .SH Examples
 
@@ -120,41 +153,41 @@ std::result_of,std::invoke_result \- std::result_of,std::invoke_result
 
  #include <type_traits>
  #include <iostream>
-
+  
  struct S {
      double operator()(char, int&);
      float operator()(int) { return 1.0;}
  };
-
+  
  template<class T>
  typename std::result_of<T(int)>::type f(T& t)
  {
      std::cout << "overload of f for callable T\\n";
      return t(0);
  }
-
+  
  template<class T, class U>
  int f(U u)
  {
      std::cout << "overload of f for non-callable T\\n";
      return u;
  }
-
+  
  int main()
  {
      // the result of invoking S with char and int& arguments is double
      std::result_of<S(char, int&)>::type d = 3.14; // d has type double
      static_assert(std::is_same<decltype(d), double>::value, "");
-
+  
      // the result of invoking S with int argument is float
      std::result_of<S(int)>::type x = 3.14; // x has type float
      static_assert(std::is_same<decltype(x), float>::value, "");
-
+  
      // result_of can be used with a pointer to member function as follows
      struct C { double Func(char, int&); };
      std::result_of<decltype(&C::Func)(C, char, int&)>::type g = 3.14;
      static_assert(std::is_same<decltype(g), double>::value, "");
-
+  
      f<C>(1); // may fail to compile in C++11; calls the non-callable overload in C++14
  }
 
@@ -165,12 +198,12 @@ std::result_of,std::invoke_result \- std::result_of,std::invoke_result
 .SH See also
 
    invoke                 invokes any Callable object with given arguments
-   \fI(C++17)\fP                \fI(function template)\fP
+   \fI(C++17)\fP                \fI(function template)\fP 
    is_invocable
    is_invocable_r         checks if a type can be invoked (as if by std::invoke) with
    is_nothrow_invocable   the given argument types
-   is_nothrow_invocable_r \fI(class template)\fP
+   is_nothrow_invocable_r \fI(class template)\fP 
    \fI(C++17)\fP
    declval                obtains a reference to its argument for use in unevaluated
    \fI(C++11)\fP                context
-                          \fI(function template)\fP
+                          \fI(function template)\fP 

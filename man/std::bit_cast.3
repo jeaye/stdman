@@ -1,0 +1,88 @@
+.TH std::bit_cast 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::bit_cast \- std::bit_cast
+
+.SH Synopsis
+   Defined in header <bit>
+   template< class To, class From >                   \fI(since C++20)\fP
+   constexpr To bit_cast(const From& from) noexcept;
+
+   Obtain a value of type To by reinterpreting the object representation of from. Every
+   bit in the value representation of the returned To object is equal to the
+   corresponding bit in the object representation of from. The values of padding bits
+   in the returned To object are unspecified.
+
+   If there is no value of type To corresponding to the value representation produced,
+   the behavior is undefined. If there are multiple such values, which value is
+   produced is unspecified.
+
+   This overload only participates in overload resolution if sizeof(To) == sizeof(From)
+   and both To and From are TriviallyCopyable types.
+
+   This function template is constexpr if and only if each of To, From and the types of
+   all subobjects of To and From:
+
+     * is not a union type;
+     * is not a pointer type;
+     * is not a pointer to member type;
+     * is not a volatile-qualified type; and
+     * has no non-static data member of reference type.
+
+.SH Return value
+
+   An object of type To whose value representation is as described above.
+
+.SH Notes
+
+   reinterpret_cast (or equivalent explicit cast) between pointer or reference types
+   shall not be used to reinterpret object representation in most cases because of the
+   type aliasing rule.
+
+   Before std::bit_cast, std::memcpy can be used when it is needed to interpret the
+   object representation as one of another type:
+
+ template <class To, class From>
+ typename std::enable_if<
+     (sizeof(To) == sizeof(From)) &&
+     std::is_trivially_copyable<From>::value &&
+     std::is_trivial<To>::value,
+     // this implementation requires that To is trivially default constructible
+     To>::type
+ // constexpr support needs compiler magic
+ bit_cast(const From &src) noexcept
+ {
+     To dst;
+     std::memcpy(&dst, &src, sizeof(To));
+     return dst;
+ }
+
+.SH Example
+
+   
+// Run this code
+
+ #include <cstdint>
+ #include <bit>
+ #include <iostream>
+  
+ constexpr double f64v = 19260817.0;
+ constexpr auto u64v = std::bit_cast<std::uint64_t>(f64v);
+  
+ constexpr std::uint64_t u64v2 = 0x3fe9000000000000ull;
+ constexpr auto f64v2 = std::bit_cast<double>(u64v2);
+  
+ int main()
+ {
+     std::cout
+         << std::fixed <<f64v << "f64.to_bits() == 0x"
+         << std::hex << u64v << "u64\\n";
+  
+     std::cout
+         << "f64::from_bits(0x" << std::hex << u64v2 << "u64) == "
+         << std::fixed << f64v2 << "f64\\n";
+ }
+
+.SH Possible output:
+
+ 19260817.000000f64.to_bits() == 0x41725e5910000000u64
+ f64::from_bits(0x3fe9000000000000u64) == 0.781250f64

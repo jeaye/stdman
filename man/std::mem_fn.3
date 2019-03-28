@@ -1,43 +1,17 @@
-.TH std::mem_fn 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::mem_fn 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::mem_fn \- std::mem_fn
 
 .SH Synopsis
    Defined in header <functional>
-   template< class R, class T >                                    \fB(1)\fP \fI(since C++11)\fP
-   /*unspecified*/ mem_fn(R T::* pm);
-   template< class R, class T, class... Args >
-
-   /*unspecified*/ mem_fn(R (T::* pm)(Args...));
-   template< class R, class T, class... Args >
-   /*unspecified*/ mem_fn(R (T::* pm)(Args...) const);
-   template< class R, class T, class... Args >
-   /*unspecified*/ mem_fn(R (T::* pm)(Args...) volatile);
-   template< class R, class T, class... Args >
-   /*unspecified*/ mem_fn(R (T::* pm)(Args...) const volatile);
-   template< class R, class T, class... Args >
-   /*unspecified*/ mem_fn(R (T::* pm)(Args...) &);
-   template< class R, class T, class... Args >
-   /*unspecified*/ mem_fn(R (T::* pm)(Args...) const &);           \fB(2)\fP \fI(since C++11)\fP
-   template< class R, class T, class... Args >                         \fI(until C++14)\fP
-   /*unspecified*/ mem_fn(R (T::* pm)(Args...) volatile &);
-   template< class R, class T, class... Args >
-   /*unspecified*/ mem_fn(R (T::* pm)(Args...) const volatile &);
-   template< class R, class T, class... Args >
-   /*unspecified*/ mem_fn(R (T::* pm)(Args...) &&);
-   template< class R, class T, class... Args >
-   /*unspecified*/ mem_fn(R (T::* pm)(Args...) const &&);
-   template< class R, class T, class... Args >
-   /*unspecified*/ mem_fn(R (T::* pm)(Args...) volatile &&);
-   template< class R, class T, class... Args >
-
-   /*unspecified*/ mem_fn(R (T::* pm)(Args...) const volatile &&);
+   template< class M, class T >                 \fI(since C++11)\fP
+   /*unspecified*/ mem_fn(M T::* pm);           \fI(until C++17)\fP
+   template< class M, class T >                 \fI(since C++17)\fP
+   /*unspecified*/ mem_fn(M T::* pm) noexcept;
 
    Function template std::mem_fn generates wrapper objects for pointers to members,
    which can store, copy, and invoke a pointer to member. Both references and pointers
    (including smart pointers) to an object can be used when invoking a std::mem_fn.
-
-   The overloads \fB(2)\fP were introduced in C++11 but removed in C++14 as defect #2048
 
 .SH Parameters
 
@@ -53,16 +27,19 @@ std::mem_fn Return type
 .SH Member types
 
    type                                      definition
-                                             the return type of pm if pm is a pointer
-   result_type(deprecated in C++17)          to member function, not defined for
+                                             the return type of pm if pm
+   result_type(deprecated in C++17)          is a pointer to member
+                                             function, not defined for
                                              pointer to member object
-                                             T*, possibly cv-qualified, if pm is a
-   argument_type(deprecated in C++17)        pointer to member function taking no
-                                             arguments
-   first_argument_type(deprecated in C++17)  T* if pm is a pointer to member function
-                                             taking one argument
-   second_argument_type(deprecated in C++17) T1 if pm is a pointer to member function
-                                             taking one argument of type T1
+                                             T*, possibly cv-qualified,   \fI(until C++20)\fP
+   argument_type(deprecated in C++17)        if pm is a pointer to member
+                                             function taking no arguments
+                                             T* if pm is a pointer to
+   first_argument_type(deprecated in C++17)  member function taking one
+                                             argument
+                                             T1 if pm is a pointer to
+   second_argument_type(deprecated in C++17) member function taking one
+                                             argument of type T1
 
 .SH Member function
 
@@ -76,13 +53,7 @@ std::mem_fn Return type
 
    Each argument in args is perfectly forwarded, as if by std::forward<Args>(args)....
 
-.SH Exceptions
-
-   \fI(none)\fP                  \fI(until C++17)\fP
-   noexcept specification: \fI(since C++17)\fP
-   noexcept
-
-.SH Example 1
+.SH Example
 
    Use mem_fn to store and execute a member function and a member object:
 
@@ -91,7 +62,7 @@ std::mem_fn Return type
 
  #include <functional>
  #include <iostream>
-
+  
  struct Foo {
      void display_greeting() {
          std::cout << "Hello, world.\\n";
@@ -101,16 +72,16 @@ std::mem_fn Return type
      }
      int data = 7;
  };
-
+  
  int main() {
      Foo f;
-
+  
      auto greet = std::mem_fn(&Foo::display_greeting);
      greet(f);
-
+  
      auto print_num = std::mem_fn(&Foo::display_number);
      print_num(f, 42);
-
+  
      auto access_data = std::mem_fn(&Foo::data);
      std::cout << "data: " << access_data(f) << '\\n';
  }
@@ -121,56 +92,17 @@ std::mem_fn Return type
  number: 42
  data: 7
 
-.SH Example 2
+   Defect reports
 
-   Demonstrates the effect of the C++14 changes to the specification of std::mem_fn
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
 
-   
-// Run this code
-
- #include <iostream>
- #include <functional>
-
- struct X {
-     int x;
-
-     int&       easy()      {return x;}
-     int&       get()       {return x;}
-     const int& get() const {return x;}
- };
-
-
- int main(void)
- {
-     auto a = std::mem_fn        (&X::easy); // no problem at all
- //  auto b = std::mem_fn<int&  >(&X::get ); // no longer works in C++14
-     auto c = std::mem_fn<int&()>(&X::get ); // works with both C++11 and C++14
-     auto d = [] (X& x) {return x.get();};   // another approach to overload resolution
-
-     X x = {33};
-     std::cout << "a() = " << a(x) << '\\n';
-     std::cout << "c() = " << c(x) << '\\n';
-     std::cout << "d() = " << d(x) << '\\n';
- }
-
-.SH Output:
-
- a() = 33
- c() = 33
- d() = 33
+      DR    Applied to     Behavior as published      Correct behavior
+   LWG 2048 C++11      unnecessary overloads provided removed
 
 .SH See also
 
    function wraps callable object of any type with specified function call signature
-   \fI(C++11)\fP  \fI(class template)\fP
+   \fI(C++11)\fP  \fI(class template)\fP 
    bind     binds one or more arguments to a function object
-   \fI(C++11)\fP  \fI(function template)\fP
-
-.SH Category:
-
-     * unconditionally noexcept
-
-   Hidden categories:
-
-     * Pages with unreviewed unconditional noexcept template
-     * Pages with unreviewed noexcept template
+   \fI(C++11)\fP  \fI(function template)\fP 

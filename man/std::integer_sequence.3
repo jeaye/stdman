@@ -1,4 +1,4 @@
-.TH std::integer_sequence 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::integer_sequence 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::integer_sequence \- std::integer_sequence
 
@@ -28,7 +28,7 @@ std::integer_sequence \- std::integer_sequence
 
 std::integer_sequence::size
 
-   static constexpr std::size_t size();
+   static constexpr std::size_t size() noexcept;
 
    Returns the number of elements in Ints. Equivalent to sizeof...(Ints)
 
@@ -40,12 +40,7 @@ std::integer_sequence::size
 
    The number of elements in Ints.
 
-.SH Exceptions
-
-   noexcept specification:
-   noexcept
-
-  Helper templates
+   Helper templates
 
    A helper alias template std::index_sequence is defined for the common case where T
    is std::size_t.
@@ -74,6 +69,8 @@ std::integer_sequence::size
 
 .SH Example
 
+   Note: see Possible Implementation in std::apply for another example
+
    
 // Run this code
 
@@ -81,49 +78,48 @@ std::integer_sequence::size
  #include <iostream>
  #include <array>
  #include <utility>
-
+  
  // Convert array into a tuple
  template<typename Array, std::size_t... I>
- decltype(auto) a2t_impl(const Array& a, std::index_sequence<I...>)
+ auto a2t_impl(const Array& a, std::index_sequence<I...>)
  {
      return std::make_tuple(a[I]...);
  }
-
+  
  template<typename T, std::size_t N, typename Indices = std::make_index_sequence<N>>
- decltype(auto) a2t(const std::array<T, N>& a)
+ auto a2t(const std::array<T, N>& a)
  {
-     return a2t_impl(a, Indices());
+     return a2t_impl(a, Indices{});
  }
-
- // pretty-print a tuple (from http://stackoverflow.com/a/6245777/273767)
-
+  
+ // pretty-print a tuple
+  
  template<class Ch, class Tr, class Tuple, std::size_t... Is>
  void print_tuple_impl(std::basic_ostream<Ch,Tr>& os,
-                       const Tuple & t,
+                       const Tuple& t,
                        std::index_sequence<Is...>)
  {
-     using swallow = int[]; // guarantees left to right order
-     (void)swallow{0, (void(os << (Is == 0? "" : ", ") << std::get<Is>(t)), 0)...};
+     ((os << (Is == 0? "" : ", ") << std::get<Is>(t)), ...);
  }
-
+  
  template<class Ch, class Tr, class... Args>
- decltype(auto) operator<<(std::basic_ostream<Ch, Tr>& os,
-                           const std::tuple<Args...>& t)
+ auto& operator<<(std::basic_ostream<Ch, Tr>& os,
+                  const std::tuple<Args...>& t)
  {
      os << "(";
      print_tuple_impl(os, t, std::index_sequence_for<Args...>{});
      return os << ")";
  }
-
+  
  int main()
  {
      std::array<int, 4> array = {1,2,3,4};
-
+  
      // convert an array into a tuple
      auto tuple = a2t(array);
      static_assert(std::is_same<decltype(tuple),
                                 std::tuple<int, int, int, int>>::value, "");
-
+  
      // print it to cout
      std::cout << tuple << '\\n';
  }
@@ -131,54 +127,3 @@ std::integer_sequence::size
 .SH Output:
 
  (1, 2, 3, 4)
-
-.SH Example
-
-   This example shows how a std::tuple can be converted into arguments for a function
-   invocation (see std::experimental::apply).
-
-   
-// Run this code
-
- #include <iostream>
- #include <tuple>
- #include <utility>
-
- template<typename Func, typename Tup, std::size_t... index>
- decltype(auto) invoke_helper(Func&& func, Tup&& tup, std::index_sequence<index...>)
- {
-     return func(std::get<index>(std::forward<Tup>(tup))...);
- }
-
- template<typename Func, typename Tup>
- decltype(auto) invoke(Func&& func, Tup&& tup)
- {
-     constexpr auto Size = std::tuple_size<typename std::decay<Tup>::type>::value;
-     return invoke_helper(std::forward<Func>(func),
-                          std::forward<Tup>(tup),
-                          std::make_index_sequence<Size>{});
- }
-
- void foo(int a, const std::string& b, float c)
- {
-     std::cout << a << " , " << b << " , " << c << '\\n';
- }
-
- int main()
- {
-     auto args = std::make_tuple(2, "Hello", 3.5);
-     invoke(foo, args);
- }
-
-.SH Output:
-
- 2 , Hello , 3.5
-
-.SH Category:
-
-     * unconditionally noexcept
-
-   Hidden categories:
-
-     * Pages with unreviewed unconditional noexcept template
-     * Pages with unreviewed noexcept template

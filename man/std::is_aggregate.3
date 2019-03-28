@@ -1,4 +1,4 @@
-.TH std::is_aggregate 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_aggregate 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_aggregate \- std::is_aggregate
 
@@ -17,10 +17,12 @@ std::is_aggregate \- std::is_aggregate
 
    T - a type to check
 
-  Helper variable template
+   Helper variable template
 
-   template< class T >                                                  \fI(since C++17)\fP
-   inline constexpr bool is_aggregate_v = std::is_aggregate<T>::value;
+   template< class T >                                             \fI(since C++17)\fP
+   inline constexpr bool is_aggregate_v = is_aggregate<T>::value;
+
+   
 
 Inherited from std::integral_constant
 
@@ -44,9 +46,30 @@ Inherited from std::integral_constant
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+   
+// Run this code
 
-.SH Category:
-
-     * Todo no example
+ #include <type_traits>
+ #include <new>
+ #include <utility>
+  
+ // constructs a T at the uninitialized memory pointed to by p
+ // using list-initialization for aggregates and non-list initialization otherwise
+ template<class T, class... Args>
+ T* construct(T* p, Args&&... args) {
+     if constexpr(std::is_aggregate_v<T>) {
+         return ::new (static_cast<void*>(p)) T{std::forward<Args>(args)...};
+     }
+     else {
+         return ::new (static_cast<void*>(p)) T(std::forward<Args>(args)...);
+     }
+ }
+  
+ struct A { int x, y; };
+ struct B { B(int, const char*) { } };
+  
+ int main() {
+     std::aligned_union_t<1, A, B> storage;
+     A* a = construct(reinterpret_cast<A*>(&storage), 1, 2);
+     B* b = construct(reinterpret_cast<B*>(&storage), 1, "hello");
+ }

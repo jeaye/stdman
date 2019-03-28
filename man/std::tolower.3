@@ -1,4 +1,4 @@
-.TH std::tolower 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::tolower 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::tolower \- std::tolower
 
@@ -23,6 +23,32 @@ std::tolower \- std::tolower
    Lowercase version of ch or unmodified ch if no lowercase version is listed in the
    current C locale.
 
+.SH Notes
+
+   Like all other functions from <cctype>, the behavior of std::tolower is undefined if
+   the argument's value is neither representable as unsigned char nor equal to EOF. To
+   use these functions safely with plain chars (or signed chars), the argument should
+   first be converted to unsigned char:
+
+ char my_tolower(char ch)
+ {
+     return static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+ }
+
+   Similarly, they should not be directly used with standard algorithms when the
+   iterator's value type is char or signed char. Instead, convert the value to unsigned
+   char first:
+
+ std::string str_tolower(std::string s) {
+     std::transform(s.begin(), s.end(), s.begin(),
+                 // static_cast<int(*)(int)>(std::tolower)         // wrong
+                 // [](int c){ return std::tolower(c); }           // wrong
+                 // [](char c){ return std::tolower(c); }          // wrong
+                    [](unsigned char c){ return std::tolower(c); } // correct
+                   );
+     return s;
+ }
+
 .SH Example
 
    
@@ -31,12 +57,12 @@ std::tolower \- std::tolower
  #include <iostream>
  #include <cctype>
  #include <clocale>
-
+  
  int main()
  {
      unsigned char c = '\\xb4'; // the character Ž in ISO-8859-15
                                // but ´ (acute accent) in ISO-8859-1
-
+  
      std::setlocale(LC_ALL, "en_US.iso88591");
      std::cout << std::hex << std::showbase;
      std::cout << "in iso8859-1, tolower('0xb4') gives "
@@ -54,11 +80,11 @@ std::tolower \- std::tolower
 .SH See also
 
    toupper              converts a character to uppercase
-                        \fI(function)\fP
+                        \fI(function)\fP 
                         converts a character to lowercase using the ctype facet of a
    tolower(std::locale) locale
-                        \fI(function template)\fP
+                        \fI(function template)\fP 
    towlower             converts a wide character to lowercase
-                        \fI(function)\fP
+                        \fI(function)\fP 
    C documentation for
    tolower

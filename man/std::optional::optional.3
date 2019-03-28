@@ -1,30 +1,33 @@
-.TH std::optional::optional 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::optional::optional 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::optional::optional \- std::optional::optional
 
 .SH Synopsis
-   constexpr optional();                                           \fB(1)\fP \fI(since C++17)\fP
-   constexpr optional( std::nullopt_t );
-   constexpr optional( const optional& other );                    \fB(2)\fP \fI(since C++17)\fP
-   constexpr optional( optional&& other );                         \fB(3)\fP \fI(since C++17)\fP
-   template < class U >                                            \fB(4)\fP \fI(since C++17)\fP
-   /* EXPLICIT */ optional( const optional<U>& other );
-   template < class U >                                            \fB(5)\fP \fI(since C++17)\fP
-   /* EXPLICIT */ optional( optional<U>&& other );
-   template< class... Args >                                       \fB(6)\fP \fI(since C++17)\fP
-   constexpr explicit optional( std::in_place_t, Args&&... args );
+   constexpr optional() noexcept;                          \fB(1)\fP \fI(since C++17)\fP
+   constexpr optional( std::nullopt_t ) noexcept;
+   constexpr optional( const optional& other );            \fB(2)\fP \fI(since C++17)\fP
+   constexpr optional( optional&& other ) noexcept(/* see  \fB(3)\fP \fI(since C++17)\fP
+   below */);
+   template < class U >                                    \fB(4)\fP \fI(since C++17)\fP
+   optional( const optional<U>& other );                       (conditionally explicit)
+   template < class U >                                    \fB(5)\fP \fI(since C++17)\fP
+   optional( optional<U>&& other );                            (conditionally explicit)
+   template< class... Args >
+   constexpr explicit optional( std::in_place_t, Args&&... \fB(6)\fP \fI(since C++17)\fP
+   args );
    template< class U, class... Args >
 
-   constexpr explicit optional( std::in_place_t,                   \fB(7)\fP \fI(since C++17)\fP
-   std::initializer_list<U> ilist,
+   constexpr explicit optional( std::in_place_t,
+                                std::initializer_list<U>   \fB(7)\fP \fI(since C++17)\fP
+   ilist,
 
-   Args&&... args );
-   template < class U = value_type >                               \fB(8)\fP \fI(since C++17)\fP
-   /* EXPLICIT */ constexpr optional( U&& value );
+                                Args&&... args );
+   template < class U = value_type >                       \fB(8)\fP \fI(since C++17)\fP
+   constexpr optional( U&& value );                            (conditionally explicit)
 
    Constructs a new optional object.
 
-   1) Constructs the object that does not contain a value.
+   1) Constructs an object that does not contain a value.
    2) Copy constructor: If other contains a value, initializes the contained value as
    if direct-initializing (but not direct-list-initializing) an object of type T with
    the expression *other. If other does not contain a value, constructs an object that
@@ -99,29 +102,30 @@ std::optional::optional \- std::optional::optional
    = value_type) with the expression std::forward<U>(value). If the selected
    constructor of T is a constexpr constructor, this constructor is a constexpr
    constructor. This constructor does not participate in overload resolution unless
-   std::is_constructible_v<T, U&&> is true and std::decay_t<U> is neither
-   std::in_place_t nor std::optional<T>. This constructor is explicit if and only if
-   std::is_convertible_v<U&&, T> is false.
+   std::is_constructible_v<T, U&&> is true and
+   std::decay_t<U>
+   \fI(until C++20)\fP
+   std::remove_cvref_t<U>
+   \fI(since C++20)\fP is neither std::in_place_t nor std::optional<T>. This constructor is
+   explicit if and only if std::is_convertible_v<U&&, T> is false.
 
 .SH Parameters
 
-   other   - another optional object whose contained value to copy
-   value   - value to initialize the contained value with
-   args... - arguments to initialize the contained value with
-   ilist   - initializer list to initialize the contained value with
+   other   - another optional object whose contained value is copied
+   value   - value with which to initialize the contained value
+   args... - arguments with which to initialize the contained value
+   ilist   - initializer list with which to initialize the contained value
 
 .SH Exceptions
 
-   1)
-   noexcept specification:
-   noexcept
    2) Throws any exception thrown by the constructor of T.
-   3) Throws any exception thrown by the constructor of T. Has the following noexcept
-   declaration:
-   noexcept specification:
+   3) Throws any exception thrown by the constructor of T. Has the following
+   noexcept specification:  
    noexcept(std::is_nothrow_move_constructible<T>::value)
    .
    4-8) Throws any exception thrown by the constructor of T.
+
+   Deduction guides
 
 .SH Example
 
@@ -136,30 +140,29 @@ std::optional::optional \- std::optional::optional
      std::optional<int> o1, // empty
                         o2 = 1, // init from rvalue
                         o3 = o2; // copy-constructor
-
-     // calls string( initializer_list<CharT> ) constructor
+  
+     // calls std::string( initializer_list<CharT> ) constructor
      std::optional<std::string> o4(std::in_place, {'a', 'b', 'c'});
-
-     // calls string( size_type count, CharT ch ) constructor
+  
+     // calls std::string( size_type count, CharT ch ) constructor
      std::optional<std::string> o5(std::in_place, 3, 'A');
-
-     std::cout << *o2 << ' ' << *o3 << ' ' << *o4 << ' ' << *o5  << '\\n';
+  
+     // Move-constructed from std::string using deduction guide to pick the type
+  
+     std::optional o6(std::string{"deduction"});
+  
+     std::cout << *o2 << ' ' << *o3 << ' ' << *o4 << ' ' << *o5  << ' ' << *o6 << '\\n';
  }
 
 .SH Output:
 
- 1 1 abc AAA
+ 1 1 abc AAA deduction
 
 .SH See also
 
    make_optional creates an optional object
-   \fI(C++17)\fP       \fI(function template)\fP
+   \fI(C++17)\fP       \fI(function template)\fP 
 
-   Categories:
+.SH Category:
 
-     * unconditionally noexcept
      * conditionally noexcept
-
-   Hidden category:
-
-     * Pages with unreviewed noexcept template

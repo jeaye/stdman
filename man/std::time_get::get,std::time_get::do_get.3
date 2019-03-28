@@ -1,4 +1,4 @@
-.TH std::time_get::get,std::time_get::do_get 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::time_get::get,std::time_get::do_get 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::time_get::get,std::time_get::do_get \- std::time_get::get,std::time_get::do_get
 
@@ -6,17 +6,18 @@ std::time_get::get,std::time_get::do_get \- std::time_get::get,std::time_get::do
    Defined in header <locale>
    public:
 
-   iter_type get(iter_type beg, iter_type end, std::ios_base& str,    \fB(1)\fP \fI(since C++11)\fP
-   std::ios_base::iostate& err, std::tm* t,
+   iter_type get(iter_type beg, iter_type end, std::ios_base& str,
+                 std::ios_base::iostate& err, std::tm* t,             \fB(1)\fP \fI(since C++11)\fP
 
-   const char_type* fmtbeg, const char_type* fmtend) const;
+                 const char_type* fmtbeg, const char_type* fmtend)
+   const;
    protected:
 
-   virtual iter_type do_get(iter_type neg, iter_type end,
+   virtual iter_type do_get(iter_type beg, iter_type end,
    std::ios_base& str,                                                \fB(2)\fP \fI(since C++11)\fP
-   std::ios_base::iostate& err, std::tm *t,
+                            std::ios_base::iostate& err, std::tm *t,
 
-   char format, char modifier) const;
+                            char format, char modifier) const;
 
    1) Parses the date and time from the input character sequence [beg, end) according
    to the format provided in the character sequence [fmtbeg, fmtend). The format is
@@ -30,8 +31,7 @@ std::time_get::get,std::time_get::do_get \- std::time_get::get,std::time_get::do
    c) All characters have been read from the input sequence (beg == end. If this
    condition terminates the loop, the function sets both eofbit and failbit in err
 
-                        In the body of the loop, the following steps take place:
-
+   In the body of the loop, the following steps take place:
    a) if the next character in the format string is '%', followed by one or two
    characters that form a valid std::get_time conversion specifier (see below), these
    characters are used in the call do_get(beg, end, str, err, t, format, modifier),
@@ -53,21 +53,18 @@ std::time_get::get,std::time_get::do_get \- std::time_get::get,std::time_get::do
    2) Parses one conversion specifier from the input sequence [beg, end) and updates
    the std::tm structure pointed to by t accordingly.
 
-                        First, clears the error bits in err by executing err =
-                        std::ios_base::goodbit. Then reads characters from the input
-                        sequence [beg, end) that are expected by the std::time_get
-                        format specifier formed by combining '%', modifier (if not
-                        '\\0'), and format. If the characters do not combine to form a
-                        valid conversion specifier, sets failbit in err. If the end of
-                        the input stream is reached after reading a character, sets
-                        eofbit in err. If the input string was parsed successfully,
-                        updates the corresponding fields of *t.
+   First, clears the error bits in err by executing err = std::ios_base::goodbit. Then
+   reads characters from the input sequence [beg, end) that are expected by the
+   std::time_get format specifier formed by combining '%', modifier (if not '\\0'), and
+   format. If the characters do not combine to form a valid conversion specifier, sets
+   failbit in err. If the end of the input stream is reached after reading a character,
+   sets eofbit in err. If the input string was parsed successfully, updates the
+   corresponding fields of *t.
 
-                        For complex conversion specifiers, such as '%x' or '%c', or the
-                        directives that use the modifiers 'E' and 'O', the function may
-                        fail to determine some of the values to store in *t. In such
-                        case, it sets eofbit in err and leaves these fields in
-                        unspecified state.
+   For complex conversion specifiers, such as '%x' or '%c', or the directives that use
+   the modifiers 'E' and 'O', the function may fail to determine some of the values to
+   store in *t. In such case, it sets eofbit in err and leaves these fields in
+   unspecified state.
 
 .SH Parameters
 
@@ -256,34 +253,30 @@ std::time_get::get,std::time_get::do_get \- std::time_get::get,std::time_get::do
  #include <sstream>
  #include <locale>
  #include <iomanip>
-
+  
  int main()
  {
      std::istringstream ss("2011-Februar-18 23:12:34");
      ss.imbue(std::locale("de_DE.utf8"));
-
+  
      auto& f = std::use_facet<std::time_get<char>>(std::locale("de_DE.utf8"));
      std::tm t{};
      std::string s = "%Y-%b-%d %H:%M:%S";
      std::ios_base::iostate err = std::ios_base::goodbit;
-     std::istreambuf_iterator<char> ret = f.get(std::istreambuf_iterator<char>(ss),
-                                                std::istreambuf_iterator<char>(),
-                                                ss, err, &t, &s[0], &s[0] + s.size());
+     auto ret = f.get({ss}, {}, ss, err, &t, &s[0], &s[0] + s.size());
      ss.setstate(err);
-
+     std::istreambuf_iterator<char> last{};
      if(ss) {
          std::cout << "Successfully parsed as " << std::put_time(&t, "%c");
-         if(ret != std::istreambuf_iterator<char>()) {
+         if(ret != last) {
              std::cout << " Remaining content: ";
-             std::copy(ret, std::istreambuf_iterator<char>(),
-                            std::ostreambuf_iterator<char>(std::cout));
+             std::copy(ret, last, std::ostreambuf_iterator<char>(std::cout));
          } else {
                  std::cout << " The input was fully consumed";
          }
      } else {
              std::cout << "Parse failed. Unparsed string: ";
-             std::copy(ret, std::istreambuf_iterator<char>(),
-                            std::ostreambuf_iterator<char>(std::cout));
+             std::copy(ret, last, std::ostreambuf_iterator<char>(std::cout));
      }
      std::cout << '\\n';
  }
@@ -295,4 +288,4 @@ std::time_get::get,std::time_get::do_get \- std::time_get::get,std::time_get::do
 .SH See also
 
    get_time parses a date/time value of specified format
-   \fI(C++11)\fP  \fI(function template)\fP
+   \fI(C++11)\fP  \fI(function template)\fP 
