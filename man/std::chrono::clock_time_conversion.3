@@ -1,0 +1,155 @@
+.TH std::chrono::clock_time_conversion 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::chrono::clock_time_conversion \- std::chrono::clock_time_conversion
+
+.SH Synopsis
+   Defined in header <chrono>
+   template<class Dest, class Source> struct clock_time_conversion { };  \fI(since C++20)\fP
+
+   std::chrono::clock_time_conversion is a trait that specifies how to convert a
+   std::chrono::time_point of the Source clock to that of the Dest clock. It does so by
+   providing an const-callable operator() that accepts an argument of type
+   std::chrono::time_point<Source, Duration> and returns a
+   std::chrono::time_point<Dest, OtherDuration> that represents an equivalent point in
+   time. The duration of the returned time point is computed from the source duration
+   in a manner that varies for each specialization. clock_time_conversion is normally
+   only used indirectly, via std::chrono::clock_cast.
+
+   A program may specialize clock_time_conversion if at least one of the template
+   parameters is a user-defined clock type.
+
+   The primary template is an empty struct. The standard defines the following
+   specializations:
+
+   template<class Clock> struct clock_time_conversion<Clock, Clock>;  \fB(1)\fP \fI(since C++20)\fP
+   template<> struct clock_time_conversion<std::chrono::system_clock, \fB(2)\fP \fI(since C++20)\fP
+   std::chrono::system_clock>;
+   template<> struct clock_time_conversion<std::chrono::utc_clock,    \fB(3)\fP \fI(since C++20)\fP
+   std::chrono::utc_clock>;
+   template<> struct clock_time_conversion<std::chrono::system_clock, \fB(4)\fP \fI(since C++20)\fP
+   std::chrono::utc_clock>;
+   template<> struct clock_time_conversion<std::chrono::utc_clock,    \fB(5)\fP \fI(since C++20)\fP
+   std::chrono::system_clock>;
+   template<class Clock> struct clock_time_conversion<Clock,          \fB(6)\fP \fI(since C++20)\fP
+   std::chrono::system_clock>;
+   template<class Clock> struct                                       \fB(7)\fP \fI(since C++20)\fP
+   clock_time_conversion<std::chrono::system_clock, Clock>;
+   template<class Clock> struct clock_time_conversion<Clock,          \fB(8)\fP \fI(since C++20)\fP
+   std::chrono::utc_clock>;
+   template<class Clock> struct                                       \fB(9)\fP \fI(since C++20)\fP
+   clock_time_conversion<std::chrono::utc_clock, Clock>;
+
+   1-3) Identity conversion: operator() returns a copy of the argument.
+   4-5) Conversions between std::chrono::sys_time and std::chrono::utc_time: operator()
+   calls std::chrono::utc_clock::to_sys and std::chrono::utc_clock::from_sys,
+   respectively.
+   6-7) Conversions to and from std::chrono::sys_time when Clock supports from_sys and
+   to_sys: operator() calls Clock::to_sys and Clock::from_sys, respectively.
+   8-9) Conversions to and from std::chrono::utc_time when Clock supports from_utc and
+   to_utc: operator() calls Clock::to_utc and Clock::from_utc, respectively.
+
+.SH Member functions
+
+   Each specialization has an implicitly-declared default constructor, copy
+   constructor, move constructor, copy assignment operator, move assignment operator,
+   and destructor.
+
+std::chrono::clock_time_conversion::operator()
+
+   template <class Duration>
+
+   std::chrono::time_point<Clock, Duration>                    \fB(1)\fP (member of
+                                                                   specialization \fB(1)\fP)
+       operator()(const std::chrono::time_point<Clock,
+   Duration>& t) const;
+   template <class Duration>
+
+   std::chrono::sys_time<Duration>                             \fB(2)\fP (member of
+                                                                   specialization \fB(2)\fP)
+       operator()(const std::chrono::sys_time<Duration> & t)
+   const;
+   template <class Duration>
+
+   std::chrono::utc_time<Duration>                             \fB(3)\fP (member of
+                                                                   specialization \fB(3)\fP)
+       operator()(const std::chrono::utc_time<Duration>& t)
+   const;
+   template <class Duration>
+
+   std::chrono::sys_time<Duration>                             \fB(4)\fP (member of
+                                                                   specialization \fB(4)\fP)
+       operator()(const std::chrono::utc_time<Duration>& t)
+   const;
+   template <class Duration>
+
+   std::chrono::utc_time<Duration>                             \fB(5)\fP (member of
+                                                                   specialization \fB(5)\fP)
+       operator()(const std::chrono::sys_time<Duration>& t)
+   const;
+   template <class Duration>
+
+   auto operator()(const std::chrono::sys_time<Duration>& t)   \fB(6)\fP (member of
+   const                                                           specialization \fB(6)\fP)
+
+       -> decltype(Clock::from_sys(t));
+   template <class Duration>
+
+   auto operator()(const std::chrono::time_point<SourceClock,  \fB(7)\fP (member of
+   Duration>& t) const                                             specialization \fB(7)\fP)
+
+       -> decltype(Clock::to_sys(t));
+   template <class Duration>
+
+   auto operator()(const std::chrono::utc_time<Duration>& t)   \fB(8)\fP (member of
+   const                                                           specialization \fB(8)\fP)
+
+           -> decltype(Clock::from_utc(t));
+   template <class Duration>
+
+   auto operator()(const std::chrono::time_point<Clock,        \fB(9)\fP (member of
+   Duration>& t) const                                             specialization \fB(9)\fP)
+
+           -> decltype(Clock::to_utc(t));
+
+   Converts the argument std::chrono::time_point to the destination clock.
+
+   1-3) Identity conversion. Returns t unchanged.
+   4) Returns std::chrono::utc_clock::to_sys(t).
+   5) Returns std::chrono::utc_clock::from_sys(t).
+   6) Returns Clock::from_sys(t). This overload only participates in overload
+   resolution if the expression Clock::from_sys(t) is well-formed. The program is
+   ill-formed if Clock::from_sys(t) does not return std::chrono::time_point<Clock,
+   Duration> where Duration is some valid specialization of std::chrono::duration.
+   7) Returns Clock::to_sys(t). This overload only participates in overload resolution
+   if the expression Clock::to_sys(t) is well-formed. The program is ill-formed if
+   Clock::to_sys(t) does not return std::chrono::sys_time<Duration> where Duration is
+   some valid specialization of std::chrono::duration.
+   8) Returns Clock::from_utc(t). This overload only participates in overload
+   resolution if the expression Clock::from_utc(t) is well-formed. The program is
+   ill-formed if Clock::from_utc(t) does not return std::chrono::time_point<Clock,
+   Duration> where Duration is some valid specialization of std::chrono::duration.
+   9) Returns Clock::to_utc(t). This overload only participates in overload resolution
+   if the expression Clock::to_utc(t) is well-formed. The program is ill-formed if
+   Clock::to_utc(t) does not return std::chrono::utc_time<Duration> where Duration is
+   some valid specialization of std::chrono::duration.
+
+.SH Parameters
+
+   t - time point to convert
+
+.SH Return value
+
+   The result of the conversion as described above:
+
+   1-3) t.
+   4) std::chrono::utc_clock::to_sys(t).
+   5) std::chrono::utc_clock::from_sys(t).
+   6) Clock::from_sys(t).
+   7) Clock::to_sys(t).
+   8) Clock::from_utc(t).
+   9) Clock::to_utc(t).
+
+.SH See also
+
+   clock_cast convert time points of one clock to another
+   (C++20)    \fI(function template)\fP 

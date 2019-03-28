@@ -1,4 +1,4 @@
-.TH std::static_pointer_cast,std::dynamic_pointer_cast,std::const_pointer_cast, 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::static_pointer_cast,std::dynamic_pointer_cast,std::const_pointer_cast, 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::static_pointer_cast,std::dynamic_pointer_cast,std::const_pointer_cast, \- std::static_pointer_cast,std::dynamic_pointer_cast,std::const_pointer_cast,
 
@@ -7,16 +7,16 @@ std::static_pointer_cast,std::dynamic_pointer_cast,std::const_pointer_cast, \- s
    Defined in header <memory>
    template< class T, class U >
    std::shared_ptr<T> static_pointer_cast( const std::shared_ptr<U>&  \fB(1)\fP \fI(since C++11)\fP
-   r );
+   r ) noexcept;
    template< class T, class U >
    std::shared_ptr<T> dynamic_pointer_cast( const std::shared_ptr<U>& \fB(2)\fP \fI(since C++11)\fP
-   r );
+   r ) noexcept;
    template< class T, class U >
    std::shared_ptr<T> const_pointer_cast( const std::shared_ptr<U>& r \fB(3)\fP \fI(since C++11)\fP
-   );
+   ) noexcept;
    template< class T, class U >
    std::shared_ptr<T> reinterpret_pointer_cast( const                 \fB(4)\fP \fI(since C++17)\fP
-   std::shared_ptr<U>& r );
+   std::shared_ptr<U>& r ) noexcept;
 
    Creates a new instance of std::shared_ptr whose stored pointer is obtained from r's
    stored pointer using a cast expression. If r is empty, so is the new shared_ptr (but
@@ -26,11 +26,11 @@ std::static_pointer_cast,std::dynamic_pointer_cast,std::const_pointer_cast, \- s
    if the dynamic_cast performed by dynamic_pointer_cast returns a null pointer.
 
    Let Y be typename std::shared_ptr<T>::element_type, then the resulting
-   std::shared_ptr's stored pointer will be obtained by calling (in respective order):
+   std::shared_ptr's stored pointer will be obtained by evaluating, respectively:
 
    1) static_cast<Y*>(r.get()).
    2) dynamic_cast<Y*>(r.get()) (If the result of the dynamic_cast is a null pointer
-   value, the returned shared_ptr will be empty).
+   value, the returned shared_ptr will be empty.)
    3) const_cast<Y*>(r.get()).
    4) reinterpret_cast<Y*>(r.get())
 
@@ -46,11 +46,6 @@ std::static_pointer_cast,std::dynamic_pointer_cast,std::const_pointer_cast, \- s
 .SH Parameters
 
    r - The pointer to convert
-
-.SH Exceptions
-
-   noexcept specification:
-   noexcept
 
 .SH Notes
 
@@ -86,6 +81,13 @@ std::static_pointer_cast,std::dynamic_pointer_cast,std::const_pointer_cast, \- s
        auto p = const_cast<typename std::shared_ptr<T>::element_type*>(r.get());
        return std::shared_ptr<T>(r, p);
    }
+                                      Fourth version
+   template< class T, class U >
+   std::shared_ptr<T> reinterpret_pointer_cast( const std::shared_ptr<U>& r ) noexcept
+   {
+       auto p = reinterpret_cast<typename std::shared_ptr<T>::element_type*>(r.get());
+       return std::shared_ptr<T>(r, p);
+   }
 
 .SH Example
 
@@ -94,49 +96,58 @@ std::static_pointer_cast,std::dynamic_pointer_cast,std::const_pointer_cast, \- s
 
  #include <iostream>
  #include <memory>
-
- struct BaseClass {};
-
- struct DerivedClass : BaseClass
+  
+ struct Base
  {
-     void f() const
-     {
-         std::cout << "Hello World!\\n";
-     }
-     ~DerivedClass(){ // note, it's not virtual
-         std::cout << "~DerivedClass\\n";
-     }
+     int a;
+     virtual void f() const { std::cout << "I am base!\\n";}
+     virtual ~Base(){}
  };
-
- int main()
+  
+ struct Derived : Base
  {
-     std::shared_ptr<BaseClass> ptr_to_base(std::make_shared<DerivedClass>());
-
-     // ptr_to_base->f(); // Error won't compile: BaseClass has no member named 'f'
-
-     std::static_pointer_cast<DerivedClass>(ptr_to_base)->f(); // OK
-     // (constructs a temporary shared_ptr, then calls operator->)
-
-     static_cast<DerivedClass*>(ptr_to_base.get())->f(); // also OK
-     // (direct cast, does not construct a temporary shared_ptr)
+     void f() const override
+     { std::cout << "I am derived!\\n"; }
+     ~Derived(){}
+ };
+  
+ int main(){
+     auto basePtr = std::make_shared<Base>();
+     std::cout << "Base pointer says: ";
+     basePtr->f();
+  
+     auto derivedPtr = std::make_shared<Derived>();
+     std::cout << "Derived pointer says: ";
+     derivedPtr->f();
+  
+     // static_pointer_cast to go up class hierarchy
+     basePtr = std::static_pointer_cast<Base>(derivedPtr);
+     std::cout << "Base pointer to derived says: ";
+     basePtr->f();
+  
+     // dynamic_pointer_cast to go down/across class hierarchy
+     auto downcastedPtr = std::dynamic_pointer_cast<Derived>(basePtr);
+     if(downcastedPtr)
+     {
+         std::cout << "Downcasted pointer says: ";
+         downcastedPtr->f();
+     }
+  
+     // All pointers to derived share ownership
+     std::cout << "Pointers to underlying derived: "
+             << derivedPtr.use_count()
+             << "\\n";
  }
 
 .SH Output:
 
- Hello World!
- Hello World!
- ~DerivedClass
+ Base pointer says: I am base!
+ Derived pointer says: I am derived!
+ Base pointer to derived says: I am derived!
+ Downcasted pointer says: I am derived!
+ Pointers to underlying derived: 3
 
 .SH See also
 
    constructor   constructs new shared_ptr
-                 \fI(public member function)\fP
-
-.SH Category:
-
-     * unconditionally noexcept
-
-   Hidden categories:
-
-     * Pages with unreviewed unconditional noexcept template
-     * Pages with unreviewed noexcept template
+                 \fI(public member function)\fP 

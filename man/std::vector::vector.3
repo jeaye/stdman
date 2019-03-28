@@ -1,39 +1,37 @@
-.TH std::vector::vector 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::vector::vector 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::vector::vector \- std::vector::vector
 
 .SH Synopsis
-   explicit vector( const Allocator& alloc =            (until
-   Allocator() );                                       C++14)
-                                                        (since
-   vector() : vector( Allocator() ) {}                  C++14)
-   explicit vector( const Allocator& alloc );           (until
-                                                        C++17)
-   vector() noexcept(noexcept(Allocator())):
-   vector( Allocator() ) {}                             (since
+   vector();                                            (until
+   explicit vector( const Allocator& alloc );           C++17)
+   vector() noexcept(noexcept(Allocator()));            (since
    explicit vector( const Allocator& alloc )            C++17)
    noexcept;
    explicit vector( size_type count,
-                                                                (until
-   const T& value = T(),                                        C++11)
 
-   const Allocator& alloc = Allocator());
+                    const T& value = T(),                       (until
+                                                                C++11)
+                    const Allocator& alloc =
+   Allocator());
    vector( size_type count,
-                                                                (since
-   const T& value,                                              C++11)
 
-   const Allocator& alloc = Allocator());
+                    const T& value,                             (since
+                                                                C++11)
+                    const Allocator& alloc =
+   Allocator());
                                                                         (since
-   explicit vector( size_type count );          \fB(1)\fP                     C++11)
+   explicit vector( size_type count );                                  C++11)
                                                                         (until
                                                                         C++14)
-   explicit vector( size_type count, const                              (since
+   explicit vector( size_type count, const      \fB(1)\fP                     (since
    Allocator& alloc = Allocator() );                                    C++14)
    template< class InputIt >                        \fB(2)\fP
 
    vector( InputIt first, InputIt last,                         \fB(4)\fP
 
-   const Allocator& alloc = Allocator() );
+           const Allocator& alloc = Allocator()
+   );
    vector( const vector& other );                       \fB(3)\fP     \fB(5)\fP
    vector( const vector& other, const                           \fB(5)\fP     (since
    Allocator& alloc );                                                  C++11)
@@ -41,17 +39,19 @@ std::vector::vector \- std::vector::vector
    vector( vector&& other );                                                    C++11)
                                                                                 (until
                                                                                 C++17)
-   vector( vector&& other ) noexcept;                           \fB(6)\fP             (since
-                                                                                C++17)
+   vector( vector&& other ) noexcept;                                           (since
+                                                                \fB(6)\fP             C++17)
    vector( vector&& other, const Allocator&                             \fB(7)\fP     (since
    alloc );                                                                     C++11)
-   vector( std::initializer_list<T> init,                               \fB(8)\fP     (since
-   const Allocator& alloc = Allocator() );                                      C++11)
+   vector( std::initializer_list<T> init,                                       (since
+           const Allocator& alloc = Allocator()                         \fB(8)\fP     C++11)
+   );
 
    Constructs a new container from a variety of data sources, optionally using a user
    supplied allocator alloc.
 
-   1) Default constructor. Constructs an empty container.
+   1) Default constructor. Constructs an empty container. If no allocator is supplied,
+   allocator is obtained from a default-constructed instance.
    2) Constructs the container with count copies of elements with value value.
    3) Constructs the container with count default-inserted instances of T. No copies
    are made.
@@ -68,10 +68,11 @@ std::vector::vector \- std::vector::vector
    std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.get_allocator()).
    6) Move constructor. Constructs the container with the contents of other using move
    semantics. Allocator is obtained by move-construction from the allocator belonging
-   to other.
+   to other. After the move, other is guaranteed to be empty().
    7) Allocator-extended move constructor. Using alloc as the allocator for the new
    container, moving the contents from other; if alloc != other.get_allocator(), this
-   results in an element-wise move.
+   results in an element-wise move. (in that case, other is not guaranteed to be empty
+   after the move)
    8) Constructs the container with the contents of the initializer list init.
 
 .SH Parameters
@@ -94,6 +95,10 @@ std::vector::vector \- std::vector::vector
    7) Linear if alloc != other.get_allocator(), otherwise constant.
    8) Linear in size of init.
 
+.SH Exceptions
+
+   Calls to Allocator::allocate may throw.
+
 .SH Notes
 
    After container move construction (overload \fB(6)\fP), references, pointers, and
@@ -114,7 +119,7 @@ std::vector::vector \- std::vector::vector
  #include <vector>
  #include <string>
  #include <iostream>
-
+  
  template<typename T>
  std::ostream& operator<<(std::ostream& s, const std::vector<T>& v) {
      s.put('[');
@@ -125,21 +130,21 @@ std::vector::vector \- std::vector::vector
      }
      return s << ']';
  }
-
+  
  int main()
  {
      // c++11 initializer list syntax:
      std::vector<std::string> words1 {"the", "frogurt", "is", "also", "cursed"};
      std::cout << "words1: " << words1 << '\\n';
-
+  
      // words2 == words1
      std::vector<std::string> words2(words1.begin(), words1.end());
      std::cout << "words2: " << words2 << '\\n';
-
+  
      // words3 == words1
      std::vector<std::string> words3(words1);
      std::cout << "words3: " << words3 << '\\n';
-
+  
      // words4 is {"Mo", "Mo", "Mo", "Mo", "Mo"}
      std::vector<std::string> words4(5, "Mo");
      std::cout << "words4: " << words4 << '\\n';
@@ -152,9 +157,17 @@ std::vector::vector \- std::vector::vector
  words3: [the, frogurt, is, also, cursed]
  words4: [Mo, Mo, Mo, Mo, Mo]
 
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to        Behavior as published        Correct behavior
+   LWG 2193 C++11      the default constructor is explicit made non-explicit
+
 .SH See also
 
    assign    assigns values to the container
-             \fI(public member function)\fP
+             \fI(public member function)\fP 
    operator= assigns values to the container
-             \fI(public member function)\fP
+             \fI(public member function)\fP 

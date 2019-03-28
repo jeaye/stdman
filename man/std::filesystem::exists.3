@@ -1,19 +1,21 @@
-.TH std::filesystem::exists 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::exists 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::exists \- std::filesystem::exists
 
 .SH Synopsis
    Defined in header <filesystem>
-   bool exists( std::filesystem::file_status s )                      \fB(1)\fP \fI(since C++17)\fP
-   bool exists( const std::filesystem::path& p );                     \fB(2)\fP \fI(since C++17)\fP
-   bool exists( const std::filesystem::path& p, std::error_code& ec )
+   bool exists( std::filesystem::file_status s ) noexcept;            \fB(1)\fP \fI(since C++17)\fP
+   bool exists( const std::filesystem::path& p );
+   bool exists( const std::filesystem::path& p, std::error_code& ec ) \fB(2)\fP \fI(since C++17)\fP
+   noexcept;
 
    Checks if the given file status or path corresponds to an existing file or
    directory.
 
    1) Equivalent to status_known(s) && s.type() != file_type::not_found.
-   2) Equivalent to exists(status(p)) or exists(status(p, ec)) (symlinks are followed).
-   The non-throwing overload returns false if an error occurs.
+   2) Let s be a std::filesystem::file_status determined as if by status(p) or
+   status(p, ec) (symlinks are followed), respectively. Returns exists(s). The
+   non-throwing overload calls ec.clear() if status_known(s).
 
 .SH Parameters
 
@@ -28,17 +30,12 @@ std::filesystem::exists \- std::filesystem::exists
 
 .SH Exceptions
 
-   1)
-   noexcept specification:
-   noexcept
    2) The overload that does not take a std::error_code& parameter throws
-   filesystem_error on underlying OS API errors, constructed with p as the first
-   argument and the OS error code as the error code argument. std::bad_alloc may be
-   thrown if memory allocation fails. The overload taking a std::error_code& parameter
-   sets it to the OS API error code if an OS API call fails, and executes ec.clear() if
-   no errors occur. This overload has
-   noexcept specification:
-   noexcept
+   filesystem_error on underlying OS API errors, constructed with p as the first path
+   argument and the OS error code as the error code argument. The overload taking a
+   std::error_code& parameter sets it to the OS API error code if an OS API call fails,
+   and executes ec.clear() if no errors occur. Any overload not marked noexcept may
+   throw std::bad_alloc if memory allocation fails.
 
 .SH Notes
 
@@ -48,6 +45,9 @@ std::filesystem::exists \- std::filesystem::exists
 
 .SH Example
 
+    This section is incomplete
+    Reason: switch to directory_entry::exists
+
    
 // Run this code
 
@@ -56,7 +56,7 @@ std::filesystem::exists \- std::filesystem::exists
  #include <cstdint>
  #include <filesystem>
  namespace fs = std::filesystem;
-
+  
  void demo_exists(const fs::path& p, fs::file_status s = fs::file_status{})
  {
      std::cout << p;
@@ -70,7 +70,7 @@ std::filesystem::exists \- std::filesystem::exists
      fs::create_directory("sandbox");
      std::ofstream("sandbox/file"); // create regular file
      fs::create_symlink("non-existing", "sandbox/symlink");
-
+  
      demo_exists("sandbox");
      for(auto it = fs::directory_iterator("sandbox"); it != fs::directory_iterator(); ++it)
          demo_exists(*it, it->status()); // use cached status from directory entry
@@ -87,19 +87,13 @@ std::filesystem::exists \- std::filesystem::exists
 
    status         determines file attributes
    symlink_status determines file attributes, checking the symlink target
-   \fI(C++17)\fP        \fI(function)\fP
+   \fI(C++17)\fP        \fI(function)\fP 
    \fI(C++17)\fP
    file_status    represents file type and permissions
-   \fI(C++17)\fP        \fI(class)\fP
-   status         status of the file designated by this directory entry
-   symlink_status symlink_status of the file designated by this directory entry
-                  \fI(public member function of std::filesystem::directory_entry)\fP
+   \fI(C++17)\fP        \fI(class)\fP 
+   exists         checks whether directory entry refers to existing file system object
+                  \fI(public member function of std::filesystem::directory_entry)\fP 
 
 .SH Category:
 
-     * unconditionally noexcept
-
-   Hidden categories:
-
-     * Pages with unreviewed unconditional noexcept template
-     * Pages with unreviewed noexcept template
+     * Todo with reason

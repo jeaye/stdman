@@ -1,25 +1,56 @@
-.TH std::experimental::ranges::BidirectionalIterator 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::experimental::ranges::BidirectionalIterator 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::experimental::ranges::BidirectionalIterator \- std::experimental::ranges::BidirectionalIterator
 
 .SH Synopsis
    Defined in header <experimental/ranges/iterator>
-   template <class I>
+   template < class I >
 
-   concept bool BidirectionalIterator() {
-   return ranges::ForwardIterator<I>()
-   && ranges::DerivedFrom<ranges::iterator_category_t<I>,
-   ranges::bidirectional_iterator_tag>()                   (ranges TS)
-   && requires(I i) {
-   { --i } -> ranges::Same<I&>;
-   { i-- } -> ranges::Same<I>;
-   };
+   concept bool BidirectionalIterator =
+     ForwardIterator<I> &&
+     DerivedFrom<ranges::iterator_category_t<I>,
+   ranges::bidirectional_iterator_tag> &&                                   (ranges TS)
+     requires(I i) {
+       { --i } -> Same<I>&;
+       { i-- } -> Same<I>&&;
 
-   }
+     };
 
-    This section is incomplete
-    Reason: add description and extra caveats
+   The concept BidirectionalIterator<I> refines ForwardIterator by adding the ability
+   to move an iterator backward.
 
-.SH Category:
+   A bidirectional iterator r is said to be decrementable if and only if there exists
+   some s such that ++s == r. All decrementable iterators r shall be in the domain of
+   the expressions --r and r--.
 
-     * Todo with reason
+   Let a and b be decrementable objects of type I. BidirectionalIterator<I> is
+   satisfied only if:
+
+     * Pre-decrement yields an lvalue that refers to the operand: std::addressof(--a)
+       == std::addressof(a);
+     * Post-decrement yields the previous value of the operand: if bool(a == b), then
+       bool(a-- == b).
+     * Post-decrement and pre-decrement perform the same modification on its operand:
+       If bool(a == b), then after evaluating both a-- and --b, bool(a == b) still
+       holds.
+     * Increment and decrement are inverses of each other:
+
+     * If a is incrementable and bool(a == b), then bool(--(++a) == b).
+     * If bool(a == b), then bool(++(--a) == b).
+
+   Equality preservation
+
+   An expression is equality preserving if it results in equal outputs given equal
+   inputs.
+
+     * The inputs to an expression consist of its operands.
+     * The outputs of an expression consist of its result and all operands modified by
+       the expression (if any).
+
+   Every expression required to be equality preserving is further required to be
+   stable: two evaluations of such an expression with the same input objects must have
+   equal outputs absent any explicit intervening modification of those input objects.
+
+   Unless noted otherwise, every expression used in a requires-expression is required
+   to be equality preserving and stable, and the evaluation of the expression may only
+   modify its non-constant operands. Operands that are constant must not be modified.

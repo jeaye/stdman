@@ -1,4 +1,4 @@
-.TH std::unique_ptr 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::unique_ptr 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unique_ptr \- std::unique_ptr
 
@@ -6,14 +6,14 @@ std::unique_ptr \- std::unique_ptr
    Defined in header <memory>
    template<
 
-   class T,                               \fB(1)\fP \fI(since C++11)\fP
-   class Deleter = std::default_delete<T>
+       class T,                               \fB(1)\fP \fI(since C++11)\fP
+       class Deleter = std::default_delete<T>
 
    > class unique_ptr;
    template <
 
-   class T,                               \fB(2)\fP \fI(since C++11)\fP
-   class Deleter
+       class T,                               \fB(2)\fP \fI(since C++11)\fP
+       class Deleter
 
    > class unique_ptr<T[], Deleter>;
 
@@ -101,49 +101,52 @@ std::unique_ptr \- std::unique_ptr
 .SH Member functions
 
    constructor   constructs a new unique_ptr
-                 \fI(public member function)\fP
+                 \fI(public member function)\fP 
    destructor    destructs the managed object if such is present
-                 \fI(public member function)\fP
+                 \fI(public member function)\fP 
    operator=     assigns the unique_ptr
-                 \fI(public member function)\fP
+                 \fI(public member function)\fP 
 .SH Modifiers
    release       returns a pointer to the managed object and releases the ownership
-                 \fI(public member function)\fP
+                 \fI(public member function)\fP 
    reset         replaces the managed object
-                 \fI(public member function)\fP
+                 \fI(public member function)\fP 
    swap          swaps the managed objects
-                 \fI(public member function)\fP
+                 \fI(public member function)\fP 
 .SH Observers
    get           returns a pointer to the managed object
-                 \fI(public member function)\fP
+                 \fI(public member function)\fP 
    get_deleter   returns the deleter that is used for destruction of the managed object
-                 \fI(public member function)\fP
+                 \fI(public member function)\fP 
    operator bool checks if there is an associated managed object
-                 \fI(public member function)\fP
+                 \fI(public member function)\fP 
 .SH Single-object version, unique_ptr<T>
    operator*     dereferences pointer to the managed object
-   operator->    \fI(public member function)\fP
+   operator->    \fI(public member function)\fP 
 .SH Array version, unique_ptr<T[]>
    operator[]    provides indexed access to the managed array
-                 \fI(public member function)\fP
+                 \fI(public member function)\fP 
 
 .SH Non-member functions
 
    make_unique                creates a unique pointer that manages a new object
-   \fI(C++14)\fP                    \fI(function template)\fP
+   \fI(C++14)\fP                    \fI(function template)\fP 
    operator==
    operator!=
    operator<                  compares to another unique_ptr or with nullptr
-   operator<=                 \fI(function template)\fP
+   operator<=                 \fI(function template)\fP 
    operator>
    operator>=
+   operator<<                 outputs the value of the managed pointer to an output
+   (C++20)                    stream
+                              \fI(function template)\fP 
    std::swap(std::unique_ptr) specializes the std::swap algorithm
-   \fI(C++11)\fP                    \fI(function template)\fP
+   \fI(C++11)\fP                    \fI(function template)\fP 
 
 .SH Helper classes
 
    std::hash<std::unique_ptr> hash support for std::unique_ptr
-   \fI(C++11)\fP                    \fI(class template specialization)\fP
+   \fI(C++11)\fP                    \fI(class template specialization)\fP 
 
 .SH Example
 
@@ -156,7 +159,8 @@ std::unique_ptr \- std::unique_ptr
  #include <cstdio>
  #include <fstream>
  #include <cassert>
-
+ #include <functional>
+  
  struct B {
    virtual void bar() { std::cout << "B::bar\\n"; }
    virtual ~B() = default;
@@ -167,14 +171,16 @@ std::unique_ptr \- std::unique_ptr
      ~D() { std::cout << "D::~D\\n";  }
      void bar() override { std::cout << "D::bar\\n";  }
  };
-
+  
  // a function consuming a unique_ptr can take it by value or by rvalue reference
  std::unique_ptr<D> pass_through(std::unique_ptr<D> p)
  {
      p->bar();
      return p;
  }
-
+  
+ void close_file(std::FILE* fp) { std::fclose(fp); }
+  
  int main()
  {
    std::cout << "unique ownership semantics demo\\n";
@@ -184,30 +190,30 @@ std::unique_ptr \- std::unique_ptr
        assert(!p); // now p owns nothing and holds a null pointer
        q->bar();   // and q owns the D object
    } // ~D called here
-
+  
    std::cout << "Runtime polymorphism demo\\n";
    {
      std::unique_ptr<B> p = std::make_unique<D>(); // p is a unique_ptr that owns a D
                                                    // as a pointer to base
      p->bar(); // virtual dispatch
-
+  
      std::vector<std::unique_ptr<B>> v;  // unique_ptr can be stored in a container
      v.push_back(std::make_unique<D>());
      v.push_back(std::move(p));
      v.emplace_back(new D);
      for(auto& p: v) p->bar(); // virtual dispatch
    } // ~D called 3 times
-
+  
    std::cout << "Custom deleter demo\\n";
    std::ofstream("demo.txt") << 'x'; // prepare the file to read
    {
-       std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(std::fopen("demo.txt", "r"),
-                                                             &std::fclose);
+       std::unique_ptr<std::FILE, decltype(&close_file)> fp(std::fopen("demo.txt", "r"),
+                                                            &close_file);
        if(fp) // fopen could have failed; in which case fp holds a null pointer
          std::cout << (char)std::fgetc(fp.get()) << '\\n';
    } // fclose() called here, but only if FILE* is not a null pointer
      // (that is, if fopen succeeded)
-
+  
    std::cout << "Custom lambda-expression deleter demo\\n";
    {
      std::unique_ptr<D, std::function<void(D*)>> p(new D, [](D* ptr)
@@ -217,7 +223,7 @@ std::unique_ptr \- std::unique_ptr
          });  // p owns D
      p->bar();
    } // the lambda above is called and D is destroyed
-
+  
    std::cout << "Array form of unique_ptr demo\\n";
    {
        std::unique_ptr<D[]> p{new D[3]};

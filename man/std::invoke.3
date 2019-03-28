@@ -1,4 +1,4 @@
-.TH std::invoke 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::invoke 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::invoke \- std::invoke
 
@@ -13,26 +13,25 @@ std::invoke \- std::invoke
 
    where INVOKE(f, t1, t2, ..., tN) is defined as follows:
 
-     * if f is a pointer to member function of class T:
+     * If f is a pointer to member function of class T:
 
-              * If std::is_base_of<T, std::decay_t<decltype(t1)>>::value is true, then
-                INVOKE(f, t1, t2, ..., tN) is equivalent to (t1.*f)(t2, ..., tN)
-              * otherwise, if std::decay_t<decltype(t1)> is a specialization of
-                std::reference_wrapper, then INVOKE(f, t1, t2, ..., tN) is equivalent
-                to (t1.get().*f)(t2, ..., tN)
-              * otherwise, if t1 does not satisfy the previous items, then INVOKE(f,
-                t1, t2, ..., tN) is equivalent to ((*t1).*f)(t2, ..., tN).
+     * If std::is_base_of<T, std::decay_t<decltype(t1)>>::value is true, then INVOKE(f,
+       t1, t2, ..., tN) is equivalent to (t1.*f)(t2, ..., tN)
+     * If std::decay_t<decltype(t1)> is a specialization of std::reference_wrapper,
+       then INVOKE(f, t1, t2, ..., tN) is equivalent to (t1.get().*f)(t2, ..., tN)
+     * If t1 does not satisfy the previous items, then INVOKE(f, t1, t2, ..., tN) is
+       equivalent to ((*t1).*f)(t2, ..., tN).
 
-     * otherwise, if N == 1 and f is a pointer to data member of class T:
+     * Otherwise, if N == 1 and f is a pointer to data member of class T:
 
-              * If std::is_base_of<T, std::decay_t<decltype(t1)>>::value is true, then
-                INVOKE(f, t1) is equivalent to t1.*f
-              * otherwise, if std::decay_t<decltype(t1)> is a specialization of
-                std::reference_wrapper, then INVOKE(f, t1) is equivalent to t1.get().*f
-              * otherwise, if t1 does not satisfy the previous items, then INVOKE(f,
-                t1) is equivalent to (*t1).*f
+     * If std::is_base_of<T, std::decay_t<decltype(t1)>>::value is true, then INVOKE(f,
+       t1) is equivalent to t1.*f
+     * If std::decay_t<decltype(t1)> is a specialization of std::reference_wrapper,
+       then INVOKE(f, t1) is equivalent to t1.get().*f
+     * If t1 does not satisfy the previous items, then INVOKE(f, t1) is equivalent to
+       (*t1).*f
 
-     * otherwise, INVOKE(f, t1, t2, ..., tN) is equivalent to f(t1, t2, ..., tN) (that
+     * Otherwise, INVOKE(f, t1, t2, ..., tN) is equivalent to f(t1, t2, ..., tN) (that
        is, f is a FunctionObject)
 
 .SH Parameters
@@ -42,7 +41,7 @@ std::invoke \- std::invoke
 
 .SH Exceptions
 
-   noexcept specification:
+   noexcept specification:  
    noexcept(std::is_nothrow_invocable_v<F, Args...>)
 
 .SH Possible implementation
@@ -54,129 +53,111 @@ std::invoke \- std::invoke
  struct is_reference_wrapper<std::reference_wrapper<U>> : std::true_type {};
  template <class T>
  constexpr bool is_reference_wrapper_v = is_reference_wrapper<T>::value;
-
- template <class Base, class T, class Derived, class... Args>
- auto INVOKE(T Base::*pmf, Derived&& ref, Args&&... args)
-     noexcept(noexcept((std::forward<Derived>(ref).*pmf)(std::forward<Args>(args)...)))
-  -> std::enable_if_t<std::is_function_v<T> &&
-                      std::is_base_of_v<Base, std::decay_t<Derived>>,
-     decltype((std::forward<Derived>(ref).*pmf)(std::forward<Args>(args)...))>
+  
+ template <class T, class Type, class T1, class... Args>
+ decltype(auto) INVOKE(Type T::* f, T1&& t1, Args&&... args)
  {
-       return (std::forward<Derived>(ref).*pmf)(std::forward<Args>(args)...);
+     if constexpr (std::is_member_function_pointer_v<decltype(f)>) {
+         if constexpr (std::is_base_of_v<T, std::decay_t<T1>>)
+             return (std::forward<T1>(t1).*f)(std::forward<Args>(args)...);
+         else if constexpr (is_reference_wrapper_v<std::decay_t<T1>>)
+             return (t1.get().*f)(std::forward<Args>(args)...);
+         else
+             return ((*std::forward<T1>(t1)).*f)(std::forward<Args>(args)...);
+     } else {
+         static_assert(std::is_member_object_pointer_v<decltype(f)>);
+         static_assert(sizeof...(args) == 0);
+         if constexpr (std::is_base_of_v<T, std::decay_t<T1>>)
+             return std::forward<T1>(t1).*f;
+         else if constexpr (is_reference_wrapper_v<std::decay_t<T1>>)
+             return t1.get().*f;
+         else
+             return (*std::forward<T1>(t1)).*f;
+     }
  }
-
- template <class Base, class T, class RefWrap, class... Args>
- auto INVOKE(T Base::*pmf, RefWrap&& ref, Args&&... args)
-     noexcept(noexcept((ref.get().*pmf)(std::forward<Args>(args)...)))
-  -> std::enable_if_t<std::is_function_v<T> &&
-                      is_reference_wrapper_v<std::decay_t<RefWrap>>,
-     decltype((ref.get().*pmf)(std::forward<Args>(args)...))>
-
- {
-       return (ref.get().*pmf)(std::forward<Args>(args)...);
- }
-
- template <class Base, class T, class Pointer, class... Args>
- auto INVOKE(T Base::*pmf, Pointer&& ptr, Args&&... args)
-     noexcept(noexcept(((*std::forward<Pointer>(ptr)).*pmf)(std::forward<Args>(args)...)))
-  -> std::enable_if_t<std::is_function_v<T> &&
-                      !is_reference_wrapper_v<std::decay_t<Pointer>> &&
-                      !std::is_base_of_v<Base, std::decay_t<Pointer>>,
-     decltype(((*std::forward<Pointer>(ptr)).*pmf)(std::forward<Args>(args)...))>
- {
-       return ((*std::forward<Pointer>(ptr)).*pmf)(std::forward<Args>(args)...);
- }
-
- template <class Base, class T, class Derived>
- auto INVOKE(T Base::*pmd, Derived&& ref)
-     noexcept(noexcept(std::forward<Derived>(ref).*pmd))
-  -> std::enable_if_t<!std::is_function_v<T> &&
-                      std::is_base_of_v<Base, std::decay_t<Derived>>,
-     decltype(std::forward<Derived>(ref).*pmd)>
- {
-       return std::forward<Derived>(ref).*pmd;
- }
-
- template <class Base, class T, class RefWrap>
- auto INVOKE(T Base::*pmd, RefWrap&& ref)
-     noexcept(noexcept(ref.get().*pmd))
-  -> std::enable_if_t<!std::is_function_v<T> &&
-                      is_reference_wrapper_v<std::decay_t<RefWrap>>,
-     decltype(ref.get().*pmd)>
- {
-       return ref.get().*pmd;
- }
-
- template <class Base, class T, class Pointer>
- auto INVOKE(T Base::*pmd, Pointer&& ptr)
-     noexcept(noexcept((*std::forward<Pointer>(ptr)).*pmd))
-  -> std::enable_if_t<!std::is_function_v<T> &&
-                      !is_reference_wrapper_v<std::decay_t<Pointer>> &&
-                      !std::is_base_of_v<Base, std::decay_t<Pointer>>,
-     decltype((*std::forward<Pointer>(ptr)).*pmd)>
- {
-       return (*std::forward<Pointer>(ptr)).*pmd;
- }
-
+  
  template <class F, class... Args>
- auto INVOKE(F&& f, Args&&... args)
-     noexcept(noexcept(std::forward<F>(f)(std::forward<Args>(args)...)))
-  -> std::enable_if_t<!std::is_member_pointer_v<std::decay_t<F>>,
-     decltype(std::forward<F>(f)(std::forward<Args>(args)...))>
+ decltype(auto) INVOKE(F&& f, Args&&... args)
  {
        return std::forward<F>(f)(std::forward<Args>(args)...);
  }
  } // namespace detail
-
- template< class F, class... ArgTypes >
- auto invoke(F&& f, ArgTypes&&... args)
-     // exception specification for QoI
-     noexcept(noexcept(detail::INVOKE(std::forward<F>(f), std::forward<ArgTypes>(args)...)))
-  -> decltype(detail::INVOKE(std::forward<F>(f), std::forward<ArgTypes>(args)...))
+  
+ template< class F, class... Args>
+ std::invoke_result_t<F, Args...> invoke(F&& f, Args&&... args)
+   noexcept(std::is_nothrow_invocable_v<F, Args...>)
  {
-     return detail::INVOKE(std::forward<F>(f), std::forward<ArgTypes>(args)...);
+     return detail::INVOKE(std::forward<F>(f), std::forward<Args>(args)...);
  }
 
 .SH Example
-
-   Implement the basic functionality of std::mem_fn.
 
    
 // Run this code
 
  #include <functional>
- template< class PM >
- class mem_fn_t {
-     PM p;
- public:
-     mem_fn_t(PM p):p(p){}
-     template<class... Args>
-     decltype(auto) operator()(Args&&... args) {
-         return std::invoke(p, std::forward<Args>(args)...);
+ #include <iostream>
+  
+ struct Foo {
+     Foo(int num) : num_(num) {}
+     void print_add(int i) const { std::cout << num_+i << '\\n'; }
+     int num_;
+ };
+  
+ void print_num(int i)
+ {
+     std::cout << i << '\\n';
+ }
+  
+ struct PrintNum {
+     void operator()(int i) const
+     {
+         std::cout << i << '\\n';
      }
  };
-
- template< class R, class T >
- auto mem_fn(R T::* pm){
-     mem_fn_t<R T::*> t {pm};
-     return t;
+  
+ int main()
+ {
+     // invoke a free function
+     std::invoke(print_num, -9);
+  
+     // invoke a lambda
+     std::invoke([]() { print_num(42); });
+  
+     // invoke a member function
+     const Foo foo(314159);
+     std::invoke(&Foo::print_add, foo, 1);
+  
+     // invoke (access) a data member
+     std::cout << "num_: " << std::invoke(&Foo::num_, foo) << '\\n';
+  
+     // invoke a function object
+     std::invoke(PrintNum(), 18);
  }
+
+.SH Output:
+
+ -9
+ 42
+ 314160
+ num_: 314159
+ 18
 
 .SH See also
 
    mem_fn                       creates a function object out of a pointer to a member
-   \fI(C++11)\fP                      \fI(function template)\fP
+   \fI(C++11)\fP                      \fI(function template)\fP 
    result_of                    deduces the result type of invoking a callable object
    invoke_result                with a set of arguments
-   \fI(C++11)\fP(deprecated in C++17) \fI(class template)\fP
+   \fI(C++11)\fP(deprecated in C++17) \fI(class template)\fP 
    \fI(C++17)\fP
    is_invocable
    is_invocable_r               checks if a type can be invoked (as if by std::invoke)
    is_nothrow_invocable         with the given argument types
-   is_nothrow_invocable_r       \fI(class template)\fP
+   is_nothrow_invocable_r       \fI(class template)\fP 
    \fI(C++17)\fP
    apply                        calls a function with a tuple of arguments
-   \fI(C++17)\fP                      \fI(function template)\fP
+   \fI(C++17)\fP                      \fI(function template)\fP 
 
 .SH Category:
 

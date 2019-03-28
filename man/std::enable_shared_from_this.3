@@ -1,4 +1,4 @@
-.TH std::enable_shared_from_this 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::enable_shared_from_this 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::enable_shared_from_this \- std::enable_shared_from_this
 
@@ -17,7 +17,7 @@ std::enable_shared_from_this \- std::enable_shared_from_this
 
 .SH Member functions
 
-   constructor      constructs an enabled_shared_from_this object
+   constructor      constructs an enable_shared_from_this object
                     \fI(protected member function)\fP
    destructor       destroys an enable_shared_from_this object
                     \fI(protected member function)\fP
@@ -38,11 +38,14 @@ std::enable_shared_from_this \- std::enable_shared_from_this
 
    A common implementation for enable_shared_from_this is to hold a weak reference
    (such as std::weak_ptr) to this. The constructors of std::shared_ptr detect the
-   presence of an enable_shared_from_this base and assign the newly created
-   std::shared_ptr to the internally stored weak reference. Constructing a
-   std::shared_ptr for an object that is already managed by another std::shared_ptr
-   will not consult the internally stored weak reference and thus will lead to
-   undefined behavior.
+   presence of an
+   unambiguous and accessible
+   \fI(since C++17)\fP enable_shared_from_this base and assign the newly created
+   std::shared_ptr to the internally stored weak reference
+   if not already owned by a live std::shared_ptr
+   \fI(since C++17)\fP. Constructing a std::shared_ptr for an object that is already managed
+   by another std::shared_ptr will not consult the internally stored weak reference and
+   thus will lead to undefined behavior.
 
    It is permitted to call shared_from_this only on a previously shared object, i.e. on
    an object managed by std::shared_ptr<T>. Otherwise
@@ -63,14 +66,14 @@ std::enable_shared_from_this \- std::enable_shared_from_this
 
  #include <memory>
  #include <iostream>
-
+  
  struct Good: std::enable_shared_from_this<Good> // note: public inheritance
  {
      std::shared_ptr<Good> getptr() {
          return shared_from_this();
      }
  };
-
+  
  struct Bad
  {
      std::shared_ptr<Bad> getptr() {
@@ -78,14 +81,14 @@ std::enable_shared_from_this \- std::enable_shared_from_this
      }
      ~Bad() { std::cout << "Bad::~Bad() called\\n"; }
  };
-
+  
  int main()
  {
      // Good: the two shared_ptr's share the same object
      std::shared_ptr<Good> gp1 = std::make_shared<Good>();
      std::shared_ptr<Good> gp2 = gp1->getptr();
      std::cout << "gp2.use_count() = " << gp2.use_count() << '\\n';
-
+  
      // Bad: shared_from_this is called without having std::shared_ptr owning the caller
      try {
          Good not_so_good;
@@ -94,14 +97,14 @@ std::enable_shared_from_this \- std::enable_shared_from_this
          // undefined behavior \fI(until C++17)\fP and std::bad_weak_ptr thrown \fI(since C++17)\fP
          std::cout << e.what() << '\\n';
      }
-
+  
      // Bad, each shared_ptr thinks it's the only owner of the object
      std::shared_ptr<Bad> bp1 = std::make_shared<Bad>();
      std::shared_ptr<Bad> bp2 = bp1->getptr();
      std::cout << "bp2.use_count() = " << bp2.use_count() << '\\n';
  } // UB: double-delete of Bad
 
-.SH Output:
+.SH Possible output:
 
  gp2.use_count() = 2
  bad_weak_ptr
@@ -113,4 +116,4 @@ std::enable_shared_from_this \- std::enable_shared_from_this
 .SH See also
 
    shared_ptr smart pointer with shared object ownership semantics
-   \fI(C++11)\fP    \fI(class template)\fP
+   \fI(C++11)\fP    \fI(class template)\fP 

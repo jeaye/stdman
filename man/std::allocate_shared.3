@@ -1,29 +1,66 @@
-.TH std::allocate_shared 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::allocate_shared 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::allocate_shared \- std::allocate_shared
 
 .SH Synopsis
    Defined in header <memory>
-   template< class T, class Alloc, class... Args >                       \fI(since C++11)\fP
-   shared_ptr<T> allocate_shared( const Alloc& alloc, Args&&... args );
+   template< class T, class Alloc, class... Args >                     \fI(since C++11)\fP
+   shared_ptr<T> allocate_shared( const Alloc& alloc, Args&&...    \fB(1)\fP (T is non-array)
+   args );
+   template<class T, class A>                                      \fB(2)\fP \fI(since C++20)\fP
+   shared_ptr<T> allocate_shared(const A& a, std::size_t N);           (T is U[])
+   template<class T, class A>                                      \fB(3)\fP \fI(since C++20)\fP
+   shared_ptr<T> allocate_shared(const A& a);                          (T is U[N])
+   template<class T, class A>
 
-   Constructs an object of type T and wraps it in a std::shared_ptr using args as the
-   parameter list for the constructor of T. The object is constructed as if by the
-   expression ::new (pv) T(std::forward<Args>(args)...), where pv is an internal void*
-   pointer to storage suitable to hold an object of type T. The storage is typically
-   larger than sizeof(T) in order to use one allocation for both the control block of
-   the shared pointer and the T object.
+   shared_ptr<T> allocate_shared(const A& a, std::size_t N,        \fB(4)\fP \fI(since C++20)\fP
+                                                                       (T is U[])
+                                 const std::remove_extent_t<T>&
+   u);
+   template<class T, class A>
 
+   shared_ptr<T> allocate_shared(const A& a,                       \fB(5)\fP \fI(since C++20)\fP
+                                                                       (T is U[N])
+                                 const std::remove_extent_t<T>&
+   u);
+
+   1) Constructs an object of type T and wraps it in a std::shared_ptr using args as
+   the parameter list for the constructor of T. The object is constructed as if by the
+   expression std::allocator_traits<A2>::construct(a, pv, v)), where pv is an internal
+   void* pointer to storage suitable to hold an object of type T and a is a copy of the
+   allocator rebound to std::remove_cv_t<T>. The storage is typically larger than
+   sizeof(T) in order to use one allocation for both the control block of the shared
+   pointer and the T object. The std::shared_ptr constructor called by this function
+   enables shared_from_this with a pointer to the newly constructed object of type T.
    All memory allocation is done using a copy of alloc, which must satisfy the
-   Allocator requirements.
-
-   The std::shared_ptr constructor called by this function enables shared_from_this
-   with a pointer to the newly constructed object of type T.
+   Allocator requirements. This overload only participates in overload resolution if T
+   is not an array type
+   2,3) Same as \fB(1)\fP, but the object constructed is a possibly-multidimensional array
+   whose every non-array element is initialized as if by the expression
+   std::allocator_traits<A2>::construct(a2, pv) where a2 of type A2 is the copy of the
+   allocator rebound to manage objects of type
+   std::remove_cv_t<std::remove_all_extents_t<T>>. The overload \fB(2)\fP creates an array of
+   size N along its first dimension. The array elements are initialized in ascending
+   order of their addresses, and when their lifetime ends are destroyed in the reverse
+   order of their original construction.
+   4,5) Same as (2,3), but the elements of the array are initialized from the default
+   value u. If std::remove_extent_t<T> is not itself an array type, then this is
+   performed as if by the same allocator expression as in \fB(1)\fP, except that the
+   allocator is rebound to the std::remove_cv_t<std::remove_all_extents_t<T>>.
+   Otherwise, this is performed as if by initializing every non-array element of the
+   (possibly multidimensional) array with the corresponding element from u using the
+   same allocator expression as in \fB(1)\fP, except that the allocator is rebound to the
+   type std::remove_cv_t<std::remove_all_extents_t<T>>. The overload \fB(4)\fP creates an
+   array of size N along the first dimension. The array elements are initialized in
+   ascending order of their addresses, and when their lifetime ends are destroyed in
+   the reverse order of their original construction.
 
 .SH Parameters
 
    alloc   - The Allocator to use.
    args... - list of arguments with which an instance of T will be constructed.
+   N       - array size to use
+   u       - the initial value to initialize every element of the array
 
 .SH Return value
 
@@ -32,27 +69,32 @@ std::allocate_shared \- std::allocate_shared
 .SH Exceptions
 
    Can throw the exceptions thrown from Alloc::allocate() or from the constructor of T.
-   If an exception is thrown, this function has no effect.
+   If an exception is thrown, \fB(1)\fP has no effect.
+   If an exception is thrown during the construction of the array, already-initialized
+   elements are destroyed in reverse order
+   \fI(since C++20)\fP
 
 .SH Notes
 
    Like std::make_shared, this function typically performs only one allocation, and
    places both the T object and the control block in the allocated memory block (the
-   standard recommends, but does not require this, all known implementations do this).
-   A copy of alloc is stored as part of the control block so that it can be used to
+   standard recommends but does not require this, all known implementations do this). A
+   copy of alloc is stored as part of the control block so that it can be used to
    deallocate it once both shared and weak reference counts reach zero.
 
    Unlike the std::shared_ptr constructors, std::allocate_shared does not accept a
    separate custom deleter: the supplied allocator is used for destruction of the
    control block and the T object, and for deallocation of their shared memory block.
 
-   std::shared_ptr supports array types (as of C++17), but std::allocate_shared does
-   not. This functionality is supported by boost::allocate_shared
+   std::shared_ptr supports array types (as of C++17), but
+   std::allocate_shared does not. This functionality is supported by      \fI(until C++20)\fP
+   boost::allocate_shared
 
    A constructor enables shared_from_this with a pointer ptr of type U* means that it
-   determines if U has an unambiguous and accessible base class that is a
-   specialization of std::enable_shared_from_this, and if so, the constructor evaluates
-   the statement:
+   determines if U has an
+   unambiguous and accessible
+   \fI(since C++17)\fP base class that is a specialization of std::enable_shared_from_this,
+   and if so, the constructor evaluates the statement:
 
  if (ptr != nullptr && ptr->weak_this.expired())
    ptr->weak_this = std::shared_ptr<std::remove_cv_t<U>>(*this,
@@ -68,9 +110,18 @@ std::allocate_shared \- std::allocate_shared
    weak_this is not reassigned if it already indicates an owner. This test is required
    as of C++17.
 
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to            Behavior as published              Correct behavior
+   LWG 3007            allocate_shared may (incorrectly) rebind    remove cv-qualifiers
+                       allocator to cv-qualified type              before rebind
+
 .SH See also
 
    constructor   constructs new shared_ptr
-                 \fI(public member function)\fP
+                 \fI(public member function)\fP 
    make_shared   creates a shared pointer that manages a new object
-                 \fI(function template)\fP
+                 \fI(function template)\fP 

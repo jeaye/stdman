@@ -1,73 +1,46 @@
-.TH std::atomic_fetch_add,std::atomic_fetch_add_explicit 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::atomic_fetch_add,std::atomic_fetch_add_explicit 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::atomic_fetch_add,std::atomic_fetch_add_explicit \- std::atomic_fetch_add,std::atomic_fetch_add_explicit
 
 .SH Synopsis
    Defined in header <atomic>
-   template< class Integral >
-   Integral atomic_fetch_add(
-   std::atomic<Integral>* obj,
-   Integral arg );
-   template< class Integral >
-   Integral atomic_fetch_add(
-   volatile std::atomic<Integral>*
-   obj, Integral arg );
-   template< class Integral >
-
-   Integral
-   atomic_fetch_add_explicit(
-   std::atomic<Integral>* obj,
-   Integral arg,
-
-   std::memory_order order );
-   template< class Integral >
-
-   Integral
-   atomic_fetch_add_explicit(
-   volatile std::atomic<Integral>*
-   obj, Integral arg,
-                                      \fB(1)\fP (since
-   std::memory_order order );             C++11)
-   template< class T >
-   T* atomic_fetch_add(
-   std::atomic<T*>* obj,                          \fB(2)\fP (since
-   std::ptrdiff_t arg );                              C++11)
-   template< class T >
-   T* atomic_fetch_add( volatile
-   std::atomic<T*>* obj,
-   std::ptrdiff_t arg );
    template< class T >
 
-   T* atomic_fetch_add_explicit(                              \fB(3)\fP (since
-   std::atomic<T*>* obj,                                          C++11)
-   std::ptrdiff_t arg,
+   T atomic_fetch_add( std::atomic<T>* obj,
 
-   std::memory_order order );                                             \fB(4)\fP (since
-   template< class T >                                                        C++11)
+                       typename std::atomic<T>::difference_type arg )
+   noexcept;
+   template< class T >
 
-   T* atomic_fetch_add_explicit(
-   volatile std::atomic<T*>* obj,
-   std::ptrdiff_t arg,
+   T atomic_fetch_add( volatile std::atomic<T>* obj,
 
-   std::memory_order order );
+                       typename std::atomic<T>::difference_type arg )
+   noexcept;                                                                  \fB(1)\fP
+   template< class T >
 
-   Performs atomic addition.
+   T atomic_fetch_add_explicit( std::atomic<T>* obj,
+                                typename std::atomic<T>::difference_type arg,
 
-   1-2) Atomically adds arg to the value pointed to by obj and returns the value obj
-   held previously. The operation is performed as if the following was executed:
+                                std::memory_order order ) noexcept;               \fB(2)\fP
+   template< class T >
+
+   T atomic_fetch_add_explicit( volatile std::atomic<T>* obj,
+                                typename std::atomic<T>::difference_type arg,
+
+                                std::memory_order order ) noexcept;
+
+   Performs atomic addition. Atomically adds arg to the value pointed to by obj and
+   returns the value obj held previously. The operation is performed as if the
+   following was executed:
+
    1) obj->fetch_add(arg)
    2) obj->fetch_add(arg, order)
-   3-4) Atomically increments the pointer value, pointed to by obj, by arg, and returns
-   the value obj held previously. The operation is performed as if the following was
-   executed:
-   3) obj->fetch_add(arg)
-   4) obj->fetch_add(arg, order)
 
 .SH Parameters
 
    obj   - pointer to the atomic object to modify
    arg   - the value to add to the value stored in the atomic object
-   order - the memory sycnhronization ordering for this operation: all values are
+   order - the memory synchronization ordering for this operation: all values are
            permitted.
 
 .SH Return value
@@ -75,26 +48,13 @@ std::atomic_fetch_add,std::atomic_fetch_add_explicit \- std::atomic_fetch_add,st
    The value immediately preceding the effects of this function in the modification
    order of *obj.
 
-.SH Exceptions
-
-   noexcept specification:
-   noexcept
-
 .SH Possible implementation
 
-.SH First version
-template< class T >
-typename std::enable_if<std::is_integral<T>::value && !std::is_same<T, bool>::value, T>::type
-atomic_fetch_add( std::atomic<T>* obj, T arg );
-{
-    return obj->fetch_add(arg);
-}
-.SH Second version
-template< class T >
-T* atomic_fetch_add( std::atomic<T*>* obj, std::ptrdiff_t arg)
-{
-    return obj->fetch_add(arg);
-}
+   template< class T >
+   T atomic_fetch_add( std::atomic<T>* obj, typename std::atomic<T>::difference_type arg )
+   {
+       return obj->fetch_add(arg);
+   }
 
 .SH Example
 
@@ -110,17 +70,17 @@ T* atomic_fetch_add( std::atomic<T*>* obj, std::ptrdiff_t arg)
  #include <iostream>
  #include <atomic>
  #include <chrono>
-
+  
  // meaning of cnt:
- // 10: there are no active readers or writers.
- // 1...9: there are 9...1 readers active, The writer is blocked
+ // 5: there are no active readers or writers.
+ // 1...4: there are 4...1 readers active, The writer is blocked
  // 0: temporary value between fetch_sub and fetch_add in reader lock
  // -1: there is a writer active. The readers are blocked.
- const int N = 10; // nine concurrent readers are allowed
- std::atomic<int> cnt = ATOMIC_VAR_INIT(N);
-
+ const int N = 5; // four concurrent readers are allowed
+ std::atomic<int> cnt(N);
+  
  std::vector<int> data;
-
+  
  void reader(int id)
  {
      for(;;)
@@ -132,7 +92,7 @@ T* atomic_fetch_add( std::atomic<T*>* obj, std::ptrdiff_t arg)
          if(!data.empty())
              std::cout << (  "reader " + std::to_string(id)
                            + " sees " + std::to_string(*data.rbegin()) + '\\n');
-         if(data.size() == 100)
+         if(data.size() == 25)
              break;
          // unlock
          std::atomic_fetch_add(&cnt, 1);
@@ -140,10 +100,10 @@ T* atomic_fetch_add( std::atomic<T*>* obj, std::ptrdiff_t arg)
          std::this_thread::sleep_for(std::chrono::milliseconds(1));
      }
  }
-
+  
  void writer()
  {
-     for(int n = 0; n < 100; ++n)
+     for(int n = 0; n < 25; ++n)
      {
          // lock
          while(std::atomic_fetch_sub(&cnt, N+1) != N)
@@ -157,7 +117,7 @@ T* atomic_fetch_add( std::atomic<T*>* obj, std::ptrdiff_t arg)
          std::this_thread::sleep_for(std::chrono::milliseconds(1));
      }
  }
-
+  
  int main()
  {
      std::vector<std::thread> v;
@@ -173,32 +133,32 @@ T* atomic_fetch_add( std::atomic<T*>* obj, std::ptrdiff_t arg)
 .SH Output:
 
  writer pushed back 0
- reader 8 sees 0
+ reader 2 sees 0
  reader 3 sees 0
  reader 1 sees 0
  <...>
- reader 2 sees 99
- reader 6 sees 99
- reader 1 sees 99
+ reader 2 sees 24
+ reader 4 sees 24
+ reader 1 sees 24
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to            Behavior as published              Correct behavior
+   P0558R1 C++11      exact type match required because T is      T is deduced from the
+                      deduced from multiple arguments             atomic argument only
 
 .SH See also
 
                              atomically adds the argument to the value stored in the
    fetch_add                 atomic object and obtains the value held previously
-                             \fI(public member function of std::atomic)\fP
+                             \fI(public member function of std::atomic)\fP 
    atomic_fetch_sub          subtracts a non-atomic value from an atomic object and
    atomic_fetch_sub_explicit obtains the previous value of the atomic
-   \fI(C++11)\fP                   \fI(function template)\fP
+   \fI(C++11)\fP                   \fI(function template)\fP 
    \fI(C++11)\fP
    C documentation for
    atomic_fetch_add,
    atomic_fetch_add_explicit
-
-.SH Category:
-
-     * unconditionally noexcept
-
-   Hidden categories:
-
-     * Pages with unreviewed unconditional noexcept template
-     * Pages with unreviewed noexcept template

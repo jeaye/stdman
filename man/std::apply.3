@@ -1,4 +1,4 @@
-.TH std::apply 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::apply 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::apply \- std::apply
 
@@ -27,18 +27,18 @@ std::apply \- std::apply
 
    namespace detail {
    template <class F, class Tuple, std::size_t... I>
-   constexpr decltype(auto) apply_impl(F &&f, Tuple &&t, std::index_sequence<I...>)
+   constexpr decltype(auto) apply_impl(F&& f, Tuple&& t, std::index_sequence<I...>)
    {
        return std::invoke(std::forward<F>(f), std::get<I>(std::forward<Tuple>(t))...);
    }
    }  // namespace detail
-
+    
    template <class F, class Tuple>
-   constexpr decltype(auto) apply(F &&f, Tuple &&t)
+   constexpr decltype(auto) apply(F&& f, Tuple&& t)
    {
        return detail::apply_impl(
            std::forward<F>(f), std::forward<Tuple>(t),
-           std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>>>{});
+           std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple>>>{});
    }
 
 .SH Example
@@ -48,37 +48,39 @@ std::apply \- std::apply
 
  #include <iostream>
  #include <tuple>
-
- int add(int first, int second)
- {
-     return first + second;
- }
-
+ #include <utility>
+  
+ int add(int first, int second) { return first + second; }
+  
  template<typename T>
- T add_generic(T first, T second)
- {
-     return first + second;
- }
-
+ T add_generic(T first, T second) { return first + second; }
+  
+ auto add_lambda = [](auto first, auto second) { return first + second; };
+  
  int main()
  {
-     std::cout << std::apply(add, std::make_tuple(1,2)) << '\\n';
-
-     // template argument deduction/substitution fails
-     // std::cout << std::apply(add_generic, std::make_tuple(2.0f,3.0f)) << '\\n';
+     // OK
+     std::cout << std::apply(add, std::make_pair(1, 2)) << '\\n';
+  
+    // Error: can't deduce the function type
+    // std::cout << std::apply(add_generic, std::make_pair(2.0f, 3.0f)) << '\\n';
+  
+    // OK
+    std::cout << std::apply(add_lambda, std::make_pair(2.0f, 3.0f)) << '\\n';
  }
 
 .SH Output:
 
  3
+ 5
 
 .SH See also
 
    make_tuple       creates a tuple object of the type defined by the argument types
-                    \fI(function template)\fP
+                    \fI(function template)\fP 
    forward_as_tuple creates a tuple of rvalue references
-                    \fI(function template)\fP
+                    \fI(function template)\fP 
    make_from_tuple  Construct an object with a tuple of arguments
-   \fI(C++17)\fP          \fI(function template)\fP
+   \fI(C++17)\fP          \fI(function template)\fP 
    invoke           invokes any Callable object with given arguments
-   \fI(C++17)\fP          \fI(function template)\fP
+   \fI(C++17)\fP          \fI(function template)\fP 

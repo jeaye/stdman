@@ -1,14 +1,14 @@
-.TH std::basic_string::operator+= 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_string::operator+= 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_string::operator+= \- std::basic_string::operator+=
 
 .SH Synopsis
-   basic_string& operator+=( const basic_string& str );               \fB(1)\fP
-   basic_string& operator+=( CharT ch );                              \fB(2)\fP
-   basic_string& operator+=( const CharT* s );                        \fB(3)\fP
-   basic_string& operator+=( std::initializer_list<CharT> ilist );    \fB(4)\fP \fI(since C++11)\fP
-   basic_string& operator+=( std::basic_string_view<CharT, Traits>    \fB(5)\fP \fI(since C++17)\fP
-   sv);
+   basic_string& operator+=( const basic_string& str );            \fB(1)\fP
+   basic_string& operator+=( CharT ch );                           \fB(2)\fP
+   basic_string& operator+=( const CharT* s );                     \fB(3)\fP
+   basic_string& operator+=( std::initializer_list<CharT> ilist ); \fB(4)\fP \fI(since C++11)\fP
+   template < class T >                                            \fB(5)\fP \fI(since C++17)\fP
+   basic_string& operator+=( const T& t );
 
    Appends additional characters to the string.
 
@@ -16,7 +16,11 @@ std::basic_string::operator+= \- std::basic_string::operator+=
    2) Appends character ch
    3) Appends the null-terminated character string pointed to by s.
    4) Appends characters in the initializer list ilist.
-   5) Appends characters in the string view sv as if by append(sv)
+   5) Implicitly converts t to a string view sv as if by std::basic_string_view<CharT,
+   Traits> sv = t;, then appends characters in the string view sv as if by append(sv).
+   This overload only participates in overload resolution if
+   std::is_convertible_v<const T&, std::basic_string_view<CharT, Traits>> is true and
+   std::is_convertible_v<const T&, const CharT*> is false.
 
 .SH Parameters
 
@@ -24,7 +28,7 @@ std::basic_string::operator+= \- std::basic_string::operator+=
    ch    - character value to append
    s     - pointer to a null-terminated character string to append
    ilist - std::initializer_list with the characters to append
-   sv    - std::basic_string_view with the characters to append
+   t     - object (convertible to std::basic_string_view) with the characters to append
 
 .SH Return value
 
@@ -47,7 +51,18 @@ std::basic_string::operator+= \- std::basic_string::operator+=
 
 .SH Notes
 
-   Owing to Implicit conversions, operator+= might accept values of unwanted types.
+   Overload \fB(2)\fP can accept any types that are implicitly convertible to CharT. For
+   std::string, where CharT is char, the set of acceptable types includes all
+   arithmetic types. This may have unintended effects.
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to           Behavior as published              Correct behavior
+   LWG 2946 C++17      string_view overload causes ambiguity in  avoided by making it a
+                       some cases                                template
 
 .SH Example
 
@@ -57,25 +72,25 @@ std::basic_string::operator+= \- std::basic_string::operator+=
  #include <iostream>
  #include <iomanip>
  #include <string>
-
+  
  int main()
  {
     std::string str;
     str.reserve(50); //reserves sufficient storage space to avoid memory reallocation
     std::cout << std::quoted(str) << '\\n'; //empty string
-
+  
     str += "This";
     std::cout << std::quoted(str) << '\\n';
-
+  
     str += std::string(" is ");
     std::cout << std::quoted(str) << '\\n';
-
+  
     str += 'a';
     std::cout << std::quoted(str) << '\\n';
-
+  
     str += {' ','s','t','r','i','n','g','.'};
     std::cout << std::quoted(str) << '\\n';
-
+  
     str += 76.85; // equivalent to str += static_cast<char>(76.85), might not be the intent
     std::cout << std::quoted(str) << '\\n';
  }
@@ -92,4 +107,4 @@ std::basic_string::operator+= \- std::basic_string::operator+=
 .SH See also
 
    assign assign characters to a string
-          \fI(public member function)\fP
+          \fI(public member function)\fP 

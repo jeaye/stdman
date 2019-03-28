@@ -1,19 +1,24 @@
-.TH std::reference_wrapper::reference_wrapper 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::reference_wrapper::reference_wrapper 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::reference_wrapper::reference_wrapper \- std::reference_wrapper::reference_wrapper
 
 .SH Synopsis
-   reference_wrapper( T& x );                               \fI(since C++11)\fP
-   reference_wrapper( T&& x ) = delete;                     \fI(since C++11)\fP
-   reference_wrapper( const reference_wrapper<T>& other );  \fI(since C++11)\fP
+   template< class U >                                           \fB(1)\fP
+   reference_wrapper( U&& x ) noexcept(/*see below*/) ;
+   reference_wrapper( const reference_wrapper& other ) noexcept; \fB(2)\fP
 
    Constructs a new reference wrapper.
 
-   1) Stores a reference to x.
+   1) Converts x to T& as if by T& t = std::forward<U>(x);, then stores a reference to
+   t. This overload only participates in overload resolution if typename
+   std::decay<U>::type is not the same type as reference_wrapper and the expression
+   FUN(std::declval<U>()) is well-formed, where FUN names the set of imaginary
+   functions
 
-   2) Construction from a temporary object is not allowed.
+ void FUN(T&) noexcept;
+ void FUN(T&&) = delete;
 
-   3) Copy constructor. Stores a reference to other.get().
+   2) Copy constructor. Stores a reference to other.get().
 
 .SH Parameters
 
@@ -22,13 +27,21 @@ std::reference_wrapper::reference_wrapper \- std::reference_wrapper::reference_w
 
 .SH Exceptions
 
-   noexcept specification:
-   noexcept
+   1)
+   noexcept specification:  
+   noexcept(noexcept(FUN(std::declval<U>())))
+   where FUN is the set of imaginary functions described in the description above.
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to           Behavior as published              Correct behavior
+                       deleted reference_wrapper(T&&) constructor replaced with a
+   LWG 2993 C++11      interferes with overload resolution in     constructor template
+                       some cases
+
 .SH Category:
 
-     * unconditionally noexcept
-
-   Hidden categories:
-
-     * Pages with unreviewed unconditional noexcept template
-     * Pages with unreviewed noexcept template
+     * conditionally noexcept

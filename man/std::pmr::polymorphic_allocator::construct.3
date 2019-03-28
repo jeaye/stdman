@@ -1,4 +1,4 @@
-.TH std::pmr::polymorphic_allocator::construct 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::pmr::polymorphic_allocator::construct 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::pmr::polymorphic_allocator::construct \- std::pmr::polymorphic_allocator::construct
 
@@ -8,10 +8,10 @@ std::pmr::polymorphic_allocator::construct \- std::pmr::polymorphic_allocator::c
    template< class T1, class T2, class... Args1, class... Args2 >
 
    void construct( std::pair<T1, T2>* p,
-   std::piecewise_construct_t,                                        \fB(2)\fP \fI(since C++17)\fP
-   std::tuple<Args1...> x,
+                   std::piecewise_construct_t,                        \fB(2)\fP \fI(since C++17)\fP
+                   std::tuple<Args1...> x,
 
-   std::tuple<Args2...> y );
+                   std::tuple<Args2...> y );
    template< class T1, class T2 >                                     \fB(3)\fP \fI(since C++17)\fP
    void construct( std::pair<T1, T2>* p );
    template< class T1, class T2, class U, class V >                   \fB(4)\fP \fI(since C++17)\fP
@@ -26,41 +26,45 @@ std::pmr::polymorphic_allocator::construct \- std::pmr::polymorphic_allocator::c
    allocators, or if it is std::pair, passes this->resource() down to the constructed
    object.
 
-   1) If std::uses_allocator<U, memory_resource*>::value==false (the type U does not
-   use allocators) and std::is_constructible<U, Args...>::value==true, then constructs
-   the object as if by ::new((void *) p) U(std::forward<Args>(args)... );.
+   1) If std::uses_allocator<U, polymorphic_allocator>::value==false (the type U does
+   not use allocators) and std::is_constructible<U, Args...>::value==true, then
+   constructs the object as if by ::new((void *) p) U(std::forward<Args>(args)... );.
 
-   Otherwise, if std::uses_allocator<U, memory_resource*>::value==true (the type U uses
-   allocators, e.g. it is a container) and std::is_constructible<U,
-   std::allocator_arg_t, memory_resource*, Args...>::value==true, then constructs the
-   object as if by ::new((void *) p) U(std::allocator_arg, this->resource(),
+   Otherwise, if std::uses_allocator<U, polymorphic_allocator>::value==true (the type U
+   uses allocators, e.g. it is a container) and std::is_constructible<U,
+   std::allocator_arg_t, polymorphic_allocator, Args...>::value==true, then constructs
+   the object as if by ::new((void *) p) U(std::allocator_arg, *this,
    std::forward<Args>(args)... );.
 
-   Otherwise, if std::uses_allocator<U, memory_resource*>::value==true (the type U uses
-   allocators, e.g. it is a container) and std::is_constructible<U, Args...,
-   memory_resource*>::value==true, then constructs the object as if by ::new((void *)
-   p) U(std::forward<Args>(args)..., this->resource());.
+   Otherwise, if std::uses_allocator<U, polymorphic_allocator>::value==true (the type U
+   uses allocators, e.g. it is a container) and std::is_constructible<U, Args...,
+   polymorphic_allocator>::value==true, then constructs the object as if by ::new((void
+   *) p) U(std::forward<Args>(args)..., *this);.
 
    Otherwise, the program is ill-formed.
+
+   This overload only participates in overload resolution if U is not a specialization
+   of std::pair.
 
    2) First, if either T1 or T2 is allocator-aware, modifies the tuples x and y to
    include this->resource(), resulting in the two new tuples xprime and yprime,
    according to the following three rules:
 
    2a) if T1 is not allocator-aware (std::uses_allocator<T1,
-   memory_resource*>::value==false) and std::is_constructible<T1,
+   polymorphic_allocator>::value==false) and std::is_constructible<T1,
    Args1...>::value==true, then xprime is x, unmodified.
 
    2b) if T1 is allocator-aware (std::uses_allocator<T1,
-   memory_resource*>::value==true), and its constructor takes an allocator tag
-   (std::is_constructible<T1, std::allocator_arg_t, memory_resource*,
+   polymorphic_allocator>::value==true), and its constructor takes an allocator tag
+   (std::is_constructible<T1, std::allocator_arg_t, polymorphic_allocator,
    Args1...>::value==true, then xprime is
-   std::tuple_cat(std::make_tuple(std::allocator_arg, this->resource()), std::move(x))
+   std::tuple_cat(std::make_tuple(std::allocator_arg, *this), std::move(x))
 
    2c) if T1 is allocator-aware (std::uses_allocator<T1,
-   memory_resource*>::value==true), and its constructor takes the allocator as the last
-   argument (std::is_constructible<T1, Args1..., memory_resource*>::value==true), then
-   xprime is std::tuple_cat(std::move(x), std::make_tuple(this->resource())).
+   polymorphic_allocator>::value==true), and its constructor takes the allocator as the
+   last argument (std::is_constructible<T1, Args1...,
+   polymorphic_allocator>::value==true), then xprime is std::tuple_cat(std::move(x),
+   std::make_tuple(*this)).
 
    2d) Otherwise, the program is ill-formed.
 
@@ -77,18 +81,19 @@ std::pmr::polymorphic_allocator::construct \- std::pmr::polymorphic_allocator::c
    4) Equivalent to
 
    construct(p, std::piecewise_construct, std::forward_as_tuple(std::forward<U>(x)),
-   std::forward_as_tuple(std::forward<V>(y)))
+                                          std::forward_as_tuple(std::forward<V>(y)))
 
    5) Equivalent to
 
    construct(p, std::piecewise_construct, std::forward_as_tuple(xy.first),
-   std::forward_as_tuple(xy.second))
+                                          std::forward_as_tuple(xy.second))
 
    6) Equivalent to
 
    construct(p, std::piecewise_construct,
    std::forward_as_tuple(std::forward<U>(xy.first)),
-   std::forward_as_tuple(std::forward<V>(xy.second)))
+                                        
+    std::forward_as_tuple(std::forward<V>(xy.second)))
 
 .SH Parameters
 
@@ -106,13 +111,23 @@ std::pmr::polymorphic_allocator::construct \- std::pmr::polymorphic_allocator::c
 
    This function is called (through std::allocator_traits) by any allocator-aware
    object, such as std::pmr::vector (or another std::vector that was given a
-   std::std::polymorphic_allocator as the allocator to use). Since memory_resource*
-   implicitly converts to polymorphic_allocator, the memory resource pointer will
-   propagate to any allocator-aware subobjects using polymorphic allocators.
+   std::std::polymorphic_allocator as the allocator to use).
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to         Behavior as published              Correct behavior
+   LWG 2969 C++17      uses-allocator construction passed     passes *this
+                       resource()
+   LWG 2975 C++17      first overload is mistakenly used for  constrained to not accept
+                       pair construction in some cases        pairs
 
 .SH See also
 
    construct             constructs an object in the allocated storage
-   \fB[static]\fP              \fI(function template)\fP
+   \fB[static]\fP              \fI(function template)\fP 
    construct             constructs an object in allocated storage
-   (deprecated in C++17) \fI(public member function of std::allocator)\fP
+   (deprecated in C++17) \fI(public member function of std::allocator)\fP 
+   (removed in C++20)

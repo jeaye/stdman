@@ -1,29 +1,47 @@
-.TH std::experimental::ranges::Invocable,std::experimental::ranges::RegularInvocable 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::experimental::ranges::Invocable,std::experimental::ranges::RegularInvocable 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::experimental::ranges::Invocable,std::experimental::ranges::RegularInvocable \- std::experimental::ranges::Invocable,std::experimental::ranges::RegularInvocable
 
 .SH Synopsis
    Defined in header <experimental/ranges/concepts>
-   template <class F, class... Args>
+   template < class F, class... Args >
 
-   concept bool Invocable() {
-   return ranges::CopyConstructible<F>() &&
-   requires(F f, Args&&... args) {                   (ranges TS)
-   ranges::invoke(f, std::forward<Args>(args)...);
-   /* not required to be equality preserving */
-   };
+   concept bool Invocable =
+     requires(F&& f, Args&&... args) {                                   (ranges TS)
+       ranges::invoke(std::forward<F>(f), std::forward<Args>(args)...);
+         /* not required to be equality preserving */
 
-   }
-   template <class F, class... Args>
+     };
+   template < class F, class... Args >                                   (ranges TS)
+   concept bool RegularInvocable = Invocable<F, Args...>;
 
-   concept bool RegularInvocable() {                 (ranges TS)
-   return Invocable<F, Args...>();
+   The Invocable concept specifies that a callable type F can be called with a set of
+   argument types Args... using the function template ranges::invoke.
 
-   }
+   The RegularInvocable concept adds to the Invocable concept by requiring the invoke
+   expression to be equality preserving and not modify either the function object or
+   the arguments.
 
-    This section is incomplete
-    Reason: add description and extra caveats
+   Equality preservation
 
-.SH Category:
+   An expression is equality preserving if it results in equal outputs given equal
+   inputs.
 
-     * Todo with reason
+     * The inputs to an expression consist of its operands.
+     * The outputs of an expression consist of its result and all operands modified by
+       the expression (if any).
+
+   Every expression required to be equality preserving is further required to be
+   stable: two evaluations of such an expression with the same input objects must have
+   equal outputs absent any explicit intervening modification of those input objects.
+
+   Unless noted otherwise, every expression used in a requires-expression is required
+   to be equality preserving and stable, and the evaluation of the expression may only
+   modify its non-constant operands. Operands that are constant must not be modified.
+
+.SH Notes
+
+   The distinction between Invocable and RegularInvocable is purely semantic.
+
+   A random number generator may satisfy Invocable but cannot satisfy RegularInvocable
+   (comical ones excluded).

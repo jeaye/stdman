@@ -1,4 +1,4 @@
-.TH std::call_once 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::call_once 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::call_once \- std::call_once
 
@@ -7,22 +7,35 @@ std::call_once \- std::call_once
    template< class Callable, class... Args >                              \fI(since C++11)\fP
    void call_once( std::once_flag& flag, Callable&& f, Args&&... args );
 
-   Executes the Callable object f exactly once, even if called from several threads.
+   Executes the Callable object f exactly once, even if called concurrently, from
+   several threads.
 
-   Each group of call_once invocations that receives the same std::once_flag object
-   will meet the following requirements:
+.SH In detail:
 
-     * Exactly one execution of exactly one of the functions (passed as f to the
-       invocations in the group) is performed. It is undefined which function will be
-       selected for execution. The selected function runs in the same thread as the
-       call_once invocation it was passed to.
+     * If, by the time call_once is called, flag indicates that f was already called,
+       call_once returns right away (such a call to call_once is known as passive).
 
-     * No invocation in the group returns before the above-mentioned execution of the
-       selected function is completed successfully, that is, doesn't exit via an
-       exception.
+     * Otherwise, call_once invokesý¿¿½£¬stý¿¿½£­:ý¿¿½£®forward<Callable>(f) with the arguments
+       stý¿¿½£­:ý¿¿½£®forward<Args>(args)... (as if by std::invoke). Unlike the std::thread
+       constructor or std::async, the arguments are not moved or copied because they
+       don't need to be transferred to another thread of execution. (such a call to
+       call_once is known as active).
 
-     * If the selected function exits via exception, it is propagated to the caller.
-       Another function is then selected and executed.
+     * If that invocation throws an exception, it is propagated to the caller of
+       call_once, and the flag is not flipped so that another call will be attempted
+       (such call to call_once is known as exceptional).
+     * If that invocation returns normally (such call to call_once is known as
+       returning), the flag is flipped, and all other calls to call_once with the same
+       flag are guaranteed to be passive.
+
+   All active calls on the same flag form a single total order consisting of zero or
+   more exceptional calls, followed by one returning call. The end of each active call
+   synchronizes-with the next active call in that order.
+
+   The return from the returning call synchronizes-with the returns from all passive
+   calls on the same flag: this means that all concurrent calls to call_once are
+   guaranteed to observe any side-effects made by the active call, with no additional
+   synchronization.
 
 .SH Parameters
 
@@ -42,19 +55,22 @@ std::call_once \- std::call_once
 
 .SH Notes
 
-   The arguments to the Callable object are moved or copied by value. If
-   a reference argument needs to be passed to the Callable object, it has \fI(until C++17)\fP
-   to be wrapped (e.g. with std::ref or std::cref).
-   The arguments to the Callable object are perfect forwarded (as if by
-   std::forward<Callable>(f) and std::forward<Args>(args))...), which is
-   different from the uses of Callables in the thread constructor or      \fI(since C++17)\fP
-   std::async, because call_once does not have to transfer its arguments
-   to another thread of execution, and therefore does not need to move or
-   copy.
+   If concurrent calls to call_once pass different functions f, it is unspecified which
+   f will be called. The selected function runs in the same thread as the call_once
+   invocation it was passed to.
 
    Initialization of function-local statics is guaranteed to occur only once even when
    called from multiple threads, and may be more efficient than the equivalent code
    using std::call_once.
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to            Behavior as published              Correct behavior
+   LWG 2442 C++11      the arguments are copied and/or moved       no copying/moving is
+                       before invocation                           performed
 
 .SH Example
 
@@ -64,14 +80,14 @@ std::call_once \- std::call_once
  #include <iostream>
  #include <thread>
  #include <mutex>
-
+  
  std::once_flag flag1, flag2;
-
+  
  void simple_do_once()
  {
      std::call_once(flag1, [](){ std::cout << "Simple example: called once\\n"; });
  }
-
+  
  void may_throw_function(bool do_throw)
  {
    if (do_throw) {
@@ -80,7 +96,7 @@ std::call_once \- std::call_once
    }
    std::cout << "Didn't throw, call_once will not attempt again\\n"; // guaranteed once
  }
-
+  
  void do_once(bool do_throw)
  {
    try {
@@ -89,7 +105,7 @@ std::call_once \- std::call_once
    catch (...) {
    }
  }
-
+  
  int main()
  {
      std::thread st1(simple_do_once);
@@ -100,7 +116,7 @@ std::call_once \- std::call_once
      st2.join();
      st3.join();
      st4.join();
-
+  
      std::thread t1(do_once, true);
      std::thread t2(do_once, true);
      std::thread t3(do_once, false);
@@ -121,6 +137,6 @@ std::call_once \- std::call_once
 .SH See also
 
    once_flag helper object to ensure that call_once invokes the function only once
-   \fI(C++11)\fP   \fI(class)\fP
+   \fI(C++11)\fP   \fI(class)\fP 
    C documentation for
    call_once

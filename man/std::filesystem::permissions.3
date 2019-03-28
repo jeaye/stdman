@@ -1,4 +1,4 @@
-.TH std::filesystem::permissions 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::permissions 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::permissions \- std::filesystem::permissions
 
@@ -6,29 +6,37 @@ std::filesystem::permissions \- std::filesystem::permissions
    Defined in header <filesystem>
    void permissions(const std::filesystem::path& p,
 
-   std::filesystem::perms prms);
-   void permissions(const std::filesystem::path& p,  \fI(since C++17)\fP
-   std::filesystem::perms prms,
+                    std::filesystem::perms prms,
+                    std::filesystem::perm_options opts =
+   perm_options::replace);
+   void permissions(const std::filesystem::path& p,
+                    std::filesystem::perms prms,                          \fI(since C++17)\fP
+                    std::error_code& ec) noexcept;
+   void permissions(const std::filesystem::path& p,
+                    std::filesystem::perms prms,
+                    std::filesystem::perm_options opts,
 
-   std::error_code& ec);
+                    std::error_code& ec);
 
    Changes access permissions of the file to which p resolves, as if by POSIX fchmodat.
-   Symlinks are followed if prms::resolve_symlinks is set.
+   Symlinks are followed unless perm_options::nofollow is set in opts
 
-   The effects depend on prms as follows:
+   The second signature behaves as if called with opts set to perm_options::replace
 
-     * If neither perms::add_perms nor perms::remove_perms is set, file permissions are
-       set to exactly prms & std::filesystem::perms::mask (meaning, every valid bit of
-       prms is applied)
-     * If perms::add_perms, the file permissions are set to exactly
+   The effects depend on prms and opts as follows:
+
+     * If opts is perm_options::replace, file permissions are set to exactly prms &
+       std::filesystem::perms::mask (meaning, every valid bit of prms is applied)
+     * If opts is perm_options::add, the file permissions are set to exactly
        status(p).permissions() | (prms & perms::mask) (meaning, any valid bit that is
        set in prms, but not in the file's current permissions is added to the file's
        permissions)
-     * If perms::remove_perms is set, the file permissions are set to exactly
+     * If opts is perm_options::remove, the file permissions are set to exactly
        status(p).permissions() & ~(prms & perms::mask) (meaning, any valid bit that is
        clear in prms, but set in the file's current permissions is cleared in the
        file's permissions)
-     * If both perms::add_perms and perms::remove_perms are set, error occurs
+
+   opts is required to have only one of replace, add, or remove to be set.
 
    The non-throwing overload has no special action on error.
 
@@ -36,6 +44,7 @@ std::filesystem::permissions \- std::filesystem::permissions
 
    p    - path to examine
    prms - permissions to set, add, or remove
+   opts - options controlling the action taken by this function
    ec   - out-parameter for error reporting in the non-throwing overload
 
 .SH Return value
@@ -45,13 +54,11 @@ std::filesystem::permissions \- std::filesystem::permissions
 .SH Exceptions
 
    The overload that does not take a std::error_code& parameter throws filesystem_error
-   on underlying OS API errors, constructed with p as the first argument and the OS
-   error code as the error code argument. std::bad_alloc may be thrown if memory
-   allocation fails. The overload taking a std::error_code& parameter sets it to the OS
-   API error code if an OS API call fails, and executes ec.clear() if no errors occur.
-   This overload has
-   noexcept specification:
-   noexcept
+   on underlying OS API errors, constructed with p as the first path argument and the
+   OS error code as the error code argument. The overload taking a std::error_code&
+   parameter sets it to the OS API error code if an OS API call fails, and executes
+   ec.clear() if no errors occur. Any overload not marked noexcept may throw
+   std::bad_alloc if memory allocation fails.
 
 .SH Notes
 
@@ -72,7 +79,7 @@ std::filesystem::permissions \- std::filesystem::permissions
  #include <iostream>
  #include <filesystem>
  namespace fs = std::filesystem;
-
+  
  void demo_perms(fs::perms p)
  {
      std::cout << ((p & fs::perms::owner_read) != fs::perms::none ? "r" : "-")
@@ -89,16 +96,17 @@ std::filesystem::permissions \- std::filesystem::permissions
  int main()
  {
      std::ofstream("test.txt"); // create file
-
+  
      std::cout << "Created file with permissions: ";
      demo_perms(fs::status("test.txt").permissions());
-
-     fs::permissions("test.txt", fs::perms::add_perms |
-                                 fs::perms::owner_all | fs::perms::group_all);
-
+  
+     fs::permissions("test.txt",
+                     fs::perms::owner_all | fs::perms::group_all,
+                     fs::perm_options::add);
+  
      std::cout << "After adding o+rwx and g+rwx:  ";
      demo_perms(fs::status("test.txt").permissions());
-
+  
      fs::remove("test.txt");
  }
 
@@ -110,17 +118,8 @@ std::filesystem::permissions \- std::filesystem::permissions
 .SH See also
 
    perms          identifies file system permissions
-   \fI(C++17)\fP        \fI(enum)\fP
+   \fI(C++17)\fP        \fI(enum)\fP 
    status         determines file attributes
    symlink_status determines file attributes, checking the symlink target
-   \fI(C++17)\fP        \fI(function)\fP
+   \fI(C++17)\fP        \fI(function)\fP 
    \fI(C++17)\fP
-
-.SH Category:
-
-     * unconditionally noexcept
-
-   Hidden categories:
-
-     * Pages with unreviewed unconditional noexcept template
-     * Pages with unreviewed noexcept template

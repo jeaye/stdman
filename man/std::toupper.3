@@ -1,4 +1,4 @@
-.TH std::toupper 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::toupper 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::toupper \- std::toupper
 
@@ -23,6 +23,32 @@ std::toupper \- std::toupper
    Converted character or ch if no uppercase version is defined by the current C
    locale.
 
+.SH Notes
+
+   Like all other functions from <cctype>, the behavior of std::toupper is undefined if
+   the argument's value is neither representable as unsigned char nor equal to EOF. To
+   use these functions safely with plain chars (or signed chars), the argument should
+   first be converted to unsigned char:
+
+ char my_toupper(char ch)
+ {
+     return static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
+ }
+
+   Similarly, they should not be directly used with standard algorithms when the
+   iterator's value type is char or signed char. Instead, convert the value to unsigned
+   char first:
+
+ std::string str_toupper(std::string s) {
+     std::transform(s.begin(), s.end(), s.begin(),
+                 // static_cast<int(*)(int)>(std::toupper)         // wrong
+                 // [](int c){ return std::toupper(c); }           // wrong
+                 // [](char c){ return std::toupper(c); }          // wrong
+                    [](unsigned char c){ return std::toupper(c); } // correct
+                   );
+     return s;
+ }
+
 .SH Example
 
    
@@ -31,12 +57,12 @@ std::toupper \- std::toupper
  #include <iostream>
  #include <cctype>
  #include <clocale>
-
+  
  int main()
  {
      unsigned char c = '\\xb8'; // the character ž in ISO-8859-15
                                // but ¸ (cedilla) in ISO-8859-1
-
+  
      std::setlocale(LC_ALL, "en_US.iso88591");
      std::cout << std::hex << std::showbase;
      std::cout << "in iso8859-1, toupper('0xb8') gives " << std::toupper(c) << '\\n';
@@ -52,11 +78,11 @@ std::toupper \- std::toupper
 .SH See also
 
    tolower              converts a character to lowercase
-                        \fI(function)\fP
+                        \fI(function)\fP 
                         converts a character to uppercase using the ctype facet of a
    toupper(std::locale) locale
-                        \fI(function template)\fP
+                        \fI(function template)\fP 
    towupper             converts a wide character to uppercase
-                        \fI(function)\fP
+                        \fI(function)\fP 
    C documentation for
    toupper

@@ -1,31 +1,41 @@
-.TH std::experimental::ranges::Relation 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::experimental::ranges::Relation 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::experimental::ranges::Relation \- std::experimental::ranges::Relation
 
 .SH Synopsis
    Defined in header <experimental/ranges/concepts>
-   template <class R, class T>
-
-   concept bool Relation() {                                            \fB(1)\fP (ranges TS)
-   return ranges::Predicate<R, T, T>();
-
-   }
    template <class R, class T, class U>
 
-   concept bool Relation() {
-   return ranges::Relation<R, T>() &&
-   ranges::Relation<R, U>() &&
-   ranges::CommonReference<const T&, const U&>() &&                     \fB(2)\fP (ranges TS)
-   ranges::Relation<R, std::common_reference_t<const T&, const U&>>()
-   &&
-   ranges::Predicate<R, T, U>() &&
-   ranges::Predicate<R, U, T>();
+   concept bool Relation =
+     Predicate<R, T, T> &&
+     Predicate<R, U, U> &&
+     CommonReference<
+       const std::remove_reference_t<T>&,
+       const std::remove_reference_t<U>&> &&
+     Predicate<R,                                   \fB(1)\fP (ranges TS)
+       ranges::common_reference_t<
+         const std::remove_reference_t<T>&,
+         const std::remove_reference_t<U>&>,
+       ranges::common_reference_t<
+         const std::remove_reference_t<T>&,
+         const std::remove_reference_t<U>&>> &&
+     Predicate<R, T, U> &&
 
-   }
+     Predicate<R, U, T>;
 
-    This section is incomplete
-    Reason: add description and extra caveats
+   The concept Relation<R, T, U> specifies that R defines a binary relation over the
+   set of expressions whose type and value category are those encoded by either T or U.
 
-.SH Category:
+   Given
 
-     * Todo with reason
+     * r, an expression such that decltype((r)) is R,
+     * t, an expression such that decltype((t)) is T,
+     * u, an expression such that decltype((u)) is U,
+
+   and let C be ranges::common_reference_t<const std::remove_reference_t<T>&, const
+   std::remove_reference_t<U>&>,
+
+   then Relation<R, T, U> is satisfied only if
+
+     * bool(r(t, u)) == bool(r(C(t), C(u))) and
+     * bool(r(u, t)) == bool(r(C(u), C(t))).

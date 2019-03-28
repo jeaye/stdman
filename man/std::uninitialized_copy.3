@@ -1,4 +1,4 @@
-.TH std::uninitialized_copy 3 "2018.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_copy 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_copy \- std::uninitialized_copy
 
@@ -81,36 +81,39 @@ std::uninitialized_copy \- std::uninitialized_copy
    
 // Run this code
 
- #include <algorithm>
  #include <iostream>
  #include <memory>
+ #include <cstdlib>
  #include <string>
- #include <tuple>
- #include <vector>
-
+  
  int main()
  {
-     std::vector<std::string> v = {"This", "is", "an", "example"};
-
-     std::string* p;
-     std::size_t sz;
-     std::tie(p, sz)  = std::get_temporary_buffer<std::string>(v.size());
-     sz = std::min(sz, v.size());
-
-     std::uninitialized_copy(v.begin(), v.begin() + sz, p);
-
-     for (std::string* i = p; i != p+sz; ++i) {
-         std::cout << *i << ' ';
-         i->~basic_string<char>();
+     const char *v[] = {"This", "is", "an", "example"};
+  
+     auto sz = std::size(v);
+  
+     if(void *pbuf = std::aligned_alloc(alignof(std::string), sizeof(std::string) * sz))
+     {
+         try
+         {
+             auto first = static_cast<std::string*>(pbuf);
+             auto last = std::uninitialized_copy(std::begin(v), std::end(v), first);
+  
+             for (auto it = first; it != last; ++it)
+                 std::cout << *it << '_';
+  
+             std::destroy(first, last);
+         }
+         catch(...) {}
+         std::free(pbuf);
      }
-     std::return_temporary_buffer(p);
  }
 
 .SH Output:
 
- This is an example
+ This_is_an_example_
 
 .SH See also
 
    uninitialized_copy_n copies a number of objects to an uninitialized area of memory
-   \fI(C++11)\fP              \fI(function template)\fP
+   \fI(C++11)\fP              \fI(function template)\fP 
