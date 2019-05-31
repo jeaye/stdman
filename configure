@@ -49,11 +49,13 @@ log_end() { echo "$@" 1>&2; }
 PROJECT=stdman
 log "Configuring ${PROJECT}"
 
+PROJECTDIR="${BASH_SOURCE[0]%/*}"
+REAL_PROJECTDIR="$(cd "$PROJECTDIR" && pwd)"
 PREFIX=/usr/local
 DATAROOTDIR=$PREFIX/share
 MANDIR=$DATAROOTDIR/man
-REFERENCE=./reference/en/cpp
-TMP_MAN=./man
+REFERENCE=$REAL_PROJECTDIR/reference/en/cpp
+TMP_MAN=$REAL_PROJECTDIR/man
 THREADS=8
 CXX_PLATFORM_FLAGS=
 LD_PLATFORM_LIBS=
@@ -176,16 +178,22 @@ log
 
 # Configure the makefile
 log "Populating Makefile"
-rm -f Makefile
-sed "s#%CXX_PLATFORM_FLAGS%#${CXX_PLATFORM_FLAGS}#" ./Makefile.in |\
+rm -f $PROJECTDIR/Makefile
+sed "s#%CXX_PLATFORM_FLAGS%#${CXX_PLATFORM_FLAGS}#" "$PROJECTDIR/Makefile.in" |\
 sed "s#%LD_PLATFORM_LIBS%#${LD_PLATFORM_LIBS}#" |\
 sed "s#%PREFIX%#${PREFIX}#" |\
 sed "s#%DATAROOTDIR%#${DATAROOTDIR}#" |\
 sed "s#%MANDIR%#${MANDIR}#" |\
 sed "s#%REFERENCE%#${REFERENCE}#" |\
 sed "s#%TMP_MAN%#${TMP_MAN}#" |\
-sed "s#%THREADS%#${THREADS}#" > Makefile
+sed "s#%THREADS%#${THREADS}#" > "$PROJECTDIR/Makefile"
+
+MAKE_C=
+if [[ "$PROJECTDIR" != . ]];
+then
+  MAKE_C=" -C ${PROJECTDIR/#$HOME/~}"
+fi
 
 log "Done configuring ${PROJECT}"
 log
-log "To install, use \`make install\` with the appropriate permissions for your prefix"
+log "To install, use \`make$MAKE_C install\` with the appropriate permissions for your prefix"
