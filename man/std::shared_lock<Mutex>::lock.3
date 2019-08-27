@@ -1,0 +1,99 @@
+.TH std::shared_lock<Mutex>::lock 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::shared_lock<Mutex>::lock \- std::shared_lock<Mutex>::lock
+
+.SH Synopsis
+   void lock();  \fI(since C++14)\fP
+
+   Locks the associated mutex in shared mode. Effectively calls mutex()->lock_shared().
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   \fI(none)\fP
+
+.SH Exceptions
+
+     * Any exceptions thrown by mutex()->lock_shared()
+
+     * If there is no associated mutex, std::system_error with an error code of
+       std::errc::operation_not_permitted
+
+     * If the associated mutex is already locked by this shared_lock (that is,
+       owns_lock returns true), std::system_error with an error code of
+       std::errc::resource_deadlock_would_occur
+
+.SH Example
+
+    This section is incomplete
+    Reason: show a meaningful use of shared_lock::lock
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <mutex>
+ #include <string>
+ #include <shared_mutex>
+ #include <thread>
+
+ std::string file = "Original content."; // Simulates a file
+ std::mutex output_mutex; // mutex that protects output operations.
+ std::shared_mutex file_mutex; // reader/writer mutex
+
+ void read(int id)
+ {
+     std::string content;
+     {
+         std::shared_lock lock(file_mutex, std::defer_lock); // Do not lock it first.
+         lock.lock(); // Lock it here.
+         content = file;
+     }
+     std::lock_guard lock(output_mutex);
+     std::cout << "Contents read by reader #" << id << ": " << content << '\\n';
+ }
+
+ void write()
+ {
+     {
+         std::lock_guard file_lock(file_mutex);
+         file = "New content";
+     }
+     std::lock_guard output_lock(output_mutex);
+     std::cout << "New content saved.\\n";
+ }
+
+ int main()
+ {
+     std::cout << "Two readers reading from file.\\n"
+               << "A writer competes with them.\\n";
+     std::thread reader1(read, 1);
+     std::thread reader2(read, 2);
+     std::thread writer(write);
+     reader1.join();
+     reader2.join();
+     writer.join();
+     std::cout << "The first few operations to file are done.\\n";
+     reader1 = std::thread(read, 3);
+     reader1.join();
+ }
+
+.SH Possible output:
+
+ Two readers reading from file.
+ A writer competes with them.
+ Contents read by reader #1: Original content.
+ Contents read by reader #2: Original content.
+ New content saved.
+ The first few operations to file are done.
+ Contents read by reader #3: New content
+
+.SH See also
+
+   try_lock tries to lock the associated mutex
+            \fI(public member function)\fP
+   unlock   unlocks the associated mutex
+            \fI(public member function)\fP

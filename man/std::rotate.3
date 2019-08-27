@@ -1,4 +1,4 @@
-.TH std::rotate 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::rotate 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::rotate \- std::rotate
 
@@ -10,15 +10,14 @@ std::rotate \- std::rotate
    template< class ForwardIt >                                            \fI(since C++11)\fP
    ForwardIt rotate( ForwardIt first, ForwardIt n_first,                  \fI(until C++20)\fP
    ForwardIt last );
-   template< class ForwardIt >
-   constexpr ForwardIt rotate( ForwardIt first, ForwardIt         \fB(1)\fP     \fI(since C++20)\fP
+   template< class ForwardIt >                                    \fB(1)\fP
+   constexpr ForwardIt rotate( ForwardIt first, ForwardIt                 \fI(since C++20)\fP
    n_first, ForwardIt last );
    template< class ExecutionPolicy, class ForwardIt >
 
    ForwardIt rotate( ExecutionPolicy&& policy,                        \fB(2)\fP \fI(since C++17)\fP
 
-                     ForwardIt first, ForwardIt n_first,
-   ForwardIt last );
+   ForwardIt first, ForwardIt n_first, ForwardIt last );
 
    1) Performs a left rotation on a range of elements.
    Specifically, std::rotate swaps the elements in the range [first, last) in such a
@@ -40,7 +39,7 @@ std::rotate \- std::rotate
                            details.
 .SH Type requirements
    -
-   ForwardIt must meet the requirements of ValueSwappable and ForwardIterator.
+   ForwardIt must meet the requirements of ValueSwappable and LegacyForwardIterator.
    -
    The type of dereferenced ForwardIt must meet the requirements of MoveAssignable and
    MoveConstructible.
@@ -60,35 +59,32 @@ std::rotate \- std::rotate
    follows:
 
      * If execution of a function invoked as part of the algorithm throws an exception
-       and ExecutionPolicy is one of the three standard policies, std::terminate is
-       called. For any other ExecutionPolicy, the behavior is implementation-defined.
+       and ExecutionPolicy is one of the standard policies, std::terminate is called.
+       For any other ExecutionPolicy, the behavior is implementation-defined.
      * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
 .SH Possible implementation
 
-   template <class ForwardIt>
+   See also the implementations in libstdc++ and libc++.
+
+   template<class ForwardIt>
    ForwardIt rotate(ForwardIt first, ForwardIt n_first, ForwardIt last)
    {
-       if(first == n_first) return last;
-       if(n_first == last) return first;
-    
-       ForwardIt next = n_first;
-    
-       do {
-           std::iter_swap(first++, next++);
-           if (first == n_first) n_first = next;
-       }
-       while (next != last);
-    
-       ForwardIt ret = first;
-    
-       for(next = n_first; next != last; ) {
-           std::iter_swap(first++, next++);
-           if(first == n_first) n_first = next;
-           else if(next == last) next = n_first;
-       }
-    
-       return ret;
+      if(first == n_first) return last;
+      if(n_first == last) return first;
+
+      ForwardIt read      = n_first;
+      ForwardIt write     = first;
+      ForwardIt next_read = first; // read position for when "read" hits "last"
+
+      while(read != last) {
+         if(write == next_read) next_read = read; // track where "first" went
+         std::iter_swap(write++, read++);
+      }
+
+      // rotate the remaining sequence into place
+      (rotate)(write, next_read, last);
+      return write;
    }
 
 .SH Example
@@ -102,42 +98,42 @@ std::rotate \- std::rotate
  #include <vector>
  #include <iostream>
  #include <algorithm>
-  
+
  int main()
  {
      std::vector<int> v{2, 4, 2, 0, 5, 10, 7, 3, 7, 1};
-  
+
      std::cout << "before sort:      ";
      for (int n: v)
          std::cout << n << ' ';
      std::cout << '\\n';
-  
+
      // insertion sort
      for (auto i = v.begin(); i != v.end(); ++i) {
          std::rotate(std::upper_bound(v.begin(), i, *i), i, i+1);
      }
-  
+
      std::cout << "after sort:       ";
      for (int n: v)
          std::cout << n << ' ';
      std::cout << '\\n';
-  
+
      // simple rotation to the left
      std::rotate(v.begin(), v.begin() + 1, v.end());
-  
+
      std::cout << "simple rotate left  : ";
      for (int n: v)
          std::cout << n << ' ';
      std::cout << '\\n';
-  
+
      // simple rotation to the right
      std::rotate(v.rbegin(), v.rbegin() + 1, v.rend());
-  
+
      std::cout << "simple rotate right : ";
      for (int n: v)
          std::cout << n << ' ';
      std::cout << '\\n';
-  
+
  }
 
 .SH Output:
@@ -150,4 +146,4 @@ std::rotate \- std::rotate
 .SH See also
 
    rotate_copy copies and rotate a range of elements
-               \fI(function template)\fP 
+               \fI(function template)\fP

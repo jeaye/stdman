@@ -1,0 +1,122 @@
+.TH std::list<T,Allocator>::operator= 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::list<T,Allocator>::operator= \- std::list<T,Allocator>::operator=
+
+.SH Synopsis
+   list& operator=( const list& other );                      \fB(1)\fP
+   list& operator=( list&& other );                                   \fI(since C++11)\fP
+                                                              \fB(2)\fP     \fI(until C++17)\fP
+   list& operator=( list&& other ) noexcept(/* see below */);         \fI(since C++17)\fP
+   list& operator=( std::initializer_list<T> ilist );             \fB(3)\fP \fI(since C++11)\fP
+
+   Replaces the contents of the container.
+
+   1) Copy assignment operator. Replaces the contents with a copy of the contents of
+   other.
+   If
+   std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment::value
+   is true, the target allocator is replaced by a copy of the source allocator. If the
+   target and the source allocators do not compare equal, the target (*this) allocator
+   is used to deallocate the memory, then other's allocator is used to allocate it
+   before copying the elements.
+   \fI(since C++11)\fP.
+   2) Move assignment operator. Replaces the contents with those of other using move
+   semantics (i.e. the data in other is moved from other into this container). other is
+   in a valid but unspecified state afterwards. If
+   std::allocator_traits<allocator_type>::propagate_on_container_move_assignment::value
+   is true, the target allocator is replaced by a copy of the source allocator. If it
+   is false and the source and the target allocators do not compare equal, the target
+   cannot take ownership of the source memory and must move-assign each element
+   individually, allocating additional memory using its own allocator as needed. In any
+   case, all elements originally present in *this are either destroyed or replaced by
+   elementwise move-assignment.
+   3) Replaces the contents with those identified by initializer list ilist.
+
+.SH Parameters
+
+   other - another container to use as data source
+   ilist - initializer list to use as data source
+
+.SH Return value
+
+   *this
+
+.SH Complexity
+
+   1) Linear in the size of *this and other.
+   2) Linear in the size of *this unless the allocators do not compare equal and do not
+   propagate, in which case linear in the size of *this and other
+   3) Linear in the size of *this and ilist.
+
+.SH Exceptions
+
+   2)                                                                 \fI(since C++17)\fP
+   noexcept specification:
+   noexcept(std::allocator_traits<Allocator>::is_always_equal::value)
+
+.SH Notes
+
+   After container move assignment (overload \fB(2)\fP), unless elementwise move assignment
+   is forced by incompatible allocators, references, pointers, and iterators (other
+   than the end iterator) to other remain valid, but refer to elements that are now in
+   *this. The current standard makes this guarantee via the blanket statement in
+   §23.2.1[container.requirements.general]/12, and a more direct guarantee is under
+   consideration via LWG 2321.
+
+.SH Example
+
+   The following code uses operator= to assign one std::list to another:
+
+   
+// Run this code
+
+ #include <list>
+ #include <iostream>
+
+ void display_sizes(const std::list<int>& nums1,
+                    const std::list<int>& nums2,
+                    const std::list<int>& nums3)
+ {
+     std::cout << "nums1: " << nums1.size()
+               << " nums2: " << nums2.size()
+               << " nums3: " << nums3.size() << '\\n';
+ }
+
+ int main()
+ {
+     std::list<int> nums1 {3, 1, 4, 6, 5, 9};
+     std::list<int> nums2;
+     std::list<int> nums3;
+
+     std::cout << "Initially:\\n";
+     display_sizes(nums1, nums2, nums3);
+
+     // copy assignment copies data from nums1 to nums2
+     nums2 = nums1;
+
+     std::cout << "After assigment:\\n";
+     display_sizes(nums1, nums2, nums3);
+
+     // move assignment moves data from nums1 to nums3,
+     // modifying both nums1 and nums3
+     nums3 = std::move(nums1);
+
+     std::cout << "After move assigment:\\n";
+     display_sizes(nums1, nums2, nums3);
+ }
+
+.SH Output:
+
+ Initially:
+ nums1: 6 nums2: 0 nums3: 0
+ After assigment:
+ nums1: 6 nums2: 6 nums3: 0
+ After move assigment:
+ nums1: 0 nums2: 6 nums3: 6
+
+.SH See also
+
+   constructor   constructs the list
+                 \fI(public member function)\fP
+   assign        assigns values to the container
+                 \fI(public member function)\fP

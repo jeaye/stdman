@@ -1,4 +1,4 @@
-.TH std::execution::sequenced_policy,std::execution::parallel_policy, 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::execution::sequenced_policy,std::execution::parallel_policy, 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::execution::sequenced_policy,std::execution::parallel_policy, \- std::execution::sequenced_policy,std::execution::parallel_policy,
 
@@ -8,6 +8,7 @@ std::execution::sequenced_policy,std::execution::parallel_policy, \- std::execut
    class sequenced_policy { /* unspecified */ };            \fB(1)\fP \fI(since C++17)\fP
    class parallel_policy { /* unspecified */ };             \fB(2)\fP \fI(since C++17)\fP
    class parallel_unsequenced_policy { /* unspecified */ }; \fB(3)\fP \fI(since C++17)\fP
+   class unsequenced_policy { /* unspecified */ };          \fB(4)\fP \fI(since C++20)\fP
 
    1) The execution policy type used as a unique type to disambiguate parallel
    algorithm overloading and require that a parallel algorithm's execution may not be
@@ -27,6 +28,10 @@ std::execution::sequenced_policy,std::execution::parallel_policy, \- std::execut
    scheduler). The invocations of element access functions in parallel algorithms
    invoked with this policy are permitted to execute in an unordered fashion in
    unspecified threads, and unsequenced with respect to one another within each thread.
+   4) The execution policy type used as a unique type to disambiguate parallel
+   algorithm overloading and indicate that a parallel algorithm's execution may be
+   vectorized, e.g., executed on a single thread using instructions that operate on
+   multiple data items.
 
    During the execution of a parallel algorithm with any of these three execution
    policies, if the invocation of an element access function exits via an uncaught
@@ -36,7 +41,7 @@ std::execution::sequenced_policy,std::execution::parallel_policy, \- std::execut
 .SH Notes
 
    When using parallel execution policy, it is the programmer's responsibility to avoid
-   deadlocks:
+   data races and deadlocks:
 
  int a[] = {0,1};
  std::vector<int> v;
@@ -59,14 +64,14 @@ std::execution::sequenced_policy,std::execution::parallel_policy, \- std::execut
    ++x; // correct
  });
 
-   Unsequenced execution policy is the only case where function calls are unsequenced
-   with respect to each other, meaning they can be interleaved. In all other situations
-   in C++, they are indeterminately-sequenced (cannot interleave). Because of that,
-   users are not allowed to allocate or deallocate memory, acquire mutexes, use
-   non-lockfree std::atomic specializations, or perform any other vectorization-unsafe
-   operations when using this policy (vectorization-unsafe functions are the ones that
-   synchronize-with another function, e.g. std::mutex::unlock synchronizes-with the
-   next std::mutex::lock)
+   Unsequenced execution policies are the only case where function calls are
+   unsequenced with respect to each other, meaning they can be interleaved. In all
+   other situations in C++, they are indeterminately-sequenced (cannot interleave).
+   Because of that, users are not allowed to allocate or deallocate memory, acquire
+   mutexes, use non-lockfree std::atomic specializations, or, in general, perform any
+   vectorization-unsafe operations when using these policies (vectorization-unsafe
+   functions are the ones that synchronize-with another function, e.g.
+   std::mutex::unlock synchronizes-with the next std::mutex::lock)
 
  int x = 0;
  std::mutex m;
@@ -76,11 +81,16 @@ std::execution::sequenced_policy,std::execution::parallel_policy, \- std::execut
    ++x;
  });
 
+   If the implementation cannot parallelize or vectorize (e.g. due to lack of
+   resources), all standard execution policies can fall back to sequential execution.
+
 .SH See also
 
    seq
    par
-   par_unseq global execution policy objects
-   \fI(C++17)\fP   (constant) 
+   par_unseq
+   unseq     global execution policy objects
+   \fI(C++17)\fP   (constant)
    \fI(C++17)\fP
    \fI(C++17)\fP
+   (C++20)

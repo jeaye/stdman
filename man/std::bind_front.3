@@ -1,0 +1,110 @@
+.TH std::bind_front 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::bind_front \- std::bind_front
+
+.SH Synopsis
+   Defined in header <functional>
+   template <class F, class... Args>                     \fI(since C++20)\fP
+   /*unspecified*/ bind_front( F&& f, Args&&... args );
+
+   The function template bind_front generates a forwarding call wrapper for f. Calling
+   this wrapper is equivalent to invoking f with its first sizeof...(Args) parameters
+   bound to args.
+
+   In other words, std::bind_front(f, bound_args...)(call_args...) is equivalent to
+   std::invoke(f, bound_args..., call_args....).
+
+   The program is ill-formed if any of the following is not true:
+
+     * std::is_constructible_v<std::decay_t<F>, F>
+     * std::is_move_constructible_v<std::decay_t<F>>
+     * (std::is_constructible_v<std::decay_t<Args>, Args> && ...)
+     * (std::is_move_constructible_v<std::decay_t<Args>> && ...)
+
+.SH Parameters
+
+          Callable object \fI\fI(function\fP object, pointer to function, reference to function,\fP
+   f    - pointer to member function, or pointer to data member) that will be bound to
+          some arguments
+   args - list of the arguments to bind to the first sizeof...(Args) parameters of f
+.SH Type requirements
+   -
+   std::decay_t<F> and each type in std::decay_t<Args>... must meet the requirements of
+   MoveConstructible.
+
+.SH Return value
+
+   A function object of type T that is unspecified, except that the types of objects
+   returned by two calls to std::bind_front with the same arguments are the same.
+
+   The returned object (call wrapper) has the following properties:
+
+std::bind_front return type
+
+.SH Member objects
+
+   The returned object behaves as if it holds a member object fd of type
+   std::decay_t<F> constructed from std::forward<F>(f), and an std::tuple object tup
+   constructed with std::make_tuple(std::forward<Args>(args)...) (this unwraps any
+   std::reference_wrappers), except that the returned object's assignment behavior is
+   unspecified and the names are for exposition only.
+
+    Constructors
+
+   The return type of std::bind_front behaves as if its copy/move constructors perform
+   a memberwise copy/move. It is CopyConstructible if all of its member objects
+   (specified above) are CopyConstructible, and is MoveConstructible otherwise.
+
+.SH Member function operator()
+
+   Given an object G obtained from an earlier call to bind_front(f, args...), when a
+   glvalue g designating G is invoked in a function call expression g(call_args...), an
+   invocation of the stored object takes place, as if by
+
+ std::invoke(g.fd, std::get<Ns>(g.tup)..., call_args...)
+
+   , where
+
+     * Ns is an integer pack 0, 1, ..., (sizeof...(Args) - 1)
+     * g is an lvalue in the std::invoke expression if it is an lvalue in the call
+       expression, and is an rvalue otherwise. Thus std::move(g)(call_args...) can move
+       the bound arguments into the call, where g(call_args...) would copy.
+
+   The behavior is undefined if g has volatile-qualified type.
+
+   The member operator() is noexcept if the std::invoke expression it calls is noexcept
+   (in other words, it preserves the exception specification of the underlying call
+   operator)
+
+.SH Exceptions
+
+   Only throws if construction of stored function object or any of the bound arguments
+   throws.
+
+.SH Notes
+
+   This function is intended to replace std::bind. Unlike std::bind, it does not
+   support arbitrary argument rearrangement and has no special treatment for nested
+   bind-expressions. On the other hand, it pays attention to the value category of the
+   call wrapper object and propagates exception specification of the underlying call
+   operator.
+
+   As described in std::invoke, when invoking a pointer to non-static member function
+   or pointer to non-static data member, the first argument has to be a reference or
+   pointer (including, possibly, smart pointer such as std::shared_ptr and
+   std::unique_ptr) to an object whose member will be accessed.
+
+   The arguments to std::bind_front are copied or moved, and are never passed by
+   reference unless wrapped in std::ref or std::cref.
+
+.SH Example
+
+    This section is incomplete
+    Reason: no example
+
+.SH See also
+
+   bind    binds one or more arguments to a function object
+   \fI(C++11)\fP \fI(function template)\fP
+   mem_fn  creates a function object out of a pointer to a member
+   \fI(C++11)\fP \fI(function template)\fP

@@ -1,4 +1,4 @@
-.TH std::common_type 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::common_type 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::common_type \- std::common_type
 
@@ -40,6 +40,10 @@ std::common_type \- std::common_type
    cv-qualified) void, or an array of unknown bound. Otherwise, the behavior is
    undefined.
 
+   If an instantiation of a template above depends, directly or indirectly, on an
+   incomplete type, and that instantiation could yield a different result if that type
+   were hypothetically completed, the behavior is undefined.
+
 .SH Member types
 
    Name Definition
@@ -71,55 +75,54 @@ std::common_type \- std::common_type
    The following specializations are already provided by the standard library:
 
    std::common_type<std::chrono::duration>   specializes the std::common_type trait
-                                             \fI(class template specialization)\fP 
+                                             \fI(class template specialization)\fP
    std::common_type<std::chrono::time_point> specializes the std::common_type trait
-                                             \fI(class template specialization)\fP 
+                                             \fI(class template specialization)\fP
 
 .SH Possible implementation
 
    // primary template (used for zero types)
-   template <class ...T> struct common_type { };
-    
+   template <class ...T>
+   struct common_type {};
+
    //////// one type
    template <class T>
-   struct common_type<T> {
-       using type = std::decay_t<T>;
-   };
-    
+   struct common_type<T> : common_type<T, T> {};
+
    //////// two types
-    
+
    // default implementation for two types
    template<class T1, class T2>
    using cond_t = decltype(false ? std::declval<T1>() : std::declval<T2>());
-    
+
    template<class T1, class T2, class=void>
-   struct common_type_2_default { };
-    
+   struct common_type_2_default {};
+
    template<class T1, class T2>
    struct common_type_2_default<T1, T2, std::void_t<cond_t<T1, T2>>> {
        using type = std::decay_t<cond_t<T1, T2>>;
    };
-    
+
    // dispatcher to decay the type before applying specializations
    template<class T1, class T2, class D1 = std::decay_t<T1>, class D2=std::decay_t<T2>>
    struct common_type_2_impl : common_type<D1, D2> {};
-    
+
    template<class D1, class D2>
    struct common_type_2_impl<D1, D2, D1, D2> : common_type_2_default<D1, D2> {};
-    
+
    template <class T1, class T2>
    struct common_type<T1, T2> : common_type_2_impl<T1, T2> { };
-    
+
    //////// 3+ types
-    
+
    template<class AlwaysVoid, class T1, class T2, class...R>
    struct common_type_multi_impl { };
-    
+
    template< class T1, class T2, class...R>
    struct common_type_multi_impl<std::void_t<common_type_t<T1, T2>>, T1, T2, R...>
        : common_type<common_type_t<T1, T2>, R...>  { };
-    
-    
+
+
    template <class T1, class T2, class... R>
    struct common_type<T1, T2, R...>
        : common_type_multi_impl<void, T1, T2, R...> { };
@@ -130,7 +133,7 @@ std::common_type \- std::common_type
    type of the (possibly mixed-mode) arithmetic expression such as T0() + T1() + ... +
    Tn().
 
-   Defect reports
+  Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
@@ -150,17 +153,17 @@ std::common_type \- std::common_type
 
  #include <iostream>
  #include <type_traits>
-  
+
  template <class T>
  struct Number { T n; };
-  
+
  template <class T, class U>
  Number<typename std::common_type<T, U>::type> operator+(const Number<T>& lhs,
                                                          const Number<U>& rhs)
  {
      return {lhs.n + rhs.n};
  }
-  
+
  int main()
  {
      Number<int> i1 = {1}, i2 = {2};

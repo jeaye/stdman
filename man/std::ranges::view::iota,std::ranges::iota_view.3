@@ -1,0 +1,212 @@
+.TH std::ranges::view::iota,std::ranges::iota_view 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::view::iota,std::ranges::iota_view \- std::ranges::view::iota,std::ranges::iota_view
+
+.SH Synopsis
+   template<WeaklyIncrementable W, Semiregular Bound =
+   unreachable_sentinel_t>
+                                                                      \fB(1)\fP \fI(since C++20)\fP
+   requires _WeaklyEqualityComparableWith<W, Bound>
+
+   class iota_view : public view_interface<iota_view<W, Bound>>
+   namespace view {
+
+   inline constexpr /*unspecified*/ iota = /*unspecified*/;           \fB(2)\fP \fI(since C++20)\fP
+
+   }
+
+   1) A range factory that generates a sequence of elements by repeatedly incrementing
+   an initial value. Can be both bounded and unbounded (infinite)
+   2) view::iota(E) and view::iota(E, F) are expression-equivalent to (has the same
+   effect as) iota_view{E} and iota_view{E, F} respectively for any suitable
+   subexpressions E and F
+
+  Data members
+
+std::ranges::iota_view::base_
+
+   W value_ = W(); /* exposition-only */
+
+   the current value
+
+std::ranges::iota_view::pred_
+
+   Bound bound_ = Bound(); /* exposition-only */
+
+   the bound (defaults to std::unreachable_sentinel_t)
+
+.SH Member functions
+
+std::ranges::iota_view::iota_view
+
+   iota_view() = default;                             \fB(1)\fP
+   constexpr explicit iota_view(W value);             \fB(2)\fP
+   constexpr iota_view(std::type_identity_t<W> value, \fB(3)\fP
+   std::type_identity_t<Bound> bound);
+
+   1) Default-initializes value_ and bound_
+   2) Initializes value_ with value and expects that Bound is either
+   unreachable_sentinel_t (the default) or Bound() is reachable from value. This
+   constructor is used to create unbounded iota views, e.g. iota\fB(0)\fP yields numbers
+   0,1,2..., infinitely.
+   3) Initializes value_ with value and bound_ with bound. This constructor is used to
+   create bounded iota views, e.g. iota(10, 20) yields numbers from 10 to 19.
+
+.SH Parameters
+
+   value - the starting value
+   bound - the bound
+
+std::ranges::iota_view::begin
+
+   constexpr iterator begin();
+
+   Returns the iterator initialized with value_
+
+std::ranges::iota_view::end
+
+   constexpr sentinel end() const;                         \fB(1)\fP
+   constexpr iterator end() const requires Same<W, Bound>; \fB(2)\fP
+
+   Returns the iterator initialized with bound_ if this view is bounded, or the
+   sentinel initialized with bound_ if this view is unbounded.
+
+std::ranges::iota_view::size
+
+   constexpr auto size() const
+
+   requires (Same<W, Bound> && _Advanceable<W>) ||
+   (Integral<W> && Integral<Bound>) ||
+   SizedSentinel<Bound, W>
+
+   { return bound_ - value_; }
+
+   Returns the size of the view if the view is bounded.
+
+  Deduction guides
+
+   template<class W, class Bound>
+
+   requires (!Integral<W> || !Integral<Bound> || is_signed_v<W> ==
+   is_signed_v<Bound>)
+
+   iota_view(W, Bound) -> iota_view<W, Bound>;
+
+   Note that the guide protects itself against signed/unsigned mismatch bugs, like
+   view::iota(0, v.size()), where 0 is a (signed) int and v.size() is an (unsigned)
+   std::size_t.
+
+  Nested classes
+
+std::ranges::iota_view::iterator
+
+   template<class W, class Bound>
+   struct iota_view<W, Bound>::iterator /* exposition-only */
+
+   The return type of iota_view::begin.
+
+   This is a RandomAccessIterator if W models _Advanceable, a BidirectionalIterator if
+   W models _Decrementable, a ForwardIterator if W models Incrementable, and
+   InputIterator otherwise.
+
+std::ranges::iota_view::iterator::iterator
+
+   constexpr explicit iterator(W value);
+
+   Initializes exposition-only data member value_ with value. This value will be
+   returned by operator* and incremented by operator++
+
+std::ranges::iota_view::iterator::operator*
+
+   constexpr W operator*() const noexcept(is_nothrow_copy_constructible_v<W>);
+
+   returns the current value, by value (in other words, this is a read-only view)
+
+std::ranges::iota_view::iterator::operator++
+
+   constexpr iterator& operator++()
+
+   Equivalent to
+
+ ++value_;
+ return *this;
+
+std::ranges::iota_view::iterator::operator--
+
+   constexpr iterator& operator--() requires _Decrementable<W>;
+
+   Equivalent to
+
+ --value_;
+ return *this;
+
+std::ranges::iota_view::iterator::operator[]
+
+   constexpr W operator[](difference_type n) const requires _Advanceable<W>;
+
+   Equivalent to
+
+ return value_ + n;
+
+   Other members as expected of an iterator.
+
+std::ranges::iota_view::sentinel
+
+   template<class W, class Bound>
+   struct iota_view<W, Bound>::sentinel /* exposition-only */
+
+   The return type of iota_view::end.
+
+std::ranges::iota_view::sentinel::bound_
+
+   Bound bound_ = Bound();; /* exposition only */
+
+   Exposition-only data member holding the sentinel (typically either a number, for a
+   bounded iota view, or an instance of std::unreachable_sentinel_t for an unbounded
+   iota view.
+
+std::ranges::iota_view::sentinel::sentinel
+
+   entinel() = default;
+   constexpr explicit sentinel(Bound bound);
+
+   Initializes exposition-only data member bound_ with bound.
+
+std::ranges::iota_view::sentinel::operator==
+
+   friend constexpr bool operator==(const iterator& x, const sentinel& y);
+   friend constexpr bool operator==(const sentinel& x, const iterator& y);
+
+   Equivalent to: x.value_ == y.bound_; and return y == x; respectively.
+
+std::ranges::iota_view::sentinel::operator!=
+
+   friend constexpr bool operator!=(const iterator& x, const sentinel& y);
+   friend constexpr bool operator!=(const sentinel& x, const iterator& y);
+
+   Equivalent to return !(x == y); and return !(y == x); respectively
+
+.SH Example
+
+   
+// Run this code
+
+ #include <ranges>
+ #include <vector>
+ #include <iostream>
+
+ int main()
+ {
+   for (int i : std::view::iota{1, 10})
+     std::cout << i << ' ';
+
+   std::cout << '\\n';
+
+   for (int i : std::view::iota(1) | std::view::take(9))
+     std::cout << i << ' ';
+ }
+
+.SH Output:
+
+ 1 2 3 4 5 6 7 8 9
+ 1 2 3 4 5 6 7 8 9

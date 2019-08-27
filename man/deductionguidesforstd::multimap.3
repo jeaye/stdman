@@ -1,4 +1,4 @@
-.TH deductionguidesforstd::multimap 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH deductionguidesforstd::multimap 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 deductionguidesforstd::multimap \- deductionguidesforstd::multimap
 
@@ -6,64 +6,62 @@ deductionguidesforstd::multimap \- deductionguidesforstd::multimap
    Defined in header <map>
    template <class InputIt,
 
-             class Comp = std::less<iter_key_t<InputIt>>,
-             class Alloc = std::allocator<iter_to_alloc_t<InputIt>>>  \fB(1)\fP \fI(since C++17)\fP
+   class Comp = std::less<iter_key_t<InputIt>>,
+   class Alloc = std::allocator<iter_to_alloc_t<InputIt>>>            \fB(1)\fP \fI(since C++17)\fP
    multimap(InputIt, InputIt, Comp = Comp(), Alloc = Alloc())
 
-     -> multimap<iter_key_t<InputIt>, iter_val_t<InputIt>, Comp,
+   -> multimap<iter_key_t<InputIt>, iter_val_t<InputIt>, Comp,
    Alloc>;
    template<class Key,
 
-            class T,
-            class Comp = std::less<Key>,
-            class Alloc = std::allocator<std::pair<const Key, T>>>    \fB(2)\fP \fI(since C++17)\fP
-   multimap(std::initializer_list<std::pair<const Key, T>>, Comp =
-   Comp(), Alloc = Alloc())
+   class T,
+   class Comp = std::less<Key>,
+   class Alloc = std::allocator<std::pair<const Key, T>>>             \fB(2)\fP \fI(since C++17)\fP
+   multimap(std::initializer_list<std::pair<Key, T>>, Comp = Comp(),
+   Alloc = Alloc())
 
-     -> multimap<Key, T, Comp, Alloc>;
+   -> multimap<Key, T, Comp, Alloc>;
    template<class InputIt, class Alloc>
 
    multimap(InputIt, InputIt, Alloc)                                  \fB(3)\fP \fI(since C++17)\fP
-     -> multimap<iter_key_t<InputIt>, iter_val_t<InputIt>,
+   -> multimap<iter_key_t<InputIt>, iter_val_t<InputIt>,
 
-                 std::less<iter_key_t<InputIt>>, Alloc>;
+   std::less<iter_key_t<InputIt>>, Alloc>;
    template<class Key, class T, class Allocator>
 
-   multimap(std::initializer_list<std::pair<const Key, T>>,           \fB(4)\fP \fI(since C++17)\fP
-   Allocator)
+   multimap(std::initializer_list<std::pair<Key, T>>, Allocator)      \fB(4)\fP \fI(since C++17)\fP
 
-     -> multimap<Key, T, std::less<Key>, Allocator>;
+   -> multimap<Key, T, std::less<Key>, Allocator>;
 
    where the type aliases iter_key_t, iter_val_t, iter_to_alloc_t are defined as if as
    follows
 
    template<class InputIt>
+                                                                            (exposition
+   using iter_key_t = std::remove_const_t<                                  only)
 
-   using iter_key_t = std::remove_const_t<                                  (exposition
-                                                                            only)
-                        typename
-   std::iterator_traits<InputIt>::value_type::first_type>;
+   typename std::iterator_traits<InputIt>::value_type::first_type>;
    template<class InputIt>                                                  (exposition
    using iter_val_t = typename                                              only)
    std::iterator_traits<InputIt>::value_type::second_type;
    template<class InputIt>
 
    using iter_to_alloc_t = std::pair<
-     std::add_const_t<typename                                              (exposition
+   std::add_const_t<typename                                                (exposition
    std::iterator_traits<InputIt>::value_type::first_type>,                  only)
-     typename std::iterator_traits<InputIt>::value_type::second_type
+   typename std::iterator_traits<InputIt>::value_type::second_type
 
    >
 
    This deduction guide is provided for multimap to allow deduction from an iterator
    range (overloads (1,3)) and std::initializer_list (overloads (2,4)). These overloads
-   only participate in overload resolution if InputIt satisfies InputIterator, Alloc
-   satisfies Allocator, and Comp does not satisfy Allocator.
+   only participate in overload resolution if InputIt satisfies LegacyInputIterator,
+   Alloc satisfies Allocator, and Comp does not satisfy Allocator.
 
    Note: the extent to which the library determines that a type does not satisfy
-   InputIterator is unspecified, except that as a minimum integral types do not qualify
-   as input iterators. Likewise, the extent to which it determines that a type does not
-   satisfy Allocator is unspecified, except that as a minimum the member type
+   LegacyInputIterator is unspecified, except that as a minimum integral types do not
+   qualify as input iterators. Likewise, the extent to which it determines that a type
+   does not satisfy Allocator is unspecified, except that as a minimum the member type
    Alloc::value_type must exist and the expression
    std::declval<Alloc&>().allocate(std::size_t{}) must be well-formed when treated as
    an unevaluated operand.
@@ -76,10 +74,18 @@ deductionguidesforstd::multimap \- deductionguidesforstd::multimap
  #include <map>
  int main() {
  // std::multimap m1 = {{"foo", 1}, {"bar", 2}}; // Error: braced-init-list has no type;
-                                                 // cannot deduce pair<const Key, T> from
+                                                 // cannot deduce pair<Key, T> from
                                                  // {"foo", 1} or {"bar", 2}
-  
-    std::multimap m1 = std::initializer_list<
-                         std::pair<char const* const, int>>({{"foo", 2}, {"bar", 3}}); // guide #2
+
+    std::multimap m1 = {std::pair{"foo", 2}, {"bar", 3}}; // guide #2
     std::multimap m2(m1.begin(), m1.end()); // guide #1
  }
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to           Behavior as published              Correct behavior
+   LWG 3025 C++17      initializer-list guides take               use std::pair<Key, T>
+                       std::pair<const Key, T>
