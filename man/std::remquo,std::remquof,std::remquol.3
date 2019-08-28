@@ -1,0 +1,153 @@
+.TH std::remquo,std::remquof,std::remquol 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::remquo,std::remquof,std::remquol \- std::remquo,std::remquof,std::remquol
+
+.SH Synopsis
+   Defined in header <cmath>
+   float remquo ( float x, float y, int* quo );                   \fB(1)\fP \fI(since C++11)\fP
+   float remquof( float x, float y, int* quo );
+   double remquo ( double x, double y, int* quo );                \fB(2)\fP \fI(since C++11)\fP
+   long double remquo ( long double x, long double y, int* quo ); \fB(3)\fP \fI(since C++11)\fP
+   long double remquol( long double x, long double y, int* quo );
+   Promoted remquo ( Arithmetic1 x, Arithmetic2 y, int* quo );    \fB(4)\fP \fI(since C++11)\fP
+
+   1-3) Computes the floating-point remainder of the division operation x/y as the
+   std::remainder() function does. Additionally, the sign and at least the three of the
+   last bits of x/y will be stored in quo, sufficient to determine the octant of the
+   result within a period.
+   4) A set of overloads or a function template for all combinations of arguments of
+   arithmetic type not covered by (1-3). If any non-pointer argument has integral type,
+   it is cast to double. If any other non-pointer argument is long double, then the
+   return type is long double, otherwise it is double.
+
+.SH Parameters
+
+   x, y - floating point values
+   quo  - pointer to an integer value to store the sign and some bits of x/y
+
+.SH Return value
+
+   If successful, returns the floating-point remainder of the division x/y as defined
+   in std::remainder, and stores, in *quo, the sign and at least three of the least
+   significant bits of x/y (formally, stores a value whose sign is the sign of x/y and
+   whose magnitude is congruent modulo 2n
+   to the magnitude of the integral quotient of x/y, where n is an
+   implementation-defined integer greater than or equal to 3).
+
+   If y is zero, the value stored in *quo is unspecified.
+
+   If a domain error occurs, an implementation-defined value is returned (NaN where
+   supported)
+
+   If a range error occurs due to underflow, the correct result is returned if
+   subnormals are supported.
+
+   If y is zero, but the domain error does not occur, zero is returned.
+
+.SH Error handling
+
+   Errors are reported as specified in math_errhandling.
+
+   Domain error may occur if y is zero.
+
+   If the implementation supports IEEE floating-point arithmetic (IEC 60559),
+
+     * The current rounding mode has no effect.
+     * FE_INEXACT is never raised
+     * If x is ±∞ and y is not NaN, NaN is returned and FE_INVALID is raised
+     * If y is ±0 and x is not NaN, NaN is returned and FE_INVALID is raised
+     * If either x or y is NaN, NaN is returned
+
+.SH Notes
+
+   POSIX requires that a domain error occurs if x is infinite or y is zero.
+
+   This function is useful when implementing periodic functions with the period exactly
+   representable as a floating-point value: when calculating sin(πx) for a very large
+   x, calling std::sin directly may result in a large error, but if the function
+   argument is first reduced with std::remquo, the low-order bits of the quotient may
+   be used to determine the sign and the octant of the result within the period, while
+   the remainder may be used to calculate the value with high precision.
+
+   On some platforms this operation is supported by hardware (and, for example, on
+   Intel CPUs, FPREM1 leaves exactly 3 bits of precision in the quotient when
+   complete).
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <cmath>
+ #include <cfenv>
+
+ #pragma STDC FENV_ACCESS ON
+ const double pi = std::acos(-1);
+ double cos_pi_x_naive(double x) { return std::cos(pi * x); }
+ // the period is 2, values are (0;0.5) positive, (0.5;1.5) negative, (1.5,2) positive
+ double cos_pi_x_smart(double x)
+ {
+     int quadrant;
+     double rem = std::remquo(x, 1, &quadrant);
+     quadrant = (unsigned)quadrant % 2;  // The period is 2.
+     switch(quadrant) {
+         case 0: return std::cos(pi * rem);
+         case 1: return -std::cos(pi * rem);
+     };
+ }
+ int main()
+ {
+     std::cout << "cos(pi * 0.25) = " << cos_pi_x_naive(0.25) << '\\n'
+               << "cos(pi * 1.25) = " << cos_pi_x_naive(1.25) << '\\n'
+               << "cos(pi * 2.25) = " << cos_pi_x_naive(2.25) << '\\n'
+               << "cos(pi * 0.25) = " << cos_pi_x_smart(0.25) << '\\n'
+               << "cos(pi * 1.25) = " << cos_pi_x_smart(1.25) << '\\n'
+               << "cos(pi * 2.25) = " << cos_pi_x_smart(2.25) << '\\n'
+               << "cos(pi * 1000000000000.25) = "
+               << cos_pi_x_naive(1000000000000.25) << '\\n'
+               << "cos(pi * 1000000000001.25) = "
+               << cos_pi_x_naive(1000000000001.25) << '\\n'
+               << "cos(pi * 1000000000000.25) = "
+               << cos_pi_x_smart(1000000000000.25) << '\\n'
+               << "cos(pi * 1000000000001.25) = "
+               << cos_pi_x_smart(1000000000001.25) << '\\n';
+     // error handling
+     std::feclearexcept(FE_ALL_EXCEPT);
+     int quo;
+     std::cout << "remquo(+Inf, 1) = " << std::remquo(INFINITY, 1, &quo) << '\\n';
+     if(fetestexcept(FE_INVALID)) std::cout << "    FE_INVALID raised\\n";
+ }
+
+.SH Possible output:
+
+ cos(pi * 0.25) = 0.707107
+ cos(pi * 1.25) = -0.707107
+ cos(pi * 2.25) = 0.707107
+ cos(pi * 0.25) = 0.707107
+ cos(pi * 1.25) = -0.707107
+ cos(pi * 2.25) = 0.707107
+ cos(pi * 1000000000000.25) = 0.707123
+ cos(pi * 1000000000001.25) = -0.707117
+ cos(pi * 1000000000000.25) = 0.707107
+ cos(pi * 1000000000001.25) = -0.707107
+ remquo(+Inf, 1) = -nan
+     FE_INVALID raised
+
+.SH See also
+
+   div(int)
+   ldiv       computes quotient and remainder of integer division
+   lldiv      \fI(function)\fP
+   \fI(C++11)\fP
+   fmod
+   fmodf      remainder of the floating point division operation
+   fmodl      \fI(function)\fP
+   \fI(C++11)\fP
+   \fI(C++11)\fP
+   remainder
+   remainderf
+   remainderl signed remainder of the division operation
+   \fI(C++11)\fP    \fI(function)\fP
+   \fI(C++11)\fP
+   \fI(C++11)\fP

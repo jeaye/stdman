@@ -1,4 +1,4 @@
-.TH std::to_address 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::to_address 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::to_address \- std::to_address
 
@@ -25,6 +25,32 @@ std::to_address \- std::to_address
 
    Raw pointer that represents the same address as p does.
 
+.SH Possible implementation
+
+   template<class>
+   struct use_address : std::false_type { };
+
+   template<class T>
+       requires requires(const T& p) { std::pointer_traits<T>::to_address(p); }
+   struct use_address<T> : std::true_type { };
+
+   template<class T>
+   constexpr T* to_address(T* p) noexcept
+   {
+       static_assert(!std::is_function_v<T>);
+       return p;
+   }
+
+   template<class T>
+   auto to_address(const T& p) noexcept
+   {
+       if constexpr (use_address<T>::value) {
+           return std::pointer_traits<T>::to_address(p);
+       } else {
+           return std::to_address(p.operator->());
+       }
+   }
+
 .SH Notes
 
    std::to_address can be used even when p does not reference storage that has an
@@ -37,7 +63,7 @@ std::to_address \- std::to_address
 // Run this code
 
  #include <memory>
-  
+
  template<class A>
  auto allocator_new(A& a)
  {
@@ -50,14 +76,14 @@ std::to_address \- std::to_address
      }
      return p;
  }
-  
+
  template<class A>
  void allocator_delete(A& a, typename std::allocator_traits<A>::pointer p)
  {
      std::allocator_traits<A>::destroy(a, std::to_address(p));
      a.deallocate(p, 1);
  }
-  
+
  int main()
  {
      std::allocator<int> a;
@@ -68,6 +94,6 @@ std::to_address \- std::to_address
 .SH See also
 
    pointer_traits   provides information about pointer-like types
-   \fI(C++11)\fP          \fI(class template)\fP 
+   \fI(C++11)\fP          \fI(class template)\fP
    to_address       obtains a raw pointer from a fancy pointer (inverse of pointer_to)
-   \fB[static]\fP (C++20) \fI(public static member function of std::pointer_traits)\fP 
+   \fB[static]\fP (C++20) \fI(public static member function of std::pointer_traits<Ptr>)\fP

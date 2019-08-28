@@ -1,4 +1,4 @@
-.TH std::thread::thread 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::thread::thread 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::thread::thread \- std::thread::thread
 
@@ -18,7 +18,8 @@ std::thread::thread \- std::thread::thread
    3) Creates new std::thread object and associates it with a thread of execution. The
    new thread of execution starts executing
 
- std::invoke(decay_copy(std::forward<Function>(f)), decay_copy(std::forward<Args>(args))...);
+ std::invoke(decay_copy(std::forward<Function>(f)),
+             decay_copy(std::forward<Args>(args))...);
 
    where decay_copy is defined as
 
@@ -76,7 +77,7 @@ std::thread::thread \- std::thread::thread
  #include <utility>
  #include <thread>
  #include <chrono>
-  
+
  void f1(int n)
  {
      for (int i = 0; i < 5; ++i) {
@@ -85,7 +86,7 @@ std::thread::thread \- std::thread::thread
          std::this_thread::sleep_for(std::chrono::milliseconds(10));
      }
  }
-  
+
  void f2(int& n)
  {
      for (int i = 0; i < 5; ++i) {
@@ -94,32 +95,78 @@ std::thread::thread \- std::thread::thread
          std::this_thread::sleep_for(std::chrono::milliseconds(10));
      }
  }
-  
+
+ class foo
+ {
+ public:
+     void bar()
+     {
+         for (int i = 0; i < 5; ++i) {
+             std::cout << "Thread 3 executing\\n";
+             ++n;
+             std::this_thread::sleep_for(std::chrono::milliseconds(10));
+         }
+     }
+     int n = 0;
+ };
+
+ class baz
+ {
+ public:
+     void operator()()
+     {
+         for (int i = 0; i < 5; ++i) {
+             std::cout << "Thread 4 executing\\n";
+             ++n;
+             std::this_thread::sleep_for(std::chrono::milliseconds(10));
+         }
+     }
+     int n = 0;
+ };
+
  int main()
  {
      int n = 0;
+     foo f;
+     baz b;
      std::thread t1; // t1 is not a thread
      std::thread t2(f1, n + 1); // pass by value
      std::thread t3(f2, std::ref(n)); // pass by reference
      std::thread t4(std::move(t3)); // t4 is now running f2(). t3 is no longer a thread
+     std::thread t5(&foo::bar, &f); // t5 runs foo::bar() on object f
+     std::thread t6(b); // t6 runs baz::operator() on object b
      t2.join();
      t4.join();
+     t5.join();
+     t6.join();
      std::cout << "Final value of n is " << n << '\\n';
+     std::cout << "Final value of foo::n is " << f.n << '\\n';
  }
 
 .SH Possible output:
 
  Thread 1 executing
  Thread 2 executing
+ Thread 3 executing
+ Thread 4 executing
+ Thread 3 executing
  Thread 1 executing
  Thread 2 executing
+ Thread 4 executing
+ Thread 2 executing
+ Thread 3 executing
  Thread 1 executing
+ Thread 4 executing
+ Thread 3 executing
  Thread 2 executing
  Thread 1 executing
- Thread 2 executing
- Thread 2 executing
+ Thread 4 executing
+ Thread 3 executing
  Thread 1 executing
+ Thread 2 executing
+ Thread 4 executing
  Final value of n is 5
+ Final value of foo::n is 5
 
 .SH References
 
@@ -128,6 +175,3 @@ std::thread::thread \- std::thread::thread
      * 30.3.1.2 thread constructors [thread.thread.constr]
 
 .SH See also
-
-   C documentation for
-   thrd_create

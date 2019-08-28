@@ -1,0 +1,62 @@
+.TH std::basic_ios<CharT,Traits>::copyfmt 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::basic_ios<CharT,Traits>::copyfmt \- std::basic_ios<CharT,Traits>::copyfmt
+
+.SH Synopsis
+   basic_ios& copyfmt(const basic_ios& other);
+
+   If other refers to the same object as *this, has no effects. Otherwise, copies the
+   state of the stream other into *this. This is done in the following sequence:
+
+   1) Calls every callback registered by register_callback() passing erase_event as
+   parameter
+   2) Copies all member objects from other to *this except for rdstate(), the exception
+   mask, and rdbuf(). In particular, makes copies of the locale, the formatting flags,
+   the contents of the arrays std::ios_base::iword and std::ios_base::pword (but not
+   the iword and pword pointers themselves), the callbacks, and the tied stream.
+   3) Calls every callback registered by register_callback() passing copyfmt_event as
+   parameter
+   4) Copies the exception mask from other to *this as if by calling
+   exceptions(other.exceptions())
+
+.SH Parameters
+
+   other - another stream to use as source
+
+.SH Return value
+
+   *this
+
+.SH Notes
+
+   The second pass through the callbacks may be used to deep-copy the user-defined
+   objects pointed to by the pointers in std::ios_base::pword
+
+   copyfmt() may be used to save and restore the state of a stream. Boost provides a
+   more fine-grained IO state savers library for the same purpose.
+
+.SH Example
+
+   makes the ofstream object "out" behave exactly like std::cout, including formatting,
+   tie() to std::cin, etc.
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <fstream>
+
+ int main()
+ {
+     std::ofstream out;
+
+     out.copyfmt(std::cout); // copy everything except rdstate and rdbuf
+     out.clear(std::cout.rdstate()); // copy rdstate
+     out.basic_ios<char>::rdbuf(std::cout.rdbuf()); // share the buffer
+
+     out << "Hello, world\\n";
+ }
+
+.SH Output:
+
+ Hello, world

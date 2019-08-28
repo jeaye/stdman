@@ -1,0 +1,140 @@
+.TH std::uses_allocator_construction_args 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::uses_allocator_construction_args \- std::uses_allocator_construction_args
+
+.SH Synopsis
+   Defined in header <memory>
+   T is not a specialization of std::pair
+   template< class T, class Alloc, class... Args >
+
+   std::tuple</*see below*/> uses_allocator_construction_args(        \fB(1)\fP \fI(since C++20)\fP
+
+   const Alloc& alloc, Args&&... args);
+   T is a specialization of std::pair
+   template< class T, class Alloc, class Tuple1, class Tuple2 >
+
+   std::tuple</*see below*/> uses_allocator_construction_args(        \fB(2)\fP \fI(since C++20)\fP
+
+   const Alloc& alloc, std::piecewise_construct_t, Tuple1&& x,
+   Tuple2&& y);
+   template< class T, class Alloc >
+   std::tuple</*see below*/> uses_allocator_construction_args( const  \fB(3)\fP \fI(since C++20)\fP
+   Alloc& alloc );
+   template< class T, class Alloc, class U, class V >
+
+   std::tuple</*see below*/> uses_allocator_construction_args(        \fB(4)\fP \fI(since C++20)\fP
+
+   const Alloc& alloc, U&& u, V&& v);
+   template< class T, class Alloc, class U, class V >
+
+   std::tuple</*see below*/> uses_allocator_construction_args(        \fB(5)\fP \fI(since C++20)\fP
+
+   const Alloc& alloc, const std::pair<U,V>& pr);
+   template< class T, class Alloc, class U, class V >
+
+   std::tuple</*see below*/> uses_allocator_construction_args(        \fB(6)\fP \fI(since C++20)\fP
+
+   const Alloc& alloc, std::pair<U,V>&& pr);
+
+   Prepares the argument list needed to create an object of the given type T by means
+   of uses-allocator construction.
+
+   1) This overload only participates in overload resolution if T is not a
+   specialization of std::pair. Returns std::tuple determined as follows:
+
+     * If std::uses_allocator_v<T, Alloc> is false and std::is_constructible_v<T,
+       Args...> is true, returns std::forward_as_tuple(std::forward<Args>(args)...)
+     * Otherwise, if std::uses_allocator_v<T, Alloc> is true and
+       std::is_constructible_v<T, std::allocator_arg_t, Alloc, Args...> is true,
+       returns std::tuple<std::allocator_arg_t, const Alloc&,
+       Args&&...>(std::allocator_arg, alloc, std::forward<Args>(args)...)
+     * Otherwise, if std::uses_allocator_v<T, Alloc> is true and
+       std::is_constructible_v<T, Args..., Alloc> is true, returns
+       std::forward_as_tuple(std::forward<Args>(args)..., alloc)
+     * Otherwise, the program is ill-formed
+
+   2) This overload only participates in overload resolution if T is a specialization
+   of std::pair. For T = std::pair<T1, T2>, equivalent to
+
+ return std::make_tuple( std::piecewise_construct,
+     std::apply( [&alloc](auto&&... args1) {
+             return std::uses_allocator_construction_args<T1>( alloc,
+                        std::forward<decltype(args1)>(args1)...);
+         }, std::forward<Tuple1>(x)),
+     std::apply( [&alloc](auto&&... args2) {
+             return std::uses_allocator_construction_args<T2>( alloc,
+                     std::forward<decltype(args2)>(args2)...);
+         }, std::forward<Tuple2>(y))
+     );
+
+   3) This overload only participates in overload resolution if T is a specialization
+   of std::pair. Equivalent to
+
+ return std::uses_allocator_construction_args<T>(alloc,
+     std::piecewise_construct, std::tuple<>{}, std::tuple<>{}
+ );
+
+   4) This overload only participates in overload resolution if T is a specialization
+   of std::pair. Equivalent to
+
+ return std::uses_allocator_construction_args<T>( alloc,
+     std::piecewise_construct,
+     std::forward_as_tuple(std::forward<U>(u)),
+     std::forward_as_tuple(std::forward<V>(v))
+ );
+
+   5) This overload only participates in overload resolution if T is a specialization
+   of std::pair. Equivalent to
+
+ return std::uses_allocator_construction_args<T>( alloc,
+     std::piecewise_construct,
+     std::forward_as_tuple(pr.first),
+     std::forward_as_tuple(pr.second)
+ );
+
+   6) This overload only participates in overload resolution if T is a specialization
+   of std::pair. Equivalent to
+
+ return std::uses_allocator_construction_args<T>( alloc,
+     std::piecewise_construct,
+     std::forward_as_tuple(std::move(pr).first),
+     std::forward_as_tuple(std::move(pr).second));
+
+.SH Parameters
+
+   alloc - the allocator to use.
+   args  - the arguments to pass to T's constructor
+   x     - tuple of arguments to pass to the constructors of T's .first
+   y     - tuple of arguments to pass to the constructors of T's .second
+   u     - single argument to pass to the constructor of T's .first
+   v     - single argument to pass to the constructor of T's .second
+   pr    - a pair whose .first will be passed to the constructor of T's .first and
+           .second will be passed to the constructor of T's .second
+
+.SH Return value
+
+   std::tuple of arguments suitable for passing to the constructor of T
+
+.SH Example
+
+    This section is incomplete
+    Reason: no example
+
+.SH Notes
+
+   The overloads (2-6) provide allocator propagation into std::pair, which supports
+   neither leading-allocator nor trailing-allocator calling conventions (unlike, e.g.
+   std::tuple, which uses leading-allocator convention)
+
+.SH See also
+
+   uses_allocator                          checks if the specified type supports
+   \fI(C++11)\fP                                 uses-allocator construction
+                                           \fI(class template)\fP
+   make_obj_using_allocator                creates an object of the given type by means
+   (C++20)                                 of uses-allocator construction
+                                           \fI(function template)\fP
+                                           creates an object of the given type at
+   uninitialized_construct_using_allocator specified memory location by means of
+   (C++20)                                 uses-allocator construction
+                                           \fI(function template)\fP

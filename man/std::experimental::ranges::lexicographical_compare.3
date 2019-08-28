@@ -1,0 +1,98 @@
+.TH std::experimental::ranges::lexicographical_compare 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::experimental::ranges::lexicographical_compare \- std::experimental::ranges::lexicographical_compare
+
+.SH Synopsis
+   Defined in header <experimental/ranges/algorithm>
+   template< InputIterator I1, Sentinel<I1> S1, InputIterator I2,
+   Sentinel<I2> S2,
+
+   class Proj1 = ranges::identity, class Proj2 = ranges::identity,
+   class Comp = ranges::less<> >
+   requires IndirectStrictWeakOrder<Comp, projected<I1, Proj1>,         \fB(1)\fP (ranges TS)
+   projected<I2, Proj2>>
+   bool lexicographical_compare(I1 first1, S1 last1, I2 first2, S2
+   last2,
+   Comp comp = Comp{},
+
+   Proj1 proj1 = Proj1{}, Proj2 proj2 = Proj2{});
+   template< InputRange R1, InputRange R2,
+
+   class Proj1 = ranges::identity, class Proj2 = ranges::identity,
+   class Comp = ranges::less<> >
+   requires IndirectStrictWeakOrder<Comp,                               \fB(2)\fP (ranges TS)
+   projected<ranges::iterator_t<R1>, Proj1>,
+   projected<ranges::iterator_t<R2>, Proj2>>
+   bool lexicographical_compare(R1&& r1, R2&& r2, Comp comp = Comp{},
+
+   Proj1 proj1 = Proj1{}, Proj2 proj2 = Proj2{});
+
+   1) Checks if the first range [first1, last1) is lexicographically less than the
+   second range [first2, last2). Elements are compared using the given binary
+   comparison function comp, after being projected with proj1 and proj2 respectively.
+   2) Same as \fB(1)\fP, but uses r1 as the first source range and r2 as the second source
+   range, as if using ranges::begin(r1) as first1, ranges::end(r1) as last1,
+   ranges::begin(r2) as first2, and ranges::end(r2) as last2.
+
+   Lexicographical comparison is a operation with the following properties:
+
+     * Two ranges are compared element by element.
+     * The first mismatching element defines which range is lexicographically less or
+       greater than the other.
+     * If one range is a prefix of another, the shorter range is lexicographically less
+       than the other.
+     * If two ranges have equivalent elements and are of the same length, then the
+       ranges are lexicographically equal.
+     * An empty range is lexicographically less than any non-empty range.
+     * Two empty ranges are lexicographically equal.
+
+.SH Parameters
+
+   first1, last1 - the first range of elements to examine
+   r1            - the first range of elements to examine
+   first2, last2 - the second range of elements to examine
+   r2            - the second range of elements to examine
+   comp          - comparison function to apply to the projected elements
+   proj1         - projection to apply to the elements in the first range
+   proj2         - projection to apply to the elements in the second range
+
+.SH Return value
+
+   true if the first range is lexicographically less than the second.
+
+.SH Complexity
+
+   At most 2·min(N1, N2) applications of the comparison operation, where N1 = last1 -
+   first1 and N2 = last2 - first2.
+
+.SH Possible implementation
+
+  template< InputIterator I1, Sentinel<I1> S1, InputIterator I2, Sentinel<I2> S2,
+            class Proj1 = ranges::identity, class Proj2 = ranges::identity,
+            class Comp = ranges::less<> >
+    requires IndirectStrictWeakOrder<Comp, projected<I1, Proj1>, projected<I2, Proj2>>
+  bool lexicographical_compare(I1 first1, S1 last1, I2 first2, S2 last2,
+                               Comp comp = Comp{},
+                               Proj1 proj1 = Proj1{}, Proj2 proj2 = Proj2{})
+  {
+      for ( ; (first1 != last1) && (first2 != last2); (void) ++first1, (void) ++first2 ) {
+          if (ranges::invoke(comp, ranges::invoke(proj1, *first1),
+                                   ranges::invoke(proj2, *first2))) return true;
+          if (ranges::invoke(comp, ranges::invoke(proj2, *first2),
+                                   ranges::invoke(proj1, *first1))) return false;
+      }
+      return (first1 == last1) && (first2 != last2);
+  }
+
+.SH Example
+
+    This section is incomplete
+    Reason: no example
+
+.SH See also
+
+                           returns true if one range is lexicographically less than
+   lexicographical_compare another
+                           \fI(function template)\fP
+   equal                   determines if two sets of elements are the same
+                           \fI(function template)\fP

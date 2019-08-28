@@ -1,0 +1,67 @@
+.TH std::enable_shared_from_this<T>::shared_from_this 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::enable_shared_from_this<T>::shared_from_this \- std::enable_shared_from_this<T>::shared_from_this
+
+.SH Synopsis
+   shared_ptr<T> shared_from_this();             \fB(1)\fP
+   shared_ptr<T const> shared_from_this() const; \fB(2)\fP
+
+   Returns a std::shared_ptr<T> that shares ownership of *this with all existing
+   std::shared_ptr that refer to *this.
+
+   Effectively executes std::shared_ptr<T>(weak_this), where weak_this is the private
+   mutable std::weak_ptr<T> member of enable_shared_from_this.
+
+.SH Notes
+
+   It is permitted to call shared_from_this only on a previously shared object, i.e. on
+   an object managed by std::shared_ptr (in particular, shared_from_this cannot be
+   called during construction of *this).
+
+   Otherwise
+   the behavior is undefined
+   \fI(until C++17)\fP
+   std::bad_weak_ptr is thrown (by the shared_ptr constructor from a
+   default-constructed weak_this)
+   \fI(since C++17)\fP.
+
+.SH Return value
+
+   std::shared_ptr<T> that shares ownership of *this with pre-existing std::shared_ptrs
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <memory>
+
+ struct Foo : public std::enable_shared_from_this<Foo> {
+     Foo() { std::cout << "Foo::Foo\\n"; }
+     ~Foo() { std::cout << "Foo::~Foo\\n"; }
+     std::shared_ptr<Foo> getFoo() { return shared_from_this(); }
+ };
+
+ int main() {
+     Foo *f = new Foo;
+     std::shared_ptr<Foo> pf1;
+
+     {
+         std::shared_ptr<Foo> pf2(f);
+         pf1 = pf2->getFoo();  // shares ownership of object with pf2
+     }
+
+     std::cout << "pf2 is gone\\n";
+ }
+
+.SH Output:
+
+ Foo::Foo
+ pf2 is gone
+ Foo::~Foo
+
+.SH See also
+
+   shared_ptr smart pointer with shared object ownership semantics
+   \fI(C++11)\fP    \fI(class template)\fP

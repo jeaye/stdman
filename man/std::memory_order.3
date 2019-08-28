@@ -1,4 +1,4 @@
-.TH std::memory_order 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::memory_order 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::memory_order \- std::memory_order
 
@@ -6,23 +6,23 @@ std::memory_order \- std::memory_order
    Defined in header <atomic>
    typedef enum memory_order {
 
-       memory_order_relaxed,
-       memory_order_consume,
-       memory_order_acquire,                                          \fB(1)\fP \fI(since C++11)\fP
-       memory_order_release,                                              \fI(until C++20)\fP
-       memory_order_acq_rel,
-       memory_order_seq_cst
+   memory_order_relaxed,
+   memory_order_consume,
+   memory_order_acquire,                                                  \fI(since C++11)\fP
+   memory_order_release,                                                  \fI(until C++20)\fP
+   memory_order_acq_rel,
+   memory_order_seq_cst
 
    } memory_order;
    enum class memory_order : /*unspecified*/ {
 
-       relaxed, consume, acquire, release, acq_rel, seq_cst
+   relaxed, consume, acquire, release, acq_rel, seq_cst
    };
    inline constexpr memory_order memory_order_relaxed =
    memory_order::relaxed;
    inline constexpr memory_order memory_order_consume =
    memory_order::consume;
-   inline constexpr memory_order memory_order_acquire =               \fB(2)\fP \fI(since C++20)\fP
+   inline constexpr memory_order memory_order_acquire =                   \fI(since C++20)\fP
    memory_order::acquire;
    inline constexpr memory_order memory_order_release =
    memory_order::release;
@@ -32,13 +32,14 @@ std::memory_order \- std::memory_order
    inline constexpr memory_order memory_order_seq_cst =
    memory_order::seq_cst;
 
-   std::memory_order specifies how regular, non-atomic memory accesses are to be
-   ordered around an atomic operation. Absent any constraints on a multi-core system,
-   when multiple threads simultaneously read and write to several variables, one thread
-   can observe the values change in an order different from the order another thread
-   wrote them. Indeed, the apparent order of changes can even differ among multiple
-   reader threads. Some similar effects can occur even on uniprocessor systems due to
-   compiler transformations allowed by the memory model.
+   std::memory_order specifies how memory accesses, including regular, non-atomic
+   memory accesses, are to be ordered around an atomic operation. Absent any
+   constraints on a multi-core system, when multiple threads simultaneously read and
+   write to several variables, one thread can observe the values change in an order
+   different from the order another thread wrote them. Indeed, the apparent order of
+   changes can even differ among multiple reader threads. Some similar effects can
+   occur even on uniprocessor systems due to compiler transformations allowed by the
+   memory model.
 
    The default behavior of all atomic operations in the library provides for
    sequentially consistent ordering (see discussion below). That default can hurt
@@ -139,7 +140,8 @@ std::memory_order \- std::memory_order
    After a release operation A is performed on an atomic object M, the longest
    continuous subsequence of the modification order of M that consists of
 
-   1) Writes performed by the same thread that performed A
+   1) Writes performed by the same thread that performed A \fI(until C++20)\fP
+
    2) Atomic read-modify-write operations made to M by any thread
 
    is known as release sequence headed by A
@@ -182,6 +184,43 @@ std::memory_order \- std::memory_order
    same memory location, and if at least one of the evaluations is not an atomic
    operation, the behavior of the program is undefined (the program has a data race)
    unless there exists a happens-before relationship between these two evaluations.
+
+       Strongly happens-before
+
+   Regardless of threads, evaluation A strongly happens-before evaluation
+   B if any of the following is true:                                     \fI(until C++20)\fP
+
+   1) A is sequenced-before B
+   2) A synchronizes-with B
+   3) A strongly happens-before X, and X strongly happens-before B
+       Simply happens-before
+
+   Regardless of threads, evaluation A simply happens-before evaluation B
+   if any of the following is true:
+
+   1) A is sequenced-before B
+   2) A synchronizes-with B
+   3) A simply happens-before X, and X simply happens-before B
+
+   Note: without consume operations, simply happens-before and
+   happens-before relations are the same.
+
+       Strongly happens-before
+                                                                          \fI(since C++20)\fP
+   Regardless of threads, evaluation A strongly happens-before evaluation
+   B if any of the following is true:
+
+   1) A is sequenced-before B
+   2) A synchronizes with B, and both A and B are sequentially consistent
+   atomic operations
+   3) A is sequenced-before X, X simply happens-before Y, and Y is
+   sequenced-before B
+   4) A strongly happens-before X, and X strongly happens-before B
+
+   Note: informally, if A strongly happens-before B, then A appears to be
+   evaluated before B in all contexts.
+
+   Note: strongly happens-before excludes consume operations.
 
 .SH Visible side-effects
 
@@ -232,35 +271,35 @@ std::memory_order \- std::memory_order
    For example, with x and y initially zero,
 
  // Thread 1:
- r1 = y.load(memory_order_relaxed); // A
- x.store(r1, memory_order_relaxed); // B
+ r1 = y.load(std::memory_order_relaxed); // A
+ x.store(r1, std::memory_order_relaxed); // B
  // Thread 2:
- r2 = x.load(memory_order_relaxed); // C
- y.store(42, memory_order_relaxed); // D
+ r2 = x.load(std::memory_order_relaxed); // C
+ y.store(42, std::memory_order_relaxed); // D
 
    is allowed to produce r1 == r2 == 42 because, although A is sequenced-before B
    within thread 1 and C is sequenced before D within thread 2, nothing prevents D from
    appearing before A in the modification order of y, and B from appearing before C in
    the modification order of x. The side-effect of D on y could be visible to the load
-   A in Thread 1 while the side effect of B on x could be visible to the load C in
-   Thread 2. In particular, this may occur if D is completed before C in thread 2,
+   A in thread 1 while the side effect of B on x could be visible to the load C in
+   thread 2. In particular, this may occur if D is completed before C in thread 2,
    either due to compiler reordering or at runtime.
 
-   Even with relaxed memory model, out-of-thin-air values are not allowed
-   to circularly depend on their own computations, for example, with x
-   and y initially zero,
+   Even with relaxed memory model, out-of-thin-air values are not allowed to
+   circularly depend on their own computations, for example, with x and y
+   initially zero,
 
    // Thread 1:
-   r1 = x.load(memory_order_relaxed);
-   if (r1 == 42) y.store(r1, memory_order_relaxed);
-   // Thread 2:                                                           \fI(since C++14)\fP
-   r2 = y.load(memory_order_relaxed);
-   if (r2 == 42) x.store(42, memory_order_relaxed);
+   r1 = x.load(std::memory_order_relaxed);
+   if (r1 == 42) y.store(r1, std::memory_order_relaxed);                         (since
+   // Thread 2:                                                                  C++14)
+   r2 = y.load(std::memory_order_relaxed);
+   if (r2 == 42) x.store(42, std::memory_order_relaxed);
 
-   is not allowed to produce r1 == r2 == 42 since the store of 42 to y is
-   only possible if the store to x stores 42, which circularly depends on
-   the store to y storing 42. Note that until C++14, this was technically
-   allowed by the specification, but not recommended for implementors.
+   is not allowed to produce r1 == r2 == 42 since the store of 42 to y is only
+   possible if the store to x stores 42, which circularly depends on the store
+   to y storing 42. Note that until C++14, this was technically allowed by the
+   specification, but not recommended for implementors.
 
    Typical use for relaxed memory ordering is incrementing counters, such as the
    reference counters of std::shared_ptr, since this only requires atomicity, but not
@@ -274,16 +313,16 @@ std::memory_order \- std::memory_order
  #include <iostream>
  #include <thread>
  #include <atomic>
-  
+
  std::atomic<int> cnt = {0};
-  
+
  void f()
  {
      for (int n = 0; n < 1000; ++n) {
          cnt.fetch_add(1, std::memory_order_relaxed);
      }
  }
-  
+
  int main()
  {
      std::vector<std::thread> v;
@@ -334,17 +373,17 @@ std::memory_order \- std::memory_order
  #include <atomic>
  #include <cassert>
  #include <string>
-  
+
  std::atomic<std::string*> ptr;
  int data;
-  
+
  void producer()
  {
      std::string* p  = new std::string("Hello");
      data = 42;
      ptr.store(p, std::memory_order_release);
  }
-  
+
  void consumer()
  {
      std::string* p2;
@@ -353,7 +392,7 @@ std::memory_order \- std::memory_order
      assert(*p2 == "Hello"); // never fires
      assert(data == 42); // never fires
  }
-  
+
  int main()
  {
      std::thread t1(producer);
@@ -371,16 +410,16 @@ std::memory_order \- std::memory_order
  #include <atomic>
  #include <cassert>
  #include <vector>
-  
+
  std::vector<int> data;
  std::atomic<int> flag = {0};
-  
+
  void thread_1()
  {
      data.push_back\fB(42)\fP;
      flag.store(1, std::memory_order_release);
  }
-  
+
  void thread_2()
  {
      int expected=1;
@@ -388,14 +427,14 @@ std::memory_order \- std::memory_order
          expected = 1;
      }
  }
-  
+
  void thread_3()
  {
      while (flag.load(std::memory_order_acquire) < 2)
          ;
      assert(data.at\fB(0)\fP == 42); // will never fire
  }
-  
+
  int main()
  {
      std::thread a(thread_1);
@@ -452,17 +491,17 @@ std::memory_order \- std::memory_order
  #include <atomic>
  #include <cassert>
  #include <string>
-  
+
  std::atomic<std::string*> ptr;
  int data;
-  
+
  void producer()
  {
      std::string* p  = new std::string("Hello");
      data = 42;
      ptr.store(p, std::memory_order_release);
  }
-  
+
  void consumer()
  {
      std::string* p2;
@@ -471,7 +510,7 @@ std::memory_order \- std::memory_order
      assert(*p2 == "Hello"); // never fires: *p2 carries dependency from ptr
      assert(data == 42); // may or may not fire: data does not carry dependency from ptr
  }
-  
+
  int main()
  {
      std::thread t1(producer);
@@ -488,49 +527,118 @@ std::memory_order \- std::memory_order
 
    Formally,
 
-   Each memory_order_seq_cst operation B that loads from atomic variable M, observes
-   one of the following:
+   Each memory_order_seq_cst operation B that loads from atomic variable M,
+   observes one of the following:
 
-     * the result of the last operation A that modified M, which appears before B in
-       the single total order
-     * OR, if there was such an A, B may observe the result of some modification on M
-       that is not memory_order_seq_cst and does not happen-before A
+     * the result of the last operation A that modified M, which appears before
+       B in the single total order
+     * OR, if there was such an A, B may observe the result of some modification
+       on M that is not memory_order_seq_cst and does not happen-before A
      * OR, if there wasn't such an A, B may observe the result of some unrelated
        modification of M that is not memory_order_seq_cst
 
    If there was a memory_order_seq_cst std::atomic_thread_fence operation X
    sequenced-before B, then B observes one of the following:
 
-     * the last memory_order_seq_cst modification of M that appears before X in the
-       single total order
-     * some unrelated modification of M that appears later in M's modification order
+     * the last memory_order_seq_cst modification of M that appears before X in
+       the single total order
+     * some unrelated modification of M that appears later in M's modification
+       order
 
-   For a pair of atomic operations on M called A and B, where A writes and B reads M's
-   value, if there are two memory_order_seq_cst std::atomic_thread_fences X and Y, and
-   if A is sequenced-before X, Y is sequenced-before B, and X appears before Y in the
-   Single Total Order, then B observes either:
+   For a pair of atomic operations on M called A and B, where A writes and B
+   reads M's value, if there are two memory_order_seq_cst
+   std::atomic_thread_fences X and Y, and if A is sequenced-before X, Y is
+   sequenced-before B, and X appears before Y in the Single Total Order, then B  (until
+   observes either:                                                              C++20)
 
      * the effect of A
-     * some unrelated modification of M that appears after A in M's modification order
+     * some unrelated modification of M that appears after A in M's modification
+       order
 
-   For a pair of atomic modifications of M called A and B, B occurs after A in M's
-   modification order if
+   For a pair of atomic modifications of M called A and B, B occurs after A in
+   M's modification order if
 
      * there is a memory_order_seq_cst std::atomic_thread_fence X such that A is
        sequenced-before X and X appears before B in the Single Total Order
-     * or, there is a memory_order_seq_cst std::atomic_thread_fence Y such that Y is
-       sequenced-before B and A appears before Y in the Single Total Order
-     * or, there are memory_order_seq_cst std::atomic_thread_fences X and Y such that A
-       is sequenced-before X, Y is sequenced-before B, and X appears before Y in the
-       Single Total Order.
+     * or, there is a memory_order_seq_cst std::atomic_thread_fence Y such that
+       Y is sequenced-before B and A appears before Y in the Single Total Order
+     * or, there are memory_order_seq_cst std::atomic_thread_fences X and Y such
+       that A is sequenced-before X, Y is sequenced-before B, and X appears
+       before Y in the Single Total Order.
 
    Note that this means that:
 
-   1) as soon as atomic operations that are not tagged memory_order_seq_cst enter the
-   picture, the sequential consistency is lost
-   2) the sequentially-consistent fences are only establishing total ordering for the
-   fences themselves, not for the atomic operations in the general case
+   1) as soon as atomic operations that are not tagged memory_order_seq_cst
+   enter the picture, the sequential consistency is lost
+   2) the sequentially-consistent fences are only establishing total ordering
+   for the fences themselves, not for the atomic operations in the general case
    (sequenced-before is not a cross-thread relationship, unlike happens-before)
+   Formally,
+
+   An atomic operation A on some atomic object M is coherence-ordered-before
+   another atomic operation B on M if any of the following is true:
+
+   1) A is a modification, and B reads the value stored by A
+   2) A precedes B in the modification order of M
+   3) A reads the value stored by an atomic modification X, X precedes B in the
+   modification order, and A and B are not the same atomic read-modify-write
+   operation
+   4) A is coherence-ordered-before X, and X is coherence-ordered-before B
+
+   There is a single total order S on all memory_order_seq_cst operations,
+   including fences, that satisfies the following constraints:
+
+   1) if A and B are memory_order_seq_cst operations, and A strongly
+   happens-before B, then A precedes B in S
+   2) for every pair of atomic operations A and B on an object M, where A is
+   coherence-ordered-before B:
+   a) if A and B are both memory_order_seq_cst operations, then A precedes B in
+   S
+   b) if A is a memory_order_seq_cst operation, and B happens-before a
+   memory_order_seq_cst fence Y, then A precedes Y in S
+   c) if a memory_order_seq_cst fence X happens-before A, and B is a
+   memory_order_seq_cst operation, then X precedes B in S
+   d) if a memory_order_seq_cst fence X happens-before A, and B happens-before a
+   memory_order_seq_cst fence Y, then X precedes Y in S
+
+   The formal definition ensures that:
+
+   1) the single total order is consistent with the modification order of any
+   atomic object
+   2) a memory_order_seq_cst load gets its value either from the last            (since
+   memory_order_seq_cst modification, or from some non-memory_order_seq_cst      C++20)
+   modification that does not happen-before preceding memory_order_seq_cst
+   modifications
+
+   The single total order might not be consistent with happens-before. This
+   allows more efficient implementation of memory_order_acquire and
+   memory_order_release on some CPUs. It can produce surprising results when
+   memory_order_acquire and memory_order_release are mixed with
+   memory_order_seq_cst.
+
+   For example, with x and y initially zero,
+
+   // Thread 1:
+   x.store(1, std::memory_order_seq_cst); // A
+   y.store(1, std::memory_order_release); // B
+   // Thread 2:
+   r1 = y.fetch_add(1, std::memory_order_seq_cst); // C
+   r2 = y.load(std::memory_order_relaxed); // D
+   // Thread 3:
+   y.store(3, std::memory_order_seq_cst); // E
+   r3 = x.load(std::memory_order_seq_cst); // F
+
+   is allowed to produce r1 == 1 && r2 == 3 && r3 == 0, where A happens-before
+   C, but C precedes A in the single total order C-E-F-A of memory_order_seq_cst
+   (see Lahav et al).
+
+   Note that:
+
+   1) as soon as atomic operations that are not tagged memory_order_seq_cst
+   enter the picture, the sequential consistency guarantee for the program is
+   lost
+   2) in many cases, memory_order_seq_cst atomic operations are reorderable with
+   respect to other atomic operations performed by the same thread
 
    Sequential ordering may be necessary for multiple producer-multiple consumer
    situations where all consumers must observe the actions of all producers occurring
@@ -550,21 +658,21 @@ std::memory_order \- std::memory_order
  #include <thread>
  #include <atomic>
  #include <cassert>
-  
+
  std::atomic<bool> x = {false};
  std::atomic<bool> y = {false};
  std::atomic<int> z = {0};
-  
+
  void write_x()
  {
      x.store(true, std::memory_order_seq_cst);
  }
-  
+
  void write_y()
  {
      y.store(true, std::memory_order_seq_cst);
  }
-  
+
  void read_x_then_y()
  {
      while (!x.load(std::memory_order_seq_cst))
@@ -573,7 +681,7 @@ std::memory_order \- std::memory_order
          ++z;
      }
  }
-  
+
  void read_y_then_x()
  {
      while (!y.load(std::memory_order_seq_cst))
@@ -582,7 +690,7 @@ std::memory_order \- std::memory_order
          ++z;
      }
  }
-  
+
  int main()
  {
      std::thread a(write_x);
@@ -614,8 +722,6 @@ std::memory_order \- std::memory_order
 
 .SH See also
 
-   C documentation for
-   memory order
 
 .SH External links
 
@@ -630,7 +736,3 @@ std::memory_order \- std::memory_order
        al, 2012
      * MESIF: A Two-Hop Cache Coherency Protocol for Point-to-Point Interconnects J.R.
        Goodman, H.H.J. Hum, 2009
-
-.SH Category:
-
-     * Todo with reason

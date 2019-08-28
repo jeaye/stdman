@@ -1,4 +1,4 @@
-.TH std::experimental::ranges::copy,std::experimental::ranges::copy_if 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::experimental::ranges::copy,std::experimental::ranges::copy_if 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::experimental::ranges::copy,std::experimental::ranges::copy_if \- std::experimental::ranges::copy,std::experimental::ranges::copy_if
 
@@ -6,37 +6,37 @@ std::experimental::ranges::copy,std::experimental::ranges::copy_if \- std::exper
    Defined in header <experimental/ranges/algorithm>
    template< InputIterator I, Sentinel<I> S, WeaklyIncrementable O >
 
-     requires IndirectlyCopyable<I, O>                                  \fB(1)\fP (ranges TS)
+   requires IndirectlyCopyable<I, O>                                    \fB(1)\fP (ranges TS)
    ranges::tagged_pair<tag::in(I), tag::out(O)>
 
-     copy(I first, S last, O result);
-   template< InputRange Rng, WeaklyIncrementable O >
+   copy(I first, S last, O result);
+   template< InputRange R, WeaklyIncrementable O >
 
-     requires IndirectlyCopyable<ranges::iterator_t<Rng>, O>
-   ranges::tagged_pair<tag::in(ranges::safe_iterator_t<Rng>),           \fB(2)\fP (ranges TS)
+   requires IndirectlyCopyable<ranges::iterator_t<R>, O>
+   ranges::tagged_pair<tag::in(ranges::safe_iterator_t<R>),             \fB(2)\fP (ranges TS)
    tag::out(O)>
 
-     copy(Rng&& rng, O result);
+   copy(R&& r, O result);
    template< InputIterator I, Sentinel<I> S, WeaklyIncrementable O,
 
-             class Proj = ranges::identity,
-             IndirectUnaryPredicate<projected<I, Proj>> Pred >          \fB(3)\fP (ranges TS)
-     requires IndirectlyCopyable<I, O>
+   class Proj = ranges::identity,
+   IndirectUnaryPredicate<projected<I, Proj>> Pred >                    \fB(3)\fP (ranges TS)
+   requires IndirectlyCopyable<I, O>
    ranges::tagged_pair<tag::in(I), tag::out(O)>
 
-     copy_if(I first, S last, O result, Pred pred, Proj proj = Proj{});
-   template< InputRange Rng, WeaklyIncrementable O,
+   copy_if(I first, S last, O result, Pred pred, Proj proj = Proj{});
+   template< InputRange R, WeaklyIncrementable O,
 
-             class Proj = ranges::identity,
-             IndirectUnaryPredicate<projected<ranges::iterator_t<Rng>,
-   Proj>> Pred >                                                        \fB(4)\fP (ranges TS)
-     requires IndirectlyCopyable<iterator_t<Rng>, O>
-   ranges::tagged_pair<tag::in(ranges::safe_iterator_t<Rng>),
+   class Proj = ranges::identity,
+   IndirectUnaryPredicate<projected<ranges::iterator_t<R>, Proj>> Pred
+   >                                                                    \fB(4)\fP (ranges TS)
+   requires IndirectlyCopyable<iterator_t<R>, O>
+   ranges::tagged_pair<tag::in(ranges::safe_iterator_t<R>),
    tag::out(O)>
 
-     copy_if(Rng&& rng, O result, Pred pred, Proj proj = Proj{});
+   copy_if(R&& r, O result, Pred pred, Proj proj = Proj{});
 
-   Copies elements in the source range ([first,last) or rng) into the destination range
+   Copies elements in the source range ([first,last) or r) into the destination range
    beginning at result, starting from the first element in the source range and
    proceeding to the last one.
 
@@ -44,21 +44,26 @@ std::experimental::ranges::copy,std::experimental::ranges::copy_if \- std::exper
    (last - first), performs *(result + n) = *(first + n). The behavior is undefined if
    result is within the range [first, last). In this case, ranges::copy_backward may be
    used instead.
-   2) Same as \fB(1)\fP, but uses rng as the source range, as if by
-   ranges::copy(ranges::begin(rng), ranges::end(rng), result); except that result may
-   not be copied.
+   2) Same as \fB(1)\fP, but uses r as the source range, as if by
+   ranges::copy(ranges::begin(r), ranges::end(r), result); except that result may not
+   be copied.
    3) Only copies the elements for which the predicate pred returns true when applied
    to the element's value as projected by the projection proj. The order of the
    elements that are copied is preserved. The behavior is undefined if the source and
    the destination ranges overlap.
-   4) Same as \fB(3)\fP, but uses rng as the source range, as if by
-   ranges::copy_if(ranges::begin(rng), ranges::end(rng), result, pred, proj); except
-   that result, pred and proj may not be copied.
+   4) Same as \fB(3)\fP, but uses r as the source range, as if by
+   ranges::copy_if(ranges::begin(r), ranges::end(r), result, pred, proj); except that
+   result, pred and proj may not be copied.
+
+   Notwithstanding the declarations depicted above, the actual number and order of
+   template parameters for algorithm declarations is unspecified. Thus, if explicit
+   template arguments are used when calling an algorithm, the program is probably
+   non-portable.
 
 .SH Parameters
 
    first, last - the range of elements to copy
-   rng         - the range of elements to copy
+   r           - the range of elements to copy
    result      - the beginning of the destination range
    pred        - predicate to apply to the projected elements
    proj        - projection to apply to the elements
@@ -76,10 +81,10 @@ std::experimental::ranges::copy,std::experimental::ranges::copy_if \- std::exper
 .SH Complexity
 
    1) Exactly ranges::distance(first, last) assignments.
-   2) Exactly ranges::distance(rng) assignments.
+   2) Exactly ranges::distance(r) assignments.
    3) Exactly ranges::distance(first, last) applications of the corresponding
    projection and predicate.
-   3) Exactly ranges::distance(rng) applications of the corresponding projection and
+   4) Exactly ranges::distance(r) applications of the corresponding projection and
    predicate.
 
 .SH Possible implementations
@@ -95,14 +100,14 @@ std::experimental::ranges::copy,std::experimental::ranges::copy_if \- std::exper
        return {first, result};
    }
 .SH Second version
-   template <InputRange Rng, WeaklyIncrementable O>
-     requires IndirectlyCopyable<ranges::iterator_t<Rng>, O>()
-   ranges::tagged_pair<tag::in(ranges::safe_iterator_t<Rng>), tag::out(O)>
-     copy(Rng&& rng, O result)
+   template <InputRange R, WeaklyIncrementable O>
+     requires IndirectlyCopyable<ranges::iterator_t<R>, O>()
+   ranges::tagged_pair<tag::in(ranges::safe_iterator_t<R>), tag::out(O)>
+     copy(R&& r, O result)
    {
-      return ranges::copy(ranges::begin(rng), ranges::end(rng), result);
+      return ranges::copy(ranges::begin(r), ranges::end(r), result);
    }
-                                      Third version
+                                    Third version
    template <InputIterator I, Sentinel<I> S, WeaklyIncrementable O,
              class Proj = ranges::identity,
              IndirectUnaryPredicate<projected<I, Proj>> Pred>
@@ -118,15 +123,15 @@ std::experimental::ranges::copy,std::experimental::ranges::copy_if \- std::exper
        }
        return {first, result};
    }
-                                      Fourth version
-   template <InputRange Rng, WeaklyIncrementable O,
+                                    Fourth version
+   template <InputRange R, WeaklyIncrementable O,
              class Proj = ranges::identity,
-             IndirectUnaryPredicate<projected<ranges::iterator_t<Rng>, Proj>> Pred>
-     requires IndirectlyCopyable<ranges::iterator_t<Rng>, O>()
-   ranges::tagged_pair<tag::in(ranges::safe_iterator_t<Rng>), tag::out(O)>
-     copy_if(Rng&& rng, O result, Pred pred, Proj proj = Proj{})
+             IndirectUnaryPredicate<projected<ranges::iterator_t<R>, Proj>> Pred>
+     requires IndirectlyCopyable<ranges::iterator_t<R>, O>()
+   ranges::tagged_pair<tag::in(ranges::safe_iterator_t<R>), tag::out(O)>
+     copy_if(R&& r, O result, Pred pred, Proj proj = Proj{})
    {
-      return ranges::copy_if(ranges::begin(rng), ranges::end(rng), result, pred, proj);
+      return ranges::copy_if(ranges::begin(r), ranges::end(r), result, pred, proj);
    }
 
 .SH Example
@@ -142,15 +147,15 @@ std::experimental::ranges::copy,std::experimental::ranges::copy_if \- std::exper
  #include <vector>
  #include <experimental/ranges/iterator>
  #include <numeric>
-  
+
  int main()
  {
      // see http://en.cppreference.com/w/cpp/language/namespace_alias
      namespace ranges = std::experimental::ranges;
-  
+
      std::vector<int> from_vector(10);
      std::iota(from_vector.begin(), from_vector.end(), 0);
-  
+
      std::vector<int> to_vector;
      ranges::copy_if(from_vector.begin(), from_vector.end(),
                      ranges::back_inserter(to_vector),
@@ -160,9 +165,9 @@ std::experimental::ranges::copy,std::experimental::ranges::copy_if \- std::exper
  // or, alternatively,
  //  std::vector<int> to_vector(from_vector.size());
  //  std::copy(from_vector, to_vector.begin());
-  
+
      std::cout << "to_vector contains: ";
-  
+
      ranges::copy(to_vector, ranges::ostream_iterator<int>(std::cout, " "));
      std::cout << '\\n';
  }
@@ -174,16 +179,16 @@ std::experimental::ranges::copy,std::experimental::ranges::copy_if \- std::exper
 .SH See also
 
    copy           copies a range of elements to a new location
-   copy_if        \fI(function template)\fP 
+   copy_if        \fI(function template)\fP
    \fI(C++11)\fP
    copy_backward  copies a range of elements in backwards order
-                  \fI(function template)\fP 
+                  \fI(function template)\fP
    reverse_copy   creates a copy of a range that is reversed
-                  \fI(function template)\fP 
+                  \fI(function template)\fP
    copy_n         copies a number of elements to a new location
-                  \fI(function template)\fP 
+                  \fI(function template)\fP
    fill           assigns a range of elements a certain value
-                  \fI(function template)\fP 
+                  \fI(function template)\fP
    remove_copy    copies a range of elements omitting those that satisfy specific
    remove_copy_if criteria
-                  \fI(function template)\fP 
+                  \fI(function template)\fP

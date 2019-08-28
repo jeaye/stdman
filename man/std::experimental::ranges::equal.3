@@ -1,0 +1,153 @@
+.TH std::experimental::ranges::equal 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::experimental::ranges::equal \- std::experimental::ranges::equal
+
+.SH Synopsis
+   Defined in header <experimental/ranges/algorithm>
+   template< InputIterator I1, Sentinel<I1> S1, InputIterator I2,
+   Sentinel<I2> S2,
+
+   class Pred = ranges::equal_to<>,
+   class Proj1 = ranges::identity, class Proj2 = ranges::identity >    \fB(1)\fP (ranges TS)
+   requires IndirectlyComparable<I1, I2, Pred, Proj1, Proj2>
+   bool equal(I1 first1, S1 last1, I2 first2, S2 last2, Pred pred =
+   Pred{},
+
+   Proj1 proj1 = Proj1{}, Proj2 proj2 = Proj2{});
+   template< InputRange R1, InputRange R2, class Pred =
+   ranges::equal_to<>,
+
+   class Proj1 = ranges::identity, class Proj2 = ranges::identity >
+   requires IndirectlyComparable<ranges::iterator_t<R1>,               \fB(2)\fP (ranges TS)
+   ranges::iterator_t<R2>,
+   Pred, Proj1, Proj2>
+   bool equal(R1&& r1, R2&& r2, Pred pred = Pred{},
+
+   Proj1 proj1 = Proj1{}, Proj2 proj2 = Proj2{});
+   template< InputIterator I1, Sentinel<I1> S1, class I2,
+
+   class Pred = ranges::equal_to<>,
+   class Proj1 = ranges::identity, class Proj2 = ranges::identity >        (ranges TS)
+   requires InputIterator<std::decay_t<I2>> && !Range<I2> &&           \fB(3)\fP \fB(deprecated)\fP
+   IndirectlyComparable<I1, std::decay_t<I2>, Pred, Proj1, Proj2>
+   bool equal(I1 first1, S1 last1, I2&& first2_, Pred pred = Pred{},
+
+   Proj1 proj1 = Proj1{}, Proj2 proj2 = Proj2{});
+   template< InputRange R1, class I2, class Pred = ranges::equal_to<>,
+
+   class Proj1 = ranges::identity, class Proj2 = ranges::identity >
+   requires InputIterator<std::decay_t<I2>> && !Range<I2> &&               (ranges TS)
+   IndirectlyComparable<ranges::iterator_t<R1>, std::decay_t<I2>,      \fB(4)\fP \fB(deprecated)\fP
+   Pred, Proj1, Proj2>
+   bool equal(R1&& r1, I2&& first2_, Pred pred = Pred{},
+
+   Proj1 proj1 = Proj1{}, Proj2 proj2 = Proj2{});
+
+   1) Returns true if the range [first1, last1) is equal to the range [first2, last2),
+   and false otherwise.
+   2) Same as \fB(1)\fP, but uses r1 as the first source range and r2 as the second source
+   range, as if using ranges::begin(r1) as first1, ranges::end(r1) as last1,
+   ranges::begin(r2) as first2, and ranges::end(r2) as last2.
+   3) Same as \fB(1)\fP, except that the second range is considered to end when either the
+   first range is exhausted or the first mismatch is detected. Equivalent to return
+   last1 == ranges::mismatch(first1, last1, std::forward<I2>(first2_), comp, proj1,
+   proj2).in1();
+   4) Same as \fB(3)\fP, but uses r1 as the first source range, as if using ranges::begin(r1)
+   as first1 and ranges::end(r1) as last1.
+
+   Two ranges are considered equal if they have the same number of elements and, for
+   every iterator i in the range [first1,last1), ranges::invoke(pred,
+   ranges::invoke(proj1, *i), ranges::invoke(proj2, *(first2 + (i - first1)))) is true.
+
+   Notwithstanding the declarations depicted above, the actual number and order of
+   template parameters for algorithm declarations is unspecified. Thus, if explicit
+   template arguments are used when calling an algorithm, the program is probably
+   non-portable.
+
+.SH Parameters
+
+   first1, last1 - the first range of the elements
+   r1            - the first range of the elements
+   first2, last2 - the second range of the elements
+   r2            - the second range of the elements
+   first2_       - the beginning of the second range of the elements
+   pred          - predicate to apply to the projected elements
+   proj1         - projection to apply to the elements in the first range
+   proj2         - projection to apply to the elements in the second range
+
+.SH Return value
+
+   true if the two ranges are equal, otherwise returns false.
+
+.SH Notes
+
+   ranges::equal should not be used to compare the ranges formed by the iterators from
+   std::unordered_set, std::unordered_multiset, std::unordered_map, or
+   std::unordered_multimap because the order in which the elements are stored in those
+   containers may be different even if the two containers store the same elements.
+
+   When comparing entire containers for equality, operator== for the corresponding
+   container are usually preferred.
+
+.SH Complexity
+
+   1-2) If SizedSentinel<S1, I1> && SizedSentinel<S2, I2> is satisfied and last1 -
+   first1 != last2 - first2, no applications of the predicate and projections.
+   Otherwise, at most min(last1 - first1, last2 - first2) applications of the predicate
+   and each projection.
+   3-4) At most last1 - first1 applications of the predicate and each projection.
+
+.SH Possible implementation
+
+   namespace detail
+   {
+       template< InputIterator I1, SizedSentinel<I1> S1,
+                 InputIterator I2, SizedSentinel<I1> S2 >
+       bool check_size(I1& first1, S1& last1, I2& first2, S2& last2)
+       {
+           return last1 - first1 != last2 - first2;
+       }
+
+       template< InputIterator I1, Sentinel<I1> S1, InputIterator I2, Sentinel<I1> S2 >
+       bool check_size(I1& first1, S1& last1, I2& first2, S2& last2)
+       {
+           return false;
+       }
+   }
+
+   template< InputIterator I1, Sentinel<I1> S1, InputIterator I2, Sentinel<I2> S2,
+             class Pred = ranges::equal_to<>,
+             class Proj1 = ranges::identity, class Proj2 = ranges::identity >
+     requires IndirectlyComparable<I1, I2, Pred, Proj1, Proj2>
+   bool equal(I1 first1, S1 last1, I2 first2, S2 last2, Pred pred = Pred{},
+              Proj1 proj1 = Proj1{}, Proj2 proj2 = Proj2{})
+   {
+       if(detail::check_size(first1, last1, first2, last2)) return false;
+       for(; first1 != last1 && first2 != last2; (void) ++first1, (void)++first2) {
+           if(!ranges::invoke(pred, ranges::invoke(proj1, *first1),
+                                    ranges::invoke(proj2, *first2))) {
+               return false;
+           }
+       }
+       return first1 == last1 && first2 == last2;
+   }
+
+.SH Example
+
+    This section is incomplete
+    Reason: no example
+
+.SH See Also
+
+   equal                   determines if two sets of elements are the same
+                           \fI(function template)\fP
+   find                    finds the first element satisfying specific criteria
+   find_if                 \fI(function template)\fP
+   find_if_not
+                           returns true if one range is lexicographically less than
+   lexicographical_compare another
+                           \fI(function template)\fP
+   mismatch                finds the first position where two ranges differ
+                           \fI(function template)\fP
+   search                  searches for a range of elements
+                           \fI(function template)\fP

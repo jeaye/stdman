@@ -1,0 +1,133 @@
+.TH std::promise<R>::set_value 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::promise<R>::set_value \- std::promise<R>::set_value
+
+.SH Synopsis
+   void set_value( const R& value ); \fB(1)\fP (member only of generic promise template)
+                                         \fI(since C++11)\fP
+   void set_value( R&& value );      \fB(2)\fP (member only of generic promise template)
+                                         \fI(since C++11)\fP
+                                         (member only of promise<R&> template
+   void set_value( R& value );       \fB(3)\fP specialization)
+                                         \fI(since C++11)\fP
+                                         (member only of promise<void> template
+   void set_value();                 \fB(4)\fP specialization)
+                                         \fI(since C++11)\fP
+
+   1-3) Atomically stores the value into the shared state and makes the state ready.
+   4) Makes the state ready
+
+   The operation behaves as though set_value, set_exception, set_value_at_thread_exit,
+   and set_exception_at_thread_exit acquire a single mutex associated with the promise
+   object while updating the promise object.
+
+   An exception is thrown if there is no shared state or the shared state already
+   stores a value or exception.
+
+   Calls to this function do not introduce data races with calls to get_future (but
+   they need not synchronize with each other).
+
+.SH Parameters
+
+   value - value to store in the shared state
+
+.SH Return value
+
+   \fI(none)\fP
+
+.SH Exceptions
+
+   std::future_error on the following conditions:
+
+     * *this has no shared state. The error category is set to no_state.
+
+     * The shared state already stores a value or exception. The error category is set
+       to promise_already_satisfied.
+
+   Additionally:
+
+   1, 3) Any exception thrown by the copy constructor of value
+   2) Any exception thrown by the move constructor of value
+
+.SH Example
+
+   This example shows how promise<void> can be used as signals between threads.
+
+   
+// Run this code
+
+ #include <thread>
+ #include <future>
+ #include <cctype>
+ #include <vector>
+ #include <algorithm>
+ #include <iterator>
+ #include <iostream>
+ #include <sstream>
+
+ int main()
+ {
+     std::istringstream iss_numbers{"3 4 1 42 23 -23 93 2 -289 93"};
+     std::istringstream iss_letters{" a 23 b,e a2 k k?a;si,ksa c"};
+
+     std::vector<int> numbers;
+     std::vector<char> letters;
+     std::promise<void> numbers_promise, letters_promise;
+
+     auto numbers_ready = numbers_promise.get_future();
+     auto letter_ready = letters_promise.get_future();
+
+     std::thread value_reader([&]
+     {
+         // I/O operations.
+         std::copy(std::istream_iterator<int>{iss_numbers},
+                   std::istream_iterator<int>{},
+                   std::back_inserter(numbers));
+
+         //Notify for numbers.
+         numbers_promise.set_value();
+
+         std::copy_if(std::istreambuf_iterator<char>{iss_letters},
+                      std::istreambuf_iterator<char>{},
+                      std::back_inserter(letters),
+                      ::isalpha);
+
+         //Notify for letters.
+         letters_promise.set_value();
+     });
+
+
+     numbers_ready.wait();
+
+     std::sort(numbers.begin(), numbers.end());
+
+     if (letter_ready.wait_for(std::chrono::seconds(1)) ==
+             std::future_status::timeout)
+     {
+         //output the numbers while letters are being obtained.
+         for (int num : numbers) std::cout << num << ' ';
+         numbers.clear(); //Numbers were already printed.
+     }
+
+     letter_ready.wait();
+     std::sort(letters.begin(), letters.end());
+
+     //If numbers were already printed, it does nothing.
+     for (int num : numbers) std::cout << num << ' ';
+     std::cout << '\\n';
+
+     for (char let : letters) std::cout << let << ' ';
+     std::cout << '\\n';
+
+     value_reader.join();
+ }
+
+.SH Output:
+
+ -289 -23 1 2 3 4 23 42 93 93
+ a a a a b c e i k k k s s
+
+.SH See also
+
+   set_exception sets the result to indicate an exception
+                 \fI(public member function)\fP

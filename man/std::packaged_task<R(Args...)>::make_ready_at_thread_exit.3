@@ -1,0 +1,82 @@
+.TH std::packaged_task<R(Args...)>::make_ready_at_thread_exit 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::packaged_task<R(Args...)>::make_ready_at_thread_exit \- std::packaged_task<R(Args...)>::make_ready_at_thread_exit
+
+.SH Synopsis
+   void make_ready_at_thread_exit( ArgTypes... args );  \fI(since C++11)\fP
+
+   Calls the stored task with forwarded args as the arguments. The return value of the
+   task or any exception thrown by it is stored in the shared state of *this.
+
+   The shared state is only made ready after the current thread exits and all objects
+   of thread local storage duration are destroyed.
+
+.SH Parameters
+
+   args - the parameters to pass on invocation of the stored task
+
+.SH Return value
+
+   \fI(none)\fP
+
+.SH Exceptions
+
+   std::future_error on the following error conditions:
+
+     * The stored task has already been invoked. The error category is set to
+       promise_already_satisfied.
+     * *this has no shared state. The error category is set to no_state.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <future>
+ #include <iostream>
+ #include <chrono>
+ #include <thread>
+ #include <functional>
+ #include <utility>
+
+ void worker(std::future<void>& output)
+ {
+     std::packaged_task<void(bool&)> my_task{ [](bool& done) { done=true; } };
+
+     auto result = my_task.get_future();
+
+     bool done = false;
+
+     my_task.make_ready_at_thread_exit(done); // execute task right away
+
+     std::cout << "worker: done = " << std::boolalpha << done << std::endl;
+
+     auto status = result.wait_for(std::chrono::seconds(0));
+     if (status == std::future_status::timeout)
+         std::cout << "worker: result is not ready yet" << std::endl;
+
+     output = std::move(result);
+ }
+
+
+ int main()
+ {
+     std::future<void> result;
+
+     std::thread{worker, std::ref(result)}.join();
+
+     auto status = result.wait_for(std::chrono::seconds(0));
+     if (status == std::future_status::ready)
+         std::cout << "main: result is ready" << std::endl;
+ }
+
+.SH Output:
+
+ worker: done = true
+ worker: result is not ready yet
+ main: result is ready
+
+.SH See also
+
+   operator() executes the function
+              \fI(public member function)\fP

@@ -1,0 +1,108 @@
+.TH std::basic_ostream<CharT,Traits>::sentry 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::basic_ostream<CharT,Traits>::sentry \- std::basic_ostream<CharT,Traits>::sentry
+
+.SH Synopsis
+   class sentry;
+
+   An object of class basic_ostream::sentry is constructed in local scope at the
+   beginning of each member function of std::basic_ostream that performs output (both
+   formatted and unformatted). Its constructor prepares the output stream: checks if
+   the stream is already in a failed state, flushes the tie()'d output streams, and
+   performs other implementation-defined tasks if necessary. Implementation-defined
+   cleanup, as well as flushing of the output stream if necessary, is performed in the
+   destructor, so that it is guaranteed to happen if exceptions are thrown during
+   output.
+
+.SH Member functions
+
+   constructor   constructs the sentry object. All the preparation tasks are done here
+                 \fI(public member function)\fP
+                 finalizes the stream object after formatted output or after exception,
+   destructor    if necessary
+                 \fI(public member function)\fP
+   operator=     the assignment operator is deleted
+                 \fI(public member function)\fP
+   operator bool checks if the preparation of the stream object was successful
+                 \fI(public member function)\fP
+
+std::basic_ostream::sentry::sentry
+
+   explicit sentry( std::basic_ostream<CharT,Traits>& os );
+
+   Prepares the stream for formatted output.
+
+   If os.good() is false, returns. Otherwise, if os.tie() is not a null pointer, calls
+   os.tie()->flush() to synchronize the output sequence with external streams. During
+   preparation, the constructor may call setstate(failbit) (which may throw
+   std::ios_base::failure).
+
+   If after preparation is completed, is.good() == true, then any subsequent calls to
+   operator bool will return true.
+
+.SH Parameters
+
+   os - output stream to prepare
+
+.SH Exceptions
+
+   std::ios_base::failure if the end of file condition occurs.
+
+std::basic_ostream::sentry::~sentry
+
+   ~sentry();
+
+   If (os.flags() & std::ios_base::unitbuf) && !std::uncaught_exception() && os.good())
+   is true, calls os.rdbuf()->pubsync(). If that function returns -1, sets badbit in
+   os.rdstate() without propagating an exception.
+
+std::basic_ostream::sentry::operator bool
+
+   explicit operator bool() const;
+
+   Checks whether the preparation of the output stream was successful.
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   true if the preparation of the output stream was successful, false otherwise.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <sstream>
+
+ struct Foo
+ {
+     char n[6];
+ };
+
+ std::ostream& operator<<(std::ostream& os, Foo& f)
+ {
+     std::ostream::sentry s(os);
+     if (s) {
+         os.write(f.n, 5);
+     }
+     return os;
+ }
+
+ int main()
+ {
+     Foo f = { "abcde" };
+     std::cout << f << '\\n';
+ }
+
+.SH Output:
+
+ abcde
+
+.SH See also
+
+   operator<< inserts formatted data
+              \fI(public member function)\fP

@@ -1,4 +1,4 @@
-.TH std::launder 3 "2019.03.28" "http://cppreference.com" "C++ Standard Libary"
+.TH std::launder 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::launder \- std::launder
 
@@ -28,9 +28,12 @@ std::launder \- std::launder
    The program is ill-formed if T is a function type or (possibly cv-qualified) void.
 
    std::launder may be used in a core constant expression if the value of its argument
-   may be used in a core constant expression
+   may be used in a core constant expression.
 
 .SH Notes
+
+   std::launder has no effect on its argument. Its return value must be used to access
+   the object. Thus, it's always an error to discard the return value.
 
    Typical uses of std::launder include:
 
@@ -47,18 +50,18 @@ std::launder \- std::launder
 
  int x[10];
  auto p = std::launder(reinterpret_cast<int(*)[10]>(&x[0])); // OK
-  
+
  int x2[2][10];
  auto p2 = std::launder(reinterpret_cast<int(*)[10]>(&x2[0][0]));
  // Undefined behavior: x2[1] would be reachable through the resulting pointer to x2[0]
  // but is not reachable from the source
-  
+
  struct X { int a[10]; } x3, x4[2]; // standard layout; assume no padding
  auto p3 = std::launder(reinterpret_cast<int(*)[10]>(&x3.a[0])); // OK
  auto p4 = std::launder(reinterpret_cast<int(*)[10]>(&x4[0].a[0]));
  // Undefined behavior: x4[1] would be reachable through the resulting pointer to x4[0].a
  // (which is pointer-interconvertible with x4[0]) but is not reachable from the source
-  
+
  struct Y { int a[10]; double y; } x5;
  auto p5 = std::launder(reinterpret_cast<int(*)[10]>(&x5.a[0]));
  // Undefined behavior: x5.y would be reachable through the resulting pointer to x5.a
@@ -72,28 +75,28 @@ std::launder \- std::launder
  #include <new>
  #include <cstddef>
  #include <cassert>
-  
+
  struct X {
    const int n; // note: X has a const member
    int m;
  };
-  
+
  struct Y {
    int z;
  };
-  
+
  struct A {
      virtual int transmogrify();
  };
-  
+
  struct B : A {
      int transmogrify() override { new(this) A; return 2; }
  };
-  
+
  int A::transmogrify() { new(this) B; return 1; }
-  
+
  static_assert(sizeof(B) == sizeof(A));
-  
+
  int main()
  {
    X *p = new X{3, 4};
@@ -103,7 +106,7 @@ std::launder \- std::launder
    const int c = p->m; // undefined behavior (even though m is non-const, p can't be used)
    const int d = std::launder(p)->n; // OK, std::launder(p) points to new object
    const int e = np->n; // OK
-  
+
    alignas(Y) std::byte s[sizeof(Y)];
    Y* q = new(&s) Y{2};
    const int f = reinterpret_cast<Y*>(&s)->z; // Class member access is undefined behavior:
@@ -111,7 +114,7 @@ std::launder \- std::launder
                                               // and does not point to a Y object
    const int g = q->z; // OK
    const int h = std::launder(reinterpret_cast<Y*>(&s))->z; // OK
-  
+
    A i;
    int n = i.transmogrify();
    // int m = i.transmogrify(); // undefined behavior
