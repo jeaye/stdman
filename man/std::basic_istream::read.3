@@ -1,0 +1,98 @@
+.TH std::basic_istream::read 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::basic_istream::read \- std::basic_istream::read
+
+.SH Synopsis
+   basic_istream& read( char_type* s, std::streamsize count );
+
+   Extracts characters from stream.
+
+   Behaves as UnformattedInputFunction. After constructing and checking the sentry
+   object, extracts characters and stores them into successive locations of the
+   character array whose first element is pointed to by s. Characters are extracted and
+   stored until any of the following conditions occurs:
+
+     * count characters were extracted and stored
+
+     * end of file condition occurs on the input sequence (in which case,
+       setstate(failbit|eofbit) is called). The number of successfully extracted
+       characters can be queried using gcount().
+
+.SH Parameters
+
+   s     - pointer to the character array to store the characters to
+   count - number of characters to read
+
+.SH Return value
+
+   *this
+
+.SH Exceptions
+
+   
+   failure if an error occurred (the error state flag is not goodbit) and exceptions()
+   is set to throw for that state.
+
+   If an internal operation throws an exception, it is caught and badbit is set. If
+   exceptions() is set for badbit, the exception is rethrown.
+
+.SH Notes
+
+   When using a non-converting locale (the default locale is non-converting), the
+   overrider of this function in std::basic_ifstream may be optimized for zero-copy
+   bulk I/O (by means of overriding std::streambuf::xsgetn)
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <fstream>
+ #include <sstream>
+ #include <string>
+ #include <cstdint>
+  
+ int main()
+ {
+     // read() is often used for binary I/O
+     std::string bin = {'\\x12', '\\x12', '\\x12', '\\x12'};
+     std::istringstream raw(bin);
+     std::uint32_t n;
+     if(raw.read(reinterpret_cast<char*>(&n), sizeof n))
+         std::cout << std::hex << std::showbase << n << '\\n';
+  
+     // prepare file for next snippet
+     std::ofstream("test.txt", std::ios::binary) << "abcd1\\nabcd2\\nabcd3";
+  
+     // read entire file into string
+     if(std::ifstream is{"test.txt", std::ios::binary | std::ios::ate}) {
+         auto size = is.tellg();
+         std::string str(size, '\\0'); // construct string to stream size
+         is.seekg(0);
+         if(is.read(&str[0], size))
+             std::cout << str << '\\n';
+     }
+ }
+
+.SH Output:
+
+ 0x12121212
+ abcd1
+ abcd2
+ abcd3
+
+.SH See also
+
+   write      inserts blocks of characters
+              \fI(public member function of std::basic_ostream<CharT,Traits>)\fP 
+   operator>> extracts formatted data
+              \fI(public member function)\fP 
+   readsome   extracts already available blocks of characters
+              \fI(public member function)\fP 
+   get        extracts characters
+              \fI(public member function)\fP 
+   getline    extracts characters until the given character is found
+              \fI(public member function)\fP 
+   fread      reads from a file
+              \fI(function)\fP 

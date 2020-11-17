@@ -1,0 +1,90 @@
+.TH std::wstring_convert::to_bytes 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::wstring_convert::to_bytes \- std::wstring_convert::to_bytes
+
+.SH Synopsis
+   Defined in header <locale>
+   byte_string to_bytes( Elem wchar );                         \fB(1)\fP
+   byte_string to_bytes( const Elem* wptr );                   \fB(2)\fP
+   byte_string to_bytes( const wide_string& wstr );            \fB(3)\fP
+   byte_string to_bytes( const Elem* first, const Elem* last); \fB(4)\fP
+
+   Performs wide to multibyte conversion, using the codecvt facet supplied at
+   construction.
+
+   1) Converts wchar as if it was a string of length 1, to byte_string.
+   2) Converts the null-terminated wide character sequence beginning at the wide
+   character pointed to by wptr, to byte_string.
+   3) Converts the wide string str to byte_string.
+   4) Converts the wide character sequence [first, last) to byte_string.
+
+   In all cases, the conversion begins in initial shift state, unless non-initial
+   starting state was provided to this wstring_convert constructor. The number of
+   characters converted and the final value of the conversion state are remembered and
+   can be accessed with state() and converted()
+
+.SH Return value
+
+   A byte_string object containing the results of the wide to multibyte conversion. If
+   the conversion failed and there was a user-supplied byte-error string provided to
+   the constructor of this wstring_convert, returns that byte-error string.
+
+.SH Exceptions
+
+   If this wstring_convert object was constructed without a user-supplied byte-error
+   string, throws std::range_error on conversion failure.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <string>
+ #include <locale>
+ #include <codecvt>
+ #include <iomanip>
+  
+ // utility function for output
+ void hex_print(const std::string& s)
+ {
+     std::cout << std::hex << std::setfill('0');
+     for(unsigned char c : s)
+         std::cout << std::setw(2) << static_cast<int>(c) << ' ';
+     std::cout << std::dec << '\\n';
+ }
+  
+ int main()
+ {
+     // wide character data
+     std::wstring wstr =  L"z\\u00df\\u6c34\\U0001f34c"; // or L"zß水🍌"
+  
+     // wide to UTF-8
+     std::wstring_convert<std::codecvt_utf8<wchar_t>> conv1;
+     std::string u8str = conv1.to_bytes(wstr);
+     std::cout << "UTF-8 conversion produced " << u8str.size() << " bytes:\\n";
+     hex_print(u8str);
+  
+     // wide to UTF-16le
+     std::wstring_convert<std::codecvt_utf16<wchar_t, 0x10ffff, std::little_endian>> conv2;
+     std::string u16str = conv2.to_bytes(wstr);
+     std::cout << "UTF-16le conversion produced " << u16str.size() << " bytes:\\n";
+     hex_print(u16str);
+ }
+
+.SH Output:
+
+ UTF-8 conversion produced 10 bytes:
+ 7a c3 9f e6 b0 b4 f0 9f 8d 8c
+ UTF-16le conversion produced 10 bytes:
+ 7a 00 df 00 34 6c 3c d8 4c df
+
+.SH See also
+
+   from_bytes converts a byte string into a wide string
+              \fI(public member function)\fP 
+   wcsrtombs  converts a wide string to narrow multibyte character string, given state
+              \fI(function)\fP 
+   do_out     converts a string from internT to externT, such as when writing to file
+   \fB[virtual]\fP  \fI\fI(virtual protected member function\fP of\fP
+              std::codecvt<InternT,ExternT,State>) 

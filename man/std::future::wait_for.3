@@ -1,0 +1,92 @@
+.TH std::future::wait_for 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::future::wait_for \- std::future::wait_for
+
+.SH Synopsis
+   template< class Rep, class Period >
+   std::future_status wait_for( const std::chrono::duration<Rep,Period>&  \fI(since C++11)\fP
+   timeout_duration ) const;
+
+   Waits for the result to become available. Blocks until specified timeout_duration
+   has elapsed or the result becomes available, whichever comes first. Returns value
+   identifies the state of the result.
+
+   This function may block for longer than timeout_duration due to scheduling or
+   resource contention delays.
+
+   The standard recommends that a steady clock is used to measure the duration. If an
+   implementation uses a system clock instead, the wait time may also be sensitive to
+   clock adjustments.
+
+   The behavior is undefined if valid()== false before the call to this function.
+
+.SH Parameters
+
+   timeout_duration - maximum duration to block for
+
+.SH Return value
+
+   Constant                Explanation
+   future_status::deferred The function to calculate the result has not been started
+                           yet
+   future_status::ready    The result is ready
+   future_status::timeout  The timeout has expired
+
+.SH Exceptions
+
+   Any exception thrown by clock, time_point, or duration during the execution (clocks,
+   time points, and durations provided by the standard library never throw)
+
+.SH Notes
+
+   The implementations are encouraged to detect the case when valid == false before the
+   call and throw a future_error with an error condition of future_errc::no_state.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <future>
+ #include <thread>
+ #include <chrono>
+  
+ int main()
+ {
+     std::future<int> future = std::async(std::launch::async, [](){
+         std::this_thread::sleep_for(std::chrono::seconds(3));
+         return 8;
+     });
+  
+     std::cout << "waiting...\\n";
+     std::future_status status;
+     do {
+         status = future.wait_for(std::chrono::seconds(1));
+         if (status == std::future_status::deferred) {
+             std::cout << "deferred\\n";
+         } else if (status == std::future_status::timeout) {
+             std::cout << "timeout\\n";
+         } else if (status == std::future_status::ready) {
+             std::cout << "ready!\\n";
+         }
+     } while (status != std::future_status::ready);
+  
+     std::cout << "result is " << future.get() << '\\n';
+ }
+
+.SH Possible output:
+
+ waiting...
+ timeout
+ timeout
+ ready!
+ result is 8
+
+.SH See also
+
+   wait       waits for the result to become available
+              \fI(public member function)\fP 
+              waits for the result, returns if it is not available until specified time
+   wait_until point has been reached
+              \fI(public member function)\fP 

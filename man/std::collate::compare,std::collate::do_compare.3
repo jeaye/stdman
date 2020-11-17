@@ -1,0 +1,104 @@
+.TH std::collate::compare,std::collate::do_compare 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::collate::compare,std::collate::do_compare \- std::collate::compare,std::collate::do_compare
+
+.SH Synopsis
+   Defined in header <locale>
+   public:
+
+   int compare( const CharT* low1, const CharT* high1,                    \fB(1)\fP
+
+                const CharT* low2, const CharT* high2 ) const;
+   protected:
+
+   virtual int do_compare( const CharT* low1, const CharT* high1,         \fB(2)\fP
+
+                           const CharT* low2, const CharT* high2 ) const;
+
+   1) Public member function, calls the protected virtual member function do_compare of
+   the most derived class.
+   2) Compares the character sequence [low1, high1) to the character sequence [low2,
+   high2), using this locale's collation rules, and returns 1 if the first string
+   follows the second, -1 if the first string precedes the second, zero if the two
+   strings are equivalent.
+
+.SH Parameters
+
+   low1  - pointer to the first character of the first string
+   high1 - one past the end pointer for the first string
+   low2  - pointer to the first character of the second string
+   high2 - one past the end pointer for the second string
+
+.SH Return value
+
+   1 if the first string is greater than the second (that is, follows the second in the
+   collation order), -1 if the first string is less than the second (precedes the
+   second in the collation order), zero if the two strings are equivalent.
+
+.SH Notes
+
+   When three-way comparison is not required (such as when providing a Compare argument
+   to standard algorithms such as std::sort), std::locale::operator() may be more
+   appropriate.
+
+   Collation order is the dictionary order: the position of the letter in the national
+   alphabet (its equivalence class) has higher priority than its case or variant.
+   Within an equivalence class, lowercase characters collate before their uppercase
+   equivalents and locale-specific order may apply to the characters with diacritics.
+   In some locales, groups of characters compare as single collation units. For
+   example, "ch" in Czech follows "h" and precedes "i", and "dzs" in Hungarian follows
+   "dz" and precedes "g".
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <string>
+ #include <locale>
+  
+ template<typename CharT>
+ void try_compare(const std::locale& l, const CharT* p1, const CharT* p2)
+ {
+     auto& f = std::use_facet<std::collate<CharT>>(l);
+  
+     std::basic_string<CharT> s1(p1), s2(p2);
+     if(f.compare(&s1[0], &s1[0] + s1.size(),
+                  &s2[0], &s2[0] + s2.size() ) < 0)
+          std::wcout << p1 << " before " << p2 << '\\n';
+     else
+          std::wcout << p2 << " before " << p1 << '\\n';
+ }
+  
+ int main()
+ {
+     std::locale::global(std::locale("en_US.utf8"));
+     std::wcout.imbue(std::locale());
+  
+     std::wcout << "In the American locale: ";
+     try_compare(std::locale(), "hrnec", "chrt");
+     std::wcout << "In the Czech locale: ";
+     try_compare(std::locale("cs_CZ.utf8"), "hrnec", "chrt");
+  
+     std::wcout << "In the American locale: ";
+     try_compare(std::locale(), L"år", L"ängel");
+     std::wcout << "In the Swedish locale: ";
+     try_compare(std::locale("sv_SE.utf8"), L"år", L"ängel");
+ }
+
+.SH Output:
+
+ In the American locale: chrt before hrnec
+ In the Czech locale: hrnec before chrt
+ In the American locale: ängel before år
+ In the Swedish locale: år before ängel
+
+.SH See also
+
+   strcoll    compares two strings in accordance to the current locale
+              \fI(function)\fP 
+   wcscoll    compares two wide strings in accordance to the current locale
+              \fI(function)\fP 
+   operator() lexicographically compares two strings using this locale's collate facet
+              \fI(public member function of std::locale)\fP 

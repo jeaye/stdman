@@ -1,0 +1,95 @@
+.TH std::experimental::optional::operator= 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::experimental::optional::operator= \- std::experimental::optional::operator=
+
+.SH Synopsis
+   optional& operator=( std::experimental::nullopt_t )    \fB(1)\fP (library fundamentals TS)
+   noexcept;
+   optional& operator=( const optional& other );          \fB(2)\fP (library fundamentals TS)
+   optional& operator=( optional&& other ) noexcept(/*    \fB(3)\fP (library fundamentals TS)
+   see below */);
+   template< class U >                                    \fB(4)\fP (library fundamentals TS)
+   optional& operator=( U&& value );
+
+   Replaces contents of *this with the contents of other
+
+   1) If *this contains a value before the call, the contained value is destroyed by
+   calling its destructor as if by val->T::~T(). *this does not contain a value after
+   this call.
+   2-3) Assigns the state of other.
+
+     * If both *this and other do not contain a value, the function has no effect.
+     * If *this contains a value, but other does not, then the contained value is
+       destroyed by calling its destructor. *this does not contain a value after the
+       call.
+     * If other contains a value, then depending on whether *this contains a value, the
+       contained value is either direct-initialized or assigned from *other \fB(2)\fP or
+       std::move(*other) \fB(3)\fP. Note that a moved-from optional still contains a value.
+
+   4) Decay-only perfect-forwarded assignment: depending on whether *this contains a
+   value before the call, the contained value is either direct-initialized from
+   std::forward<U>(value) or assigned from std::forward<U>(value). The function does
+   not participate in overload resolution unless std::is_same<std::decay_t<U>,
+   T>::value is true.
+
+.SH Parameters
+
+   other           -           another optional object whose contained value to assign
+   value           -           value to assign to the contained value
+.SH Type requirements
+   -
+   T must meet the requirements of CopyAssignable and CopyConstructible in order to use
+   overload \fB(2)\fP.
+   -
+   T must meet the requirements of MoveAssignable and MoveConstructible in order to use
+   overload \fB(3)\fP.
+
+.SH Return value
+
+   *this
+
+.SH Exceptions
+
+   2-4) Throws any exception thrown by the constructor or assignment operator of T. If
+   an exception is thrown, the initialization state of *this (and of other in case of
+   \fB(2)\fP ) is unchanged, i.e. if the object contained a value, it still contains a value,
+   and the other way round. The contents of value and the contained values of *this and
+   other depend on the exception safety guarantees of the operation from which the
+   exception originates (copy-constructor, move-assignment, etc.).
+   \fB(3)\fP has the following noexcept declaration:
+   noexcept specification:  
+   noexcept(std::is_nothrow_move_assignable<T>::value &&
+   std::is_nothrow_move_constructible<T>::value)
+
+.SH Notes
+
+   An optional object op may be turned into an empty optional with both op = {}; and op
+   = nullopt;.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <experimental/optional>
+ #include <iostream>
+ int main()
+ {
+     std::experimental::optional<const char*> s1 = "abc", s2; // constructor
+     s2 = s1; // assignment
+     s1 = "def"; // decaying assignment (U = char[4], T = const char*)
+     std::cout << *s2 << ' ' << *s1 << '\\n';
+ }
+
+.SH Output:
+
+ abc def
+
+.SH See also
+
+   emplace constructs the contained value in-place
+           \fI(public member function)\fP 
+
+.SH Category:
+
+     * conditionally noexcept
