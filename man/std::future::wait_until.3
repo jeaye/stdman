@@ -1,0 +1,111 @@
+.TH std::future::wait_until 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::future::wait_until \- std::future::wait_until
+
+.SH Synopsis
+   template< class Clock, class Duration >
+   std::future_status wait_until( const                                   \fI(since C++11)\fP
+   std::chrono::time_point<Clock,Duration>& timeout_time ) const;
+
+   wait_until waits for a result to become available. It blocks until specified
+   timeout_time has been reached or the result becomes available, whichever comes
+   first. The return value indicates why wait_until returned.
+
+   The behavior is undefined if valid()== false before the call to this function.
+
+.SH Parameters
+
+   timeout_time - maximum time point to block until
+
+.SH Return value
+
+   Constant                Explanation
+   future_status::deferred The function to calculate the result has not been started
+                           yet
+   future_status::ready    The result is ready
+   future_status::timeout  The timeout has expired
+
+.SH Exceptions
+
+   Any exception thrown by clock, time_point, or duration during the execution (clocks,
+   time points, and durations provided by the standard library never throw)
+
+.SH Notes
+
+   The implementations are encouraged to detect the case when valid == false before the
+   call and throw a future_error with an error condition of future_errc::no_state.
+
+   The clock tied to timeout_time is used, which is not required to be a monotonic
+   clock.There are no guarantees regarding the behavior of this function if the clock
+   is adjusted discontinuously, but the existing implementations convert timeout_time
+   from Clock to std::chrono::system_clock and delegate to POSIX pthread_cond_timedwait
+   so that the wait honors ajustments to the system clock, but not to the the
+   user-provided Clock. In any case, the function also may wait for longer than until
+   after timeout_time has been reached due to scheduling or resource contention delays.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <future>
+ #include <thread>
+ #include <chrono>
+  
+ int main()
+ {
+     std::chrono::system_clock::time_point two_seconds_passed
+         = std::chrono::system_clock::now() + std::chrono::seconds(2);
+  
+     // Make a future that that takes 1 second to completed
+     std::promise<int> p1;
+     std::future<int> f_completes = p1.get_future();
+     std::thread([](std::promise<int> p1)
+                 {
+                     std::this_thread::sleep_for(std::chrono::seconds(1));
+                     p1.set_value_at_thread_exit(9);
+                 },
+                 std::move(p1)
+     ).detach();
+  
+     // Make a future that that takes 5 seconds to completed
+     std::promise<int> p2;
+     std::future<int> f_times_out = p2.get_future();
+     std::thread([](std::promise<int> p2)
+                 {
+                     std::this_thread::sleep_for(std::chrono::seconds(5));
+                     p2.set_value_at_thread_exit(8);
+                 },
+                 std::move(p2)
+     ).detach();
+  
+     std::cout << "Waiting for 2 seconds..." << std::endl;
+  
+     if(std::future_status::ready == f_completes.wait_until(two_seconds_passed))
+         { std::cout << "f_completes: " << f_completes.get() << "\\n"; }
+     else
+         { std::cout << "f_completes did not complete!\\n"; }
+  
+     if(std::future_status::ready == f_times_out.wait_until(two_seconds_passed))
+         { std::cout << "f_times_out: " << f_times_out.get() << "\\n"; }
+     else
+         { std::cout << "f_times_out did not complete!\\n"; }
+  
+     std::cout << "Done!\\n";
+ }
+
+.SH Possible output:
+
+ Waiting for 2 seconds...
+ f_completes: 9
+ f_times_out did not complete!
+ Done!
+
+.SH See also
+
+   wait     waits for the result to become available
+            \fI(public member function)\fP 
+            waits for the result, returns if it is not available for the specified
+   wait_for timeout duration
+            \fI(public member function)\fP 

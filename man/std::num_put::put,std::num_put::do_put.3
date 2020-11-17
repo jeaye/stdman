@@ -1,0 +1,267 @@
+.TH std::num_put::put,std::num_put::do_put 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::num_put::put,std::num_put::do_put \- std::num_put::put,std::num_put::do_put
+
+.SH Synopsis
+   Defined in header <locale>
+   public:
+   iter_type put( iter_type out, std::ios_base&
+   str, char_type fill, bool v ) const;
+   iter_type put( iter_type out, std::ios_base&
+   str, char_type fill, long v ) const;
+   iter_type put( iter_type out, std::ios_base&             \fI(since C++11)\fP
+   str, char_type fill, long long v ) const;
+   iter_type put( iter_type out, std::ios_base&
+   str, char_type fill, unsigned long v ) const;
+   iter_type put( iter_type out, std::ios_base&
+   str, char_type fill, unsigned long long v )              \fI(since C++11)\fP
+   const;
+   iter_type put( iter_type out, std::ios_base&
+   str, char_type fill, double v ) const;
+   iter_type put( iter_type out, std::ios_base&
+   str, char_type fill, long double v ) const;
+   iter_type put( iter_type out, std::ios_base&
+   str, char_type fill, const void* v ) const;
+   protected:
+   virtual iter_type do_put( iter_type out,
+   std::ios_base& str, char_type fill, bool v )
+   const;                                           \fB(1)\fP
+   virtual iter_type do_put( iter_type out,
+   std::ios_base& str, char_type fill, long v )
+   const;
+   virtual iter_type do_put( iter_type out,
+   std::ios_base& str, char_type fill, long long v                        \fI(since C++11)\fP
+   ) const;
+   virtual iter_type do_put( iter_type out,
+   std::ios_base& str, char_type fill, unsigned
+   long ) const;                                        \fB(2)\fP
+   virtual iter_type do_put( iter_type out,
+   std::ios_base& str, char_type fill, unsigned                           \fI(since C++11)\fP
+   long long ) const;
+   virtual iter_type do_put( iter_type out,
+   std::ios_base& str, char_type fill, double v )
+   const;
+   virtual iter_type do_put( iter_type out,
+   std::ios_base& str, char_type fill, long double
+   v ) const;
+   virtual iter_type do_put( iter_type out,
+   std::ios_base& str, char_type fill, const void*
+   v ) const;
+
+   1) Public member function, calls the protected virtual member function do_put of the
+   most derived class.
+   2) Writes characters to the output sequence out which represent the value of v,
+   formatted as requested by the formatting flags str.flags() and the std::numpunct and
+   std::ctype facets of the locale imbued in the stream str. This function is called by
+   all formatted output stream operators, such as std::cout << n;.
+
+   Conversion occurs in four stages
+
+.SH Stage 1: conversion specifier selection
+
+     * I/O format flags are obtained, as if by
+
+   fmtflags basefield = (str.flags() & std::ios_base::basefield);
+   fmtflags uppercase = (str.flags() & std::ios_base::uppercase);
+   fmtflags floatfield = (str.flags() & std::ios_base::floatfield);
+   fmtflags showpos = (str.flags() & std::ios_base::showpos);
+   fmtflags showbase = (str.flags() & std::ios_base::showbase);
+   fmtflags showpoint = (str.flags() & std::ios_base::showpoint);
+
+     * If the type of v is bool
+
+          * If boolalpha == 0, then converts v to type int and performs integer output.
+          * If boolalpha != 0 obtains
+            std::use_facet<std::numpunct<charT>>(str.getloc()).truename() if v == true
+            or std::use_facet<std::numpunct<charT>>(str.getloc()).falsename() if v ==
+            false, and outputs each successive character c of that string to out with
+            *out++ = c. No further processing is done in this case, the function
+            returns out.
+
+     * If the type of v is an integer type, the the first applicable choice of the
+       following is selected:
+
+   If basefield == oct, will use conversion specifier %o
+   If basefield == hex && !uppercase, will use conversion specifier %x
+   If basefield == hex, will use conversion specifier %X
+   If the type of v is signed, will use conversion specifier %d
+   If the type of v is unsigned, will use conversion specifier %u
+
+     * For integer types, length modifier is added to the conversion specification if
+       necessary: l for long and unsigned long
+       , ll for long long and unsigned long long
+       \fI(since C++11)\fP.
+     * If the type of v is a floating-point type, the the first applicable choice of
+       the following is selected:
+
+   If floatfield == std::ios_base::fixed, will use conversion specifier %f
+   If floatfield == std::ios_base::scientific && !uppercase, will use conversion
+   specifier %e
+   If floatfield == std::ios_base::scientific, will use conversion specifier %E
+
+   If floatfield == (std::ios_base::fixed | std::ios_base::scientific) &&
+   !uppercase, will use conversion specifier %a                           \fI(since C++11)\fP
+   If floatfield == (std::ios_base::fixed | std::ios_base::scientific),
+   will use conversion specifier %A
+
+   If !uppercase, will use conversion specifier %g
+   otherwise, will use conversion specifier %G
+
+     * If the type of v is long double, the length modifier L is added to the
+       conversion specifier.
+     * Additionally,
+       if floatfield != (ios_base::fixed | ios_base::scientific), then
+       \fI(since C++11)\fP precision modifier is added, set to str.precision()
+
+     * For both integer and floating-point types, if showpos is set, the modifier + is
+       prepended
+     * For integer types, if showbase is set, the modifier # is prepended.
+     * For floating-point types, if showpoint is set, the modifier # is prepended.
+     * If the type of v is void*, will use conversion specifier %p
+     * A narrow character string is created as if by a call to std::printf(spec, v) in
+       the "C" locale, where spec is the chosen conversion specifier.
+
+.SH Stage 2: locale-specific conversion
+
+     * Every character c obtained in Stage 1, other than the decimal point '.', is
+       converted to CharT by calling
+       std::use_facet<std::ctype<CharT>>(str.getloc()).widen(c).
+     * For arithmetic types, the thousands separator character, obtained from
+       std::use_facet<std::numpunct<CharT>>(str.getloc()).thousands_sep(), is inserted
+       into the sequence according to the grouping rules provided by
+       std::use_facet<std::numpunct<CharT>>(str.getloc()).grouping()
+     * Decimal point characters ('.') are replaced by
+       std::use_facet<std::numpunct<CharT>>(str.getloc()).decimal_point()
+
+.SH Stage 3: padding
+
+     * The adjustment flag is obtained as if by std::fmtflags adjustfield = (flags &
+       (std::ios_base::adjustfield)) and examined to identify padding location, as
+       follows
+
+   If adjustfield == std::ios_base::left, will pad after
+   If adjustfield == std::ios_base::right, will pad before
+   If adjustfield == std::ios_base::internal and a sign character occurs in the
+   representation, will pad after the sign
+   If adjustfield == std::ios_base::internal and Stage 1 representation began with 0x
+   or 0X, will pad after the x or X
+   otherwise, will pad before
+
+     * If str.width() is non-zero (e.g. std::setw was just used) and the number of
+       CharT's after Stage 2 is less than str.width(), then copies of the fill
+       character are inserted at the position indicated by padding to bring the length
+       of the sequence to str.width().
+
+   In any case, str.width\fB(0)\fP is called to cancel the effects of std::setw.
+
+.SH Stage 4: output
+
+   Every successive character c from the sequence of CharT's from Stage 3 is output as
+   if by *out++ = c.
+
+.SH Parameters
+
+   out  - iterator pointing to the first character to be overwritten
+   str  - stream to retrieve the formatting information from
+   fill - padding character used when the results needs to be padded to the field width
+   v    - value to convert to string and output
+
+.SH Return value
+
+   out
+
+.SH Notes
+
+   The leading zero generated by the conversion specification #o (resulting from the
+   combination of std::showbase and std::oct for example) is not counted as a padding
+   character.
+
+   When formatting a floating point value as hexfloat (i.e., when
+   floatfield == (std::ios_base::fixed | std::ios_base::scientific)), the \fI(since C++11)\fP
+   stream's precision is not used; instead, the number is always printed
+   with enough precision to exactly represent the value.
+
+.SH Example
+
+   Output a number using the facet directly, and demonstrate user-defined facet
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <locale>
+  
+ // this custom num_put outputs squares of all integers (except long long)
+ struct squaring_num_put : std::num_put<char> {
+     iter_type do_put(iter_type s, std::ios_base& f,
+                      char_type fill, long v) const
+     {
+         return std::num_put<char>::do_put(s, f, fill, v*v );
+     }
+  
+     iter_type do_put(iter_type s, std::ios_base& f,
+                      char_type fill, unsigned long v) const
+     {
+         return std::num_put<char>::do_put(s, f, fill, v*v);
+     }
+ };
+  
+ int main()
+ {
+     auto& facet = std::use_facet<std::num_put<char>>(std::locale());
+     facet.put(std::cout, std::cout, '0', 2.71);
+     std::cout << '\\n';
+  
+     std::cout.imbue(std::locale(std::cout.getloc(), new squaring_num_put));
+     std::cout << 6 << ' ' << -12 << '\\n';
+ }
+
+.SH Output:
+
+ 2.71
+ 36 144
+
+   An implementation of operator<< for a user-defined type.
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <iterator>
+ #include <locale>
+  
+ struct base { long x = 10; };
+  
+ template <class CharT, class Traits>
+ std::basic_ostream<CharT, Traits>&
+     operator<< (std::basic_ostream<CharT, Traits>& os, base const& b)
+ {
+     try {
+         typename std::basic_ostream<CharT, Traits>::sentry s(os);
+         if (s)
+         {
+             std::ostreambuf_iterator<CharT, Traits> it(os);
+             std::use_facet<std::num_put<CharT>>(os.getloc())
+                 .put(it, os, os.fill(), b.x);
+         }
+     } catch (...) {
+         // set badbit on os and rethrow if required
+     }
+     return os;
+ }
+  
+ int main()
+ {
+     base b;
+  
+     std::cout << b;
+ }
+
+.SH Output:
+
+ 10
+
+.SH See also
+
+   operator<< inserts formatted data
+              \fI(public member function of std::basic_ostream<CharT,Traits>)\fP 

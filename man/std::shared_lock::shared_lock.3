@@ -1,0 +1,89 @@
+.TH std::shared_lock::shared_lock 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::shared_lock::shared_lock \- std::shared_lock::shared_lock
+
+.SH Synopsis
+   shared_lock() noexcept;                                            \fB(1)\fP \fI(since C++14)\fP
+   shared_lock( shared_lock&& other ) noexcept;                       \fB(2)\fP \fI(since C++14)\fP
+   explicit shared_lock( mutex_type& m );                             \fB(3)\fP \fI(since C++14)\fP
+   shared_lock( mutex_type& m, std::defer_lock_t t ) noexcept;        \fB(4)\fP \fI(since C++14)\fP
+   shared_lock( mutex_type& m, std::try_to_lock_t t );                \fB(5)\fP \fI(since C++14)\fP
+   shared_lock( mutex_type& m, std::adopt_lock_t t );                 \fB(6)\fP \fI(since C++14)\fP
+   template< class Rep, class Period >
+
+   shared_lock( mutex_type& m,                                        \fB(7)\fP \fI(since C++14)\fP
+
+                const std::chrono::duration<Rep,Period>&
+   timeout_duration );
+   template< class Clock, class Duration >
+
+   shared_lock( mutex_type& m,                                        \fB(8)\fP \fI(since C++14)\fP
+
+                const std::chrono::time_point<Clock,Duration>&
+   timeout_time );
+
+   Constructs a shared_lock, optionally locking the supplied mutex.
+
+   1) Constructs a shared_lock with no associated mutex.
+   2) Move constructor. Initializes the shared_lock with the contents of other. Leaves
+   other with no associated mutex.
+   3-8) Constructs a shared_lock with m as the associated mutex. Additionally:
+   3) Locks the associated mutex in shared mode by calling m.lock_shared(). The
+   behavior is undefined if this thread already owns the mutex in any mode.
+   4) Does not lock the associated mutex.
+   5) Tries to lock the associated mutex in shared mode without blocking by calling
+   m.try_lock_shared(). The behavior is undefined if this thread already owns the mutex
+   in any mode.
+   6) Assumes the calling thread already owns m in shared mode.
+   7) Tries to lock the associated mutex in shared mode by calling
+   m.try_lock_shared_until(timeout_duration), which blocks until specified
+   timeout_duration has elapsed or the lock is acquired, whichever comes first. May
+   block for longer than timeout_duration. The behavior is undefined if this thread
+   already owns the mutex in any mode.
+   8) Tries to lock the associated mutex in shared mode by calling
+   m.try_lock_shared_for(timeout_time), which blocks until specified timeout_time has
+   been reached or the lock is acquired, whichever comes first. May block for longer
+   than until timeout_time has been reached. The behavior is undefined if this thread
+   already owns the mutex in any mode.
+
+.SH Parameters
+
+   other            - another shared_lock to initialize the state with
+   m                - mutex to associate with the lock and optionally acquire ownership
+                      of
+   t                - tag parameter used to select constructors with different locking
+                      strategies
+   timeout_duration - maximum duration to block for
+   timeout_time     - maximum time point to block until
+
+.SH Example
+
+   
+// Run this code
+
+ #include <shared_mutex>
+ #include <iostream>
+ #include <thread>
+ #include <chrono>
+  
+ std::shared_timed_mutex m;
+ int i = 10;
+  
+ void read()
+ {
+    // both the threads get access to the integer i
+    std::shared_lock<std::shared_timed_mutex> slk(m);
+    std::cout << "read i as " << i << "...\\n"; // this is not synchronized
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::cout << "woke up...\\n";
+ }
+  
+ int main()
+ {
+    std::thread r1(read);
+    std::thread r2(read);
+  
+    r1.join();
+    r2.join();
+    return 0;
+ }

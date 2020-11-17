@@ -1,123 +1,119 @@
-.TH std::move 3 "2019.08.27" "http://cppreference.com" "C++ Standard Libary"
+.TH std::move 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::move \- std::move
 
 .SH Synopsis
-   Defined in header <algorithm>
-   template< class InputIt, class OutputIt >                              \fI(since C++11)\fP
-   OutputIt move( InputIt first, InputIt last, OutputIt d_first           \fI(until C++20)\fP
-   );
-   template< class InputIt, class OutputIt >
-   constexpr OutputIt move( InputIt first, InputIt last, OutputIt \fB(1)\fP     \fI(since C++20)\fP
-   d_first );
-   template< class ExecutionPolicy, class ForwardIt1, class
-   ForwardIt2 >                                                       \fB(2)\fP \fI(since C++17)\fP
-   ForwardIt2 move( ExecutionPolicy&& policy, ForwardIt1 first,
-   ForwardIt1 last, ForwardIt2 d_first );
+   Defined in header <utility>
+   template< class T >                                                    \fI(since C++11)\fP
+   typename std::remove_reference<T>::type&& move( T&& t ) noexcept;      \fI(until C++14)\fP
+   template< class T >
+   constexpr typename std::remove_reference<T>::type&& move( T&& t )      \fI(since C++14)\fP
+   noexcept;
 
-   1) Moves the elements in the range [first, last), to another range beginning at
-   d_first, starting from first and proceeding to last - 1. After this operation the
-   elements in the moved-from range will still contain valid values of the appropriate
-   type, but not necessarily the same values as before the move.
-   2) Same as \fB(1)\fP, but executed according to policy. This overload only participates in
-   overload resolution if std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is
-   true
+   std::move is used to indicate that an object t may be "moved from", i.e. allowing
+   the efficient transfer of resources from t to another object.
+
+   In particular, std::move produces an xvalue expression that identifies its argument
+   t. It is exactly equivalent to a static_cast to an rvalue reference type.
 
 .SH Parameters
 
-   first, last - the range of elements to move
-                 the beginning of the destination range. The behavior is undefined if
-   d_first     - d_first is within the range [first, last). In this case,
-                 std::move_backward may be used instead of std::move.
-   policy      - the execution policy to use. See execution policy for details.
-.SH Type requirements
-   -
-   InputIt must meet the requirements of LegacyInputIterator.
-   -
-   OutputIt must meet the requirements of LegacyOutputIterator.
-   -
-   ForwardIt1, ForwardIt2 must meet the requirements of LegacyForwardIterator.
+   t - the object to be moved
 
 .SH Return value
 
-   Output iterator to the element past the last element moved (d_first + (last -
-   first))
-
-.SH Complexity
-
-   Exactly last - first move assignments.
-
-.SH Exceptions
-
-   The overload with a template parameter named ExecutionPolicy reports errors as
-   follows:
-
-     * If execution of a function invoked as part of the algorithm throws an exception
-       and ExecutionPolicy is one of the standard policies, std::terminate is called.
-       For any other ExecutionPolicy, the behavior is implementation-defined.
-     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
-
-.SH Possible implementation
-
-   template<class InputIt, class OutputIt>
-   OutputIt move(InputIt first, InputIt last, OutputIt d_first)
-   {
-       while (first != last) {
-           *d_first++ = std::move(*first++);
-       }
-       return d_first;
-   }
+   static_cast<typename std::remove_reference<T>::type&&>(t)
 
 .SH Notes
 
-   When moving overlapping ranges, std::move is appropriate when moving to the left
-   (beginning of the destination range is outside the source range) while
-   std::move_backward is appropriate when moving to the right (end of the destination
-   range is outside the source range).
+   The functions that accept rvalue reference parameters (including move constructors,
+   move assignment operators, and regular member functions such as
+   std::vector::push_back) are selected, by overload resolution, when called with
+   rvalue arguments (either prvalues such as a temporary objects or xvalues such as the
+   one produced by std::move). If the argument identifies a resource-owning object,
+   these overloads have the option, but aren't required, to move any resources held by
+   the argument. For example, a move constructor of a linked list might copy the
+   pointer to the head of the list and store nullptr in the argument instead of
+   allocating and copying individual nodes.
+
+   Names of rvalue reference variables are lvalues and have to be converted to xvalues
+   to be bound to the function overloads that accept rvalue reference parameters, which
+   is why move constructors and move assignment operators typically use std::move:
+
+ // Simple move constructor
+ A(A&& arg) : member(std::move(arg.member)) // the expression "arg.member" is lvalue
+ {}
+ // Simple move assignment operator
+ A& operator=(A&& other) {
+      member = std::move(other.member);
+      return *this;
+ }
+
+   One exception is when the type of the function parameter is rvalue reference to type
+   template parameter ("forwarding reference" or "universal reference"), in which case
+   std::forward is used instead.
+
+   Unless otherwise specified, all standard library objects that have been moved from
+   are placed in a valid but unspecified state. That is, only the functions without
+   preconditions, such as the assignment operator, can be safely used on the object
+   after it was moved from:
+
+ std::vector<std::string> v;
+ std::string str = "example";
+ v.push_back(std::move(str)); // str is now valid but unspecified
+ str.back(); // undefined behavior if size() == 0: back() has a precondition !empty()
+ str.clear(); // OK, clear() has no preconditions
+
+   Also, the standard library functions called with xvalue arguments may assume the
+   argument is the only reference to the object; if it was constructed from an lvalue
+   with std::move, no aliasing checks are made. In particular, this means that standard
+   library move assignment operators do not have to perform self-assignment checks:
+
+ std::vector<int> v = {2, 3, 3};
+ v = std::move(v); // the value of v is unspecified
 
 .SH Example
-
-   The following code moves thread objects (which themselves are not copyable) from one
-   container to another.
 
    
 // Run this code
 
  #include <iostream>
+ #include <utility>
  #include <vector>
- #include <list>
- #include <iterator>
- #include <thread>
- #include <chrono>
-
- void f(int n)
- {
-     std::this_thread::sleep_for(std::chrono::seconds(n));
-     std::cout << "thread " << n << " ended" << '\\n';
- }
-
+ #include <string>
+  
  int main()
  {
-     std::vector<std::thread> v;
-     v.emplace_back(f, 1);
-     v.emplace_back(f, 2);
-     v.emplace_back(f, 3);
-     std::list<std::thread> l;
-     // copy() would not compile, because std::thread is noncopyable
-
-     std::move(v.begin(), v.end(), std::back_inserter(l));
-     for (auto& t : l) t.join();
+     std::string str = "Hello";
+     std::vector<std::string> v;
+  
+     // uses the push_back(const T&) overload, which means
+     // we'll incur the cost of copying str
+     v.push_back(str);
+     std::cout << "After copy, str is \\"" << str << "\\"\\n";
+  
+     // uses the rvalue reference push_back(T&&) overload,
+     // which means no strings will be copied; instead, the contents
+     // of str will be moved into the vector.  This is less
+     // expensive, but also means str might now be empty.
+     v.push_back(std::move(str));
+     std::cout << "After move, str is \\"" << str << "\\"\\n";
+  
+     std::cout << "The contents of the vector are \\"" << v[0]
+                                          << "\\", \\"" << v[1] << "\\"\\n";
  }
 
-.SH Output:
+.SH Possible output:
 
- thread 1 ended
- thread 2 ended
- thread 3 ended
+ After copy, str is "Hello"
+ After move, str is ""
+ The contents of the vector are "Hello", "Hello"
 
 .SH See also
 
-   move_backward moves a range of elements to a new location in backwards order
-   \fI(C++11)\fP       \fI(function template)\fP
-   move          obtains an rvalue reference
-   \fI(C++11)\fP       \fI(function template)\fP
+   forward          forwards a function argument
+   \fI(C++11)\fP          \fI(function template)\fP 
+   move_if_noexcept obtains an rvalue reference if the move constructor does not throw
+   \fI(C++11)\fP          \fI(function template)\fP 
+   move             moves a range of elements to a new location
+   \fI(C++11)\fP          \fI(function template)\fP 

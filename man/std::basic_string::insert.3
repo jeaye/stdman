@@ -1,0 +1,184 @@
+.TH std::basic_string::insert 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::basic_string::insert \- std::basic_string::insert
+
+.SH Synopsis
+   basic_string& insert( size_type index,       \fB(1)\fP
+   size_type count, CharT ch );
+   basic_string& insert( size_type index, const \fB(2)\fP
+   CharT* s );
+   basic_string& insert( size_type index, const \fB(3)\fP
+   CharT* s, size_type count );
+   basic_string& insert( size_type index, const \fB(4)\fP
+   basic_string& str );
+   basic_string& insert( size_type index, const
+   basic_string& str,                                   (until
+                         size_type index_str,           C++14)
+   size_type count );
+   basic_string& insert( size_type index, const
+   basic_string& str,                                   (since
+                         size_type index_str,           C++14)
+   size_type count = npos);
+   iterator insert( iterator pos, CharT ch );                   (until
+                                                                C++11)
+   iterator insert( const_iterator pos, CharT                   (since
+   ch );                                                        C++11)
+   void insert( iterator pos, size_type count,                          (until
+   CharT ch );                                                          C++11)
+   iterator insert( const_iterator pos,                                 (since
+   size_type count, CharT ch );                                         C++11)
+   template< class InputIt >                    \fB(5)\fP                             (until
+   void insert( iterator pos, InputIt first,                                    C++11)
+   InputIt last );
+   template< class InputIt >                                                    (since
+   iterator insert( const_iterator pos, InputIt     \fB(6)\fP                         C++11)
+   first, InputIt last );
+   iterator insert( const_iterator pos,                 \fB(7)\fP             \fB(9)\fP     (since
+   std::initializer_list<CharT> ilist );                                        C++11)
+   template < class T >                                         \fB(8)\fP             (since
+   basic_string& insert( size_type pos, const                           \fB(10)\fP    C++17)
+   T& t );
+   template < class T >
+
+   basic_string& insert( size_type index, const                                 (since
+   T& t,                                                                \fB(11)\fP    C++17)
+
+                         size_type index_str,
+   size_type count = npos);
+
+   Inserts characters into the string.
+
+   1) Inserts count copies of character ch at the position index
+   2) Inserts null-terminated character string pointed to by s at the position index.
+   The length of the string is determined by the first null character using
+   Traits::length(s).
+   3) Inserts the characters in the range [s, s+count) at the position index. The range
+   can contain null characters.
+   4) Inserts string str at the position index
+   5) Inserts a string, obtained by str.substr(index_str, count) at the position index
+   6) Inserts character ch before the character pointed by pos
+   7) Inserts count copies of character ch before the element (if any) pointed by pos
+   8) Inserts characters from the range [first, last) before the element (if any)
+   pointed by pos.
+   This overload does not participate in overload resolution if InputIt does not
+   satisfy LegacyInputIterator.
+   \fI(since C++11)\fP
+   9) Inserts elements from initializer list ilist before the element (if any) pointed
+   by pos
+   10) Implicitly converts t to a string view sv as if by std::basic_string_view<CharT,
+   Traits> sv = t;, then inserts the elements from sv before the element (if any)
+   pointed by pos, as if by insert(pos, sv.data(), sv.size()). This overload only
+   participates in overload resolution if std::is_convertible_v<const T&,
+   std::basic_string_view<CharT, Traits>> is true and std::is_convertible_v<const T&,
+   const CharT*> is false.
+   11) Implicitly converts t to a string view sv as if by std::basic_string_view<CharT,
+   Traits> sv = t;, then inserts, before the element (if any) pointed by pos, the
+   characters from the subview [index_str, index_str+count) of sv. If the requested
+   subview lasts past the end of sv, or if count == npos, the resulting subview is
+   [index_str, sv.size()). If index_str > sv.size(), or if index > size(),
+   std::out_of_range is thrown. This overload only participates in overload resolution
+   if std::is_convertible_v<const T&, std::basic_string_view<CharT, Traits>> is true
+   and std::is_convertible_v<const T&, const CharT*> is false.
+
+.SH Parameters
+
+   index       - position at which the content will be inserted
+   pos         - iterator before which the characters will be inserted
+   ch          - character to insert
+   count       - number of characters to insert
+   s           - pointer to the character string to insert
+   str         - string to insert
+   first, last - range defining characters to insert
+   index_str   - position of the first character in the string str to insert
+   ilist       - std::initializer_list to insert the characters from
+   t           - object (convertible to std::basic_string_view) to insert the
+                 characters from
+.SH Type requirements
+   -
+   InputIt must meet the requirements of LegacyInputIterator.
+
+.SH Return value
+
+   1-5,10-11) *this
+   6-9) An iterator which refers to the copy of the first inserted character or pos if
+   no characters were inserted (count==0 or first==last or ilist.size()==0)
+
+.SH Exceptions
+
+   1-4, 10) std::out_of_range if index > size()
+   5) Throws std::out_of_range if index > size() or if index_str > str.size().
+   11) Throws std::out_of_range if index > size() or if index_str > sv.size().
+
+   In all cases, throws std::length_error if size() + ins_count > max_size() where
+   ins_count is the number of characters that will be inserted and may throw any
+   exceptions thrown by Allocator::allocate.
+
+   In any case, if an exception is thrown for any reason, this function   \fI(since C++11)\fP
+   has no effect \fI(strong exception guarantee)\fP.
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to           Behavior as published              Correct behavior
+   LWG 2946 C++17      string_view overload causes ambiguity in  avoided by making it a
+                       some cases                                template
+
+.SH Example
+
+   
+// Run this code
+
+ #include <cassert>
+ #include <iterator>
+ #include <string>
+ using namespace std::string_literals;
+ int main()
+ {
+     std::string s = "xmplr";
+  
+     // insert(size_type index, size_type count, char ch)
+     s.insert(0, 1, 'E');
+     assert("Exmplr" == s);
+  
+     // insert(size_type index, const char* s)
+     s.insert(2, "e");
+     assert("Exemplr" == s);
+  
+     // insert(size_type index, string const& str)
+     s.insert(6, "a"s);
+     assert("Exemplar" == s);
+  
+     // insert(size_type index, string const& str,
+     //     size_type index_str, size_type count)
+     s.insert(8, " is an example string."s, 0, 14);
+     assert("Exemplar is an example" == s);
+  
+     // insert(const_iterator pos, char ch)
+     s.insert(s.cbegin() + s.find_first_of('n') + 1, ':');
+     assert("Exemplar is an: example" == s);
+  
+     // insert(const_iterator pos, size_type count, char ch)
+     s.insert(s.cbegin() + s.find_first_of(':') + 1, 2, '=');
+     assert("Exemplar is an:== example" == s);
+  
+     // insert(const_iterator pos, InputIt first, InputIt last)
+     {
+         std::string seq = " string";
+         s.insert(s.begin() + s.find_last_of('e') + 1,
+             std::begin(seq), std::end(seq));
+         assert("Exemplar is an:== example string" == s);
+     }
+  
+     // insert(const_iterator pos, std::initializer_list<char>)
+     s.insert(s.cbegin() + s.find_first_of('g') + 1, { '.' });
+     assert("Exemplar is an:== example string." == s);
+ }
+
+.SH See also
+
+   append    appends characters to the end
+             \fI(public member function)\fP 
+   push_back appends a character to the end
+             \fI(public member function)\fP 

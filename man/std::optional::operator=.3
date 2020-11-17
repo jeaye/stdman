@@ -1,0 +1,153 @@
+.TH std::optional::operator= 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::optional::operator= \- std::optional::operator=
+
+.SH Synopsis
+   optional& operator=( std::nullopt_t ) noexcept;                    \fB(1)\fP \fI(since C++17)\fP
+   constexpr optional& operator=( const optional& other );            \fB(2)\fP \fI(since C++17)\fP
+   constexpr optional& operator=( optional&& other ) noexcept(/* see  \fB(3)\fP \fI(since C++17)\fP
+   below */);
+   template< class U = T >                                            \fB(4)\fP \fI(since C++17)\fP
+   optional& operator=( U&& value );
+   template< class U >                                                \fB(5)\fP \fI(since C++17)\fP
+   optional& operator=( const optional<U>& other );
+   template< class U >                                                \fB(6)\fP \fI(since C++17)\fP
+   optional& operator=( optional<U>&& other );
+
+   Replaces contents of *this with the contents of other
+
+   1) If *this contains a value before the call, the contained value is destroyed by
+   calling its destructor as if by value().T::~T(). *this does not contain a value
+   after this call.
+   2-3) Assigns the state of other.
+
+     * If both *this and other do not contain a value, the function has no effect.
+     * If *this contains a value, but other does not, then the contained value is
+       destroyed by calling its destructor. *this does not contain a value after the
+       call.
+     * If other contains a value, then depending on whether *this contains a value, the
+       contained value is either direct-initialized or assigned from *other \fB(2)\fP or
+       std::move(*other) \fB(3)\fP. Note that a moved-from optional still contains a value.
+     * Overload \fB(2)\fP is defined as deleted unless std::is_copy_constructible_v<T> and
+       std::is_copy_assignable_v<T> are both true. It is trivial if
+       std::is_trivially_copy_constructible_v<T>,
+       std::is_trivially_copy_assignable_v<T> and std::is_trivially_destructible_v<T>
+       are all true.
+     * Overload \fB(3)\fP does not participate in overload resolution unless
+       std::is_move_constructible_v<T> and std::is_move_assignable_v<T> are both true.
+       It is trivial if std::is_trivially_move_constructible_v<T>,
+       std::is_trivially_move_assignable_v<T> and std::is_trivially_destructible_v<T>
+       are all true.
+
+   4) Perfect-forwarded assignment: depending on whether *this contains a value before
+   the call, the contained value is either direct-initialized from
+   std::forward<U>(value) or assigned from std::forward<U>(value). The function does
+   not participate in overload resolution unless
+   std::decay_t<U>
+   \fI(until C++20)\fP
+   std::remove_cvref_t<U>
+   \fI(since C++20)\fP is not std::optional<T>, std::is_constructible_v<T, U> is true,
+   std::is_assignable_v<T&, U> is true, and at least one of the following is true:
+
+     * T is not a scalar type;
+     * std::decay_t<U> is not T.
+
+   5-6) Assigns the state of other.
+
+     * If both *this and other do not contain a value, the function has no effect.
+     * If *this contains a value, but other does not, then the contained value is
+       destroyed by calling its destructor. *this does not contain a value after the
+       call.
+     * If other contains a value, then depending on whether *this contains a value, the
+       contained value is either direct-initialized or assigned from *other \fB(5)\fP or
+       std::move(*other) \fB(6)\fP. Note that a moved-from optional still contains a value.
+     * These overloads do not participate in overload resolution unless the following
+       conditions are met:
+
+          * T is not constructible, convertible, or assignable from any expression of
+            type (possibly const) std::optional<U>, i.e., the following 12 type traits
+            are all false:
+
+               * std::is_constructible_v<T, std::optional<U>&>
+               * std::is_constructible_v<T, const std::optional<U>&>
+               * std::is_constructible_v<T, std::optional<U>&&>
+               * std::is_constructible_v<T, const std::optional<U>&&>
+               * std::is_convertible_v<std::optional<U>&, T>
+               * std::is_convertible_v<const std::optional<U>&, T>
+               * std::is_convertible_v<std::optional<U>&&, T>
+               * std::is_convertible_v<const std::optional<U>&&, T>
+               * std::is_assignable_v<T&, std::optional<U>&>
+               * std::is_assignable_v<T&, const std::optional<U>&>
+               * std::is_assignable_v<T&, std::optional<U>&&>
+               * std::is_assignable_v<T&, const std::optional<U>&&>.
+
+          * For overload \fB(5)\fP, std::is_constructible_v<T, const U&> and
+            std::is_assignable_v<T&, const U&> are both true.
+          * For overload \fB(6)\fP, std::is_constructible_v<T, U> and
+            std::is_assignable_v<T&, U> are both true.
+
+.SH Parameters
+
+   other - another optional object whose contained value to assign
+   value - value to assign to the contained value
+
+.SH Return value
+
+   *this
+
+.SH Exceptions
+
+   2-6) Throws any exception thrown by the constructor or assignment operator of T. If
+   an exception is thrown, the initialization state of *this (and of other in case of
+   (2-3) and (5-6) ) is unchanged, i.e. if the object contained a value, it still
+   contains a value, and the other way round. The contents of value and the contained
+   values of *this and other depend on the exception safety guarantees of the operation
+   from which the exception originates (copy-constructor, move-assignment, etc.).
+   \fB(3)\fP has the following
+   noexcept specification:  
+   noexcept(std::is_nothrow_move_assignable<T>::value &&
+   std::is_nothrow_move_constructible<T>::value)
+
+.SH Notes
+
+   An optional object op may be turned into an empty optional with both op = {}; and op
+   = nullopt;. The first expression constructs an empty optional object with {} and
+   assigns it to op.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <optional>
+ #include <iostream>
+ int main()
+ {
+     std::optional<const char*> s1 = "abc", s2; // constructor
+     s2 = s1; // assignment
+     s1 = "def"; // decaying assignment (U = char[4], T = const char*)
+     std::cout << *s2 << ' ' << *s1 << '\\n';
+ }
+
+.SH Output:
+
+ abc def
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to            Behavior as published              Correct behavior
+                      copy/move assignment operator may not be    required to propagate
+   P0602R4 C++17      trivial even if underlying operations are   triviality
+                      trivial
+
+.SH See also
+
+   emplace constructs the contained value in-place
+           \fI(public member function)\fP 
+
+.SH Category:
+
+     * conditionally noexcept

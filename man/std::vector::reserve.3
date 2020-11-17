@@ -1,0 +1,143 @@
+.TH std::vector::reserve 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::vector::reserve \- std::vector::reserve
+
+.SH Synopsis
+   void reserve( size_type new_cap );
+
+   Increase the capacity of the vector to a value that's greater or equal to new_cap.
+   If new_cap is greater than the current capacity(), new storage is allocated,
+   otherwise the method does nothing.
+
+   reserve() does not change the size of the vector.
+
+   If new_cap is greater than capacity(), all iterators, including the past-the-end
+   iterator, and all references to the elements are invalidated. Otherwise, no
+   iterators or references are invalidated.
+
+.SH Parameters
+
+   new_cap     -     new capacity of the vector
+.SH Type requirements
+   -
+   T must meet the requirements of MoveInsertable.
+
+.SH Return value
+
+   \fI(none)\fP
+
+.SH Exceptions
+
+     * std::length_error if new_cap > max_size().
+     * any exception thrown by Allocator::allocate() (typically std::bad_alloc)
+
+   If an exception is thrown, this function has no effect \fI(strong exception guarantee)\fP.
+
+   If T's move constructor is not noexcept and T is not CopyInsertable
+   into *this, vector will use the throwing move constructor. If it       \fI(since C++11)\fP
+   throws, the guarantee is waived and the effects are unspecified.
+
+.SH Complexity
+
+   At most linear in the size() of the container.
+
+.SH Notes
+
+   Correctly using reserve() can prevent unnecessary reallocations, but inappropriate
+   uses of reserve() (for instance, calling it before every push_back() call) may
+   actually increase the number of reallocations (by causing the capacity to grow
+   linearly rather than exponentially) and result in increased computational complexity
+   and decreased performance. For example, a function that receives an arbitrary vector
+   by reference and appends elements to it should usually not call reserve() on the
+   vector, since it does not know of the vector's usage characteristics.
+
+   When inserting a range, the range version of insert() is generally preferable as it
+   preserves the correct capacity growth behavior, unlike reserve() followed by a
+   series of push_back()s.
+
+   reserve() cannot be used to reduce the capacity of the container; to that end
+   shrink_to_fit() is provided.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <cstddef>
+ #include <new>
+ #include <vector>
+ #include <iostream>
+  
+ // minimal C++11 allocator with debug output
+ template <class Tp>
+ struct NAlloc {
+     typedef Tp value_type;
+     NAlloc() = default;
+     template <class T> NAlloc(const NAlloc<T>&) {}
+     Tp* allocate(std::size_t n) {
+         n *= sizeof(Tp);
+         std::cout << "allocating " << n << " bytes\\n";
+         return static_cast<Tp*>(::operator new(n));
+     }
+     void deallocate(Tp* p, std::size_t n) {
+         std::cout << "deallocating " << n*sizeof*p << " bytes\\n";
+         ::operator delete(p);
+     }
+ };
+ template <class T, class U>
+ bool operator==(const NAlloc<T>&, const NAlloc<U>&) { return true; }
+ template <class T, class U>
+ bool operator!=(const NAlloc<T>&, const NAlloc<U>&) { return false; }
+  
+ int main()
+ {
+     int sz = 100;
+     std::cout << "using reserve: \\n";
+     {
+         std::vector<int, NAlloc<int>> v1;
+         v1.reserve(sz);
+         for(int n = 0; n < sz; ++n)
+             v1.push_back(n);
+     }
+     std::cout << "not using reserve: \\n";
+     {
+         std::vector<int, NAlloc<int>> v1;
+         for(int n = 0; n < sz; ++n)
+             v1.push_back(n);
+     }
+ }
+
+.SH Possible output:
+
+ using reserve:
+ allocating 400 bytes
+ deallocating 400 bytes
+ not using reserve:
+ allocating 4 bytes
+ allocating 8 bytes
+ deallocating 4 bytes
+ allocating 16 bytes
+ deallocating 8 bytes
+ allocating 32 bytes
+ deallocating 16 bytes
+ allocating 64 bytes
+ deallocating 32 bytes
+ allocating 128 bytes
+ deallocating 64 bytes
+ allocating 256 bytes
+ deallocating 128 bytes
+ allocating 512 bytes
+ deallocating 256 bytes
+ deallocating 512 bytes
+
+.SH See also
+
+                 returns the number of elements that can be held in currently allocated
+   capacity      storage
+                 \fI(public member function)\fP 
+   max_size      returns the maximum possible number of elements
+                 \fI(public member function)\fP 
+   resize        changes the number of elements stored
+                 \fI(public member function)\fP 
+   shrink_to_fit reduces memory usage by freeing unused memory
+   \fI(C++11)\fP       \fI(public member function)\fP 

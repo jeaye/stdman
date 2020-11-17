@@ -1,0 +1,243 @@
+.TH std::num_get::get,std::num_get::do_get 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::num_get::get,std::num_get::do_get \- std::num_get::get,std::num_get::do_get
+
+.SH Synopsis
+   public:
+
+   iter_type get( iter_type in, iter_type end, std::ios_base& str,
+
+                  std::ios_base::iostate& err, bool& v ) const;
+   iter_type get( iter_type in, iter_type end, std::ios_base& str,
+                  std::ios_base::iostate& err, long& v ) const;
+   iter_type get( iter_type in, iter_type end, std::ios_base& str,
+                  std::ios_base::iostate& err, long long& v ) const;
+   iter_type get( iter_type in, iter_type end, std::ios_base& str,
+                  std::ios_base::iostate& err, unsigned short& v ) const;
+   iter_type get( iter_type in, iter_type end, std::ios_base& str,
+                  std::ios_base::iostate& err, unsigned int& v ) const;
+   iter_type get( iter_type in, iter_type end, std::ios_base& str,
+                  std::ios_base::iostate& err, unsigned long& v ) const;
+   iter_type get( iter_type in, iter_type end, std::ios_base& str,
+                  std::ios_base::iostate& err, unsigned long long& v ) const;
+   iter_type get( iter_type in, iter_type end, std::ios_base& str,
+                  std::ios_base::iostate& err, float& v ) const;
+   iter_type get( iter_type in, iter_type end, std::ios_base& str,
+                  std::ios_base::iostate& err, double& v ) const;
+   iter_type get( iter_type in, iter_type end, std::ios_base& str,
+                  std::ios_base::iostate& err, long double& v ) const;
+   iter_type get( iter_type in, iter_type end, std::ios_base& str,
+                  std::ios_base::iostate& err, void*& v ) const;
+   protected:
+
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str, \fB(1)\fP
+
+                             std::ios_base::iostate& err, bool& v ) const;
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, long& v ) const;
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, long long& v )
+   const;
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, unsigned short& v )
+   const;
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, unsigned int& v )
+   const;                                                                         \fB(2)\fP
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, unsigned long& v )
+   const;
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, unsigned long long&
+   v ) const;
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, float& v ) const;
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, double& v ) const;
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, long double& v )
+   const;
+   virtual iter_type do_get( iter_type in, iter_type end, std::ios_base& str,
+                             std::ios_base::iostate& err, void*& v ) const;
+
+   1) Public member function, calls the member function do_get of the most derived
+   class.
+   2) Reads characters from the input iterator in and generates the value of the type
+   of v, taking into account IO stream formatting flags from str.flags(), character
+   classification rules from std::use_facet<std::ctype<charT>>(str.getloc()), and
+   numeric punctuation characters from
+   std::use_facet<std::numpunct<charT>>(str.getloc()). This function is called by all
+   formatted input stream operators such as std::cin >> n;.
+
+   Conversion occurs in three stages
+
+.SH Stage 1: conversion specifier selection
+
+     * I/O format flags are obtained, as if by
+
+   fmtflags basefield = (str.flags() & std::ios_base::basefield);
+   fmtflags boolalpha = (str.flags() & std::ios_base::boolalpha);
+
+     * If the type of v is an integer type, the the first applicable choice of the
+       following five is selected:
+
+   If basefield == oct, will use conversion specifier %o
+   If basefield == hex, will use conversion specifier %X
+   If basefield == 0, will use conversion specifier %i
+   If the type of v is signed, will use conversion specifier %d
+   If the type of v is unsigned, will use conversion specifier %u
+
+     * For integer types, length modifier is added to the conversion specification if
+       necessary: h for short and unsigned short, l for long and unsigned long, ll for
+       long long and unsigned long long
+     * If the type of v is float, will use conversion specifier %g
+     * If the type of v is double, will use conversion specifier %lg
+     * If the type of v is long double, will use conversion specifier %Lg
+     * If the type of v is void*, will use conversion specifier %p
+     * If the type of v is bool and boolalpha==0, proceeds as if the type of v is long,
+       except for the value to be stored in v in stage 3.
+     * If the type of v is bool and boolalpha!=0, the following replaces stages 2 and
+       3:
+
+          * Successive characters obtained from the input iterator in are matched
+            against the character sequences obtained from
+            std::use_facet<std::numpunct<charT>>(str.getloc()).falsename() and
+            std::use_facet<std::numpunct<charT> >(str.getloc()).truename() only as
+            necessary as to identify the unique match. The input iterator in is
+            compared to end only when necessary to obtain a character.
+          * If the target sequence is uniquely matched, v is set to the corresponding
+            bool value. Otherwise false is stored in v and std::ios_base::failbit is
+            assigned to err. If unique match could not be found before the input ended
+            (in==end), err|=std::ios_base::eofbit is executed.
+
+.SH Stage 2: character extraction
+
+     * If in==end, Stage 2 is terminated immediately, no further characters are
+       extracted
+     * The next character is extracted from in as if by char_type ct = *in;
+
+          * If the character matches one of "0123456789abcdefxABCDEFX+-", widened to
+            the locale's char_type as if by
+            std::use_facet<std::ctype<charT>>(str.getloc()).widen(), it is converted to
+            the corresponding char.
+          * If the character matches the decimal point separator
+            (std::use_facet<std::numpunct<charT>>(str.getloc()).decimal_point())), it
+            is replaced by '.'.
+          * If the character matches the thousands separator
+            (std::use_facet<std::numpunct<charT>>(str.getloc()).thousands_sep()) and
+            the thousands separation is in use at all
+            std::use_facet<std::numpunct<charT>>(str.getloc()).grouping().length() !=
+            0, then if the decimal point '.' has not yet been accumulated, the position
+            of the character is remembered, but the character is otherwise ignored. If
+            the decimal point has already been accumulated, the character is discarded
+            and Stage 2 terminates.
+          * In any case, the check is made whether the char obtained from the previous
+            steps is allowed in the input field that would be parsed by std::scanf
+            given the conversion specifier selected in Stage 1. If it is allowed, it is
+            accumulated in a temporary buffer and Stage 2 repeats. If it is not
+            allowed, Stage 2 terminates.
+
+.SH Stage 3: conversion and storage
+
+     * The sequence of chars accumulated in Stage 2 is converted to a numeric value
+
+   The input is parsed as if by std::scanf with the conversion specifier  \fI(until C++11)\fP
+   selected in Stage 1
+   The input is parsed as if by std::strtoll for signed integer v,        \fI(since C++11)\fP
+   std::strtoull for unsigned integer v, or std::strtold for              \fI(until C++17)\fP
+   floating-point v
+   The input is parsed as if by std::strtoll for signed integer v,
+   std::strtoull for unsigned integer v, std::strtof for float v,         \fI(since C++17)\fP
+   std::strtod for double v, or std::strtold for long double v
+
+     * If the conversion function fails to convert the entire field, the
+       valueý¿¿½£¬ý¿¿½£­ is stored in v
+     * If the conversion function results in a positive value too large
+       to fit in the type of v, the most positive representable value is
+       stored in v                                                        \fI(since C++11)\fP
+     * If the conversion function results in a negative value too large
+       to fit in the type of v, the most negative representable value is
+       stored in v
+       , or zero for unsigned integer types.
+       \fI(until C++17)\fP
+
+     * In any case, if the conversion function fails std::ios_base::failbit is assigned
+       to err
+     * Otherwise, the numeric result of the conversion is stored in v
+
+          * If the type of v is bool and boolalpha is not set, then if the value to be
+            stored isý¿¿½£¬ý¿¿½£­, false is stored, if the value to be stored is 1, true is
+            stored, for any other value std::ios_base::failbit is assigned to err and
+            true is stored.
+
+     * After this, digit grouping is checked. if the position of any of the thousands
+       separators discarded in Stage 2 does not match the grouping provided by
+       std::use_facet<std::numpunct<charT>>(str.getloc()).grouping(),
+       std::ios_base::failbit is assigned to err.
+     * If Stage 2 was terminated by the test in==end, err|=std::ios_base::eofbit is
+       executed to set the eof bit.
+
+.SH Return value
+
+   in
+
+.SH Notes
+
+   In C++98/C++03, if an error occurs, v is left unchanged. In C++11, it is set to a
+   value as described above.
+
+   The result of converting a negative number string into an unsigned integer was
+   specified to produce zero until C++17, although some implementations followed the
+   protocol of std::strtoull which negates in the target type, giving ULLONG_MAX for
+   "-1", and so produce the largest value of the target type instead. As of C++17,
+   strictly following std::strtoull is the correct behavior.
+
+   Because stage 2 filters out characters such as 'p', 'N' or 'i', the hexadecimal
+   floating-point numbers such as "0x1.23p-10" and the strings "NaN" or "inf" may be
+   rejected by do_get(double) even if they are valid input to strtod: this is LWG #2381
+
+.SH Example
+
+   An implementation of operator>> for a user-defined type.
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <iterator>
+ #include <locale>
+  
+ struct base { long x; };
+  
+ template <class CharT, class Traits>
+ std::basic_istream<CharT, Traits>&
+     operator >>(std::basic_istream<CharT, Traits>& is,
+                 base& b)
+ {
+     std::ios_base::iostate err = std::ios_base::goodbit;
+     try // setting err could throw
+     {
+         typename std::basic_istream<CharT, Traits>::sentry s(is);
+  
+         if (s) // if stream is ready for input
+         {
+             std::use_facet<std::num_get<CharT>>(is.getloc()).get(is, {}, is, err, b.x);
+         }
+     } catch(std::ios_base::failure& error)
+     {
+         // handle the exception
+     }
+     return is;
+ }
+  
+ int main()
+ {
+     base b;
+  
+     std::cin >> b;
+ }
+
+.SH See also
+
+   operator>> extracts formatted data
+              \fI(public member function of std::basic_istream<CharT,Traits>)\fP 

@@ -1,0 +1,111 @@
+.TH std::time_get::get_time,std::time_get::do_get_time 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::time_get::get_time,std::time_get::do_get_time \- std::time_get::get_time,std::time_get::do_get_time
+
+.SH Synopsis
+   Defined in header <locale>
+   public:
+
+   iter_type get_time( iter_type beg, iter_type end, std::ios_base& str,         \fB(1)\fP
+
+                       std::ios_base::iostate& err, std::tm* t) const;
+   protected:
+
+   virtual iter_type get_time( iter_type beg, iter_type end, std::ios_base& str, \fB(2)\fP
+
+                               std::ios_base::iostate& err, std::tm* t) const;
+
+   1) public member function, calls the protected virtual member function do_get_time
+   of the most derived class.
+   2) Reads successive characters from the sequence [beg, end) and parses out the time
+   value following the same rules as the format specifier
+
+   '%X'       \fI(until C++11)\fP
+   "%H:%M:%S" \fI(since C++11)\fP
+
+   as used by the functions std::get_time, time_get::get, and the POSIX function
+   strptime()
+   The parsed time is stored in the corresponding fields of the std::tm structure
+   pointed to by the argument t.
+   If the end iterator is reached before a valid value is read, the function sets
+   std::ios_base::eofbit in err. If a parsing error is encountered, the function sets
+   std::ios_base::failbit in err.
+
+.SH Parameters
+
+   beg - iterator designating the start of the sequence to parse
+   end - one past the end iterator for the sequence to parse
+   str - a stream object that this function uses to obtain locale facets when needed,
+         e.g. std::ctype to skip whitespace
+   err - stream error flags object that is modified by this function to indicate errors
+   t   - pointer to the std::tm object that will hold the result of this function call
+
+.SH Return value
+
+   Iterator pointing one past the last character in [beg, end) that was recognized as a
+   part of a valid date.
+
+.SH Notes
+
+   For the alphabetic components of the default time format (if any), this function is
+   usually case-insensitive.
+
+   If a parsing error is encountered, most implementations of this function leave *t
+   unmodified.
+
+.SH Example
+
+   
+// Run this code
+
+ #include <iostream>
+ #include <locale>
+ #include <sstream>
+ #include <iterator>
+  
+ void try_get_time(const std::string& s)
+ {
+     std::cout << "Parsing the time out of '" << s <<
+                  "' in the locale " << std::locale().name() << '\\n';
+     std::istringstream str(s);
+     std::ios_base::iostate err = std::ios_base::goodbit;
+  
+     std::tm t;
+     std::istreambuf_iterator<char> ret =
+         std::use_facet<std::time_get<char>>(str.getloc()).get_time(
+             {str}, {}, str, err, &t
+         );
+     str.setstate(err);
+     if(str) {
+         std::cout << "Hours: "   << t.tm_hour << ' '
+                   << "Minutes: " << t.tm_min  << ' '
+                   << "Seconds: " << t.tm_sec  << '\\n';
+     } else {
+         std::cout << "Parse failed. Unparsed string: ";
+         std::copy(ret, {}, std::ostreambuf_iterator<char>(std::cout));
+         std::cout << '\\n';
+     }
+ }
+ int main()
+ {
+     std::locale::global(std::locale("ru_RU.utf8"));
+     try_get_time("21:40:11");
+     try_get_time("21-40-11");
+  
+     std::locale::global(std::locale("ja_JP.utf8"));
+     try_get_time("21時37分58秒");
+ }
+
+.SH Output:
+
+ Parsing the time out of '21:40:11' in the locale ru_RU.utf8
+ Hours: 21 Minutes: 40 Seconds: 11
+ Parsing the time out of '21-40-11' in the locale ru_RU.utf8
+ Parse failed. Unparsed string: -40-11
+ Parsing the time out of '21時37分58秒' in the locale ja_JP.utf8
+ Hours: 21 Minutes: 37 Seconds: 58
+
+.SH See also
+
+   get_time parses a date/time value of specified format
+   \fI(C++11)\fP  \fI(function template)\fP 

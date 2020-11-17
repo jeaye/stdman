@@ -69,7 +69,7 @@ make generate # will build stdman and generate man pages
 **NOTE**: `make generate` expects sources will be in the `./reference/en/cpp` directory by default. See `./configure --help` to modify this.
 
 ### Compilation/Generation Dependencies
-* C++11 (recommended GCC 4.8 or clang 3.4 or greater)
+* C++11 (recommended GCC 4.9 or clang 3.4 or greater)
 * elinks (recommended 0.12pre6 or greater)
 * gzip (recommended 1.3.12 or greater)
 

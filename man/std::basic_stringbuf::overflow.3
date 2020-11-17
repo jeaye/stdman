@@ -1,0 +1,118 @@
+.TH std::basic_stringbuf::overflow 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::basic_stringbuf::overflow \- std::basic_stringbuf::overflow
+
+.SH Synopsis
+   protected:
+   virtual int_type overflow ( int_type c = Traits::eof() );
+
+   Appends the character c to the output character sequence.
+
+   If c is the end-of-file indicator (traits::eq_int_type(c,traits::eof()) == true),
+   then there is no character to append. The function does nothing and returns an
+   unspecified value other than traits::eof().
+
+   Otherwise, if the output sequence has a write position available or this function
+   can successfully make a write position available, then calls sputc(c) and returns c.
+
+   This function can make a write position available if the stringbuf is open for
+   output (mode & ios_base::out) != 0): in this case, it reallocates (or initially
+   allocates) the buffer big enough to hold the entire current buffer plus at least one
+   more character. If the stringbuf is also open for input ((mode & ios_base::in) !=
+   0), then overflow also increases the size of the get area by moving egptr() to point
+   just past the new write position.
+
+.SH Parameters
+
+   c - the character to store in the put area
+
+.SH Return value
+
+   Traits::eof() to indicate failure, c if the character c was successfully appended,
+   or some value other than Traits::eof() if called with Traits::eof() as the argument.
+
+.SH Notes
+
+   This function is different from a typical overflow() which moves the contents of the
+   buffer to the associated character sequence because for a std::basic_stringbuf, the
+   buffer and the associated sequence are one and the same.
+
+.SH Example
+
+   In the implementation used to execute this example, overflow() over-allocates the
+   put area to 512 bytes: a call to str() would only return the four initialized bytes,
+   but the next 508 calls to sputc() would not require new calls to overflow()
+
+   
+// Run this code
+
+ #include <sstream>
+ #include <iostream>
+  
+ struct mybuf : std::stringbuf
+ {
+     mybuf(const std::string& new_str,
+           std::ios_base::openmode which = std::ios_base::in|std::ios_base::out)
+            : std::stringbuf(new_str, which) {}
+     int_type overflow(int_type c = EOF) override
+     {
+         std::cout << "stringbuf::overflow('" << char(c) << "') called\\n"
+                   << "Before: size of get area: " << egptr() - eback() << '\\n'
+                   << "        size of put area: " << epptr() - pbase() << '\\n';
+         int_type ret = std::stringbuf::overflow(c);
+         std::cout << "After : size of get area: " << egptr() - eback() << '\\n'
+                   << "        size of put area: " << epptr() - pbase() << '\\n';
+         return ret;
+     }
+ };
+  
+ int main()
+ {
+     std::cout << "read-write stream:\\n";
+     mybuf sbuf("   "); // read-write stream
+     std::iostream stream(&sbuf);
+     stream << 1234;
+     std::cout << sbuf.str() << '\\n';
+  
+     std::cout << "\\nread-only stream:\\n";
+     mybuf ro_buf("   ", std::ios_base::in); // read-only stream
+     std::iostream ro_stream(&ro_buf);
+     ro_stream << 1234;
+  
+     std::cout << "\\nwrite-only stream:\\n";
+     mybuf wr_buf("   ", std::ios_base::out); // write-only stream
+     std::iostream wr_stream(&wr_buf);
+     wr_stream << 1234;
+ }
+
+.SH Possible output:
+
+ read-write stream:
+ stringbuf::overflow('4') called
+ Before: size of get area: 3
+         size of put area: 3
+ After : size of get area: 4
+         size of put area: 512
+ 1234
+  
+ read-only stream:
+ stringbuf::overflow('1') called
+ Before: size of get area: 3
+         size of put area: 0
+ After : size of get area: 3
+         size of put area: 0
+  
+ write-only stream:
+ stringbuf::overflow('4') called
+ Before: size of get area: 0
+         size of put area: 3
+ After : size of get area: 0
+         size of put area: 512
+
+.SH See also
+
+   overflow  writes characters to the associated output sequence from the put area
+   \fB[virtual]\fP \fI(virtual protected member function of std::basic_streambuf<CharT,Traits>)\fP
+             
+   underflow returns the next character available in the input sequence
+   \fB[virtual]\fP \fI(virtual protected member function)\fP 
