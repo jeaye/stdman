@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <iterator>
+#include <regex>
 
 #include "str.hpp"
 #include "parse_state.hpp"
@@ -25,13 +26,16 @@
 class groff
 {
   public:
-    void operator ()(parse_state &state)
+	std::string remove_template(const std::string &name) {
+		return std::regex_replace(name, std::regex(R"(<[^>]*>)"), "");
+	}
+	void operator ()(parse_state &state)
     {
       state.lines = get_lines(state.plain);
       if(state.lines.size() < 2)
       { throw std::runtime_error("insufficient lines in plain render"); }
 
-      std::string name{ state.lines[0] };
+      std::string name = remove_template(state.lines[0]);
       str::replace(str::trim(name), " ", ""); /* Don't allow spaces in the filename. */
       if(state.output_file.empty())
       { state.output_file = state.output_dir + name + ".3"; }
