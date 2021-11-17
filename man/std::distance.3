@@ -1,4 +1,4 @@
-.TH std::distance 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::distance 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::distance \- std::distance
 
@@ -6,16 +6,19 @@ std::distance \- std::distance
    Defined in header <iterator>
    template< class InputIt >
 
-   typename std::iterator_traits<InputIt>::difference_type            \fI(until C++17)\fP
-
-       distance( InputIt first, InputIt last );
-   template< class InputIt >
-
-   constexpr typename std::iterator_traits<InputIt>::difference_type  \fI(since C++17)\fP
+   typename std::iterator_traits<InputIt>::difference_type  (constexpr since C++17)
 
        distance( InputIt first, InputIt last );
 
    Returns the number of hops from first to last.
+
+   The behavior is undefined if last is not reachable from first by       \fI(until C++11)\fP
+   (possibly repeatedly) incrementing first.
+   If InputIt is not LegacyRandomAccessIterator, the behavior is
+   undefined if last is not reachable from first by (possibly repeatedly)
+   incrementing first. If InputIt is LegacyRandomAccessIterator, the      \fI(since C++11)\fP
+   behavior is undefined if last is not reachable from first and first is
+   not reachable from last.
 
 .SH Parameters
 
@@ -41,15 +44,75 @@ std::distance \- std::distance
    However, if InputIt additionally meets the requirements of
    LegacyRandomAccessIterator, complexity is constant.
 
+.SH Possible implementation
+
+   See also the implementations in libstdc++ and libc++.
+
+.SH First version
+   // implementation via tag dispatch, available in C++98 with constexpr removed
+   namespace detail {
+
+   template<class It>
+   constexpr // required since C++17
+   typename std::iterator_traits<It>::difference_type
+       do_distance(It first, It last, std::input_iterator_tag)
+   {
+       typename std::iterator_traits<It>::difference_type result = 0;
+       while (first != last) {
+           ++first;
+           ++result;
+       }
+       return result;
+   }
+
+   template<class It>
+   constexpr // required since C++17
+   typename std::iterator_traits<It>::difference_type
+       do_distance(It first, It last, std::random_access_iterator_tag)
+   {
+       return last - first;
+   }
+
+   } // namespace detail
+
+   template<class It>
+   constexpr // since C++17
+   typename std::iterator_traits<It>::difference_type
+       distance(It first, It last)
+   {
+       return detail::do_distance(first, last,
+                                  typename std::iterator_traits<It>::iterator_category());
+   }
+.SH Second version
+   // implementation via constexpr if, available in C++17
+   template<class It>
+   constexpr typename std::iterator_traits<It>::difference_type
+       distance(It first, It last)
+   {
+       using category = typename std::iterator_traits<It>::iterator_category;
+       static_assert(std::is_base_of_v<std::input_iterator_tag, category>);
+
+       if constexpr (std::is_base_of_v<std::random_access_iterator_tag, category>)
+           return last - first;
+       else {
+           typename std::iterator_traits<It>::difference_type result = 0;
+           while (first != last) {
+               ++first;
+               ++result;
+           }
+           return result;
+       }
+   }
+
 .SH Example
 
-   
+
 // Run this code
 
  #include <iostream>
  #include <iterator>
  #include <vector>
-  
+
  int main()
  {
      std::vector<int> v{ 3, 1, 4 };
@@ -68,14 +131,6 @@ std::distance \- std::distance
 .SH See also
 
    advance  advances an iterator by given distance
-            \fI(function template)\fP 
+            \fI(function template)\fP
    count    returns the number of elements satisfying specific criteria
-   count_if \fI(function template)\fP 
-
-   The behavior is undefined if last is not reachable from first by       \fI(until C++11)\fP
-   (possibly repeatedly) incrementing first.
-   If InputIt is not LegacyRandomAccessIterator, the behavior is
-   undefined if last is not reachable from first by (possibly repeatedly)
-   incrementing first. If InputIt is LegacyRandomAccessIterator, the      \fI(since C++11)\fP
-   behavior is undefined if last is not reachable from first and first is
-   not reachable from last.
+   count_if \fI(function template)\fP

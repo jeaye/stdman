@@ -1,0 +1,81 @@
+.TH std::ranges::subrange 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::subrange \- std::ranges::subrange
+
+.SH Synopsis
+   Defined in header <ranges>
+   template<
+
+     std::input_or_output_iterator I,
+     std::sentinel_for<I> S = I,
+     ranges::subrange_kind K = std::sized_sentinel_for<S, I> ?
+       ranges::subrange_kind::sized : ranges::subrange_kind::unsized      \fI(since C++20)\fP
+   >
+     requires (K == ranges::subrange_kind::sized ||
+   !std::sized_sentinel_for<S, I>)
+
+   class subrange : public ranges::view_interface<subrange<I, S, K>>
+
+   The subrange class template combines together an iterator and a sentinel into a
+   single view.
+
+   Additionally, the subrange is a sized_range whenever the final template parameter is
+   subrange_kind::sized (which happens when sized_sentinel_for<S, I> is satisfied or
+   when size is passed explicitly as a constructor argument)
+
+    This section is incomplete
+    Reason: members
+
+   Helper templates
+
+   template<std::input_or_output_iterator I, std::sentinel_for<I> S
+
+            ranges::subrange_kind K>
+
+   inline constexpr bool enable_borrowed_range<ranges::subrange<I, S, K>> = true;
+
+   This specialization of std::ranges::enable_borrowed_range makes subrange satisfy
+   borrowed_range.
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <map>
+ #include <ranges>
+ #include <string_view>
+
+ template <class V> void mutate(V& v) { v += 'A' - 'a'; }
+
+ template <class K, class V>
+ void mutate_map_values(std::multimap<K, V>& m, K k) {
+     auto iter_pair = m.equal_range(k);
+     for (auto& [_, v] : std::ranges::subrange(iter_pair.first, iter_pair.second)) {
+         mutate(v);
+     }
+ }
+
+ int main()
+ {
+     auto print = [](std::string_view rem, auto const& mm) {
+         std::cout << rem << "{ ";
+         for (const auto& [k, v] : mm) std::cout << "{" << k << ",'" << v << "'} ";
+         std::cout << "}\\n";
+     };
+
+     std::multimap<int,char> mm{ {4,'a'}, {3,'-'}, {4,'b'}, {5,'-'}, {4,'c'} };
+     print("Before: ", mm);
+     mutate_map_values(mm, 4);
+     print("After:  ", mm);
+ }
+
+.SH Output:
+
+ Before: { {3,'-'} {4,'a'} {4,'b'} {4,'c'} {5,'-'} }
+ After:  { {3,'-'} {4,'A'} {4,'B'} {4,'C'} {5,'-'} }
+
+.SH Category:
+
+     * Todo with reason

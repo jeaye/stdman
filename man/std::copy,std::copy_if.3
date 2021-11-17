@@ -1,4 +1,4 @@
-.TH std::copy,std::copy_if 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::copy,std::copy_if 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::copy,std::copy_if \- std::copy,std::copy_if
 
@@ -50,23 +50,26 @@ std::copy,std::copy_if \- std::copy,std::copy_if
    3) Only copies the elements for which the predicate pred returns true. The relative
    order of the elements that are copied is preserved. The behavior is undefined if the
    source and the destination ranges overlap.
-   2,4) Same as (1,3), but executed according to policy. This overload only
-   participates in overload resolution if
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
+   2,4) Same as (1,3), but executed according to policy. These overloads do not
+   participate in overload resolution unless
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
+   \fI(until C++20)\fP
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
+   \fI(since C++20)\fP is true.
 
 .SH Parameters
 
    first, last - the range of elements to copy
    d_first     - the beginning of the destination range.
    policy      - the execution policy to use. See execution policy for details.
-                 unary predicate which returnsý¿¿½£¬true for the required elements.
+                 unary predicate which returns true for the required elements.
 
                  The expression pred(v) must be convertible to bool for every argument
    pred        - v of type (possibly const) VT, where VT is the value type of InputIt,
                  regardless of value category, and must not modify v. Thus, a parameter
                  type of VT&is not allowed
                  , nor is VT unless for VT a move is equivalent to a copy
-                 \fI(since C++11)\fP.ý¿¿½£¬
+                 \fI(since C++11)\fP.
 .SH Type requirements
    -
    InputIt must meet the requirements of LegacyInputIterator.
@@ -84,14 +87,13 @@ std::copy,std::copy_if \- std::copy,std::copy_if
 
 .SH Complexity
 
-     * 1-2) Exactly (last - first) assignments
-
-     * 3-4) Exactly (last - first) applications of the predicate, betweený¿¿½£¬ý¿¿½£­ and (last -
-       first) assignments (assignment for every element for which predicate is equal to
-       true, dependent on predicate and input data)
+   1-2) Exactly (last - first) assignments
+   3-4) Exactly (last - first) applications of the predicate, between 0 and (last -
+   first) assignments (assignment for every element for which predicate is equal to
+   true, dependent on predicate and input data)
 
    For the overloads with an ExecutionPolicy, there may be a performance cost if
-   ForwardIt1's value_type is not MoveConstructible.
+   ForwardIt1's value type is not MoveConstructible.
 
 .SH Exceptions
 
@@ -106,7 +108,8 @@ std::copy,std::copy_if \- std::copy,std::copy_if
 .SH Notes
 
    In practice, implementations of std::copy avoid multiple assignments and use bulk
-   copy functions such as std::memmove if the value type is TriviallyCopyable
+   copy functions such as std::memmove if the value type is TriviallyCopyable and the
+   iterator types satisfy LegacyContiguousIterator.
 
    When copying overlapping ranges, std::copy is appropriate when copying to the left
    (beginning of the destination range is outside the source range) while
@@ -143,7 +146,7 @@ std::copy,std::copy_if \- std::copy,std::copy_if
    The following code uses copy to both copy the contents of one vector to another and
    to display the resulting vector:
 
-   
+
 // Run this code
 
  #include <algorithm>
@@ -151,12 +154,12 @@ std::copy,std::copy_if \- std::copy,std::copy_if
  #include <vector>
  #include <iterator>
  #include <numeric>
-  
+
  int main()
  {
      std::vector<int> from_vector(10);
      std::iota(from_vector.begin(), from_vector.end(), 0);
-  
+
      std::vector<int> to_vector;
      std::copy(from_vector.begin(), from_vector.end(),
                std::back_inserter(to_vector));
@@ -165,28 +168,36 @@ std::copy,std::copy_if \- std::copy,std::copy_if
  //  std::copy(from_vector.begin(), from_vector.end(), to_vector.begin());
  // either way is equivalent to
  //  std::vector<int> to_vector = from_vector;
-  
+
      std::cout << "to_vector contains: ";
-  
+
      std::copy(to_vector.begin(), to_vector.end(),
                std::ostream_iterator<int>(std::cout, " "));
+     std::cout << '\\n';
+
+     std::cout << "odd numbers in to_vector are: ";
+
+     std::copy_if(to_vector.begin(), to_vector.end(),
+                  std::ostream_iterator<int>(std::cout, " "),
+                  [](int x) { return (x % 2) == 1; });
      std::cout << '\\n';
  }
 
 .SH Output:
 
  to_vector contains: 0 1 2 3 4 5 6 7 8 9
+ odd numbers in to_vector are: 1 3 5 7 9
 
 .SH See also
 
    copy_backward  copies a range of elements in backwards order
-                  \fI(function template)\fP 
+                  \fI(function template)\fP
    reverse_copy   creates a copy of a range that is reversed
-                  \fI(function template)\fP 
+                  \fI(function template)\fP
    copy_n         copies a number of elements to a new location
-   \fI(C++11)\fP        \fI(function template)\fP 
+   \fI(C++11)\fP        \fI(function template)\fP
    fill           copy-assigns the given value to every element in a range
-                  \fI(function template)\fP 
+                  \fI(function template)\fP
    remove_copy    copies a range of elements omitting those that satisfy specific
    remove_copy_if criteria
-                  \fI(function template)\fP 
+                  \fI(function template)\fP

@@ -1,4 +1,4 @@
-.TH std::shift_left,std::shift_right 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::shift_left,std::shift_right 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::shift_left,std::shift_right \- std::shift_left,std::shift_right
 
@@ -36,16 +36,16 @@ std::shift_left,std::shift_right \- std::shift_left,std::shift_right
    1) Shifts the elements towards the beginning of the range. If n <= 0 || n >= last -
    first, there are no effects. Otherwise, for every integer i in [0, last - first -
    n), moves the element originally at position first + n + i to position first + i.
-   The moves are performed in increasing order of i starting fromý¿¿½£¬ý¿¿½£­.
+   The moves are performed in increasing order of i starting from 0.
    3) Shifts the elements towards the end of the range. If n <= 0 || n >= last - first,
    there are no effects. Otherwise, for every integer i in [0, last - first - n), moves
    the element originally at position first + i to position first + n + i. If ForwardIt
    meets the LegacyBidirectionalIterator requirements, then the moves are performed in
    decreasing order of i starting from last - first - n - 1.
    2,4) Same as \fB(1)\fP and \fB(3)\fP, respectively, but executed according to policy and the
-   moves may be performed in any order. These overloads does not participate in
-   overload resolution unless std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   is true.
+   moves may be performed in any order. This overload only participates in overload
+   resolution if std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is
+   true
 
    Elements that are in the original range but not the new range are left in a valid
    but unspecified state.
@@ -90,11 +90,62 @@ std::shift_left,std::shift_right \- std::shift_left,std::shift_right
        For any other ExecutionPolicy, the behavior is implementation-defined.
      * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <algorithm>
+ #include <vector>
+
+ struct S {
+     int value{0};
+     bool specified_state{true};
+
+     S(int v = 0) : value{v} {}
+     S(S const& rhs) = default;
+     S(S&& rhs) { *this = std::move(rhs); }
+     S& operator=(S const& rhs) = default;
+     S& operator=(S&& rhs) {
+         if (this != &rhs) {
+             value = rhs.value;
+             specified_state = rhs.specified_state;
+             rhs.specified_state = false;
+         }
+         return *this;
+     }
+ };
+
+ std::ostream& operator<< (std::ostream& os, std::vector<S> const& v) {
+     for (const auto& s : v)
+         s.specified_state ? os << s.value << ' ' : os << "? ";
+     return os << '\\n';
+ }
+
+ int main()
+ {
+     std::vector<S> v{1,2,3,4,5,6,7};
+     std::cout << v;
+
+     std::shift_left(v.begin(), v.end(), 3);
+     std::cout << v;
+
+     std::shift_right(v.begin(), v.end(), 2);
+     std::cout << v;
+ }
+
+.SH Output:
+
+ 1 2 3 4 5 6 7
+ 4 5 6 7 ? ? ?
+ ? ? 4 5 6 7 ?
+
 .SH See also
 
    move          moves a range of elements to a new location
-   \fI(C++11)\fP       \fI(function template)\fP 
+   \fI(C++11)\fP       \fI(function template)\fP
    move_backward moves a range of elements to a new location in backwards order
-   \fI(C++11)\fP       \fI(function template)\fP 
+   \fI(C++11)\fP       \fI(function template)\fP
    rotate        rotates the order of elements in a range
-                 \fI(function template)\fP 
+                 \fI(function template)\fP

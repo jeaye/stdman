@@ -1,13 +1,13 @@
-.TH std::mem_fn 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::mem_fn 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::mem_fn \- std::mem_fn
 
 .SH Synopsis
    Defined in header <functional>
-   template< class M, class T >                 \fI(since C++11)\fP
-   /*unspecified*/ mem_fn(M T::* pm);           \fI(until C++17)\fP
-   template< class M, class T >                 \fI(since C++17)\fP
-   /*unspecified*/ mem_fn(M T::* pm) noexcept;
+   template< class M, class T >                           \fI(since C++11)\fP
+   /*unspecified*/ mem_fn(M T::* pm) noexcept;            \fI(until C++20)\fP
+   template< class M, class T >                           \fI(since C++20)\fP
+   constexpr /*unspecified*/ mem_fn(M T::* pm) noexcept;
 
    Function template std::mem_fn generates wrapper objects for pointers to members,
    which can store, copy, and invoke a pointer to member. Both references and pointers
@@ -22,7 +22,7 @@ std::mem_fn \- std::mem_fn
    std::mem_fn returns a call wrapper of unspecified type that has the following
    members:
 
-std::mem_fn Return type
+std::mem_fn return type
 
 .SH Member types
 
@@ -44,12 +44,25 @@ std::mem_fn Return type
 .SH Member function
 
    template<class... Args>
-   /* see below */ operator()(Args&&... args);
+
+   /* see below */ operator()(Args&&... args) /* cvref-qualifiers */      \fI(until C++20)\fP
+
+       noexcept(/* see below */);
+   template<class... Args>
+
+   constexpr /* see below */ operator()(Args&&... args) /*                \fI(since C++20)\fP
+   cvref-qualifiers */
+
+       noexcept(/* see below */);
 
    Let fn be the call wrapper returned by a call to std::mem_fn with a pointer to
    member pm. Then the expression fn(t, a2, ..., aN) is equivalent to INVOKE(pm, t, a2,
-   ..., aN), where INVOKE is the operation defined in Callable. (Thus, the return type
-   of operator() is std::result_of<decltype(pm)(Args&&...)>::type.)
+   ..., aN), where INVOKE is the operation defined in Callable.
+
+   Thus, the return type of operator() is std::result_of<decltype(pm)(Args&&...)>::type
+   or equivalently std::invoke_result_t<decltype(pm), Args&&...>, and the value in
+   noexcept specifier is equal to std::is_nothrow_invocable_v<decltype(pm), Args&&...>)
+   \fI(since C++17)\fP.
 
    Each argument in args is perfectly forwarded, as if by std::forward<Args>(args)....
 
@@ -57,12 +70,12 @@ std::mem_fn Return type
 
    Use mem_fn to store and execute a member function and a member object:
 
-   
+
 // Run this code
 
  #include <functional>
  #include <iostream>
-  
+
  struct Foo {
      void display_greeting() {
          std::cout << "Hello, world.\\n";
@@ -72,16 +85,16 @@ std::mem_fn Return type
      }
      int data = 7;
  };
-  
+
  int main() {
      Foo f;
-  
+
      auto greet = std::mem_fn(&Foo::display_greeting);
      greet(f);
-  
+
      auto print_num = std::mem_fn(&Foo::display_number);
      print_num(f, 42);
-  
+
      auto access_data = std::mem_fn(&Foo::data);
      std::cout << "data: " << access_data(f) << '\\n';
  }
@@ -99,10 +112,11 @@ std::mem_fn Return type
 
       DR    Applied to     Behavior as published      Correct behavior
    LWG 2048 C++11      unnecessary overloads provided removed
+   LWG 2489 C++11      noexcept not required          required
 
 .SH See also
 
    function wraps callable object of any type with specified function call signature
-   \fI(C++11)\fP  \fI(class template)\fP 
+   \fI(C++11)\fP  \fI(class template)\fP
    bind     binds one or more arguments to a function object
-   \fI(C++11)\fP  \fI(function template)\fP 
+   \fI(C++11)\fP  \fI(function template)\fP

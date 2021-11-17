@@ -1,0 +1,91 @@
+.TH std::compare_three_way_result 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::compare_three_way_result \- std::compare_three_way_result
+
+.SH Synopsis
+   Defined in header <compare>
+   template<class T, class U = T>    \fI(since C++20)\fP
+   struct compare_three_way_result;
+
+   Let t and u denote lvalue of const std::remove_reference_t<T> and const
+   std::remove_reference_t<U> respectively, if the expression t <=> u is well-formed,
+   provides the member typedef type equal to decltype(t <=> u), otherwise there is no
+   member type.
+
+   The behavior of a program that adds specializations for compare_three_way_result is
+   undefined.
+
+.SH Member types
+
+   Name Definition
+   type the result type of operator<=> on const-qualified lvalue of T and U
+
+.SH Helper types
+
+   template<class T, class U = T>
+   using compare_three_way_result_t = typename                            \fI(since C++20)\fP
+   compare_three_way_result<T>::type;
+
+.SH Possible implementation
+
+   // recommended by Casey Carter
+   // see also: https://github.com/microsoft/STL/pull/385#discussion_r357894054
+   template<class T, class U = T>
+   using compare_three_way_result_t = decltype(
+       std::declval<const std::remove_reference_t<T>&>() <=>
+       std::declval<const std::remove_reference_t<U>&>()
+   );
+
+   template<class T, class U = T>
+   struct compare_three_way_result {};
+
+   template<class T, class U>
+       requires requires { typename compare_three_way_result_t<T, U>; }
+   struct compare_three_way_result {
+       using type = compare_three_way_result_t<T, U>;
+   };
+
+.SH Example
+
+
+// Run this code
+
+ #include <compare>
+ #include <type_traits>
+ #include <iostream>
+
+ template <class Ord>
+ void print_cmp_type()
+ {
+     if constexpr (std::is_same_v<Ord, std::strong_ordering>)
+         std::cout << "strong ordering\\n";
+     else if constexpr (std::is_same_v<Ord, std::weak_ordering>)
+         std::cout << "weak ordering\\n";
+     else if constexpr (std::is_same_v<Ord, std::partial_ordering>)
+         std::cout << "partial ordering\\n";
+     else
+         std::cout << "illegal comparison result type\\n";
+ }
+
+ int main()
+ {
+     print_cmp_type<std::compare_three_way_result_t<int>>();
+     print_cmp_type<std::compare_three_way_result_t<double>>();
+ }
+
+.SH Output:
+
+ strong ordering
+ partial ordering
+
+.SH See also
+
+   partial_ordering the result type of 3-way comparison that supports all 6 operators,
+   (C++20)          is not substitutable, and allows incomparable values
+                    \fI(class)\fP
+   weak_ordering    the result type of 3-way comparison that supports all 6 operators
+   (C++20)          and is not substitutable
+                    \fI(class)\fP
+   strong_ordering  the result type of 3-way comparison that supports all 6 operators
+   (C++20)          and is substitutable
+                    \fI(class)\fP

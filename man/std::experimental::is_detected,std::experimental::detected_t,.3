@@ -1,4 +1,4 @@
-.TH std::experimental::is_detected,std::experimental::detected_t, 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::experimental::is_detected,std::experimental::detected_t, 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::experimental::is_detected,std::experimental::detected_t, \- std::experimental::is_detected,std::experimental::detected_t,
 
@@ -31,6 +31,38 @@ std::experimental::is_detected,std::experimental::detected_t, \- std::experiment
    Op<Args...> if that template-id denotes a valid type; otherwise it is an alias for
    the class std::experimental::nonesuch.
 
+   Additional utilities
+
+   template< template<class...> class Op, class... Args >      (library fundamentals TS
+   constexpr bool is_detected_v = is_detected<Op,              v2)
+   Args...>::value;
+   template< class Default, template<class...> class Op,
+   class... Args >                                             (library fundamentals TS
+   using detected_or_t = typename detected_or<Default, Op,     v2)
+   Args...>::type;
+   template <class Expected, template<class...> class Op,
+   class... Args>                                              (library fundamentals TS
+   using is_detected_exact = std::is_same<Expected,            v2)
+   detected_t<Op, Args...>>;
+   template <class Expected, template<class...> class Op,
+   class... Args>                                              (library fundamentals TS
+   constexpr bool is_detected_exact_v =                        v2)
+   is_detected_exact<Expected, Op, Args...>::value;
+   template <class To, template<class...> class Op, class...
+   Args>                                                       (library fundamentals TS
+   using is_detected_convertible =                             v2)
+   std::is_convertible<detected_t<Op, Args...>, To>;
+   template <class To, template<class...> class Op, class...
+   Args>                                                       (library fundamentals TS
+   constexpr bool is_detected_convertible_v =                  v2)
+   is_detected_convertible<To, Op, Args...>::value;
+
+   The alias template is_detected_exact checks whether detected_t<Op, Args...> is
+   Expected.
+
+   The alias template is_detected_convertible checks whether detected_t<Op, Args...> is
+   convertible to To.
+
 .SH Possible implementation
 
  namespace detail {
@@ -40,60 +72,57 @@ std::experimental::is_detected,std::experimental::detected_t, \- std::experiment
    using value_t = std::false_type;
    using type = Default;
  };
-  
+
  template <class Default, template<class...> class Op, class... Args>
  struct detector<Default, std::void_t<Op<Args...>>, Op, Args...> {
-   // Note that std::void_t is a C++17 feature
    using value_t = std::true_type;
    using type = Op<Args...>;
  };
-  
+
  } // namespace detail
-  
+
  template <template<class...> class Op, class... Args>
  using is_detected = typename detail::detector<nonesuch, void, Op, Args...>::value_t;
-  
+
  template <template<class...> class Op, class... Args>
  using detected_t = typename detail::detector<nonesuch, void, Op, Args...>::type;
-  
+
  template <class Default, template<class...> class Op, class... Args>
  using detected_or = detail::detector<Default, void, Op, Args...>;
 
 .SH Example
 
-   
+
 // Run this code
 
  #include <experimental/type_traits>
  #include <cstddef>
-  
+
  template<class T>
  using copy_assign_t = decltype(std::declval<T&>() = std::declval<const T&>());
-  
+
  struct Meow { };
  struct Purr { void operator=(const Purr&) = delete; };
-  
+
  static_assert(std::experimental::is_detected<copy_assign_t, Meow>::value,
                "Meow should be copy assignable!");
  static_assert(!std::experimental::is_detected_v<copy_assign_t, Purr>,
                "Purr should not be copy assignable!");
  static_assert(std::experimental::is_detected_exact_v<Meow&, copy_assign_t, Meow>,
                "Copy assignment of Meow should return Meow&!");
-  
+
  template<class T>
  using diff_t = typename T::difference_type;
-  
+
  template <class Ptr>
  using difference_type = std::experimental::detected_or_t<std::ptrdiff_t, diff_t, Ptr>;
-  
+
  struct Woof { using difference_type = int; };
  struct Bark {};
-  
+
  static_assert(std::is_same<difference_type<Woof>, int>::value,
                "Woof's difference_type should be int!");
  static_assert(std::is_same<difference_type<Bark>, std::ptrdiff_t>::value,
                "Bark's difference_type should be ptrdiff_t!");
-  
- int main() {}
 
-.SH See also
+ int main() {}

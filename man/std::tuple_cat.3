@@ -1,4 +1,4 @@
-.TH std::tuple_cat 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::tuple_cat 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::tuple_cat \- std::tuple_cat
 
@@ -9,6 +9,10 @@ std::tuple_cat \- std::tuple_cat
 
    Constructs a tuple that is a concatenation of all tuples in args.
 
+   The behavior is undefined if any type in std::decay_t<Tuples>... is not a
+   specialization of std::tuple. However, an implementation may choose to support types
+   (such as std::array and std::pair) that follow the tuple-like protocol.
+
 .SH Parameters
 
    args - zero or more tuples to concatenate
@@ -16,17 +20,17 @@ std::tuple_cat \- std::tuple_cat
 .SH Return value
 
    A std::tuple object composed of all elements of all argument tuples constructed from
-   std::get<i>(std::forward<Ti>(arg)) for each individual element.
+   std::get<j>(std::forward<Ti>(arg)) for each individual element.
 
 .SH Example
 
-   
+
 // Run this code
 
  #include <iostream>
  #include <tuple>
  #include <string>
-  
+
  // helper function to print a tuple of any size
  template<class Tuple, std::size_t N>
  struct TuplePrinter {
@@ -36,7 +40,7 @@ std::tuple_cat \- std::tuple_cat
          std::cout << ", " << std::get<N-1>(t);
      }
  };
-  
+
  template<class Tuple>
  struct TuplePrinter<Tuple, 1> {
      static void print(const Tuple& t)
@@ -44,8 +48,14 @@ std::tuple_cat \- std::tuple_cat
          std::cout << std::get<0>(t);
      }
  };
-  
- template<class... Args>
+
+ template<typename... Args, std::enable_if_t<sizeof...(Args) == 0, int> = 0>
+ void print(const std::tuple<Args...>& t)
+ {
+     std::cout << "()\\n";
+ }
+
+ template<typename... Args, std::enable_if_t<sizeof...(Args) != 0, int> = 0>
  void print(const std::tuple<Args...>& t)
  {
      std::cout << "(";
@@ -53,26 +63,26 @@ std::tuple_cat \- std::tuple_cat
      std::cout << ")\\n";
  }
  // end helper function
-  
+
  int main()
  {
      std::tuple<int, std::string, float> t1(10, "Test", 3.14);
      int n = 7;
-     auto t2 = std::tuple_cat(t1, std::make_pair("Foo", "bar"), t1, std::tie(n));
-     n = 10;
+     auto t2 = std::tuple_cat(t1, std::make_tuple("Foo", "bar"), t1, std::tie(n));
+     n = 42;
      print(t2);
  }
 
 .SH Output:
 
- (10, Test, 3.14, Foo, bar, 10, Test, 3.14, 10)
+ (10, Test, 3.14, Foo, bar, 10, Test, 3.14, 42)
 
 .SH See also
 
    make_tuple       creates a tuple object of the type defined by the argument types
-                    \fI(function template)\fP 
+                    \fI(function template)\fP
                     creates a tuple of lvalue references or unpacks a tuple into
    tie              individual objects
-                    \fI(function template)\fP 
-   forward_as_tuple creates a tuple of rvalue references
-                    \fI(function template)\fP 
+                    \fI(function template)\fP
+   forward_as_tuple creates a tuple of forwarding references
+                    \fI(function template)\fP

@@ -1,1 +1,104 @@
-std::basic_filebuf::seekpos.3
+.TH std::basic_filebuf::seekpos 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::basic_filebuf::seekpos \- std::basic_filebuf::seekpos
+
+.SH Synopsis
+   protected:
+
+   virtual pos_type seekpos( pos_type sp,
+
+                             std::ios_base::openmode which = std::ios_base::in |
+   std::ios_base::out );
+
+   Repositions the file pointer, if possible, to the position indicated by sp.
+
+   If the associated file is not open (is_open()==false), fails immediately.
+
+   If the file is open for writing, first writes the put area and any unshift sequences
+   required by the currently imbued locale, using overflow()
+
+   Then repositions the file pointer, as if by calling std::fsetpos()
+
+   If the file is open for reading, updates the get area if necessary.
+
+   If sp was not obtained by calling seekoff() or seekpos() on the same file, the
+   behavior is undefined.
+
+.SH Parameters
+
+   sp    - file position obtained by seekoff() or seekpos() called earlier on the same
+           file
+           defines which of the input and/or output sequences to affect. It can be one
+           or a combination of the following constants:
+   which -
+           Constant Explanation
+           in       affect the input sequence
+           out      affect the output sequence
+
+.SH Return value
+
+   sp on success or pos_type(off_type(-1)) on failure.
+
+.SH Notes
+
+   seekpos() is called by std::basic_streambuf::pubseekpos(), which is called by the
+   single-argument versions of std::basic_istream::seekg() and
+   std::basic_ostream::seekp()
+
+   Many implementations do not update the get area in seekpos(), delegating to
+   underflow() that is called by the next sgetc()
+
+.SH Example
+
+   on some implementations, the get area is emptied by seekpos() and the second
+   underflow() is necessary to observe the effects
+
+
+// Run this code
+
+ #include <fstream>
+ #include <iostream>
+
+ struct mybuf : std::filebuf
+ {
+     pos_type seekpos(pos_type sp, std::ios_base::openmode which) {
+          std::cout << "Before seekpos(" << sp << "), size of the get area is "
+                    << egptr()-eback() << " with "
+                    << egptr()-gptr() << " read positions available\\n";
+          pos_type rc = std::filebuf::seekpos(sp, which);
+          std::cout << "seekpos() returns " << rc << ".\\nAfter the call, "
+                    << "size of the get area is "
+                    << egptr()-eback() << " with "
+                    << egptr()-gptr() << " read positions available\\n";
+ // uncomment if get area is emptied by seekpos()
+ //         std::filebuf::underflow();
+ //         std::cout << "after forced underflow(), size of the get area is "
+ //                   << egptr()-eback() << " with "
+ //                   << egptr()-gptr() << " read positions available\\n";
+         return rc;
+     }
+ };
+
+ int main()
+ {
+     mybuf buf;
+     buf.open("test.txt", std::ios_base::in);
+     std::istream stream(&buf);
+     stream.get(); // read one char to force underflow()
+     stream.seekg(2);
+ }
+
+.SH Possible output:
+
+ Before seekpos\fB(2)\fP, size of the get area is 110 with 109 read positions available
+ seekpos() returns 2.
+ After the call, size of the get area is 110 with 108 read positions available
+
+.SH See also
+
+   pubseekpos invokes seekpos()
+              \fI(public member function of std::basic_streambuf<CharT,Traits>)\fP
+   seekoff    repositions the file position, using relative addressing
+   \fB[virtual]\fP  \fI(virtual protected member function)\fP
+   fseek      moves the file position indicator to a specific location in a file
+              \fI(function)\fP

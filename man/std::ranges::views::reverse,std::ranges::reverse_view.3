@@ -1,0 +1,137 @@
+.TH std::ranges::views::reverse,std::ranges::reverse_view 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::views::reverse,std::ranges::reverse_view \- std::ranges::views::reverse,std::ranges::reverse_view
+
+.SH Synopsis
+   template< ranges::view V >
+
+       requires ranges::bidirectional_range<V>                        \fB(1)\fP \fI(since C++20)\fP
+
+   class reverse_view : public
+   ranges::view_interface<reverse_view<V>>
+   namespace views {
+
+       inline constexpr /*unspecified*/ reverse = /*unspecified*/;    \fB(2)\fP \fI(since C++20)\fP
+
+   }
+
+   1) A range adaptor that represents a view of underlying view with reversed order.
+   2) The expression views::reverse(E) is expression-equivalent one of the following
+   expressions, except that E is evaluated only once:
+
+     * E.base(), if the type of E is a (possibly cv-qualified) specialization of
+       reverse_view;
+     * otherwise, if the type of E is (possibly cv-qualified)
+       ranges::subrange<std::reverse_iterator<I>, std::reverse_iterator<I>, K> for some
+       iterator type I and value K of type ranges::subrange_kind:
+
+     * ranges::subrange<I, I, K>(E.end().base(), E.begin().base(), E.size()), if K is
+       ranges::subrange_kind::sized;
+     * otherwise ranges::subrange<I, I, K>(E.end().base(), E.begin().base());
+
+     * otherwise ranges::reverse_view{E}.
+
+   In other words, views::reverse unwraps reversed views if possible.
+
+.SH Member functions
+
+std::ranges::reverse_view::reverse_view
+
+   reverse_view() = default;                           \fB(1)\fP
+   constexpr reverse_view(V base);                     \fB(2)\fP
+   template<ranges::viewable_range R>
+
+       requires
+           ranges::bidirectional_range<R> &&           \fB(3)\fP
+           std::constructible_from<V, views::all_t<R>>
+
+   constexpr reverse_view(R&& r);
+
+   1) Value-initializes base_
+   2) Initializes base_ with std::move(base).
+   3) Initializes base_ with views::all(std::forward<R>(r)).
+
+.SH Parameters
+
+   r - range to reverse
+
+std::ranges::reverse_view::base
+
+   constexpr V base() const;
+
+   Equivalent to return base_;
+
+std::ranges::reverse_view::begin
+
+   constexpr std::reverse_iterator<ranges::iterator_t<V>> begin();            \fB(1)\fP
+   constexpr std::reverse_iterator<ranges::iterator_t<V>> begin()             \fB(2)\fP
+     requires ranges::common_range<V>;
+   constexpr std::reverse_iterator<ranges::iterator_t<const V>> begin() const \fB(2)\fP
+     requires ranges::common_range<const V>;
+
+   1) Returns std::make_reverse_iterator(ranges::next(ranges::begin(base_),
+   ranges::end(base_))). In order to provide the amortized constant time complexity
+   required by the range concept, this function caches the result within the
+   reverse_view object for use on subsequent calls.
+   2) Equivalent to return std::make_reverse_iterator(ranges::end(base_));.
+
+std::ranges::reverse_view::end
+
+   constexpr std::reverse_iterator<ranges::iterator_t<V>> end()
+     requires ranges::common_range<V>;
+   constexpr std::reverse_iterator<ranges::iterator_t<const V>> end() const
+     requires ranges::common_range<const V>;
+
+   Equivalent to return std::make_reverse_iterator(ranges::begin(base_));.
+
+std::ranges::reverse_view::size
+
+   constexpr auto size() requires ranges::sized_range<V> {
+
+       return ranges::size(base_);
+
+   }
+   constexpr auto size() const requires ranges::sized_range<const V> {
+
+       return ranges::size(base_);
+
+   }
+
+   Returns the size of the view if the view is bounded.
+
+   Deduction guides
+
+   template<class R>
+   reverse_view(R&&) -> reverse_view<views::all_t<R>>;
+
+.SH Example
+
+
+// Run this code
+
+ #include <ranges>
+ #include <iostream>
+
+ int main()
+ {
+     static constexpr auto il = {3, 1, 4, 1, 5, 9};
+
+     std::ranges::reverse_view rv {il};
+     for (int i : rv)
+         std::cout << i << ' ';
+
+     std::cout << '\\n';
+
+     for(int i : il | std::views::reverse)
+         std::cout << i << ' ';
+ }
+
+.SH Output:
+
+ 9 5 1 4 1 3
+ 9 5 1 4 1 3
+
+.SH See also
+
+   reverse_iterator iterator adaptor for reverse-order traversal
+                    \fI(class template)\fP

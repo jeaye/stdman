@@ -1,4 +1,4 @@
-.TH std::is_convertible,std::is_nothrow_convertible 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_convertible,std::is_nothrow_convertible 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_convertible,std::is_nothrow_convertible \- std::is_convertible,std::is_nothrow_convertible
 
@@ -27,6 +27,9 @@ std::is_convertible,std::is_nothrow_convertible \- std::is_convertible,std::is_n
    incomplete type, and that instantiation could yield a different result if that type
    were hypothetically completed, the behavior is undefined.
 
+   The behavior of a program that adds specializations for any of the templates
+   described on this page is undefined.
+
 .SH Member constants
 
    value    true if From is convertible to To , false otherwise
@@ -45,40 +48,86 @@ std::is_convertible,std::is_nothrow_convertible \- std::is_convertible,std::is_n
    value_type bool
    type       std::integral_constant<bool, value>
 
+.SH Possible implementation
+
+.SH First version
+namespace detail {
+
+template<class T>
+auto test_returnable(int) -> decltype(
+    void(static_cast<T(*)()>(nullptr)), std::true_type{}
+);
+template<class>
+auto test_returnable(...) -> std::false_type;
+
+template<class From, class To>
+auto test_implicitly_convertible(int) -> decltype(
+    void(std::declval<void(&)(To)>()(std::declval<From>())), std::true_type{}
+);
+template<class, class>
+auto test_implicitly_convertible(...) -> std::false_type;
+
+} // namespace detail
+
+template<class From, class To>
+struct is_convertible : std::integral_constant<bool,
+    (decltype(detail::test_returnable<To>\fB(0)\fP)::value &&
+     decltype(detail::test_implicitly_convertible<From, To>\fB(0)\fP)::value) ||
+    (std::is_void<From>::value && std::is_void<To>::value)
+> {};
+.SH Second version
+template<class From, class To>
+struct is_nothrow_convertible : std::conjunction<std::is_void<From>, std::is_void<To>> {};
+
+template<class From, class To>
+    requires
+        requires {
+            static_cast<To(*)()>(nullptr);
+            { std::declval<void(&)(To) noexcept>()(std::declval<From>()) } noexcept;
+        }
+struct is_nothrow_convertible<From, To> : std::true_type {};
+
 .SH Notes
 
    Gives well-defined results for reference types, void types, array types, and
    function types.
 
+   Currently the standard has not specified whether the destruction of the object
+   produced by the conversion (either a result object or a temporary bound to a
+   reference) is considered as a part of the conversion. This is LWG issue 3400.
+
+   All known implementations treat the destruction as a part of the conversion, as
+   proposed in P0758R1.
+
 .SH Example
 
-   
+
 // Run this code
 
  #include <iostream>
  #include <type_traits>
-  
+
  class E { public: template<class T> E(T&&) { } };
-  
+
  int main()
  {
      class A {};
      class B : public A {};
      class C {};
      class D { public: operator C() { return c; }  C c; };
-  
-  
+
+
      bool b2a = std::is_convertible<B*, A*>::value;
      bool a2b = std::is_convertible<A*, B*>::value;
      bool b2c = std::is_convertible<B*, C*>::value;
      bool d2c = std::is_convertible<D, C>::value;
-  
+
      // A Perfect Forwarding constructor make the class 'convert' from everything
-  
+
      bool everything2e = std::is_convertible<A, E>::value; //< B, C, D, etc
-  
+
      std::cout << std::boolalpha;
-  
+
      std::cout << b2a << '\\n';
      std::cout << a2b << '\\n';
      std::cout << b2c << '\\n';
@@ -93,7 +142,7 @@ std::is_convertible,std::is_nothrow_convertible \- std::is_convertible,std::is_n
  false
  false
  true
-  
+
  true
 
 .SH See also

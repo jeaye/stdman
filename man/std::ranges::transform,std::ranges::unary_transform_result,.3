@@ -1,0 +1,251 @@
+.TH std::ranges::transform,std::ranges::unary_transform_result, 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::transform,std::ranges::unary_transform_result, \- std::ranges::transform,std::ranges::unary_transform_result,
+
+.SH Synopsis
+
+   Defined in header <algorithm>
+   Call signature
+   template< std::input_iterator I, std::sentinel_for<I> S,
+   std::weakly_incrementable O,
+
+             std::copy_constructible F, class Proj = std::identity >
+   requires std::indirectly_writable<O,                                     \fB(1)\fP (since
+                                     std::indirect_result_t<F&,                 C++20)
+   std::projected<I, Proj>>>
+   constexpr ranges::unary_transform_result<I, O>
+
+     transform( I first1, S last1, O result, F op, Proj proj = {} );
+   template< ranges::input_range R, std::weakly_incrementable O,
+
+             std::copy_constructible F, class Proj = std::identity >
+   requires std::indirectly_writable<
+                O,                                                              (since
+                std::indirect_result_t<F&,                                  \fB(2)\fP C++20)
+   std::projected<ranges::iterator_t<R>, Proj>>>
+   constexpr ranges::unary_transform_result<ranges::borrowed_iterator_t<R>,
+   O>
+
+     transform( R&& r, O result, F op, Proj proj = {} );
+   template< std::input_iterator I1, std::sentinel_for<I1> S1,
+
+             std::input_iterator I2, std::sentinel_for<I2> S2,
+             std::weakly_incrementable O,
+             std::copy_constructible F,
+             class Proj1 = std::identity, class Proj2 = std::identity >
+   requires std::indirectly_writable<                                           (since
+                O,                                                          \fB(3)\fP C++20)
+                std::indirect_result_t<F&,
+                                       std::projected<I1, Proj1>,
+                                       std::projected<I2, Proj2>>>
+   constexpr ranges::binary_transform_result<I1, I2, O>
+     transform( I1 first1, S1 last1, I2 first2, S2 last2, O result,
+
+                F binary_op, Proj1 proj1 = {}, Proj2 proj2 = {} );
+   template< std::input_range R1,
+
+             std::input_range R2,
+             std::weakly_incrementable O,
+             std::copy_constructible F,
+             class Proj1 = std::identity, class Proj2 = std::identity >
+   requires std::indirectly_writable<
+                O,
+                std::indirect_result_t<                                     \fB(4)\fP (since
+                    F&,                                                         C++20)
+                    std::projected<ranges::iterator_t<R1>, Proj>,
+                    std::projected<ranges::iterator_t<R2>, Proj>>>
+   constexpr
+   ranges::binary_transform_result<ranges::borrowed_iterator_t<R1>,
+
+   ranges::borrowed_iterator_t<R2>, O>
+
+     transform( R1&& r1, R2&& r2, O result, F binary_op, Proj proj = {} );
+.SH Helper types
+   template < class I, class O >                                            \fB(5)\fP (since
+   using unary_transform_result = ranges::in_out_result<I, O>;                  C++20)
+   template < class I1, class I2, class O >                                 \fB(6)\fP (since
+   using binary_transform_result = ranges::in_in_out_result<I1, I2, O>;         C++20)
+
+   ranges::transform applies the given function to a range and stores the result in
+   another range, beginning at result.
+
+   1) The unary operation op is applied to the range defined by [first1, last1) (after
+   projecting with the projection proj).
+   2) Same as \fB(1)\fP, but uses r as the source range, as if using ranges::begin(r) as
+   first and ranges::end(r) as last.
+   3) The binary operation binary_op is applied to pairs of elements from two ranges:
+   one defined by [first1, last1) and the other defined by [first2, last2) (after
+   respectively projecting with the projections proj1 and proj2).
+   4) Same as \fB(3)\fP, but uses r1 as the first source range, as if using ranges::begin(r1)
+   as first1 and ranges::end(r1) as last1, and similarly for r2.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists may not be specified when calling any of them.
+     * None of them is visible to argument-dependent lookup.
+     * When one of them is found by normal unqualified lookup for the name to the left
+       of the function-call operator, it inhibits argument-dependent lookup.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first1, last1 - the first range of elements to transform
+   r, r1         - the first range of elements to transform
+   first2, last2 - the second range of elements to transform
+   r2            - the second range of elements to transform
+   result        - the beginning of the destination range, may be equal to first1 or
+                   first2
+   op, binary_op - operation to apply to the projected element(s)
+   proj1         - projection to apply to the elements in the first range
+   proj2         - projection to apply to the elements in the second range
+
+.SH Return value
+
+   1-2) a unary_transform_result contains an input iterator equal to last and an output
+   iterator to the element past the last element transformed.
+   3-4) a binary_transform_result contains input iterators to last transformed elements
+   from ranges [first1, last1) and [first2, last2) as in1 and in2 respectively, and the
+   output iterator to the element past the last element transformed as out.
+
+.SH Complexity
+
+   1-2) Exactly last1 - first1 applications of op and proj.
+   3-4) Exactly min(last1 - first1, last2 - first2) applications of binary_op and
+   projections.
+
+.SH Possible implementation
+
+struct transform_fn {
+  template< std::input_iterator I, std::sentinel_for<I> S, std::weakly_incrementable O,
+            std::copy_constructible F, class Proj = std::identity >
+  requires std::indirectly_writable<O, std::indirect_result_t<F&, std::projected<I, Proj>>>
+  constexpr ranges::unary_transform_result<I, O>
+    operator()( I first1, S last1, O result, F op, Proj proj = {} ) const
+  {
+      for (; first1 != last1; ++first1, (void)++result) {
+          *result = std::invoke(op, std::invoke(proj, *first1));
+      }
+
+      return {first1, result};
+  }
+
+  template< ranges::input_range R, std::weakly_incrementable O,
+            std::copy_constructible F, class Proj = std::identity >
+  requires std::indirectly_writable<
+               O,
+               std::indirect_result_t<F&, std::projected<ranges::iterator_t<R>, Proj>>>
+  constexpr ranges::unary_transform_result<ranges::borrowed_iterator_t<R>, O>
+    operator()( R&& r, O result, F op, Proj proj = {} ) const
+  {
+    return (*this)(ranges::begin(r), ranges::end(r), result, std::ref(proj));
+  }
+
+  template< std::input_iterator I1, std::sentinel_for<I1> S1,
+            std::input_iterator I2, std::sentinel_for<I2> S2,
+            std::weakly_incrementable O,
+            std::copy_constructible F,
+            class Proj1 = std::identity, class Proj2 = std::identity >
+  requires std::indirectly_writable<
+               O,
+               std::indirect_result_t<F&,
+                                      std::projected<I1, Proj1>,
+                                      std::projected<I2, Proj2>>>
+  constexpr ranges::binary_transform_result<I1, I2, O>
+    operator()( I1 first1, S1 last1, I2 first2, S2 last2, O result,
+                F binary_op, Proj1 proj1 = {}, Proj2 proj2 = {} ) const
+  {
+    for (; first1 != last1 && first2 != last2; ++first1, (void)++first2, (void)++result) {
+      *result = std::invoke(binary_op,
+                            std::invoke(proj1, *first1),
+                            std::invoke(proj2, *first2));
+    }
+
+    return {first1, first2, result};
+  }
+
+  template< ranges::input_range R1, ranges::input_range R2,
+            std::weakly_incrementable O, std::copy_constructible F,
+            class Proj1 = std::identity, class Proj2 = std::identity >
+  requires std::indirectly_writable<
+               O,
+               std::projected<ranges::iterator_t<R1>, Proj1>,
+               std::projected<ranges::iterator_t<R2>, Proj2>>>
+  constexpr ranges::binary_transform_result<ranges::borrowed_iterator_t<R1>,
+                                            ranges::borrowed_iterator_t<R2>, O>
+    operator()( R1&& r1, R2&& r2, O result,
+                F binary_op, Proj1 proj1 = {}, Proj2 proj2 = {} ) const
+  {
+    return (*this)(ranges::begin(r1), ranges::end(r1),
+                   ranges::begin(r2), ranges::end(r2),
+                   result, std::ref(binary_op),
+                   std::ref(proj1), std::ref(proj2));
+  }
+};
+
+inline constexpr transform_fn transform;
+
+.SH Notes
+
+   std::ranges::transform does not guarantee in-order application of op or binary_op.
+   To apply a function to a sequence in-order or to apply a function that modifies the
+   elements of a sequence, use std::ranges::for_each.
+
+.SH Example
+
+   The following code uses transform to convert a string in place to uppercase using
+   the toupper function and then transforms each char to its ordinal value:
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <cctype>
+ #include <functional>
+ #include <iostream>
+ #include <string>
+ #include <vector>
+
+ int main()
+ {
+     std::string s("hello");
+
+     namespace ranges = std::ranges;
+
+     ranges::transform(s.begin(), s.end(), s.begin(),
+                    [](unsigned char c) -> unsigned char { return std::toupper(c); });
+
+     std::vector<std::size_t> ordinals;
+     ranges::transform(s, std::back_inserter(ordinals),
+                       [](unsigned char c) -> std::size_t { return c; });
+
+     std::cout << s << ':';
+     for (auto ord : ordinals) {
+        std::cout << ' ' << ord;
+     }
+
+     ranges::transform(ordinals, ordinals, ordinals.begin(), std::plus{});
+
+     std::cout << '\\n';
+     for (auto ord : ordinals) {
+        std::cout << ord << ' ';
+     }
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ HELLO: 72 69 76 76 79
+ 144 138 152 152 158
+
+.SH See also
+
+   ranges::for_each applies a function to a range of elements
+   (C++20)          (niebloid)
+   transform_view   a view of a sequence that applies a transformation function to each
+   views::transform element
+                    \fI(class template)\fP (range adaptor object)
+                    applies a function to a range of elements, storing results in a
+   transform        destination range
+                    \fI(function template)\fP

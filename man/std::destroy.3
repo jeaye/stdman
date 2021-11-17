@@ -1,14 +1,16 @@
-.TH std::destroy 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::destroy 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::destroy \- std::destroy
 
 .SH Synopsis
    Defined in header <memory>
-   template< class ForwardIt >                                        \fB(1)\fP \fI(since C++17)\fP
-   void destroy( ForwardIt first, ForwardIt last );
+   template< class ForwardIt >                                            \fI(since C++17)\fP
+   void destroy( ForwardIt first, ForwardIt last );                       \fI(until C++20)\fP
+   template< class ForwardIt >                                            \fI(since C++20)\fP
+   constexpr void destroy( ForwardIt first, ForwardIt last );     \fB(1)\fP
    template< class ExecutionPolicy, class ForwardIt >
-   void destroy( ExecutionPolicy&& policy, ForwardIt first, ForwardIt \fB(2)\fP \fI(since C++17)\fP
-   last );
+   void destroy( ExecutionPolicy&& policy, ForwardIt first,           \fB(2)\fP \fI(since C++17)\fP
+   ForwardIt last );
 
    1) Destroys the objects in the range [first, last), as if by
 
@@ -17,7 +19,10 @@ std::destroy \- std::destroy
 
    2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
    in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
+   \fI(until C++20)\fP
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
+   \fI(since C++20)\fP is true.
 
 .SH Parameters
 
@@ -52,6 +57,7 @@ std::destroy \- std::destroy
 .SH Possible implementation
 
    template< class ForwardIt >
+   constexpr // since C++20
    void destroy( ForwardIt first, ForwardIt last )
    {
      for (; first != last; ++first)
@@ -63,29 +69,28 @@ std::destroy \- std::destroy
    The following example demonstrates how to use destroy to destroy a contiguous
    sequence of elements.
 
-   
+
 // Run this code
 
  #include <memory>
  #include <new>
  #include <iostream>
-  
+
  struct Tracer {
      int value;
      ~Tracer() { std::cout << value << " destructed\\n"; }
  };
-  
+
  int main()
  {
      alignas(Tracer) unsigned char buffer[sizeof(Tracer) * 8];
-  
+
      for (int i = 0; i < 8; ++i)
          new(buffer + sizeof(Tracer) * i) Tracer{i}; //manually construct objects
-  
+
      auto ptr = std::launder(reinterpret_cast<Tracer*>(buffer));
-  
+
      std::destroy(ptr, ptr + 8);
-  
  }
 
 .SH Output:
@@ -102,6 +107,6 @@ std::destroy \- std::destroy
 .SH See also
 
    destroy_n  destroys a number of objects in a range
-   \fI(C++17)\fP    \fI(function template)\fP 
+   \fI(C++17)\fP    \fI(function template)\fP
    destroy_at destroys an object at a given address
-   \fI(C++17)\fP    \fI(function template)\fP 
+   \fI(C++17)\fP    \fI(function template)\fP

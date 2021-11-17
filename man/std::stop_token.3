@@ -1,0 +1,77 @@
+.TH std::stop_token 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::stop_token \- std::stop_token
+
+.SH Synopsis
+   Defined in header <stop_token>
+   class stop_token;               \fI(since C++20)\fP
+
+   The stop_token class provides the means to check if a stop request has been made or
+   can be made, for its associated std::stop_source object. It is essentially a
+   thread-safe "view" of the associated stop-state.
+
+   The stop_token can also be passed to the constructor of std::stop_callback, such
+   that the callback will be invoked if the stop_token's associated std::stop_source is
+   requested to stop. And stop_token can be passed to the interruptible waiting
+   functions of std::condition_variable_any, to interrupt the condition variable's wait
+   if stop is requested.
+
+.SH Member functions
+
+   constructor    constructs new stop_token object
+                  \fI(public member function)\fP
+   destructor     destructs the stop_token object
+                  \fI(public member function)\fP
+   operator=      assigns the stop_token object
+                  \fI(public member function)\fP
+.SH Modifiers
+   swap           swaps two stop_token objects
+                  \fI(public member function)\fP
+.SH Observers
+   stop_requested checks whether the associated stop-state has been requested to stop
+                  \fI(public member function)\fP
+   stop_possible  checks whether associated stop-state can be requested to stop
+                  \fI(public member function)\fP
+
+.SH Non-member functions
+
+   operator==            compares two std::stop_token objects
+                         \fI(function)\fP
+   swap(std::stop_token) specializes the std::swap algorithm
+   (C++20)               \fI(function)\fP
+
+.SH Notes
+
+   A stop_token object is not generally constructed independently, but rather retrieved
+   from a std::jthread or std::stop_source. This makes it share the same associated
+   stop-state as the std::jthread or std::stop_source.
+
+.SH Example
+
+
+// Run this code
+
+ #include <thread>
+ #include <iostream>
+
+ using namespace std::literals::chrono_literals;
+
+ void f(std::stop_token stop_token, int value)
+ {
+     while (!stop_token.stop_requested()) {
+         std::cout << value++ << ' ' << std::flush;
+         std::this_thread::sleep_for(200ms);
+     }
+     std::cout << std::endl;
+ }
+
+ int main()
+ {
+     std::jthread thread(f, 5); // prints 5 6 7 8... for approximately 3 seconds
+     std::this_thread::sleep_for(3s);
+     // The destructor of jthread calls request_stop() and join().
+ }
+
+.SH Possible output:
+
+ 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19

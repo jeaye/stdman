@@ -1,4 +1,4 @@
-.TH std::reference_wrapper 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::reference_wrapper 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::reference_wrapper \- std::reference_wrapper
 
@@ -76,65 +76,65 @@ std::reference_wrapper \- std::reference_wrapper
 .SH Member functions
 
    constructor   stores a reference in a new std::reference_wrapper object
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    operator=     rebinds a std::reference_wrapper
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    get           accesses the stored reference
-   operator T&   \fI(public member function)\fP 
+   operator T&   \fI(public member function)\fP
    operator()    calls the stored function
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
 
    Deduction guides\fI(since C++17)\fP
 
 .SH Possible implementation
 
-   namespace detail {
-   template <class T> T& FUN(T& t) noexcept { return t; }
-   template <class T> void FUN(T&&) = delete;
-   }
-    
-   template <class T>
-   class reference_wrapper {
-   public:
-     // types
-     typedef T type;
-    
-     // construct/copy/destroy
-     template <class U, class = decltype(
-       detail::FUN<T>(std::declval<U>()),
-       std::enable_if_t<!std::is_same_v<reference_wrapper, remove_cvref_t<U>>>()
-     )>
-     reference_wrapper(U&& u) noexcept(noexcept(detail::FUN<T>(std::forward<U>(u))))
-       : _ptr(std::addressof(detail::FUN<T>(std::forward<U>(u)))) {}
-     reference_wrapper(const reference_wrapper&) noexcept = default;
-    
-     // assignment
-     reference_wrapper& operator=(const reference_wrapper& x) noexcept = default;
-    
-     // access
-     operator T& () const noexcept { return *_ptr; }
-     T& get() const noexcept { return *_ptr; }
-    
-     template< class... ArgTypes >
-     std::invoke_result_t<T&, ArgTypes...>
-       operator() ( ArgTypes&&... args ) const {
-       return std::invoke(get(), std::forward<ArgTypes>(args)...);
-     }
-    
-   private:
-     T* _ptr;
-   };
-    
-   // deduction guides
-   template<class T>
-   reference_wrapper(T&) -> reference_wrapper<T>;
+namespace detail {
+template <class T> constexpr T& FUN(T& t) noexcept { return t; }
+template <class T> void FUN(T&&) = delete;
+}
+
+template <class T>
+class reference_wrapper {
+public:
+  // types
+  typedef T type;
+
+  // construct/copy/destroy
+  template <class U, class = decltype(
+    detail::FUN<T>(std::declval<U>()),
+    std::enable_if_t<!std::is_same_v<reference_wrapper, std::remove_cvref_t<U>>>()
+  )>
+  constexpr reference_wrapper(U&& u) noexcept(noexcept(detail::FUN<T>(std::forward<U>(u))))
+    : _ptr(std::addressof(detail::FUN<T>(std::forward<U>(u)))) {}
+  reference_wrapper(const reference_wrapper&) noexcept = default;
+
+  // assignment
+  reference_wrapper& operator=(const reference_wrapper& x) noexcept = default;
+
+  // access
+  constexpr operator T& () const noexcept { return *_ptr; }
+  constexpr T& get() const noexcept { return *_ptr; }
+
+  template< class... ArgTypes >
+  constexpr std::invoke_result_t<T&, ArgTypes...>
+    operator() ( ArgTypes&&... args ) const {
+    return std::invoke(get(), std::forward<ArgTypes>(args)...);
+  }
+
+private:
+  T* _ptr;
+};
+
+// deduction guides
+template<class T>
+reference_wrapper(T&) -> reference_wrapper<T>;
 
 .SH Example
 
    Demonstrates the use of reference_wrapper as a container of references, which makes
    it possible to access the same container using multiple indexes
 
-   
+
 // Run this code
 
  #include <algorithm>
@@ -144,32 +144,32 @@ std::reference_wrapper \- std::reference_wrapper
  #include <numeric>
  #include <random>
  #include <functional>
-  
+
  int main()
  {
      std::list<int> l(10);
-  
+
      std::iota(l.begin(), l.end(), -4);
      std::vector<std::reference_wrapper<int>> v(l.begin(), l.end());
-  
+
      // can't use shuffle on a list (requires random access), but can use it on a vector
      std::shuffle(v.begin(), v.end(), std::mt19937{std::random_device{}()});
-  
+
      std::cout << "Contents of the list: ";
      for (int n : l){
          std::cout << n << ' ';
      }
-  
+
      std::cout << "\\nContents of the list, as seen through a shuffled vector: ";
      for (int i : v){
          std::cout << i << ' ';
      }
-  
+
      std::cout << "\\n\\nDoubling the values in the initial list...\\n\\n";
      for (int& i : l) {
          i *= 2;
      }
-  
+
      std::cout << "Contents of the list, as seen through a shuffled vector: ";
      for (int i : v){
         std::cout << i << ' ';
@@ -187,7 +187,7 @@ std::reference_wrapper \- std::reference_wrapper
 
    ref
    cref    creates a std::reference_wrapper with a type deduced from its argument
-   \fI(C++11)\fP \fI(function template)\fP 
+   \fI(C++11)\fP \fI(function template)\fP
    \fI(C++11)\fP
    bind    binds one or more arguments to a function object
-   \fI(C++11)\fP \fI(function template)\fP 
+   \fI(C++11)\fP \fI(function template)\fP

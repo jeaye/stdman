@@ -1,4 +1,4 @@
-.TH std::basic_streambuf::underflow 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_streambuf::underflow 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_streambuf::underflow \- std::basic_streambuf::underflow
 
@@ -35,28 +35,32 @@ std::basic_streambuf::underflow \- std::basic_streambuf::underflow
 
 .SH Example
 
-   
-   
+
+
 // Run this code
 
  #include <iostream>
  #include <sstream>
-  
+
  class null_filter_buf : public std::streambuf {
      std::streambuf* src;
      char ch; // single-byte buffer
  protected:
      int underflow() {
-         while( (ch= src->sbumpc()) == '\\0') ; // skip zeroes
-         setg(&ch, &ch, &ch+1); // make one read position available
-         return ch; // may return EOF
+         traits_type::int_type i;
+         while ((i = src->sbumpc()) == '\\0') ; // skip zeroes
+         if (traits_type::not_eof(i)) {
+             ch = traits_type::to_char_type(i);
+             setg(&ch, &ch, &ch+1); // make one read position available
+         }
+         return i;
      }
  public:
      null_filter_buf(std::streambuf* buf) : src(buf) {
          setg(&ch, &ch+1, &ch+1); // buffer is initially full
      }
  };
-  
+
  void filtered_read(std::istream& in)
  {
      std::streambuf* orig = in.rdbuf();
@@ -66,7 +70,7 @@ std::basic_streambuf::underflow \- std::basic_streambuf::underflow
              std::cout << c;
      in.rdbuf(orig);
  }
-  
+
  int main()
  {
      char a[] = "This i\\0s \\0an e\\0\\0\\0xample";
@@ -82,15 +86,15 @@ std::basic_streambuf::underflow \- std::basic_streambuf::underflow
 
    uflow     reads characters from the associated input sequence to the get area and
    \fB[virtual]\fP advances the next pointer
-             \fI(virtual protected member function)\fP 
+             \fI(virtual protected member function)\fP
    overflow  writes characters to the associated output sequence from the put area
-   \fB[virtual]\fP \fI(virtual protected member function)\fP 
+   \fB[virtual]\fP \fI(virtual protected member function)\fP
    underflow reads from the associated file
    \fB[virtual]\fP \fI(virtual protected member function of std::basic_filebuf<CharT,Traits>)\fP
-             
+
    underflow returns the next character available in the input sequence
    \fB[virtual]\fP \fI\fI(virtual protected member function\fP of\fP
-             std::basic_stringbuf<CharT,Traits,Allocator>) 
+             std::basic_stringbuf<CharT,Traits,Allocator>)
    underflow reads a character from the input sequence without advancing the next
    \fB[virtual]\fP pointer
-             \fI(virtual protected member function of std::strstreambuf)\fP 
+             \fI(virtual protected member function of std::strstreambuf)\fP

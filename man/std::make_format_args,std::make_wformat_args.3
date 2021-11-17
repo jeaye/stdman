@@ -1,0 +1,95 @@
+.TH std::make_format_args,std::make_wformat_args 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::make_format_args,std::make_wformat_args \- std::make_format_args,std::make_wformat_args
+
+.SH Synopsis
+   Defined in header <format>
+   template<class Context = std::format_context, class... Args>
+   /*format-arg-store*/<Context, Args...> make_format_args(const      \fB(1)\fP \fI(since C++20)\fP
+   Args&... args);
+   template<class... Args>
+   /*format-arg-store*/<std::wformat_context, Args...>                \fB(2)\fP \fI(since C++20)\fP
+   make_wformat_args(const Args&... args);
+
+   Returns an object that stores an array of formatting arguments and can be implicitly
+   converted to std::basic_format_args<Context>.
+
+   The behavior is undefined if typename Context::template formatter_type<Ti> does not
+   meet the Formatter requirements for any Ti in Args.
+
+.SH Parameters
+
+   args... - values to be used as formatting arguments
+
+   Returns
+
+   An object that holds the formatting arguments.
+
+.SH Notes
+
+   A formatting argument has reference semantics for user-defined types and does not
+   extend the lifetime of args. It is the programmer's responsibility to ensure that
+   args outlive the return value. Usually, the result is only used as argument to
+   formatting function.
+
+.SH Example
+
+
+// Run this code
+
+ #include <array>
+ #include <format>
+ #include <iostream>
+ #include <string_view>
+
+ void raw_write_to_log(std::string_view users_fmt, std::format_args&& args) {
+     static int n{};
+     std::clog << std::format("{:04} : ", n++) << std::vformat(users_fmt, args) << '\\n';
+ }
+
+ template <typename... Args>
+ constexpr void log(Args&&... args) {
+
+     // Generate formatting string "{} "...
+     std::array<char, sizeof...(Args) * 3 + 1> braces{};
+     constexpr const char c[4] = "{} ";
+     for (auto i{0u}; i != braces.size() - 1; ++i) {
+         braces[i] = c[i % 3];
+     }
+     braces.back() = '\\0';
+
+     raw_write_to_log(std::string_view{braces.data()}, std::make_format_args(args...));
+ }
+
+ int main()
+ {
+     log("Number", "of", "arguments", "is", "arbitrary.");
+     log("Any type that meets the `Formatter` requirements", "can be printed.");
+     log("For example:", 1, 2.0, '3', "*42*");
+
+     raw_write_to_log("{:02} │ {} │ {} │ {}", std::make_format_args(1, 2.0, '3', "4"));
+ }
+
+.SH Output:
+
+ 0000 : Number of arguments is arbitrary.
+ 0001 : Any type that meets the `Formatter` requirements can be printed.
+ 0002 : For example: 1 2.0 3 *42*
+ 0003 : 01 │ 2.0 │ 3 │ 4
+
+.SH See also
+
+   basic_format_args
+   format_args
+   wformat_args
+   format_args_t     class that provides access to all formatting arguments
+   (C++20)           \fI(class template)\fP
+   (C++20)
+   (C++20)
+   (C++20)
+   vformat           non-template variant of std::format using type-erased argument
+   (C++20)           representation
+                     \fI(function)\fP
+   vformat_to        non-template variant of std::format_to using type-erased argument
+   (C++20)           representation
+                     \fI(function template)\fP

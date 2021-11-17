@@ -1,44 +1,66 @@
-.TH std::reduce 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::reduce 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::reduce \- std::reduce
 
 .SH Synopsis
    Defined in header <numeric>
    template<class InputIt>
+                                                                (since
+   typename std::iterator_traits<InputIt>::value_type           C++17)
+   reduce(                                                      (until
+                                                                C++20)
+       InputIt first, InputIt last);
+   template<class InputIt>
 
-   typename std::iterator_traits<InputIt>::value_type reduce(         \fB(1)\fP \fI(since C++17)\fP
+   constexpr typename                                           (since
+   std::iterator_traits<InputIt>::value_type reduce(            C++20)
 
        InputIt first, InputIt last);
    template<class ExecutionPolicy, class ForwardIt>
 
-   typename std::iterator_traits<ForwardIt>::value_type reduce(       \fB(2)\fP \fI(since C++17)\fP
+   typename std::iterator_traits<ForwardIt>::value_type         (since
+   reduce(                                                  \fB(2)\fP C++17)
        ExecutionPolicy&& policy,
 
        ForwardIt first, ForwardIt last);
-   template<class InputIt, class T>                                   \fB(3)\fP \fI(since C++17)\fP
-   T reduce(InputIt first, InputIt last, T init);
-   template<class ExecutionPolicy, class ForwardIt, class T>
-
-   T reduce(ExecutionPolicy&& policy,                                 \fB(4)\fP \fI(since C++17)\fP
+                                                                        (since
+   template<class InputIt, class T>                                     C++17)
+   T reduce(InputIt first, InputIt last, T init);                       (until
+                                                        \fB(1)\fP             C++20)
+   template<class InputIt, class T>                                     (since
+   constexpr T reduce(InputIt first, InputIt last, T                    C++20)
+   init);
+   template<class ExecutionPolicy, class ForwardIt,
+   class T>
+                                                                \fB(4)\fP     (since
+   T reduce(ExecutionPolicy&& policy,                                   C++17)
 
             ForwardIt first, ForwardIt last, T init);
-   template<class InputIt, class T, class BinaryOp>                   \fB(5)\fP \fI(since C++17)\fP
-   T reduce(InputIt first, InputIt last, T init, BinaryOp binary_op);
-   template<class ExecutionPolicy, class ForwardIt, class T, class
-   BinaryOp>
+   template<class InputIt, class T, class BinaryOp>         \fB(3)\fP                 (since
+   T reduce(InputIt first, InputIt last, T init,                                C++17)
+   BinaryOp binary_op);                                                         (until
+                                                                                C++17)
+   template<class InputIt, class T, class BinaryOp>                             (since
+   constexpr T reduce(InputIt first, InputIt last, T                            C++17)
+   init, BinaryOp binary_op);                                   \fB(5)\fP
+   template<class ExecutionPolicy, class ForwardIt,
+   class T, class BinaryOp>
+                                                                                (since
+   T reduce(ExecutionPolicy&& policy,                                   \fB(6)\fP     C++17)
 
-   T reduce(ExecutionPolicy&& policy,                                 \fB(6)\fP \fI(since C++17)\fP
-
-            ForwardIt first, ForwardIt last, T init, BinaryOp
-   binary_op);
+            ForwardIt first, ForwardIt last, T init,
+   BinaryOp binary_op);
 
    1) same as reduce(first, last, typename std::iterator_traits<InputIt>::value_type{})
    3) same as reduce(first, last, init, std::plus<>())
    5) Reduces the range [first; last), possibly permuted and aggregated in unspecified
    manner, along with the initial value init over binary_op.
-   2,4,6) Same as (1,3,5), but executed according to policy. This overload only
-   participates in overload resolution if
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
+   2,4,6) Same as (1,3,5), but executed according to policy. These overloads do not
+   participate in overload resolution unless
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
+   \fI(until C++20)\fP
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
+   \fI(since C++20)\fP is true.
 
    The behavior is non-deterministic if binary_op is not associative or not
    commutative.
@@ -110,7 +132,7 @@ std::reduce \- std::reduce
 
    side-by-side comparison between reduce and std::accumulate:
 
-   
+
 // Run this code
 
  #include <iostream>
@@ -118,25 +140,25 @@ std::reduce \- std::reduce
  #include <vector>
  #include <numeric>
  #include <execution>
-  
+
  int main()
  {
-     std::vector<double> v(10'000'007, 0.5);
-  
+     const std::vector<double> v(10'000'007, 0.5);
+
      {
-         auto t1 = std::chrono::high_resolution_clock::now();
-         double result = std::accumulate(v.begin(), v.end(), 0.0);
-         auto t2 = std::chrono::high_resolution_clock::now();
-         std::chrono::duration<double, std::milli> ms = t2 - t1;
+         const auto t1 = std::chrono::high_resolution_clock::now();
+         const double result = std::accumulate(v.cbegin(), v.cend(), 0.0);
+         const auto t2 = std::chrono::high_resolution_clock::now();
+         const std::chrono::duration<double, std::milli> ms = t2 - t1;
          std::cout << std::fixed << "std::accumulate result " << result
                    << " took " << ms.count() << " ms\\n";
      }
-  
+
      {
-         auto t1 = std::chrono::high_resolution_clock::now();
-         double result = std::reduce(std::execution::par, v.begin(), v.end());
-         auto t2 = std::chrono::high_resolution_clock::now();
-         std::chrono::duration<double, std::milli> ms = t2 - t1;
+         const auto t1 = std::chrono::high_resolution_clock::now();
+         const double result = std::reduce(std::execution::par, v.cbegin(), v.cend());
+         const auto t2 = std::chrono::high_resolution_clock::now();
+         const std::chrono::duration<double, std::milli> ms = t2 - t1;
          std::cout << "std::reduce result "
                    << result << " took " << ms.count() << " ms\\n";
      }
@@ -150,8 +172,9 @@ std::reduce \- std::reduce
 .SH See also
 
    accumulate       sums up a range of elements
-                    \fI(function template)\fP 
-   transform        applies a function to a range of elements
-                    \fI(function template)\fP 
-   transform_reduce applies a functor, then reduces out of order
-   \fI(C++17)\fP          \fI(function template)\fP 
+                    \fI(function template)\fP
+                    applies a function to a range of elements, storing results in a
+   transform        destination range
+                    \fI(function template)\fP
+   transform_reduce applies an invocable, then reduces out of order
+   \fI(C++17)\fP          \fI(function template)\fP

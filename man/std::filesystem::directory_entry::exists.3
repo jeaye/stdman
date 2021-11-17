@@ -1,4 +1,4 @@
-.TH std::filesystem::directory_entry::exists 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::directory_entry::exists 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::directory_entry::exists \- std::filesystem::directory_entry::exists
 
@@ -29,14 +29,65 @@ std::filesystem::directory_entry::exists \- std::filesystem::directory_entry::ex
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <filesystem>
+ #include <fstream>
+ #include <iostream>
+ #include <string>
+
+ namespace fs = std::filesystem;
+
+ int main()
+ {
+     // store current path to restore it at exit
+     const auto old_current_path = fs::current_path();
+
+     // create "sanbox" directory in temp dir
+     const auto dir_sandbox = fs::temp_directory_path() / "sandbox";
+
+     if (!fs::create_directory(dir_sandbox)) {
+         std::cout << "ERROR #1" << '\\n';
+         return -1;
+     }
+
+     fs::current_path(dir_sandbox); // switch to newly created dir
+
+     fs::directory_entry entry_sandbox { dir_sandbox };
+     if (!entry_sandbox.exists()) {
+         std::cout << "ERROR #2" << '\\n';
+         return -1;
+     }
+
+     std::cout << "Current dir: " << entry_sandbox.path().filename() << '\\n';
+
+     fs::path path_tmp_file = dir_sandbox / "tmp_file";
+
+     std::ofstream file( path_tmp_file.string() ); // create regular file
+     file << "cppreference.com"; // write 16 bytes
+     file.flush();
+
+     fs::directory_entry entry_tmp_file{ path_tmp_file };
+
+     if (entry_tmp_file.exists()) {
+         std::cout << "File " << entry_tmp_file.path().filename()
+                   << " has size: " << entry_tmp_file.file_size() << '\\n';
+     } else {
+         std::cout << "ERROR #3" << '\\n';
+     }
+
+     // cleanup
+     fs::current_path(old_current_path);
+     fs::remove_all(dir_sandbox);
+ }
+
+.SH Possible output:
+
+ Current dir: "sandbox"
+ File "tmp_file" has size: 16
 
 .SH See also
 
    exists  checks whether path refers to existing file system object
-   \fI(C++17)\fP \fI(function)\fP 
-
-.SH Category:
-
-     * Todo no example
+   \fI(C++17)\fP \fI(function)\fP

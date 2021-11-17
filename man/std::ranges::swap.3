@@ -1,4 +1,4 @@
-.TH std::ranges::swap 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::swap 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::swap \- std::ranges::swap
 
@@ -20,7 +20,7 @@ std::ranges::swap \- std::ranges::swap
 
    Exchanges the values referenced by t and u.
 
-   A call to ranges::swap is equivalent to:
+   A call to ranges::swap is expression-equivalent to:
 
    1) (void)swap(std::forward<T>(t), std::forward<U>(u)), if that expression is valid,
    where the overload resolution is performed with the following candidates:
@@ -35,43 +35,82 @@ std::ranges::swap \- std::ranges::swap
    array types of equal extent (but possibly different element types) and
    ranges::swap(*t, *u) is a valid expression;
    3) Otherwise, if T and U are both V& for some type V that meets the syntactic
-   requirements of MoveConstructible<V> and Assignable<V&, V>, exchanges the referenced
-   values as if by V v{std::move(t)}; t = std::move(u); u = std::move(v);. If the
-   semantic requirements of either concept are not satisfied, the program is
-   ill-formed; no diagnostic required.
-   4) In all other cases, a call to ranges::swap is ill-formed.
-
-   ranges::swap can be used in a constant expression if every function it calls (as
-   specified above) can be so used.
-
-.SH Exceptions
-
-   1)
-   noexcept specification:  
-   noexcept(noexcept((void)swap(std::forward<T>(t), std::forward<T>(u))))
-   , where swap is found as described above.
-   2)
-   noexcept specification:  
-   noexcept(noexcept(ranges::swap(*t, *u)))
-   3)
-   noexcept specification:  
-   noexcept(std::is_nothrow_move_constructible_v<V> &&
-            std::is_nothrow_move_assignable_v<V>)
+   requirements of std::move_constructible<V> and std::assignable_from<V&, V>,
+   exchanges the referenced values as if by V v{std::move(t)}; t = std::move(u); u =
+   std::move(v);. If the semantic requirements of either concept are not satisfied, the
+   program is ill-formed; no diagnostic required.
+   4) In all other cases, a call to ranges::swap is ill-formed, which can result in
+   substitution failure when ranges::swap(t, u) appears in the immediate context of a
+   template instantiation.
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <array>
+ #include <concepts>
+ #include <iostream>
+ #include <ranges>
+ #include <string_view>
+ #include <vector>
+
+ void print(std::string_view const name,
+            std::ranges::common_range auto const& p,
+            std::ranges::common_range auto const& q)
+ {
+     std::cout << name << "1{ ";
+     for (auto const& i : p) std::cout << i << ' ';
+     std::cout << "}, " << name << "2{ ";
+     for (auto const& i : q) std::cout << i << ' ';
+     std::cout << "}\\n";
+ }
+
+ void print(std::string_view const name, int p, int q)
+ {
+     std::cout << name << "1 = " << p << ", " << name << "2 = " << q << '\\n';
+ }
+
+ int main()
+ {
+     std::vector a1{10,11,12}, a2{13,14};
+     std::ranges::swap(a1, a2);
+     print("a", a1, a2);
+
+     std::array b1{15,16,17}, b2{18,19,20};
+     std::ranges::swap(b1, b2);
+     print("b", b1, b2);
+
+     // std::array c1{1,2,3}; std::array c2{4,5};
+     // std::ranges::swap(c1, c2); // error: types mismatch
+
+     int d1[]{21,22,23}, d2[]{24,25,26};
+     std::ranges::swap(d1, d2);
+     print("d", d1, d2);
+
+     // int e1[]{1,2,3}, e2[]{4,5};
+     // std::ranges::swap(e1, e2); // error: types mismatch
+
+     // char f1[]{1,2,3};
+     // int  f2[]{4,5,6};
+     // std::ranges::swap(f1, f2); // error: types mismatch
+
+     int g1{27}, g2{28};
+     std::ranges::swap(g1, g2);
+     print("g", g1, g2);
+ }
+
+.SH Output:
+
+ a1{ 13 14 }, a2{ 10 11 12 }
+ b1{ 18 19 20 }, b2{ 15 16 17 }
+ d1{ 24 25 26 }, d2{ 21 22 23 }
+ g1 = 28, g2 = 27
 
 .SH See also
 
-   Swappable     specifies that a type can be swapped or that two types can be swapped
-   SwappableWith with each other
-   (C++20)       (concept) 
-   swap          swaps the values of two objects
-                 \fI(function template)\fP 
-
-.SH Categories:
-
-     * conditionally noexcept
-     * Todo no example
+   swappable      specifies that a type can be swapped or that two types can be swapped
+   swappable_with with each other
+   (C++20)        (concept)
+   swap           swaps the values of two objects
+                  \fI(function template)\fP

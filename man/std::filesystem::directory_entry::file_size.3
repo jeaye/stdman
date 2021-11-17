@@ -1,4 +1,4 @@
-.TH std::filesystem::directory_entry::file_size 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::directory_entry::file_size 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::directory_entry::file_size \- std::filesystem::directory_entry::file_size
 
@@ -29,14 +29,55 @@ std::filesystem::directory_entry::file_size \- std::filesystem::directory_entry:
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+   The program below prints out the files in given directory alongside with their sizes
+   in human readable form.
+
+
+// Run this code
+
+ #include <filesystem>
+ #include <iostream>
+ #include <cstdint>
+ #include <cmath>
+
+ struct HumanReadable {
+     uintmax_t size {};
+
+     template <typename Os> friend Os& operator<< (Os& os, HumanReadable hr)
+     {
+         int i{};
+         double mantissa = hr.size;
+         for (; mantissa >= 1024.; ++i) {
+             mantissa /= 1024.;
+         }
+         mantissa = std::ceil(mantissa * 10.) / 10.;
+         os << mantissa << "BKMGTPE"[i];
+         return i == 0 ? os : os << "B (" << hr.size << ')';
+     }
+ };
+
+ int main(int argc, const char* argv[])
+ {
+     namespace fs = std::filesystem;
+
+     const auto dir = argc == 2 ? fs::path { argv[1] } : fs::current_path();
+
+     for (fs::directory_entry const& entry : fs::directory_iterator(dir)) {
+         if (entry.is_regular_file()) {
+             std::cout << entry.path().filename()
+                       << " size: " << HumanReadable{entry.file_size()} << "\\n";
+         }
+     }
+ }
+
+.SH Possible output:
+
+ "boost_1_73_0.tar.bz2" size: 104.2MB (109247910)
+ "CppCon 2018 - Jon Kalb “Copy Elision”.mp4" size: 15.7MB (16411990)
+ "cppreference-doc-20190607.tar.xz" size: 6.3MB (6531336)
+ "hana.hpp" size: 6.7KB (6807)
 
 .SH See also
 
    file_size returns the size of a file
-   \fI(C++17)\fP   \fI(function)\fP 
-
-.SH Category:
-
-     * Todo no example
+   \fI(C++17)\fP   \fI(function)\fP

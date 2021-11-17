@@ -1,0 +1,121 @@
+.TH std::ranges::destroy 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::destroy \- std::ranges::destroy
+
+.SH Synopsis
+   Defined in header <memory>
+   Call signature
+   template< no-throw-input-iterator I, no-throw-sentinel-for<I> S >
+
+       requires std::destructible<std::iter_value_t<I>>               \fB(1)\fP \fI(since C++20)\fP
+
+   constexpr I destroy( I first, S last ) noexcept;
+   template< no-throw-input-range R >
+
+       requires std::destructible<ranges::range_value_t<R>>           \fB(2)\fP \fI(since C++20)\fP
+
+   constexpr ranges::borrowed_iterator_t<R> destroy( R&& r )
+   noexcept;
+
+   1) Destroys the objects in the range [first, last), as if by
+
+ for (; first != last; ++first)
+     std::ranges::destroy_at(std::addressof(*first));
+ return first;
+
+   2) Same as \fB(1)\fP, but uses r as the source range, as if using ranges::begin(r) as
+   first and ranges::end(r) as last.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists may not be specified when calling any of them.
+     * None of them is visible to argument-dependent lookup.
+     * When one of them is found by normal unqualified lookup for the name to the left
+       of the function-call operator, it inhibits argument-dependent lookup.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first, last - iterator-sentinel pair denoting the range of elements to destroy
+   r           - the range to destroy
+
+.SH Return value
+
+   An iterator compares equal to last.
+
+.SH Complexity
+
+   Linear in the distance between first and last.
+
+.SH Possible implementation
+
+   struct destroy_fn {
+     template</*no-throw-input-iterator*/ I, /*no-throw-sentinel-for*/<I> S>
+       requires std::destructible<std::iter_value_t<I>>
+     constexpr I operator()(I first, S last) const noexcept
+     {
+       for (; first != last; ++first)
+         std::ranges::destroy_at(std::addressof(*first));
+       return first;
+     }
+
+     template</*no-throw-input-range*/ R>
+       requires std::destructible<std::ranges::range_value_t<R>>
+     constexpr std::ranges::borrowed_iterator_t<R> operator()(R&& r) const noexcept
+     {
+       return operator()(std::ranges::begin(r), std::ranges::end(r));
+     }
+   };
+
+   inline constexpr destroy_fn destroy{};
+
+.SH Example
+
+   The following example demonstrates how to use ranges::destroy to destroy a
+   contiguous sequence of elements.
+
+
+// Run this code
+
+ #include <memory>
+ #include <new>
+ #include <iostream>
+
+ struct Tracer {
+     int value;
+     ~Tracer() { std::cout << value << " destructed\\n"; }
+ };
+
+ int main()
+ {
+     alignas(Tracer) unsigned char buffer[sizeof(Tracer) * 8];
+
+     for (int i = 0; i < 8; ++i)
+         new(buffer + sizeof(Tracer) * i) Tracer{i}; //manually construct objects
+
+     auto ptr = std::launder(reinterpret_cast<Tracer*>(buffer));
+
+     std::ranges::destroy(ptr, ptr + 8);
+ }
+
+.SH Output:
+
+ 0 destructed
+ 1 destructed
+ 2 destructed
+ 3 destructed
+ 4 destructed
+ 5 destructed
+ 6 destructed
+ 7 destructed
+
+.SH See also
+
+   ranges::destroy_n  destroys a number of objects in a range
+   (C++20)            (niebloid)
+   ranges::destroy_at destroys an object at a given address
+   (C++20)            (niebloid)
+   destroy            destroys a range of objects
+   \fI(C++17)\fP            \fI(function template)\fP

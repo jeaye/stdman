@@ -1,4 +1,4 @@
-.TH std::memory_order 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::memory_order 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::memory_order \- std::memory_order
 
@@ -152,8 +152,9 @@ std::memory_order \- std::memory_order
    the following is true
 
    1) A performs a release operation on some atomic M, and, in a different thread, B
-   performs a consume operation on the same atomic M, and B reads a value written by
-   any part of the release sequence headed by A.
+   performs a consume operation on the same atomic M, and B reads a value written
+   by any part of the release sequence headed
+   \fI(until C++20)\fP by A.
    2) A is dependency-ordered before X and X carries a dependency into B.
 
 .SH Inter-thread happens-before
@@ -185,37 +186,32 @@ std::memory_order \- std::memory_order
    operation, the behavior of the program is undefined (the program has a data race)
    unless there exists a happens-before relationship between these two evaluations.
 
-       Strongly happens-before
-
-   Regardless of threads, evaluation A strongly happens-before evaluation
-   B if any of the following is true:                                     \fI(until C++20)\fP
-
-   1) A is sequenced-before B
-   2) A synchronizes-with B
-   3) A strongly happens-before X, and X strongly happens-before B
        Simply happens-before
 
    Regardless of threads, evaluation A simply happens-before evaluation B
    if any of the following is true:
 
-   1) A is sequenced-before B
+   1) A is sequenced-before B                                             \fI(since C++20)\fP
    2) A synchronizes-with B
    3) A simply happens-before X, and X simply happens-before B
 
    Note: without consume operations, simply happens-before and
    happens-before relations are the same.
 
-       Strongly happens-before
-                                                                          \fI(since C++20)\fP
-   Regardless of threads, evaluation A strongly happens-before evaluation
-   B if any of the following is true:
+     Strongly happens-before
 
+   Regardless of threads, evaluation A strongly happens-before evaluation B if any of
+   the following is true:
+
+   1) A is sequenced-before B
+   2) A synchronizes-with B                                               \fI(until C++20)\fP
+   3) A strongly happens-before X, and X strongly happens-before B
    1) A is sequenced-before B
    2) A synchronizes with B, and both A and B are sequentially consistent
    atomic operations
    3) A is sequenced-before X, X simply happens-before Y, and Y is
    sequenced-before B
-   4) A strongly happens-before X, and X strongly happens-before B
+   4) A strongly happens-before X, and X strongly happens-before B        \fI(since C++20)\fP
 
    Note: informally, if A strongly happens-before B, then A appears to be
    evaluated before B in all contexts.
@@ -290,11 +286,11 @@ std::memory_order \- std::memory_order
    initially zero,
 
    // Thread 1:
-   r1 = x.load(std::memory_order_relaxed);
-   if (r1 == 42) y.store(r1, std::memory_order_relaxed);                         (since
+   r1 = y.load(std::memory_order_relaxed);
+   if (r1 == 42) x.store(r1, std::memory_order_relaxed);                         (since
    // Thread 2:                                                                  C++14)
-   r2 = y.load(std::memory_order_relaxed);
-   if (r2 == 42) x.store(42, std::memory_order_relaxed);
+   r2 = x.load(std::memory_order_relaxed);
+   if (r2 == 42) y.store(42, std::memory_order_relaxed);
 
    is not allowed to produce r1 == r2 == 42 since the store of 42 to y is only
    possible if the store to x stores 42, which circularly depends on the store
@@ -306,23 +302,23 @@ std::memory_order \- std::memory_order
    ordering or synchronization (note that decrementing the shared_ptr counters requires
    acquire-release synchronization with the destructor)
 
-   
+
 // Run this code
 
  #include <vector>
  #include <iostream>
  #include <thread>
  #include <atomic>
-  
+
  std::atomic<int> cnt = {0};
-  
+
  void f()
  {
      for (int n = 0; n < 1000; ++n) {
          cnt.fetch_add(1, std::memory_order_relaxed);
      }
  }
-  
+
  int main()
  {
      std::vector<std::thread> v;
@@ -366,24 +362,24 @@ std::memory_order \- std::memory_order
    in the context of thread A has to be visible to thread B (after the acquire) which
    is executing the same critical section.
 
-   
+
 // Run this code
 
  #include <thread>
  #include <atomic>
  #include <cassert>
  #include <string>
-  
+
  std::atomic<std::string*> ptr;
  int data;
-  
+
  void producer()
  {
      std::string* p  = new std::string("Hello");
      data = 42;
      ptr.store(p, std::memory_order_release);
  }
-  
+
  void consumer()
  {
      std::string* p2;
@@ -392,7 +388,7 @@ std::memory_order \- std::memory_order
      assert(*p2 == "Hello"); // never fires
      assert(data == 42); // never fires
  }
-  
+
  int main()
  {
      std::thread t1(producer);
@@ -403,23 +399,23 @@ std::memory_order \- std::memory_order
    The following example demonstrates transitive release-acquire ordering across three
    threads
 
-   
+
 // Run this code
 
  #include <thread>
  #include <atomic>
  #include <cassert>
  #include <vector>
-  
+
  std::vector<int> data;
  std::atomic<int> flag = {0};
-  
+
  void thread_1()
  {
      data.push_back\fB(42)\fP;
      flag.store(1, std::memory_order_release);
  }
-  
+
  void thread_2()
  {
      int expected=1;
@@ -427,14 +423,14 @@ std::memory_order \- std::memory_order
          expected = 1;
      }
  }
-  
+
  void thread_3()
  {
      while (flag.load(std::memory_order_acquire) < 2)
          ;
      assert(data.at\fB(0)\fP == 42); // will never fire
  }
-  
+
  int main()
  {
      std::thread a(thread_1);
@@ -446,13 +442,13 @@ std::memory_order \- std::memory_order
 .SH Release-Consume ordering
 
    If an atomic store in thread A is tagged memory_order_release and an atomic load in
-   thread B from the same variable is tagged memory_order_consume, all memory writes
-   (non-atomic and relaxed atomic) that are dependency-ordered-before the atomic store
-   from the point of view of thread A, become visible side-effects within those
-   operations in thread B into which the load operation carries dependency, that is,
-   once the atomic load is completed, those operators and functions in thread B that
-   use the value obtained from the load are guaranteed to see what thread A wrote to
-   memory.
+   thread B from the same variable that read the stored value is tagged
+   memory_order_consume, all memory writes (non-atomic and relaxed atomic) that
+   happened-before the atomic store from the point of view of thread A, become visible
+   side-effects within those operations in thread B into which the load operation
+   carries dependency, that is, once the atomic load is completed, those operators and
+   functions in thread B that use the value obtained from the load are guaranteed to
+   see what thread A wrote to memory.
 
    The synchronization is established only between the threads releasing and consuming
    the same atomic variable. Other threads can see different order of memory accesses
@@ -484,24 +480,24 @@ std::memory_order \- std::memory_order
    publication: the integer data is not related to the pointer to string by a
    data-dependency relationship, thus its value is undefined in the consumer.
 
-   
+
 // Run this code
 
  #include <thread>
  #include <atomic>
  #include <cassert>
  #include <string>
-  
+
  std::atomic<std::string*> ptr;
  int data;
-  
+
  void producer()
  {
      std::string* p  = new std::string("Hello");
      data = 42;
      ptr.store(p, std::memory_order_release);
  }
-  
+
  void consumer()
  {
      std::string* p2;
@@ -510,7 +506,7 @@ std::memory_order \- std::memory_order
      assert(*p2 == "Hello"); // never fires: *p2 carries dependency from ptr
      assert(data == 42); // may or may not fire: data does not carry dependency from ptr
  }
-  
+
  int main()
  {
      std::thread t1(producer);
@@ -652,27 +648,27 @@ std::memory_order \- std::memory_order
    other ordering may trigger the assert because it would be possible for the threads c
    and d to observe changes to the atomics x and y in opposite order.
 
-   
+
 // Run this code
 
  #include <thread>
  #include <atomic>
  #include <cassert>
-  
+
  std::atomic<bool> x = {false};
  std::atomic<bool> y = {false};
  std::atomic<int> z = {0};
-  
+
  void write_x()
  {
      x.store(true, std::memory_order_seq_cst);
  }
-  
+
  void write_y()
  {
      y.store(true, std::memory_order_seq_cst);
  }
-  
+
  void read_x_then_y()
  {
      while (!x.load(std::memory_order_seq_cst))
@@ -681,7 +677,7 @@ std::memory_order \- std::memory_order
          ++z;
      }
  }
-  
+
  void read_y_then_x()
  {
      while (!y.load(std::memory_order_seq_cst))
@@ -690,7 +686,7 @@ std::memory_order \- std::memory_order
          ++z;
      }
  }
-  
+
  int main()
  {
      std::thread a(write_x);
@@ -714,11 +710,11 @@ std::memory_order \- std::memory_order
    around the volatile access).
 
    One notable exception is Visual Studio, where, with default settings, every volatile
-   write has release semantics and every volatile read has acquire semantics (MSDN),
-   and thus volatiles may be used for inter-thread synchronization. Standard volatile
-   semantics are not applicable to multithreaded programming, although they are
-   sufficient for e.g. communication with a std::signal handler that runs in the same
-   thread when applied to sig_atomic_t variables.
+   write has release semantics and every volatile read has acquire semantics (Microsoft
+   Docs), and thus volatiles may be used for inter-thread synchronization. Standard
+   volatile semantics are not applicable to multithreaded programming, although they
+   are sufficient for e.g. communication with a std::signal handler that runs in the
+   same thread when applied to sig_atomic_t variables.
 
 .SH See also
 

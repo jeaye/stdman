@@ -1,4 +1,4 @@
-.TH std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relative, 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relative, 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relative, \- std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relative,
 
@@ -11,8 +11,10 @@ std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relativ
    1) Returns *this converted to normal form in its generic format
    2) Returns *this made relative to base.
 
-     * First, if root_name() != base.root_name() || is_absolute() != base.is_absolute()
-       || (!has_root_directory() && base.has_root_directory()), returns a
+     * First, if root_name() != base.root_name() is true or is_absolute() !=
+       base.is_absolute() is true or (!has_root_directory() &&
+       base.has_root_directory()) is true or any filename in relative_path() or
+       base.relative_path() can be interpreted as a root-name, returns a
        default-constructed path.
      * Otherwise, first determines the first mismatched element of *this and base as if
        by auto [a, b] = mismatch(begin(), end(), base.begin(), base.end()), then
@@ -43,7 +45,7 @@ std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relativ
 
 .SH Exceptions
 
-   \fI(none)\fP
+   May throw implementation-defined exceptions.
 
 .SH Notes
 
@@ -52,23 +54,25 @@ std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relativ
    counterparts of lexically_relative and lexically_proximate, see relative and
    proximate.
 
-   On Windows, the returned path has backslashes (the preferred separators),
+   On Windows, the returned path has backslashes (the preferred separators).
+
+   On POSIX, no filename in a relative path is acceptable as a root-name.
 
 .SH Example
 
-   
+
 // Run this code
 
  #include <iostream>
  #include <filesystem>
  #include <cassert>
  namespace fs = std::filesystem;
-  
+
  int main()
  {
      assert(fs::path("foo/./bar/..").lexically_normal() == "foo/");
      assert(fs::path("foo/.///bar/../").lexically_normal() == "foo/");
-  
+
      assert(fs::path("/a/d").lexically_relative("/a/b/c") == "../../d");
      assert(fs::path("/a/b/c").lexically_relative("/a/d") == "../b/c");
      assert(fs::path("a/b/c").lexically_relative("a") == "b/c");
@@ -82,11 +86,14 @@ std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relativ
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to             Behavior as published             Correct behavior
-   LWG 3096 C++17      trailing "/" and "/." are handled incorrectly corrected
+      DR    Applied to           Behavior as published              Correct behavior
+   LWG 3070 C++17      a filename that can also be a root-name    treated as error case
+                       may cause surprising result
+   LWG 3096 C++17      trailing "/" and "/." are handled          corrected
+                       incorrectly
 
 .SH See also
 
    relative  composes a relative path
-   proximate \fI(function)\fP 
+   proximate \fI(function)\fP
    \fI(C++17)\fP

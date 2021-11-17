@@ -1,52 +1,62 @@
-.TH std::variant::variant 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::variant::variant 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::variant::variant \- std::variant::variant
 
 .SH Synopsis
    constexpr variant() noexcept(/* see below */);                     \fB(1)\fP \fI(since C++17)\fP
-   constexpr variant(const variant& other);                           \fB(2)\fP \fI(since C++17)\fP
-   constexpr variant(variant&& other) noexcept(/* see below */);      \fB(3)\fP \fI(since C++17)\fP
+   constexpr variant( const variant& other );                         \fB(2)\fP \fI(since C++17)\fP
+   constexpr variant( variant&& other ) noexcept(/* see below */);    \fB(3)\fP \fI(since C++17)\fP
    template< class T >                                                \fB(4)\fP \fI(since C++17)\fP
-   constexpr variant(T&& t) noexcept(/* see below */);
+   constexpr variant( T&& t ) noexcept(/* see below */);
    template< class T, class... Args >
-   constexpr explicit variant(std::in_place_type_t<T>, Args&&...      \fB(5)\fP \fI(since C++17)\fP
-   args);
+   constexpr explicit variant( std::in_place_type_t<T>, Args&&...     \fB(5)\fP \fI(since C++17)\fP
+   args );
    template< class T, class U, class... Args >
 
-   constexpr explicit variant(std::in_place_type_t<T>,                \fB(6)\fP \fI(since C++17)\fP
+   constexpr explicit variant( std::in_place_type_t<T>,               \fB(6)\fP \fI(since C++17)\fP
 
-                              std::initializer_list<U> il, Args&&...
-   args);
+                               std::initializer_list<U> il, Args&&...
+   args );
    template< std::size_t I, class... Args >
-   constexpr explicit variant(std::in_place_index_t<I>, Args&&...     \fB(7)\fP \fI(since C++17)\fP
-   args);
+   constexpr explicit variant( std::in_place_index_t<I>, Args&&...    \fB(7)\fP \fI(since C++17)\fP
+   args );
    template< std::size_t I, class U, class... Args >
 
-   constexpr explicit variant(std::in_place_index_t<I>,               \fB(8)\fP \fI(since C++17)\fP
+   constexpr explicit variant( std::in_place_index_t<I>,              \fB(8)\fP \fI(since C++17)\fP
 
-                              std::initializer_list<U> il, Args&&...
-   args);
+                               std::initializer_list<U> il, Args&&...
+   args );
 
    Constructs a new variant object.
 
    1) Default constructor. Constructs a variant holding the value-initialized value of
-   the first alternative (index() is zero). This constructor is constexpr if and only
-   if the value initialization of the alternative type T_0 would satisfy the
-   requirements for a constexpr function. This overload only participates in overload
-   resolution if std::is_default_constructible_v<T_0> is true.
+   the first alternative (index() is zero).
+
+     * This constructor is constexpr if and only if the value initialization of the
+       alternative type T_0 would satisfy the requirements for a constexpr function.
+     * This overload only participates in overload resolution if
+       std::is_default_constructible_v<T_0> is true.
+
    2) Copy constructor. If other is not valueless_by_exception, constructs a variant
    holding the same alternative as other and direct-initializes the contained value
    with std::get<other.index()>(other). Otherwise, initializes a valueless_by_exception
-   variant. This constructor is defined as deleted unless
-   std::is_copy_constructible_v<T_i> is true for all T_i in Types.... It is trivial if
-   std::is_trivially_copy_constructible_v<T_i> is true for all T_i in Types....
+   variant.
+
+     * This constructor is defined as deleted unless std::is_copy_constructible_v<T_i>
+       is true for all T_i in Types....
+     * It is trivial if std::is_trivially_copy_constructible_v<T_i> is true for all T_i
+       in Types....
+
    3) Move constructor. If other is not valueless_by_exception, constructs a variant
    holding the same alternative as other and direct-initializes the contained value
    with std::get<other.index()>(std::move(other)). Otherwise, initializes a
-   valueless_by_exception variant. This overload only participates in overload
-   resolution if std::is_move_constructible_v<T_i> is true for all T_i in Types.... It
-   is trivial if std::is_trivially_move_constructible_v<T_i> is true for all T_i in
-   Types....
+   valueless_by_exception variant.
+
+     * This overload only participates in overload resolution if
+       std::is_move_constructible_v<T_i> is true for all T_i in Types....
+     * It is trivial if std::is_trivially_move_constructible_v<T_i> is true for all T_i
+       in Types....
+
    4) Converting constructor. Constructs a variant holding the alternative type T_j
    that would be selected by overload resolution for the expression
    F(std::forward<T>(t)) if there was an overload of imaginary function F(T_i) for
@@ -54,21 +64,24 @@ std::variant::variant \- std::variant::variant
 
      * An overload F(T_i) is only considered if the declaration T_i x[] = {
        std::forward<T>(t) }; is valid for some invented variable x;
-     * If T_i is (possibly cv-qualified) bool, F(T_i) is only considered if
-       std:remove_cvref_t<T> is also bool.
 
    Direct-initializes the contained value as if by direct non-list-initialization from
-   std::forward<T>(t). This overload only participates in overload resolution if
-   sizeof...(Types) > 0,
-   std::decay_t<U>
-   \fI(until C++20)\fP
-   std::remove_cvref_t<U>
-   \fI(since C++20)\fP is neither the same type as variant, nor a specialization of
-   std::in_place_type_t, nor a specialization of std::in_place_index_t,
-   std::is_constructible_v<T_j, T> is true, and the expression F(std::forward<T>(t))
-   (with F being the above-mentioned set of imaginary functions) is well formed. This
-   constructor is a constexpr constructor if T_j's selected constructor is a constexpr
-   constructor.
+   std::forward<T>(t).
+
+     * This overload only participates in overload resolution if
+
+          * sizeof...(Types) > 0,
+          * std::decay_t<U>
+            \fI(until C++20)\fP
+            std::remove_cvref_t<U>
+            \fI(since C++20)\fP is neither the same type as variant, nor a specialization of
+            std::in_place_type_t, nor a specialization of std::in_place_index_t,
+          * std::is_constructible_v<T_j, T> is true,
+          * and the expression F(std::forward<T>(t)) (with F being the above-mentioned
+            set of imaginary functions) is well formed.
+
+     * This constructor is a constexpr constructor if T_j's selected constructor is a
+       constexpr constructor.
 
  std::variant<std::string> v("abc"); // OK
  std::variant<std::string, std::string> w("abc"); // ill-formed
@@ -78,28 +91,37 @@ std::variant::variant \- std::variant::variant
                                           // float and double are not candidates
 
    5) Constructs a variant with the specified alternative T and initializes the
-   contained value with the arguments std::forward<Args>(args).... If T's selected
-   constructor is a constexpr constructor, this constructor is also a constexpr
-   constructor. This overload only participates in overload resolution if there is
-   exactly one occurrence of T in Types... and std::is_constructible_v<T, Args...> is
-   true.
+   contained value with the arguments std::forward<Args>(args)....
+
+     * If T's selected constructor is a constexpr constructor, this constructor is also
+       a constexpr constructor.
+     * This overload only participates in overload resolution if there is exactly one
+       occurrence of T in Types... and std::is_constructible_v<T, Args...> is true.
+
    6) Constructs a variant with the specified alternative T and initializes the
-   contained value with the arguments il, std::forward<Args>(args)..... If T's selected
-   constructor is a constexpr constructor, this constructor is also a constexpr
-   constructor. This overload only participates in overload resolution if there is
-   exactly one occurrence of T in Types... and std::is_constructible_v<T,
-   initializer_list<U>&, Args...> is true.
+   contained value with the arguments il, std::forward<Args>(args)....
+
+     * If T's selected constructor is a constexpr constructor, this constructor is also
+       a constexpr constructor.
+     * This overload only participates in overload resolution if there is exactly one
+       occurrence of T in Types... and std::is_constructible_v<T, initializer_list<U>&,
+       Args...> is true.
+
    7) Constructs a variant with the alternative T_i specified by the index I and
-   initializes the contained value with the arguments std::forward<Args>(args).... If
-   T_i's selected constructor is a constexpr constructor, this constructor is also a
-   constexpr constructor. This overload only participates in overload resolution if I <
-   sizeof...(Types) and std::is_constructible_v<T_i, Args...> is true.
+   initializes the contained value with the arguments std::forward<Args>(args)....
+
+     * If T_i's selected constructor is a constexpr constructor, this constructor is
+       also a constexpr constructor.
+     * This overload only participates in overload resolution if I < sizeof...(Types)
+       and std::is_constructible_v<T_i, Args...> is true.
+
    8) Constructs a variant with the alternative T_i specified by the index I and
    initializes the contained value with the arguments il, std::forward<Args>(args)....
-   If T_i's selected constructor is a constexpr constructor, this constructor is also a
-   constexpr constructor. This overload only participates in overload resolution if I <
-   sizeof...(Types) and std::is_constructible_v<T_i, std::initializer_list<U>&,
-   Args...> is true.
+
+     * If T_i's selected constructor is a constexpr constructor, this constructor is
+       also a constexpr constructor.
+     * This overload only participates in overload resolution if I < sizeof...(Types)
+       and std::is_constructible_v<T_i, std::initializer_list<U>&, Args...> is true.
 
 .SH Parameters
 
@@ -112,47 +134,120 @@ std::variant::variant \- std::variant::variant
 
    1) May throw any exception thrown by the value initialization of the first
    alternative.
-   noexcept specification:  
+   noexcept specification:
    noexcept(std::is_nothrow_default_constructible_v<T_0>)
    2) May throw any exception thrown by direct-initializing any T_i in Types...
    3) May throw any exception thrown by move-constructing any T_i in Types....
-   noexcept specification:  
+   noexcept specification:
    noexcept( (std::is_nothrow_move_constructible_v<Types> && ...))
    4) May throw any exception thrown by the initialization of the selected alternative
    T_j.
-   noexcept specification:  
+   noexcept specification:
    noexcept(std::is_nothrow_constructible_v<T_j, T>)
    5-8) May throw any exception thrown by calling the selected constructor of the
    selected alternative
+
+.SH Example
+
+
+// Run this code
+
+ #include <cassert>
+ #include <iostream>
+ #include <string>
+ #include <variant>
+ #include <vector>
+
+ template <class Os> Os& operator<< (Os& os, const std::vector<int>& v) {
+     os << "{ ";
+     for (int e: v) { std::cout << e << ' '; }
+     return os << "}";
+ }
+
+ int main()
+ {
+     {
+         std::variant<int, std::string> var; // value-initializes first alternative
+         assert(std::holds_alternative<int>(var) && var.index() == 0 &&
+                std::get<int>(var) == 0);
+     }
+     {
+         std::variant<std::string, int> var{"STR"};
+             // initializes first alternative with std::string{"STR"};
+         assert(var.index() == 0);
+         std::cout << "1) " << std::get<std::string>(var) << '\\n';
+     }
+     {
+         std::variant<std::string, int> var{42};
+             // initializes second alternative with int = 42;
+         assert(std::holds_alternative<int>(var));
+         std::cout << "2) " << std::get<int>(var) << '\\n';
+     }
+     {
+         std::variant<std::string, std::vector<int>, float> var{
+             std::in_place_type<std::string>, 4, 'A'};
+             // initializes first alternative with std::string{4, 'A'};
+         assert(var.index() == 0);
+         std::cout << "3) " << std::get<std::string>(var) << '\\n';
+     }
+     {
+         std::variant<std::string, std::vector<int>, char> var{
+             std::in_place_type<std::vector<int>>, {1,2,3,4,5} };
+             // initializes second alternative with std::vector{1,2,3,4,5};
+         assert(var.index() == 1);
+         std::cout << "4) " << std::get<std::vector<int>>(var) << '\\n';
+     }
+     {
+         std::variant<std::string, std::vector<int>, bool> var{
+             std::in_place_index<0>, "ABCDE", 3};
+             // initializes first alternative with std::string{"ABCDE", 3};
+         assert(var.index() == 0);
+         std::cout << "5) " << std::get<std::string>(var) << '\\n';
+     }
+     {
+         std::variant<std::string, std::vector<int>, char> var{
+             std::in_place_index<1>, 4, 42};
+             // initializes second alternative with std::vector(4, 42);
+         assert(std::holds_alternative<std::vector<int>>(var));
+         std::cout << "6) " << std::get<std::vector<int>>(var) << '\\n';
+     }
+ }
+
+.SH Output:
+
+ 1) STR
+ 2) 42
+ 3) AAAA
+ 4) { 1 2 3 4 5 }
+ 5) ABC
+ 6) { 42 42 42 42 }
 
    Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to         Behavior as published              Correct behavior
-                       allocator-aware constructors provided
-   LWG 2901 C++17      but variant can't properly support    constructors removed
-                       allocators
+      DR    Applied to       Behavior as published              Correct behavior
+                       allocator-aware constructors
+   LWG 2901 C++17      provided but variant can't         constructors removed
+                       properly support allocators
                        converting constructor template
-   P0739R0  C++17      interacts poorly with class template  constraint added
-                       argument deduction
-                       copy constructor doesn't participate
-   LWG 3024 C++17      in overload resolution if any member  defined as deleted instead
-                       type is not copyable
-                       copy/move constructors may not be     required to propagate
-   P0602R4  C++17      trivial even if underlying            triviality
+   P0739R0  C++17      interacts poorly with class        constraint added
+                       template argument deduction
+                       copy constructor doesn't
+   LWG 3024 C++17      participate in overload resolution defined as deleted instead
+                       if any member type is not copyable
+                       copy/move constructors may not be  required to propagate
+   P0602R4  C++17      trivial even if underlying         triviality
                        constructors are trivial
-                       converting constructor blindly        narrowing and boolean
-   P0608R3  C++17      assembles an overload set, leading to conversions not considered
-                       unintended conversions
+                       converting constructor blindly     narrowing and boolean
+   P0608R3  C++17      assembles an overload set, leading conversions not considered
+                       to unintended conversions
+                                                          Pointer to bool conversion is
+   P1957R2  C++17      converting constructor for bool    narrowing and converting
+                       did not allow implicit conversion  constructor has no exception
+                                                          for bool
 
-.SH Example
-
-    This section is incomplete
-    Reason: no example
-
-.SH Categories:
+.SH Category:
 
      * conditionally noexcept
-     * Todo no example

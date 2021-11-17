@@ -1,4 +1,4 @@
-.TH std::pair::operator= 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::pair::operator= 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::pair::operator= \- std::pair::operator=
 
@@ -7,15 +7,17 @@ std::pair::operator= \- std::pair::operator=
                                                         C++20)
    constexpr pair& operator=( const pair& other         (since
    );                                                   C++20)
-   template< class U1, class U2 >                               (until
-   pair& operator=( const pair<U1,U2>& other );                 C++20)
+                                                                (since
+   template< class U1, class U2 >                               C++11)
+   pair& operator=( const pair<U1,U2>& other );                 (until
+                                                                C++20)
    template< class U1, class U2 >                               (since
    constexpr pair& operator=( const                             C++20)
    pair<U1,U2>& other );
-                                                                        (since
-   pair& operator=( pair&& other ) noexcept(/*  \fB(1)\fP                     C++11)
-   see below */);                                                       (until
-                                                    \fB(2)\fP                 C++20)
+                                                \fB(1)\fP                     (since
+   pair& operator=( pair&& other ) noexcept(/*                          C++11)
+   see below */);                                   \fB(2)\fP                 (until
+                                                                        C++20)
    constexpr pair& operator=( pair&& other )                            (since
    noexcept(/* see below */);                                           C++20)
                                                         \fB(3)\fP                     (since
@@ -30,37 +32,35 @@ std::pair::operator= \- std::pair::operator=
 
    1) Copy assignment operator. Replaces the contents with a copy of the contents of
    other.
-   2) Assigns other.first to first and other.second to second
+
+     * The assignment operator is implicitly declared. Using this
+       assignment operator makes the program ill-formed if either
+       first_type or second_type is a const-qualified type, or a          \fI(until C++11)\fP
+       reference type, or a class type with an inaccessible copy
+       assignment operator, or an array type of such class.
+     * This overload is defined as deleted if either
+       std::is_copy_assignable<first_type>::value or                      \fI(since C++11)\fP
+       std::is_copy_assignable<second_type>::value is false.
+
+   2) Assigns other.first to first and other.second to second.
+
+     * This overload only participates in overload resolution if
+       std::is_assignable<first_type&, const U1&>::value and
+       std::is_assignable<second_type&, const U2&>::value are both true.
+
    3) Move assignment operator. Replaces the contents with those of other using move
    semantics.
+
+     * This overload only participates in overload resolution if
+       std::is_move_assignable<first_type>::value and
+       std::is_move_assignable<second_type>::value are both true.
+
    4) Assigns std::forward<U1>(p.first) to first and std::forward<U2>(p.second) to
    second.
 
-   The behavior of these functions is undefined unless:
-
-     * For \fB(1)\fP,std::is_copy_assignable<first_type>::value and
-       std::is_copy_assignable<second_type>::value are both true.
-     * For \fB(2)\fP,std::is_assignable<first_type&, const U1&>::value and             (until
-       std::is_assignable<second_type&, const U2&>::value are both true.         C++17)
-     * For \fB(3)\fP,std::is_move_assignable<first_type>::value and
-       std::is_move_assignable<second_type>::value are both true.
-     * For \fB(4)\fP,std::is_assignable<first_type&, U1&&>::value and
-       std::is_assignable<second_type&, U2&&>::value are both true.
-   These functions do not participate in overload resolution (or, for the copy
-   assignment operator, is defined as deleted) if any required assignment
-   operation is invalid. Specifically:
-
-     * \fB(1)\fP is defined as deleted unless std::is_copy_assignable_v<first_type>
-       and std::is_copy_assignable_v<second_type> are both true.
-     * \fB(2)\fP does not participate in overload resolution unless                    (since
-       std::is_assignable_v<first_type&, const U1&> and                          C++17)
-       std::is_assignable_v<second_type&, const U2&> are both true.
-     * \fB(3)\fP does not participate in overload resolution unless
-       std::is_move_assignable_v<first_type> and
-       std::is_move_assignable_v<second_type> are both true.
-     * \fB(4)\fP does not participate in overload resolution unless
-       std::is_assignable_v<first_type&, U1&&> and
-       std::is_assignable_v<second_type&, U2&&> are both true.
+     * This overload only participates in overload resolution if
+       std::is_assignable<first_type&, U1>::value and std::is_assignable<second_type&,
+       U2>::value are both true.
 
 .SH Parameters
 
@@ -72,26 +72,83 @@ std::pair::operator= \- std::pair::operator=
 
 .SH Exceptions
 
-   1-2) \fI(none)\fP
+   1-2) May throw implementation-defined exceptions.
    3)
-   noexcept specification:  
+   noexcept specification:
    noexcept(
 
-       is_nothrow_move_assignable<T1>::value &&
-       is_nothrow_move_assignable<T2>::value
+       std::is_nothrow_move_assignable<T1>::value &&
+       std::is_nothrow_move_assignable<T2>::value
 
    )
-   4) \fI(none)\fP
+   4) May throw implementation-defined exceptions.
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <iomanip>
+ #include <iostream>
+ #include <utility>
+ #include <vector>
+
+ template <class Os, class T>
+ Os& operator<<(Os& os, const std::vector<T>& v) {
+     os << "{";
+     for (std::size_t t = 0; t != v.size(); ++t)
+         os << v[t] << (t+1 < v.size() ? "," : "");
+     return os << "}";
+ }
+
+ template <class Os, class U1, class U2>
+ Os& operator<<(Os& os, const std::pair<U1, U2>& pair) {
+     return os << ":{ " << pair.first << ", " << pair.second << " } ";
+ }
+
+ int main()
+ {
+     std::pair<int, std::vector<int>> p{ 1, {2} }, q{ 2, {5,6} };
+
+     p = q; // (1) operator=( const pair& other );
+     std::cout << std::setw(23) << std::left
+               << "(1) p = q;" << "p" << p << "   q" << q << '\\n';
+
+     std::pair<short, std::vector<int>> r{ 4, {7,8,9} };
+     p = r; // (2) operator=( const pair<U1,U2>& other );
+     std::cout << std::setw(23)
+               << "(2) p = r;" << "p" << p << " r" << r << '\\n';
+
+     p = std::pair<int, std::vector<int>>{ 3, {4} };
+     p = std::move(q); // (3) operator=( pair&& other );
+     std::cout << std::setw(23)
+               << "(3) p = std::move(q);" << "p" << p << "   q" << q << '\\n';
+
+     p = std::pair<int, std::vector<int>>{ 5, {6} };
+     p = std::move(r); // (4) operator=( pair<U1,U2>&& other );
+     std::cout << std::setw(23)
+               << "(4) p = std::move(r);" << "p" << p << " r" << r << '\\n';
+ }
+
+.SH Output:
+
+ \fB(1)\fP p = q;             p:{ 2, {5,6} }    q:{ 2, {5,6} }
+ \fB(2)\fP p = r;             p:{ 4, {7,8,9} }  r:{ 4, {7,8,9} }
+ \fB(3)\fP p = std::move(q);  p:{ 2, {5,6} }    q:{ 2, {} }
+ \fB(4)\fP p = std::move(r);  p:{ 4, {7,8,9} }  r:{ 4, {} }
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to            Behavior as published            Correct behavior
+   LWG 2729 C++11      pair::operator= was unconstrained and might constrained
+                       result in unnecessary undefined behavior
 
 .SH See also
 
 
-.SH Categories:
+.SH Category:
 
      * conditionally noexcept
-     * Todo no example

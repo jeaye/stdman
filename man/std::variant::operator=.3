@@ -1,13 +1,13 @@
-.TH std::variant::operator= 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::variant::operator= 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::variant::operator= \- std::variant::operator=
 
 .SH Synopsis
-   constexpr variant& operator=(const variant& rhs);                  \fB(1)\fP \fI(since C++17)\fP
-   constexpr variant& operator=(variant&& rhs) noexcept(/* see below  \fB(2)\fP \fI(since C++17)\fP
-   */);
-   template <class T> variant& operator=(T&& t) noexcept(/* see below \fB(3)\fP \fI(since C++17)\fP
-   */);
+   constexpr variant& operator=( const variant& rhs );                \fB(1)\fP \fI(since C++17)\fP
+   constexpr variant& operator=( variant&& rhs ) noexcept(/* see      \fB(2)\fP \fI(since C++17)\fP
+   below */);
+   template< class T >                                                \fB(3)\fP \fI(since C++17)\fP
+   variant& operator=( T&& t ) noexcept(/* see below */);
 
    Assigns a new value to an existing variant object.
 
@@ -103,18 +103,84 @@ std::variant::operator= \- std::variant::operator=
    1) May throw any exception thrown by assignment and copy/move initialization of any
    alternative
    2)
-   noexcept specification:  
+   noexcept specification:
    noexcept(((std::is_nothrow_move_constructible_v<Types> &&
    std::is_nothrow_move_assignable_v<Types>) && ...))
    3)
-   noexcept specification:  
+   noexcept specification:
    noexcept(std::is_nothrow_assignable_v<T_j&, T> &&
    std::is_nothrow_constructible_v<T_j, T>)
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <iomanip>
+ #include <iostream>
+ #include <string>
+ #include <type_traits>
+ #include <variant>
+
+ std::ostream& operator<<(std::ostream& os, std::variant<int, std::string> const& va)
+ {
+     os << ": { ";
+
+     std::visit([&](auto&& arg) {
+         using T = std::decay_t<decltype(arg)>;
+         if constexpr (std::is_same_v<T, int>)
+             os << arg;
+         else if constexpr (std::is_same_v<T, std::string>)
+             os << std::quoted(arg);
+     }, va);
+
+     return os << " };\\n";
+ }
+
+ int main()
+ {
+     std::variant<int, std::string> a{2017}, b{"CppCon"};
+     std::cout << "a" << a << "b" << b << '\\n';
+
+     std::cout << "(1) operator=( const variant& rhs )\\n";
+     a = b;
+     std::cout << "a" << a << "b" << b << '\\n';
+
+     std::cout << "(2) operator=( variant&& rhs )\\n";
+     a = std::move(b);
+     std::cout << "a" << a << "b" << b << '\\n';
+
+     std::cout << "(3) operator=( T&& t ), where T is int\\n";
+     a = 2019;
+     std::cout << "a" << a << '\\n';
+
+     std::cout << "(3) operator=( T&& t ), where T is std::string\\n";
+     std::string s{"CppNow"};
+     std::cout << "s: " << std::quoted(s) << '\\n';
+     a = std::move(s);
+     std::cout << "a" << a << "s: " << std::quoted(s) << '\\n';
+ }
+
+.SH Possible output:
+
+ a: { 2017 };
+ b: { "CppCon" };
+
+ \fB(1)\fP operator=( const variant& rhs )
+ a: { "CppCon" };
+ b: { "CppCon" };
+
+ \fB(2)\fP operator=( variant&& rhs )
+ a: { "CppCon" };
+ b: { "" };
+
+ \fB(3)\fP operator=( T&& t ), where T is int
+ a: { 2019 };
+
+ \fB(3)\fP operator=( T&& t ), where T is std::string
+ s: "CppNow"
+ a: { "CppNow" };
+ s: ""
 
    Defect reports
 
@@ -135,9 +201,8 @@ std::variant::operator= \- std::variant::operator=
 .SH See also
 
    emplace constructs a value in the variant, in place
-           \fI(public member function)\fP 
+           \fI(public member function)\fP
 
-.SH Categories:
+.SH Category:
 
      * conditionally noexcept
-     * Todo no example

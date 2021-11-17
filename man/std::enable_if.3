@@ -1,4 +1,4 @@
-.TH std::enable_if 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::enable_if 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::enable_if \- std::enable_if
 
@@ -17,6 +17,8 @@ std::enable_if \- std::enable_if
    as a return type (not applicable to constructors and destructors), or as a class
    template or function template parameter.
 
+   The behavior of a program that adds specializations for enable_if is undefined.
+
 .SH Member types
 
    Type Definition
@@ -31,41 +33,41 @@ std::enable_if \- std::enable_if
 
    template<bool B, class T = void>
    struct enable_if {};
-    
+
    template<class T>
    struct enable_if<true, T> { typedef T type; };
 
 .SH Notes
 
    A common mistake is to declare two function templates that differ only in their
-   default template arguments. This is illegal because default template arguments are
-   not part of function template's signature, and declaring two different function
-   templates with the same signature is illegal.
+   default template arguments. This does not work because the declarations are treated
+   as redeclarations of the same function template (default template arguments are not
+   accounted for in function template equivalence).
 
- /*** WRONG ***/
-  
+ /* WRONG */
+
  struct T {
      enum { int_t,float_t } m_type;
      template <typename Integer,
                typename = std::enable_if_t<std::is_integral<Integer>::value>
      >
      T(Integer) : m_type(int_t) {}
-  
+
      template <typename Floating,
                typename = std::enable_if_t<std::is_floating_point<Floating>::value>
      >
-     T(Floating) : m_type(float_t) {} // error: cannot overload
+     T(Floating) : m_type(float_t) {} // error: treated as redefinition
  };
-  
+
  /* RIGHT */
-  
+
  struct T {
      enum { int_t,float_t } m_type;
      template <typename Integer,
                std::enable_if_t<std::is_integral<Integer>::value, int> = 0
      >
      T(Integer) : m_type(int_t) {}
-  
+
      template <typename Floating,
                std::enable_if_t<std::is_floating_point<Floating>::value, int> = 0
      >
@@ -80,25 +82,25 @@ std::enable_if \- std::enable_if
    together. For example:
 
  // first translation unit
-  
+
  struct X {
      enum { value1 = true, value2 = true };
  };
-  
+
  template<class T, std::enable_if_t<T::value1, int> = 0>
  void func() {} // #1
-  
+
  template void func<X>(); // #2
-  
+
  // second translation unit
-  
+
  struct X {
      enum { value1 = true, value2 = true };
  };
-  
+
  template<class T, std::enable_if_t<T::value2, int> = 0>
  void func() {} // #3
-  
+
  template void func<X>(); //#4
 
    The function templates #1 and #3 have different signatures and are distinct
@@ -109,47 +111,58 @@ std::enable_if \- std::enable_if
 
 .SH Example
 
-   
+
 // Run this code
 
  #include <type_traits>
+ #include <new>
  #include <iostream>
  #include <string>
-  
- namespace detail { struct inplace_t{}; }
- void* operator new(std::size_t, void* p, detail::inplace_t) {
-     return p;
+
+ namespace detail {
+
+ void* voidify(const volatile void* ptr) noexcept { return const_cast<void*>(ptr); }
+
  }
-  
+
  // #1, enabled via the return type
- template<class T,class... Args>
- typename std::enable_if<std::is_trivially_constructible<T,Args&&...>::value>::type
-     construct(T* t,Args&&... args)
+ template<class T>
+ typename std::enable_if<std::is_trivially_default_constructible<T>::value>::type
+     construct(T*)
  {
-     std::cout << "constructing trivially constructible T\\n";
+     std::cout << "default constructing trivially default constructible T\\n";
  }
-  
+
+ // same as above
+ template<class T>
+ typename std::enable_if<!std::is_trivially_default_constructible<T>::value>::type
+     construct(T* p)
+ {
+     std::cout << "default constructing non-trivially default constructible T\\n";
+     ::new(detail::voidify(p)) T;
+ }
+
  // #2
  template<class T, class... Args>
- std::enable_if_t<!std::is_trivially_constructible<T,Args&&...>::value> //Using helper type
-     construct(T* t,Args&&... args)
+ std::enable_if_t<std::is_constructible<T, Args&&...>::value> // Using helper type
+     construct(T* p, Args&&... args)
  {
-     std::cout << "constructing non-trivially constructible T\\n";
-     new(t, detail::inplace_t{}) T(args...);
+     std::cout << "constructing T with operation\\n";
+     ::new(detail::voidify(p)) T(static_cast<Args&&>(args)...);
  }
-  
+
  // #3, enabled via a parameter
  template<class T>
  void destroy(
-     T* t,
+     T*,
      typename std::enable_if<
          std::is_trivially_destructible<T>::value
      >::type* = 0
  ){
      std::cout << "destroying trivially destructible T\\n";
  }
-  
- // #4, enabled via a template parameter
+
+ // #4, enabled via a non-type template parameter
  template<class T,
           typename std::enable_if<
               !std::is_trivially_destructible<T>{} &&
@@ -160,11 +173,11 @@ std::enable_if \- std::enable_if
      std::cout << "destroying non-trivially destructible T\\n";
      t->~T();
  }
-  
- // #5, enabled via a template parameter
+
+ // #5, enabled via a type template parameter
  template<class T,
          typename = std::enable_if_t<std::is_array<T>::value> >
- void destroy(T* t) // note, function signature is unmodified
+ void destroy(T* t) // note: function signature is unmodified
  {
      for(std::size_t i = 0; i < std::extent<T>::value; ++i) {
          destroy((*t)[i]);
@@ -175,40 +188,40 @@ std::enable_if \- std::enable_if
          typename = std::enable_if_t<std::is_void<T>::value> >
  void destroy(T* t){} // error: has the same signature with #5
  */
-  
+
  // the partial specialization of A is enabled via a template parameter
  template<class T, class Enable = void>
  class A {}; // primary template
-  
+
  template<class T>
  class A<T, typename std::enable_if<std::is_floating_point<T>::value>::type> {
  }; // specialization for floating point types
-  
+
  int main()
  {
      std::aligned_union_t<0,int,std::string> u;
-  
+
      construct(reinterpret_cast<int*>(&u));
      destroy(reinterpret_cast<int*>(&u));
-  
+
      construct(reinterpret_cast<std::string*>(&u),"Hello");
      destroy(reinterpret_cast<std::string*>(&u));
-  
-     A<int> a1; // OK, matches the primary template
-     A<double> a2; // OK, matches the partial specialization
+
+     A<int>{}; // OK: matches the primary template
+     A<double>{}; // OK: matches the partial specialization
  }
 
 .SH Output:
 
- constructing trivially constructible T
+ default constructing trivially default constructible T
  destroying trivially destructible T
- constructing non-trivially constructible T
+ constructing T with operation
  destroying non-trivially destructible T
 
 .SH See also
 
    void_t  void variadic alias template
-   \fI(C++17)\fP (alias template) 
+   \fI(C++17)\fP (alias template)
 
      * static_assert
      * SFINAE

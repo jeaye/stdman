@@ -1,24 +1,14 @@
-.TH std::unique_ptr::reset 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::unique_ptr::reset 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unique_ptr::reset \- std::unique_ptr::reset
 
 .SH Synopsis
-   members of the primary template,
-   unique_ptr<T>
-   void reset( pointer ptr = pointer() )  \fB(1)\fP
-   noexcept;
-   members of the specialization
-   unique_ptr<T[]>
-   void reset( pointer ptr = pointer() )  \fB(2)\fP \fI(until C++17)\fP
-   noexcept;
-   template< class U >                                      \fI(until C++17)\fP
-   void reset( U ) = delete;
-   template< class U >                                      \fI(since C++17)\fP
-   void reset( U ) noexcept;              \fB(3)\fP
-   void reset( std::nullptr_t p )                                         \fI(until C++17)\fP
-   noexcept;                                  \fB(4)\fP
-   void reset( std::nullptr_t p = nullptr                                 \fI(since C++17)\fP
-   ) noexcept;
+   members of the primary template, unique_ptr<T>
+   void reset( pointer ptr = pointer() ) noexcept;    \fB(1)\fP
+   members of the specialization unique_ptr<T[]>
+   template< class U >                                \fB(2)\fP
+   void reset( U ) noexcept;
+   void reset( std::nullptr_t p = nullptr ) noexcept; \fB(3)\fP
 
    Replaces the managed object.
 
@@ -30,23 +20,14 @@ std::unique_ptr::reset \- std::unique_ptr::reset
     3. If the old pointer was non-empty, deletes the previously managed object
        if(old_ptr) get_deleter()(old_ptr).
 
-   2) Behaves the same as the reset member of the primary template.
-   3) In the specialization for dynamic arrays, std::unique_ptr<T[]>,
-   this template member is provided to prevent using reset() with a
-   pointer to derived (which would result in undefined behavior with
-   arrays).                                                               \fI(until C++17)\fP
-   4) In the specialization for dynamic arrays, std::unique_ptr<T[]>,
-   this overload is necessary to allow reset to nullptr (which would
-   otherwise be prohibited by the template overload). Equivalent to
-   reset(pointer())
-   3) Behaves the same as the reset member of the primary template,
-   except that it will only participate in overload resolution if either
+   2) Behaves the same as the reset member of the primary template, except that it will
+   only participate in overload resolution if either
 
-    1. U is the same type as pointer, or                                  \fI(since C++17)\fP
-    2. pointer is the same type as element_type* and U is a pointer type
-       V* such that V(*)[] is convertible to element_type(*)[].
+    1. U is the same type as pointer, or
+    2. pointer is the same type as element_type* and U is a pointer type V* such that
+       V(*)[] is convertible to element_type(*)[].
 
-   4) Equivalent to reset(pointer())
+   3) Equivalent to reset(pointer())
 
 .SH Parameters
 
@@ -68,32 +49,32 @@ std::unique_ptr::reset \- std::unique_ptr::reset
 
 .SH Example
 
-   
+
 // Run this code
 
  #include <iostream>
  #include <memory>
-  
- struct Foo {
+
+ struct Foo { // object to manage
      Foo() { std::cout << "Foo...\\n"; }
      ~Foo() { std::cout << "~Foo...\\n"; }
  };
-  
- struct D {
+
+ struct D { // deleter
      void operator() (Foo* p) {
          std::cout << "Calling delete for Foo object... \\n";
          delete p;
      }
  };
-  
+
  int main()
  {
      std::cout << "Creating new Foo...\\n";
      std::unique_ptr<Foo, D> up(new Foo(), D());  // up owns the Foo pointer (deleter D)
-  
+
      std::cout << "Replace owned Foo with a new Foo...\\n";
      up.reset(new Foo());  // calls deleter for the old one
-  
+
      std::cout << "Release and delete the owned Foo...\\n";
      up.reset(nullptr);
  }
@@ -110,7 +91,16 @@ std::unique_ptr::reset \- std::unique_ptr::reset
  Calling delete for Foo object...
  ~Foo...
 
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 2118 C++11      unique_ptr<T[]>::reset rejected qualification   accepts
+                       conversions
+
 .SH See also
 
    release returns a pointer to the managed object and releases the ownership
-           \fI(public member function)\fP 
+           \fI(public member function)\fP

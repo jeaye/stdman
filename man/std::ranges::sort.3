@@ -1,0 +1,166 @@
+.TH std::ranges::sort 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::sort \- std::ranges::sort
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< std::random_access_iterator I, std::sentinel_for<I> S,
+
+             class Comp = ranges::less, class Proj = std::identity >
+   requires sortable<I, Comp, Proj>                                   \fB(1)\fP \fI(since C++20)\fP
+
+   constexpr I sort( I first, S last, Comp comp = {}, Proj proj = {}
+   );
+   template< std::random_access_range R, class Comp = ranges::less,
+
+             class Proj = std::identity >
+   requires sortable<ranges::iterator_t<R>, Comp, Proj>               \fB(2)\fP \fI(since C++20)\fP
+
+   constexpr ranges::iterator_t<R> sort( R&& r, Comp comp = {}, Proj
+   proj = {} );
+
+   Sorts the elements in the range [first, last) in non-descending order. The order of
+   equivalent elements is not guaranteed to be preserved.
+
+   A sequence is sorted with respect to a comparator comp if for any iterator it
+   pointing to the sequence and any non-negative integer n such that it + n is a valid
+   iterator pointing to an element of the sequence, std::invoke(comp, std::invoke(proj,
+   *(it + n)), std::invoke(proj, *it)) evaluates to false.
+
+   1) Elements are compared using the given binary comparison function comp.
+   2) Same as \fB(1)\fP, but uses r as the source range, as if using ranges::begin(r) as
+   first and ranges::end(r) as last.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists may not be specified when calling any of them.
+     * None of them is visible to argument-dependent lookup.
+     * When one of them is found by normal unqualified lookup for the name to the left
+       of the function-call operator, it inhibits argument-dependent lookup.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first, last - iterator-sentinel defining the range to sort
+   r           - the range to sort
+   comp        - comparison to apply to the projected elements
+   proj        - projection to apply to the elements
+
+.SH Return value
+
+   An iterator equal to last.
+
+.SH Complexity
+
+   O(N·log(N)) comparisons and projections, where N = ranges::distance(first, last).
+
+.SH Possible implementation
+
+    This section is incomplete
+    Reason: Can we just use heap sort (make_heap and sort_heap) for short?
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <array>
+ #include <functional>
+ #include <iomanip>
+ #include <iostream>
+
+ void print(auto const& seq) {
+     for (auto const& elem : seq) {
+         std::cout << elem << ' ';
+     }
+     std::cout << '\\n';
+ }
+
+ struct Particle {
+     std::string name; double mass; // MeV
+     template<class Os> friend
+     Os& operator<< (Os& os, Particle const& p) {
+         return os << "\\n" << std::left
+                   << std::setw(8) << p.name
+                   << " : " << p.mass;
+     }
+ };
+
+ int main()
+ {
+     std::array s = {5, 7, 4, 2, 8, 6, 1, 9, 0, 3};
+
+     namespace ranges = std::ranges;
+
+     // sort using the default operator<
+     ranges::sort(s);
+     print(s);
+
+     // sort using a standard library compare function object
+     ranges::sort(s, ranges::greater());
+     print(s);
+
+     // sort using a custom function object
+     struct {
+         bool operator()(int a, int b) const {
+             return a < b;
+         }
+     } customLess;
+     ranges::sort(s.begin(), s.end(), customLess);
+     print(s);
+
+     // sort using a lambda expression
+     ranges::sort(s, [](int a, int b) {
+         return a > b;
+     });
+     print(s);
+
+     // sort with projection
+     Particle particles[] {
+         {"Electron", 0.511}, {"Muon", 105.66}, {"Tau", 1776.86},
+         {"Positron", 0.511}, {"Proton", 938.27}, {"Neutron", 939.57},
+     };
+     ranges::sort(particles, {}, &Particle::name); //< sort by name
+     print(particles);
+     ranges::sort(particles, {}, &Particle::mass); //< sort by mass
+     print(particles);
+ }
+
+.SH Output:
+
+ 0 1 2 3 4 5 6 7 8 9
+ 9 8 7 6 5 4 3 2 1 0
+ 0 1 2 3 4 5 6 7 8 9
+ 9 8 7 6 5 4 3 2 1 0
+
+ Electron : 0.511
+ Muon     : 105.66
+ Neutron  : 939.57
+ Positron : 0.511
+ Proton   : 938.27
+ Tau      : 1776.86
+
+ Electron : 0.511
+ Positron : 0.511
+ Muon     : 105.66
+ Proton   : 938.27
+ Neutron  : 939.57
+ Tau      : 1776.86
+
+.SH See also
+
+   ranges::partial_sort sorts the first N elements of a range
+   (C++20)              (niebloid)
+   ranges::stable_sort  sorts a range of elements while preserving order between equal
+   (C++20)              elements
+                        (niebloid)
+   sort                 sorts a range into ascending order
+                        \fI(function template)\fP
+
+.SH Category:
+
+     * Todo with reason

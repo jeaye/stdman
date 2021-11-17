@@ -1,4 +1,4 @@
-.TH std::for_each 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::for_each 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::for_each \- std::for_each
 
@@ -20,14 +20,18 @@ std::for_each \- std::for_each
    2) Applies the given function object f to the result of dereferencing every iterator
    in the range [first, last) (not necessarily in order). The algorithm is executed
    according to policy. This overload does not participate in overload resolution
-   unless std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.
+   unless
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
+   \fI(until C++20)\fP
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
+   \fI(since C++20)\fP is true.
 
    For both overloads, if the iterator type is mutable, f may modify the elements of
    the range through the dereferenced iterator. If f returns a result, the result is
    ignored.
 
-   Unlike the rest of the algorithms, for_each is not allowed to make copies of the
-   elements in the sequence even if they are trivially copyable.
+   Unlike the rest of the parallel algorithms, for_each is not allowed to make copies
+   of the elements in the sequence even if they are trivially copyable.
 
 .SH Parameters
 
@@ -44,7 +48,7 @@ std::for_each \- std::for_each
                  The type Type must be such that an object of type InputIt can be
                  dereferenced and then implicitly converted to Type.
 
-                ý¿¿½£¬
+
 .SH Type requirements
    -
    InputIt must meet the requirements of LegacyInputIterator.
@@ -81,6 +85,8 @@ std::for_each \- std::for_each
 
 .SH Possible implementation
 
+   See also the implementations in libstdc++, libc++ and MSVC stdlib.
+
    template<class InputIt, class UnaryFunction>
    constexpr UnaryFunction for_each(InputIt first, InputIt last, UnaryFunction f)
    {
@@ -97,37 +103,36 @@ std::for_each \- std::for_each
    Note that to compute the sum, it is recommended to use the dedicated algorithm
    std::accumulate.
 
-   
+
 // Run this code
 
  #include <vector>
  #include <algorithm>
  #include <iostream>
-  
+
  struct Sum
  {
-     Sum(): sum{0} { }
      void operator()(int n) { sum += n; }
-     int sum;
+     int sum{0};
  };
-  
+
  int main()
  {
      std::vector<int> nums{3, 4, 2, 8, 15, 267};
-  
+
      auto print = [](const int& n) { std::cout << " " << n; };
-  
+
      std::cout << "before:";
-     std::for_each(nums.begin(), nums.end(), print);
+     std::for_each(nums.cbegin(), nums.cend(), print);
      std::cout << '\\n';
-  
+
      std::for_each(nums.begin(), nums.end(), [](int &n){ n++; });
-  
+
      // calls Sum::operator() for each number
      Sum s = std::for_each(nums.begin(), nums.end(), Sum());
-  
+
      std::cout << "after: ";
-     std::for_each(nums.begin(), nums.end(), print);
+     std::for_each(nums.cbegin(), nums.cend(), print);
      std::cout << '\\n';
      std::cout << "sum: " << s.sum << '\\n';
  }
@@ -140,8 +145,15 @@ std::for_each \- std::for_each
 
 .SH See also
 
-   transform      applies a function to a range of elements
-                  \fI(function template)\fP 
-   range-for loop executes loop over range \fI(since C++11)\fP 
-   for_each_n     applies a function object to the first n elements of a sequence
-   \fI(C++17)\fP        \fI(function template)\fP 
+                         applies a function to a range of elements, storing results in
+   transform             a destination range
+                         \fI(function template)\fP
+   for_each_n            applies a function object to the first n elements of a
+   \fI(C++17)\fP               sequence
+                         \fI(function template)\fP
+   ranges::for_each      applies a function to a range of elements
+   (C++20)               (niebloid)
+   ranges::for_each_n    applies a function object to the first n elements of a
+   (C++20)               sequence
+                         (niebloid)
+   range-for loop\fI(C++11)\fP executes loop over range

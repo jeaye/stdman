@@ -1,4 +1,4 @@
-.TH std::copy_n 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::copy_n 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::copy_n \- std::copy_n
 
@@ -15,11 +15,15 @@ std::copy_n \- std::copy_n
    Size count, ForwardIt2 result );
 
    1) Copies exactly count values from the range beginning at first to the range
-   beginning at result. Formally, for each non-negative integer i < n, performs
-   *(result + i) = *(first + i). Overlap of ranges is not permitted.
-   2) Same as \fB(1)\fP, but executed according to policy. This overload only participates in
-   overload resolution if std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is
-   true
+   beginning at result. Formally, for each integer 0 ≤ i < count, performs *(result +
+   i) = *(first + i). Overlap of ranges is formally permitted, but leads to
+   unpredictable ordering of the results.
+   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
+   in overload resolution unless
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
+   \fI(until C++20)\fP
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
+   \fI(since C++20)\fP is true.
 
 .SH Parameters
 
@@ -42,7 +46,7 @@ std::copy_n \- std::copy_n
 
 .SH Complexity
 
-   Exactly count assignments, if count>0.
+   Zero assignments if count < 0; count assignments otherwise.
 
 .SH Exceptions
 
@@ -70,29 +74,39 @@ std::copy_n \- std::copy_n
 
 .SH Example
 
-   
+
 // Run this code
 
- #include <iostream>
- #include <string>
  #include <algorithm>
+ #include <iostream>
  #include <iterator>
-  
+ #include <numeric>
+ #include <string>
+ #include <vector>
+
  int main()
  {
      std::string in = "1234567890";
      std::string out;
-  
+
      std::copy_n(in.begin(), 4, std::back_inserter(out));
      std::cout << out << '\\n';
+
+     std::vector<int> v_in(128);
+     std::iota(v_in.begin(), v_in.end(), 1);
+     std::vector<int> v_out(v_in.size());
+
+     std::copy_n(v_in.cbegin(), 100, v_out.begin());
+     std::cout << std::accumulate(v_out.begin(), v_out.end(), 0) << '\\n';
  }
 
 .SH Output:
 
  1234
+ 5050
 
 .SH See also
 
    copy    copies a range of elements to a new location
-   copy_if \fI(function template)\fP 
+   copy_if \fI(function template)\fP
    \fI(C++11)\fP

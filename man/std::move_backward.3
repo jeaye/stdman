@@ -1,4 +1,4 @@
-.TH std::move_backward 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::move_backward 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::move_backward \- std::move_backward
 
@@ -37,9 +37,8 @@ std::move_backward \- std::move_backward
 .SH Possible implementation
 
    template< class BidirIt1, class BidirIt2 >
-   BidirIt2 move_backward(BidirIt1 first,
-                                        BidirIt1 last,
-                                        BidirIt2 d_last)
+   BidirIt2 move_backward(BidirIt1 first, BidirIt1 last,
+                          BidirIt2 d_last)
    {
        while (first != last) {
            *(--d_last) = std::move(*(--last));
@@ -56,54 +55,59 @@ std::move_backward \- std::move_backward
 
 .SH Example
 
-   
+
 // Run this code
 
  #include <algorithm>
- #include <vector>
- #include <string>
  #include <iostream>
-  
+ #include <iterator>
+ #include <string>
+ #include <string_view>
+ #include <vector>
+
+ using container = std::vector<std::string>;
+
+ void print(std::string_view comment, const container& src, const container& dst = {})
+ {
+     auto prn = [](std::string_view name, const container& cont) {
+         std::cout << name;
+         for (const auto &s: cont) { std::cout << (s.empty() ? "∙" : s.data()) << ' '; }
+         std::cout << '\\n';
+     };
+     std::cout << comment << '\\n';
+     prn("src: ", src);
+     if (dst.empty()) return;
+     prn("dst: ", dst);
+ }
+
  int main()
  {
-     std::vector<std::string> src{"foo", "bar", "baz"};
-     std::vector<std::string> dest(src.size());
-  
-     std::cout << "src: ";
-     for (const auto &s : src)
-     {
-         std::cout << s << ' ';
-     }
-     std::cout << "\\ndest: ";
-     for (const auto &s : dest)
-     {
-         std::cout << s << ' ';
-     }
-     std::cout << '\\n';
-  
-     std::move_backward(src.begin(), src.end(), dest.end());
-  
-     std::cout << "src: ";
-     for (const auto &s : src)
-     {
-         std::cout << s << ' ';
-     }
-     std::cout << "\\ndest: ";
-     for (const auto &s : dest)
-     {
-         std::cout << s << ' ';
-     }
-     std::cout << '\\n';
+     container src{"foo", "bar", "baz"};
+     container dst{"qux", "quux", "quuz", "corge"};
+     print("Non-overlapping case; before move_backward:", src, dst);
+     std::move_backward(src.begin(), src.end(), dst.end());
+     print("After:", src, dst);
+
+     src = {"snap", "crackle", "pop", "lock", "drop"};
+     print("Overlapping case; before move_backward:", src);
+     std::move_backward(src.begin(), std::next(src.begin(), 3), src.end());
+     print("After:", src);
  }
 
 .SH Output:
 
+ Non-overlapping case; before move_backward:
  src: foo bar baz
- dest:
- src:
- dest: foo bar baz
+ dst: qux quux quuz corge
+ After:
+ src: ∙ ∙ ∙
+ dst: qux foo bar baz
+ Overlapping case; before move_backward:
+ src: snap crackle pop lock drop
+ After:
+ src: ∙ ∙ snap crackle pop
 
 .SH See also
 
    move    moves a range of elements to a new location
-   \fI(C++11)\fP \fI(function template)\fP 
+   \fI(C++11)\fP \fI(function template)\fP

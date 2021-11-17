@@ -1,4 +1,4 @@
-.TH std::ranges::dangling 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::dangling 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::dangling \- std::ranges::dangling
 
@@ -7,12 +7,11 @@ std::ranges::dangling \- std::ranges::dangling
    struct dangling;            \fI(since C++20)\fP
 
    dangling is a placeholder type and an empty class type, used together with the
-   template aliases ranges::safe_iterator_t and ranges::safe_subrange_t.
+   template aliases ranges::borrowed_iterator_t and ranges::borrowed_subrange_t.
 
    When some constrain algorithms that usually return an iterator or a subrange of a
-   Range take a particular rvalue Range argument that does not models exposition-only
-   concept __ForwardingRange, dangling will be returned instead to avoid returning
-   potentially dangling results.
+   range take a particular rvalue range argument that does not models borrowed_range,
+   dangling will be returned instead to avoid returning potentially dangling results.
 
 .SH Member functions
 
@@ -32,15 +31,45 @@ std::ranges::dangling::dangling
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <algorithm>
+ #include <array>
+ #include <iostream>
+ #include <ranges>
+ #include <type_traits>
+ #include <string_view>
+
+ int main()
+ {
+     auto get_array_by_value = [] { return std::array{0, 1, 0, 1}; };
+     auto dangling_iter = std::ranges::max_element(get_array_by_value());
+     static_assert(std::is_same_v<std::ranges::dangling, decltype(dangling_iter)>);
+ //  std::cout << *dangling_iter << '\\n'; // compilation error: no match for 'operator*'
+                                          // (operand type is 'std::ranges::dangling')
+
+     auto get_persistent_array = []() -> const std::array<int, 4>& {
+         static constexpr std::array a{0, 1, 0, 1};
+         return a;
+     };
+     auto valid_iter = std::ranges::max_element(get_persistent_array());
+     static_assert(!std::is_same_v<std::ranges::dangling, decltype(valid_iter)>);
+     std::cout << *valid_iter << ' '; // 1
+
+
+     auto get_string_view = [] { return std::string_view{"alpha"}; };
+     auto valid_iter2 = std::ranges::min_element(get_string_view());
+         // OK: std::basic_string_view models borrowed_range
+     static_assert(!std::is_same_v<std::ranges::dangling, decltype(valid_iter2)>);
+     std::cout << '\\'' << *valid_iter2 << '\\'' << '\\n'; // 'a'
+ }
+
+.SH Output:
+
+ 1 'a'
 
 .SH See also
 
-   safe_iterator_t obtains iterator type or subrange type of a Range which also models
-   safe_subrange_t __ForwardingRange
-                   (alias template) 
-
-.SH Category:
-
-     * Todo no example
+   borrowed_iterator_t obtains iterator type or subrange type of a borrowed_range
+   borrowed_subrange_t (alias template)

@@ -1,0 +1,96 @@
+.TH std::ranges::end 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::end \- std::ranges::end
+
+.SH Synopsis
+   Defined in header <ranges>
+   inline namespace /*unspecified*/ {
+                                                                   \fI(since C++20)\fP
+       inline constexpr /*unspecified*/ end = /*unspecified*/;     (customization point
+                                                                   object)
+   }
+   Call signature
+   template< class T >
+
+       requires /* see below */
+
+   constexpr std::sentinel_for<ranges::iterator_t<T>> auto
+   end(T&& t);
+
+   Returns a sentinel indicating the end of a range.
+
+   range-begin-end.svg
+
+   Let t be an object of type T. If the argument is an lvalue or
+   ranges::enable_borrowed_range<std::remove_cv_t<T>> is true, then a call to
+   ranges::end is expression-equivalent to:
+
+    1. t + std::extent_v<T> if T is an array type of known bound.
+
+       If std::remove_all_extents_t<T> is incomplete, then
+       ranges::end(std::forward<T>(t)) is ill-formed, no diagnostic required.
+    2. Otherwise, std::forward<T>(t).end(), if that expression is valid, and its return
+       type models std::sentinel_for<ranges::iterator_t<T>>.
+    3. Otherwise, end(std::forward<T>(t)), if T is a class or enumeration type, the
+       aforementioned unqualified call is valid, and its return type models
+       std::sentinel_for<ranges::iterator_t<T>>, where the overload resolution is
+       performed with the following candidates:
+
+          * void end(auto&) = delete;
+          * void end(const auto&) = delete;
+          * any declarations of end found by argument-dependent lookup.
+
+   In all other cases, a call to ranges::end is ill-formed, which can result in
+   substitution failure when ranges::end(t) appears in the immediate context of a
+   template instantiation.
+
+.SH Notes
+
+   If the argument is an rvalue (i.e. T is an object type) and
+   ranges::enable_borrowed_range<std::remove_cv_t<T>> is false, or if it is of an array
+   type of unknown bound, the call to ranges::end is ill-formed, which also results in
+   substitution failure.
+
+   If ranges::end(std::forward<T>(t)) is valid, then
+   decltype(ranges::end(std::forward<T>(t))) and
+   decltype(ranges::begin(std::forward<T>(t))) model std::sentinel_for in all cases,
+   while T modeling std::ranges::range.
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <iostream>
+ #include <ranges>
+ #include <vector>
+
+ int main()
+ {
+     std::vector<int> v = { 3, 1, 4 };
+     namespace ranges = std::ranges;
+     if (ranges::find(v, 5) != ranges::end(v)) {
+         std::cout << "found a 5 in vector v!\\n";
+     }
+
+     int a[] = { 5, 10, 15 };
+     if (ranges::find(a, 5) != ranges::end(a)) {
+         std::cout << "found a 5 in array a!\\n";
+     }
+ }
+
+.SH Output:
+
+ found a 5 in array a!
+
+.SH See also
+
+   ranges::cend  returns a sentinel indicating the end of a read-only range
+   (C++20)       (customization point object)
+   ranges::begin returns an iterator to the beginning of a range
+   (C++20)       (customization point object)
+   end
+   cend          returns an iterator to the end of a container or array
+   \fI(C++11)\fP       \fI(function template)\fP
+   \fI(C++14)\fP

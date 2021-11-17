@@ -1,0 +1,150 @@
+.TH std::ranges::max 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::max \- std::ranges::max
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< class T, class Proj = std::identity,
+
+             std::indirect_strict_weak_order<                                   (since
+                 std::projected<const T*, Proj>> Comp = ranges::less >          C++20)
+
+   constexpr const T& max( const T& a, const T& b, Comp comp = {}, Proj proj =
+   {} );
+   template< class T, class Proj = std::identity,
+
+             std::indirect_strict_weak_order<                                   (since
+                 std::projected<const T*, Proj>> Comp = ranges::less >          C++20)
+
+   constexpr const T& max( std::initializer_list<T> r, Comp comp = {}, Proj
+   proj = {} );
+   template< ranges::input_range R, class Proj = std::identity,
+
+             std::indirect_strict_weak_order<
+                 std::projected<ranges::iterator_t<R>, Proj>> Comp =
+   ranges::less >                                                               (since
+   requires std::indirectly_copyable_storable<ranges::iterator_t<R>,            C++20)
+   ranges::range_value_t<R>*>
+
+   constexpr ranges::range_value_t<R> max( R&& r, Comp comp = {}, Proj proj =
+   {} );
+
+   Returns the greater of the given projected values.
+
+   1) Returns the greater of a and b.
+   2) Returns the first greatest value in the initializer list r.
+   3) Returns the first greatest value in the range r.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists may not be specified when calling any of them.
+     * None of them is visible to argument-dependent lookup.
+     * When one of them is found by normal unqualified lookup for the name to the left
+       of the function-call operator, it inhibits argument-dependent lookup.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   a, b - the values to compare
+   r    - the range of values to compare
+   comp - comparison to apply to the projected elements
+   proj - projection to apply to the elements
+
+.SH Return value
+
+   1) The greater of a and b, according to their respective projected values. If they
+   are equivalent, returns a.
+   2-3) The greatest value in r, according to the projection. If several values are
+   equivalent to the greatest, returns the leftmost one. If the range is empty (as
+   determined by ranges::distance(r)), the behavior is undefined.
+
+.SH Complexity
+
+   1) Exactly one comparison.
+   2-3) Exactly ranges::distance(r) - 1 comparisons.
+
+.SH Possible implementation
+
+   struct max_fn {
+     template<class T, class Proj = std::identity,
+              std::indirect_strict_weak_order<
+                  std::projected<const T*, Proj>> Comp = ranges::less>
+     constexpr
+     const T& operator()(const T& a, const T& b, Comp comp = {}, Proj proj = {}) const
+     {
+         return std::invoke(comp, std::invoke(proj, a), std::invoke(proj, b)) ? b : a;
+     }
+
+     template<class T, class Proj = std::identity,
+              std::indirect_strict_weak_order<
+                  std::projected<const T*, Proj>> Comp = ranges::less>
+     constexpr
+     const T& operator()(std::initializer_list<T> r, Comp comp = {}, Proj proj = {}) const
+     {
+       return *ranges::max_element(r, std::ref(comp), std::ref(proj));
+     }
+
+     template<ranges::input_range R, class Proj = std::identity,
+              std::indirect_strict_weak_order<
+                   std::projected<ranges::iterator_t<R>, Proj>> Comp = ranges::less>
+     requires std::indirectly_copyable_storable<ranges::iterator_t<R>,
+                                                ranges::range_value_t<R>*>
+     constexpr
+     ranges::range_value_t<R> operator()(R&& r, Comp comp = {}, Proj proj = {}) const
+     {
+         return *ranges::max_element(r, std::ref(comp), std::ref(proj));
+     }
+   };
+
+   inline constexpr max_fn max;
+
+.SH Notes
+
+   Capturing the result of std::ranges::max by reference produces a dangling reference
+   if one of the parameters is a temporary and that parameter is returned:
+
+ int n = 1;
+ const int& r = std::ranges::max(n-1, n+1);
+ // r is dangling
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <iostream>
+ #include <string>
+
+ int main()
+ {
+     namespace ranges = std::ranges;
+     using namespace std::string_view_literals;
+     std::cout << "larger of 1 and 9999: " << ranges::max(1, 9999) << '\\n'
+               << "larger of 'a', and 'b': '" << ranges::max('a', 'b') << "'\\n"
+               << "longest of \\"foo\\", \\"bar\\", and \\"hello\\": \\""
+               << ranges::max({ "foo"sv, "bar"sv, "hello"sv }, {},
+                              &std::string_view::size) << "\\"\\n";
+ }
+
+.SH Output:
+
+ larger of 1 and 9999: 9999
+ larger of 'a', and 'b': 'b'
+ longest of "foo", "bar", and "hello": "hello"
+
+.SH See also
+
+   ranges::min         returns the smaller of the given values
+   (C++20)             (niebloid)
+   ranges::minmax      returns the smaller and larger of two elements
+   (C++20)             (niebloid)
+   ranges::max_element returns the largest element in a range
+   (C++20)             (niebloid)
+   ranges::clamp       clamps a value between a pair of boundary values
+   (C++20)             (niebloid)
+   max                 returns the greater of the given values
+                       \fI(function template)\fP

@@ -1,4 +1,4 @@
-.TH std::aligned_union 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::aligned_union 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::aligned_union \- std::aligned_union
 
@@ -17,6 +17,8 @@ std::aligned_union \- std::aligned_union
    type, the behavior is undefined.
 
    It is implementation-defined whether any extended alignment is supported.
+
+   The behavior of a program that adds specializations for aligned_union is undefined.
 
 .SH Member types
 
@@ -40,7 +42,7 @@ std::aligned_union \- std::aligned_union
    struct aligned_union
    {
        static constexpr std::size_t alignment_value = std::max({alignof(Types)...});
-    
+
        struct type
        {
          alignas(alignment_value) char _s[std::max({Len, sizeof(Types)...})];
@@ -49,8 +51,48 @@ std::aligned_union \- std::aligned_union
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <type_traits>
+ #include <iostream>
+ #include <string>
+
+ int main()
+ {
+     std::cout
+     << sizeof(std::aligned_union_t<0, char>) << ' ' // 1
+     << sizeof(std::aligned_union_t<2, char>) << ' ' // 2
+     << sizeof(std::aligned_union_t<2, char[3]>) << ' ' // 3 (!)
+     << sizeof(std::aligned_union_t<3, char[4]>) << ' ' // 4
+     << sizeof(std::aligned_union_t<1, char, int, double>) << ' '    // 8
+     << sizeof(std::aligned_union_t<12, char, int, double>) << '\\n'; // 16 (!)
+
+     using var_t = std::aligned_union<16, int, std::string>;
+
+     std::cout
+     << "var_t::alignment_value = " << var_t::alignment_value << '\\n'
+     << "sizeof(var_t::type) = " << sizeof(var_t::type) << '\\n';
+
+     var_t::type aligned_storage;
+     int* int_ptr = new(&aligned_storage) int(42); // placement new
+     std::cout << "*int_ptr = " << *int_ptr << '\\n';
+
+     std::string* string_ptr = new(&aligned_storage) std::string("bar");
+     std::cout << "*string_ptr = " << *string_ptr << '\\n';
+     *string_ptr = "baz";
+     std::cout << "*string_ptr = " << *string_ptr << '\\n';
+     string_ptr->~basic_string();
+ }
+
+.SH Possible output:
+
+ 1 2 3 4 8 16
+ var_t::alignment_value = 8
+ sizeof(var_t::type) = 32
+ *int_ptr = 42
+ *string_ptr = bar
+ *string_ptr = baz
 
    Defect reports
 
@@ -63,11 +105,7 @@ std::aligned_union \- std::aligned_union
 .SH See also
 
    alignment_of    obtains the type's alignment requirements
-   \fI(C++11)\fP         \fI(class template)\fP 
+   \fI(C++11)\fP         \fI(class template)\fP
    aligned_storage defines the type suitable for use as uninitialized storage for types
    \fI(C++11)\fP         of given size
-                   \fI(class template)\fP 
-
-.SH Category:
-
-     * Todo no example
+                   \fI(class template)\fP

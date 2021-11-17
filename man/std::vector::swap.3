@@ -1,21 +1,38 @@
-.TH std::vector::swap 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::vector::swap 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::vector::swap \- std::vector::swap
 
 .SH Synopsis
-   Defined in header <vector>
-   static void swap(reference x, reference y);
+   void swap( vector& other );                                      \fI(until C++17)\fP
+   void swap( vector& other ) noexcept(/* see below */);            \fI(since C++17)\fP
+                                                                    \fI(until C++20)\fP
+   constexpr void swap( vector& other ) noexcept(/* see below */);  \fI(since C++20)\fP
 
-   Swaps the contents of x and y.
+   Exchanges the contents of the container with those of other. Does not invoke any
+   move, copy, or swap operations on individual elements.
+
+   All iterators and references remain valid. The past-the-end iterator is invalidated.
+
+   If std::allocator_traits<allocator_type>::propagate_on_container_swap::value
+   is true, then the allocators are exchanged using an unqualified call to       (since
+   non-member swap. Otherwise, they are not swapped (and if get_allocator() !=   C++11)
+   other.get_allocator(), the behavior is undefined).
 
 .SH Parameters
 
-   x - std::vector<bool>::reference value to swap with y
-   y - std::vector<bool>::reference value to swap with x
+   other - container to exchange the contents with
 
 .SH Return value
 
    \fI(none)\fP
+
+.SH Exceptions
+
+   \fI(none)\fP                                                                        (until
+                                                                                 C++17)
+   noexcept specification:                                                       (since
+   noexcept(std::allocator_traits<Allocator>::propagate_on_container_swap::value C++17)
+   || std::allocator_traits<Allocator>::is_always_equal::value)
 
 .SH Complexity
 
@@ -23,34 +40,47 @@ std::vector::swap \- std::vector::swap
 
 .SH Example
 
-   
+
 // Run this code
 
- #include <vector>
  #include <iostream>
-  
+ #include <vector>
+
+ template<class Os, class Co> Os& operator<<(Os& os, const Co& co) {
+     os << "{";
+     for (auto const& i : co) { os << ' ' << i; }
+     return os << " } ";
+ }
+
  int main()
  {
-     std::vector<bool> vb1{ 1,0 };
-  
-     for (auto e : vb1) { std::cout << e << " "; }
-     std::cout << '\\n';
-  
-     vb1.swap(vb1[0], vb1[1]);
-  
-     for (auto e : vb1) { std::cout << e << " "; }
+     std::vector<int> a1{1, 2, 3}, a2{4, 5};
+
+     auto it1 = std::next(a1.begin());
+     auto it2 = std::next(a2.begin());
+
+     int& ref1 = a1.front();
+     int& ref2 = a2.front();
+
+     std::cout << a1 << a2 << *it1 << ' ' << *it2 << ' ' << ref1 << ' ' << ref2 << '\\n';
+     a1.swap(a2);
+     std::cout << a1 << a2 << *it1 << ' ' << *it2 << ' ' << ref1 << ' ' << ref2 << '\\n';
+
+     // Note that after swap the iterators and references stay associated with their
+     // original elements, e.g. it1 that pointed to an element in 'a1' with value 2
+     // still points to the same element, though this element was moved into 'a2'.
  }
 
 .SH Output:
 
- 1 0
- 0 1
+ { 1 2 3 } { 4 5 } 2 5 1 4
+ { 4 5 } { 1 2 3 } 2 5 1 4
 
 .SH See also
 
-   reference              proxy class representing a reference to a single bool
-                          \fI(class)\fP
-   swap                   swaps the contents
-                          \fI(public member function of std::vector<T,Allocator>)\fP 
    std::swap(std::vector) specializes the std::swap algorithm
-                          \fI(function template)\fP 
+                          \fI(function template)\fP
+
+.SH Category:
+
+     * conditionally noexcept

@@ -1,0 +1,139 @@
+.TH std::stop_callback 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::stop_callback \- std::stop_callback
+
+.SH Synopsis
+   Defined in header <stop_token>
+   template< class Callback >      \fI(since C++20)\fP
+   class stop_callback;
+
+   The stop_callback class template provides an RAII object type that registers a
+   callback function for an associated std::stop_token object, such that the callback
+   function will be invoked when the std::stop_token's associated std::stop_source is
+   requested to stop.
+
+   Callback functions registered via stop_callback's constructor are invoked either in
+   the same thread that successfully invokes request_stop() for a std::stop_source of
+   the stop_callback's associated std::stop_token; or if stop has already been
+   requested prior to the constructor's registration, then the callback is invoked in
+   the thread constructing the stop_callback.
+
+   More than one stop_callback can be created for the same std::stop_token, from the
+   same or different threads concurrently. No guarantee is provided for the order in
+   which they will be executed, but they will be invoked synchronously; except for
+   stop_callback(s) constructed after stop has already been requested for the
+   std::stop_token, as described previously.
+
+   If an invocation of a callback exits via an exception then std::terminate is called.
+
+   std::stop_callback is not CopyConstructible, CopyAssignable, MoveConstructible, nor
+   MoveAssignable.
+
+   The template param Callback type must be both invocable and destructible. Any return
+   value is ignored.
+
+.SH Member types
+
+   Type          Definition
+   callback_type Callback
+
+.SH Member functions
+
+   constructor   constructs new stop_callback object
+                 \fI(public member function)\fP
+   destructor    destructs the stop_callback object
+                 \fI(public member function)\fP
+   operator=     stop_callback is not assignable
+   [deleted]     \fI(public member function)\fP
+
+   Deduction guides
+
+.SH Example
+
+
+// Run this code
+
+ #include <chrono>
+ #include <condition_variable>
+ #include <iostream>
+ #include <mutex>
+ #include <sstream>
+ #include <thread>
+
+ using namespace std::chrono_literals;
+
+ // Use a helper class for atomic std::cout streaming
+ class Writer
+ {
+         std::ostringstream buffer;
+ public:
+         ~Writer() {
+                 std::cout << buffer.str();
+         }
+         Writer& operator<<(auto input) {
+                 buffer << input;
+                 return *this;
+         }
+ };
+
+ int main()
+ {
+         // A worker thread
+         // It will wait until it is requested to stop.
+         std::jthread worker([] (std::stop_token stoken) {
+                 Writer() << "Worker thread's id: " << std::this_thread::get_id() << '\\n';
+                 std::mutex mutex;
+                 std::unique_lock lock(mutex);
+                 std::condition_variable_any().wait(lock, stoken,
+                         [&stoken] { return stoken.stop_requested(); });
+         });
+
+         // Register a stop callback on the worker thread.
+         std::stop_callback callback(worker.get_stop_token(), [] {
+                 Writer() << "Stop callback executed by thread: "
+                         << std::this_thread::get_id() << '\\n';
+         });
+
+         // stop_callback objects can be destroyed prematurely to prevent execution
+         {
+                 std::stop_callback scoped_callback(worker.get_stop_token(), [] {
+                         // This will not be executed.
+                         Writer() << "Scoped stop callback executed by thread: "
+                                 << std::this_thread::get_id() << '\\n';
+                 });
+         }
+
+         // Demonstrate which thread executes the stop_callback and when.
+         // Define a stopper function
+         auto stopper_func = [&worker] {
+                 if(worker.request_stop())
+                         Writer() << "Stop request executed by thread: "
+                                 << std::this_thread::get_id() << '\\n';
+                 else
+                         Writer() << "Stop request not executed by thread: "
+                                 << std::this_thread::get_id() << '\\n';
+         };
+
+         // Let multiple threads compete for stopping the worker thread
+         std::jthread stopper1(stopper_func);
+         std::jthread stopper2(stopper_func);
+         stopper1.join();
+         stopper2.join();
+
+         // After a stop has already been requested,
+         // a new stop_callback executes immediately.
+         Writer() << "Main thread: " << std::this_thread::get_id() << '\\n';
+         std::stop_callback callback_after_stop(worker.get_stop_token(), [] {
+                 Writer() << "Stop callback executed by thread: "
+                         << std::this_thread::get_id() << '\\n';
+         });
+ }
+
+.SH Possible output:
+
+ Worker thread's id: 140460265039616
+ Stop callback executed by thread: 140460256646912
+ Stop request executed by thread: 140460256646912
+ Stop request not executed by thread: 140460248254208
+ Main thread: 140460265043776
+ Stop callback executed by thread: 140460265043776

@@ -1,0 +1,115 @@
+.TH std::ranges::distance 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::distance \- std::ranges::distance
+
+.SH Synopsis
+   Defined in header <iterator>
+   Call signature
+   template< std::input_or_output_iterator I, std::sentinel_for<I> S
+   >                                                                  \fB(1)\fP \fI(since C++20)\fP
+   constexpr std::iter_difference_t<I> distance( I first, S last );
+   template< ranges::range R>                                         \fB(2)\fP \fI(since C++20)\fP
+   constexpr ranges::range_difference_t<R> distance(R&& r);
+
+   1) Returns the number of hops from first to last.
+   2) Same as \fB(1)\fP, but uses r as the source range, using ranges::size(r) if R models
+   ranges::sized_range; otherwise as if using ranges::begin(r) as first and
+   ranges::end(r) as last.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists may not be specified when calling any of them.
+     * None of them is visible to argument-dependent lookup.
+     * When one of them is found by normal unqualified lookup for the name to the left
+       of the function-call operator, it inhibits argument-dependent lookup.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first - iterator pointing to the first element
+   last  - sentinel denoting the end of the range first is an iterator to
+   r     - range to calculate the distance of
+
+.SH Return value
+
+   The number of increments needed to go from first to last. The value may be negative
+   if I and S model std::same_as<S, I> && std::sized_sentinel_for<S, I> are used and
+   first is reachable from last.
+
+.SH Complexity
+
+   1) If S models std::sized_sentinel_for<S, I>, complexity is constant; otherwise
+   linear.
+   2) If R models ranges::sized_range, complexity is constant; otherwise same as \fB(1)\fP.
+
+.SH Possible implementation
+
+   struct distance_fn {
+     template<std::input_or_output_iterator I, std::sentinel_for<I> S>
+     constexpr std::iter_difference_t<I> operator()(I first, S last) const
+     {
+       if constexpr (std::sized_sentinel_for<S, I>) {
+           return last - first;
+       }
+       else {
+           std::iter_difference_t<I> result = 0;
+           while (first != last) {
+               ++first;
+               ++result;
+           }
+           return result;
+       }
+     }
+
+     template<ranges::range R>
+     constexpr ranges::range_difference_t<R> operator()(R&& r) const
+     {
+       if constexpr (ranges::sized_range<std::remove_cvref_t<R>>) {
+         return static_cast<ranges::range_difference_t<R>>(ranges::size(r));
+       }
+       else {
+         return ranges::distance(ranges::begin(r), ranges::end(r));
+       }
+     }
+   };
+
+   inline constexpr auto distance = distance_fn{};
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <iterator>
+ #include <vector>
+
+ int main()
+ {
+     std::vector<int> v{ 3, 1, 4 };
+     namespace ranges = std::ranges;
+     std::cout << "distance(first, last) = "
+               << ranges::distance(v.begin(), v.end()) << '\\n'
+               << "distance(last, first) = "
+               << ranges::distance(v.end(), v.begin()) << '\\n'
+               << "distance(v) = " << ranges::distance(v) << '\\n';
+ }
+
+.SH Output:
+
+ distance(first, last) = 3
+ distance(last, first) = -3
+ distance(v) = 3
+
+.SH See also
+
+   ranges::advance  advances an iterator by given distance or to a given bound
+   (C++20)          (niebloid)
+   ranges::count
+   ranges::count_if returns the number of elements satisfying specific criteria
+   (C++20)          (niebloid)
+   (C++20)
+   distance         returns the distance between two iterators
+                    \fI(function template)\fP

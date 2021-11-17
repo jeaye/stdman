@@ -1,4 +1,4 @@
-.TH std::atomic_flag 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::atomic_flag 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::atomic_flag \- std::atomic_flag
 
@@ -17,24 +17,32 @@ std::atomic_flag \- std::atomic_flag
    operator=     the assignment operator
                  \fI(public member function)\fP
    clear         atomically sets flag to false
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    test_and_set  atomically sets the flag to true and obtains its previous value
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
+   test          atomically returns the value of the flag
+   (C++20)       \fI(public member function)\fP
+   wait          blocks the thread until notified and the atomic value changes
+   (C++20)       \fI(public member function)\fP
+   notify_one    notifies at least one thread waiting on the atomic object
+   (C++20)       \fI(public member function)\fP
+   notify_all    notifies all threads blocked waiting on the atomic object
+   (C++20)       \fI(public member function)\fP
 
 .SH Example
 
    A spinlock mutex can be implemented in userspace using an atomic_flag
 
-   
+
 // Run this code
 
  #include <thread>
  #include <vector>
  #include <iostream>
  #include <atomic>
-  
+
  std::atomic_flag lock = ATOMIC_FLAG_INIT;
-  
+
  void f(int n)
  {
      for (int cnt = 0; cnt < 100; ++cnt) {
@@ -44,7 +52,49 @@ std::atomic_flag \- std::atomic_flag
          lock.clear(std::memory_order_release);               // release lock
      }
  }
-  
+
+ int main()
+ {
+     std::vector<std::thread> v;
+     for (int n = 0; n < 10; ++n) {
+         v.emplace_back(f, n);
+     }
+     for (auto& t : v) {
+         t.join();
+     }
+ }
+
+.SH Output:
+
+ Output from thread 2
+ Output from thread 6
+ Output from thread 7
+ ...<exactly 1000 lines>...
+
+   Starting in C++20, it can be optimized to write atomic_flag value only when there's
+   a chance to acquire lock
+
+
+// Run this code
+
+ #include <thread>
+ #include <vector>
+ #include <iostream>
+ #include <atomic>
+
+ std::atomic_flag lock = ATOMIC_FLAG_INIT;
+
+ void f(int n)
+ {
+     for (int cnt = 0; cnt < 100; ++cnt) {
+         while (lock.test_and_set(std::memory_order_acquire))  // acquire lock
+              while (lock.test(std::memory_order_relaxed))     // test lock
+                  ; // spin
+         std::cout << "Output from thread " << n << '\\n';
+         lock.clear(std::memory_order_release);                // release lock
+     }
+ }
+
  int main()
  {
      std::vector<std::thread> v;
@@ -67,13 +117,21 @@ std::atomic_flag \- std::atomic_flag
 
    atomic_flag_test_and_set          atomically sets the flag to true and returns its
    atomic_flag_test_and_set_explicit previous value
-   \fI(C++11)\fP                           \fI(function)\fP 
+   \fI(C++11)\fP                           \fI(function)\fP
    \fI(C++11)\fP
    atomic_flag_clear
    atomic_flag_clear_explicit        atomically sets the value of the flag to false
-   \fI(C++11)\fP                           \fI(function)\fP 
+   \fI(C++11)\fP                           \fI(function)\fP
    \fI(C++11)\fP
+   atomic_flag_wait                  blocks the thread until notified and the flag
+   atomic_flag_wait_explicit         changes
+   (C++20)                           \fI(function)\fP
+   (C++20)
+   atomic_flag_notify_one            notifies a thread blocked in atomic_flag_wait
+   (C++20)                           \fI(function)\fP
+   atomic_flag_notify_all            notifies all threads blocked in atomic_flag_wait
+   (C++20)                           \fI(function)\fP
    ATOMIC_FLAG_INIT                  initializes an std::atomic_flag to false
-   \fI(C++11)\fP                           (macro constant) 
+   \fI(C++11)\fP(deprecated in C++20)      (macro constant)
    C documentation for
    atomic_flag

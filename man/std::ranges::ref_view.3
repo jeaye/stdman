@@ -1,43 +1,42 @@
-.TH std::ranges::ref_view 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::ref_view 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::ref_view \- std::ranges::ref_view
 
 .SH Synopsis
    Defined in header <ranges>
-   template<Range R>
+   template<ranges::range R>
 
        requires std::is_object_v<R>                             \fI(since C++20)\fP
 
    class ref_view : public ranges::view_interface<ref_view<R>>
 
-   ref_view is a View of the elements of some other Range. It wraps a reference to that
-.SH Range.
+   ref_view is a view of the elements of some other range. It wraps a reference to that
+   range.
 
 .SH Member functions
 
 std::ranges::ref_view::ref_view
 
-   constexpr ref_view() noexcept = default; \fB(1)\fP
+   constexpr ref_view() noexcept = default;                                        \fB(1)\fP
    template<__NotSameAs<ref_view> T>
 
-       requires /* see below */             \fB(2)\fP
+       requires std::convertible_to<T, R&> && requires { _FUN(std::declval<T>());  \fB(2)\fP
+   }
 
    constexpr ref_view(T&& t);
 
-   1) Initializes r_ with nullptr. A default-initialized ref_view references no Range.
+   1) Initializes r_ with nullptr. A default-initialized ref_view references no range.
    2) Initializes r_ with std::addressof(static_cast<R&>(std::forward<T>(t))).
 
-   __NotSameAs is an exposition-only helper concept.
-
-   The expression in the requires-clause of \fB(2)\fP is equivalent to ConvertibleTo<T, R&>
-   && requires { FUN(declval<T>()); }, where the exposition-only functions FUN are
-   declared as void FUN(R&); void FUN(R&&) = delete;.
+   Names __NotSameAs and _FUN are exposition-only. __NotSameAs<T, U> is satisfied if
+   and only if !std::same_as<std::remove_cvref_t<T>, std::remove_cvref_t<U>>. The
+   function _FUN are declared as void _FUN(R&); void _FUN(R&&) = delete;.
 
 .SH Parameters
 
    t - range to reference
 
-std::ranges::rev_view::base
+std::ranges::ref_view::base
 
    constexpr R& base() const;
 
@@ -45,13 +44,13 @@ std::ranges::rev_view::base
 
 std::ranges::ref_view::begin
 
-   constexpr iterator_t<R> begin() const;
+   constexpr ranges::iterator_t<R> begin() const;
 
    Equivalent to return ranges::begin(*r_);
 
 std::ranges::ref_view::end
 
-   constexpr sentinel_t<R> end() const;
+   constexpr ranges::sentinel_t<R> end() const;
 
    Equivalent to return ranges::end(*r_);
 
@@ -66,7 +65,7 @@ std::ranges::ref_view::size
 
    constexpr auto size() const
 
-       requires SizedRange<R>
+       requires ranges::sized_range<R>
 
    { return ranges::size(*r_); }
 
@@ -74,23 +73,9 @@ std::ranges::ref_view::data
 
    constexpr auto data() const
 
-       requires ContiguousRange<R>
+       requires ranges::contiguous_range<R>
 
    { return ranges::data(*r_); }
-
-.SH Non-member functions
-
-begin, end(std::ranges::ref_view)
-
-   friend constexpr iterator_t<R> begin(ref_view r); \fB(1)\fP
-   friend constexpr sentinel_t<R> end(ref_view r);   \fB(2)\fP
-
-   1) Equivalent to return r.begin();
-   2) Equivalent to return r.end();
-
-   These functions are not visible to ordinary unqualified or qualified lookup, and can
-   only be found by argument-dependent lookup when std::ranges::ref_view<R> is an
-   associated class of the arguments.
 
    Deduction guides
 
@@ -99,16 +84,46 @@ begin, end(std::ranges::ref_view)
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <ranges>
+ #include <iostream>
+
+ int main()
+ {
+     const std::string s{"cosmos"};
+
+     const std::ranges::take_view tv{s, 3};
+     const std::ranges::ref_view rv{tv};
+
+     std::cout
+         << std::boolalpha
+         << "call empty() : " << rv.empty() << '\\n'
+         << "call size()  : " << rv.size() << '\\n'
+         << "call begin() : " << *rv.begin() << '\\n'
+         << "call end()   : " << *(rv.end()-1) << '\\n'
+         << "call data()  : " << rv.data() << '\\n'
+         << "call base()  : " << rv.base().size() << '\\n' // ~> tv.size()
+         << "range-for    : ";
+
+     for (const auto c: rv) { std::cout << c; }
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ call empty() : false
+ call size()  : 3
+ call begin() : c
+ call end()   : s
+ call data()  : cosmos
+ call base()  : 3
+ range-for    : cos
 
 .SH See also
 
    reference_wrapper CopyConstructible and CopyAssignable reference wrapper
-   \fI(C++11)\fP           \fI(class template)\fP 
-   all_view          a View that includes all elements of a Range
-   view::all         (alias template) (range adaptor object) 
-
-.SH Category:
-
-     * Todo no example
+   \fI(C++11)\fP           \fI(class template)\fP
+   views::all_t      a view that includes all elements of a range
+   views::all        (alias template) (range adaptor object)

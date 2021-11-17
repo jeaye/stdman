@@ -1,0 +1,164 @@
+.TH std::make_shared,std::make_shared_for_overwrite 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::make_shared,std::make_shared_for_overwrite \- std::make_shared,std::make_shared_for_overwrite
+
+.SH Synopsis
+   Defined in header <memory>
+   template< class T, class... Args >                              \fB(1)\fP \fI(since C++11)\fP
+   shared_ptr<T> make_shared( Args&&... args );                        (T is not array)
+   template<class T>                                               \fB(2)\fP \fI(since C++20)\fP
+   shared_ptr<T> make_shared( std::size_t N );                         (T is U[])
+   template<class T>                                               \fB(3)\fP \fI(since C++20)\fP
+   shared_ptr<T> make_shared();                                        (T is U[N])
+   template<class T>                                                   \fI(since C++20)\fP
+   shared_ptr<T> make_shared( std::size_t N, const                 \fB(4)\fP (T is U[])
+   std::remove_extent_t<T>& u );
+   template<class T>                                               \fB(5)\fP \fI(since C++20)\fP
+   shared_ptr<T> make_shared( const std::remove_extent_t<T>& u );      (T is U[N])
+   template<class T>                                               \fB(6)\fP \fI(since C++20)\fP
+   shared_ptr<T> make_shared_for_overwrite();                          (T is not U[])
+   template<class T>                                               \fB(7)\fP \fI(since C++20)\fP
+   shared_ptr<T> make_shared_for_overwrite( std::size_t N );           (T is U[])
+
+   1) Constructs an object of type T and wraps it in a std::shared_ptr using args as
+   the parameter list for the constructor of T. The object is constructed as if by the
+   expression ::new (pv) T(std::forward<Args>(args)...), where pv is an internal void*
+   pointer to storage suitable to hold an object of type T. The storage is typically
+   larger than sizeof(T) in order to use one allocation for both the control block of
+   the shared pointer and the T object. The std::shared_ptr constructor called by this
+   function enables shared_from_this with a pointer to the newly constructed object of
+   type T. This overload only participates in overload resolution if T is not an array
+   type
+   2,3) Same as \fB(1)\fP, but the object constructed is a possibly-multidimensional array
+   whose non-array elements of type std::remove_all_extents_t<T> are value-initialized
+   as if by placement-new expression ::new(pv) std::remove_all_extents_t<T>(). The
+   overload \fB(2)\fP creates an array of size N along the first dimension. The array
+   elements are initialized in ascending order of their addresses, and when their
+   lifetime ends are destroyed in the reverse order of their original construction.
+   4,5) Same as (2,3), but every element is initialized from the default value u. If U
+   is not an array type, then this is performed as if by the same placement-new
+   expression as in \fB(1)\fP; otherwise, this is performed as if by initializing every
+   non-array element of the (possibly multidimensional) array with the corresponding
+   element from u with the same placement-new expression as in \fB(1)\fP. The overload \fB(4)\fP
+   creates an array of size N along the first dimension. The array elements are
+   initialized in ascending order of their addresses, and when their lifetime ends are
+   destroyed in the reverse order of their original construction.
+   6) Same as \fB(1)\fP if T is not an array type and \fB(3)\fP if T is U[N], except that the
+   created object is default-initialized.
+   7) Same as \fB(2)\fP, except that the individual array elements are default-initialized.
+
+   In each case, the object
+   (or individual elements if T is an array type)
+   \fI(since C++20)\fP will be destroyed by p->~X(), where p is a pointer to the object and X
+   is its type.
+
+.SH Parameters
+
+   args - list of arguments with which an instance of T will be constructed.
+   N    - array size to use
+   u    - the initial value to initialize every element of the array
+
+.SH Return value
+
+   std::shared_ptr of an instance of type T.
+
+.SH Exceptions
+
+   May throw std::bad_alloc or any exception thrown by the constructor of T. If an
+   exception is thrown, the functions have no effect.
+   If an exception is thrown during the construction of the array, already-initialized
+   elements are destroyed in reverse order.
+   \fI(since C++20)\fP
+
+.SH Notes
+
+   This function may be used as an alternative to std::shared_ptr<T>(new T(args...)).
+   The trade-offs are:
+
+     * std::shared_ptr<T>(new T(args...)) performs at least two allocations (one for
+       the object T and one for the control block of the shared pointer), while
+       std::make_shared<T> typically performs only one allocation (the standard
+       recommends, but does not require this; all known implementations do this)
+     * If any std::weak_ptr references the control block created by std::make_shared
+       after the lifetime of all shared owners ended, the memory occupied by T persists
+       until all weak owners get destroyed as well, which may be undesirable if
+       sizeof(T) is large.
+     * std::shared_ptr<T>(new T(args...)) may call a non-public constructor of T if
+       executed in context where it is accessible, while std::make_shared requires
+       public access to the selected constructor.
+     * Unlike the std::shared_ptr constructors, std::make_shared does not allow a
+       custom deleter.
+     * std::make_shared uses ::new, so if any special behavior has been set up using a
+       class-specific operator new, it will differ from std::shared_ptr<T>(new
+       T(args...)).
+
+     * std::shared_ptr supports array types (as of C++17), but
+       std::make_shared does not. This functionality is supported by      \fI(until C++20)\fP
+       boost::make_shared
+
+     * code such as f(std::shared_ptr<int>(new int\fB(42)\fP), g()) can cause a
+       memory leak if g gets called after new int\fB(42)\fP and throws an       \fI(until C++17)\fP
+       exception, while f(std::make_shared<int>\fB(42)\fP, g()) is safe, since
+       two function calls are never interleaved.
+
+   A constructor enables shared_from_this with a pointer ptr of type U* means that it
+   determines if U has an
+   unambiguous and accessible
+   \fI(since C++17)\fP base class that is a specialization of std::enable_shared_from_this,
+   and if so, the constructor evaluates the statement:
+
+ if (ptr != nullptr && ptr->weak_this.expired())
+   ptr->weak_this = std::shared_ptr<std::remove_cv_t<U>>(*this,
+                                   const_cast<std::remove_cv_t<U>*>(ptr));
+
+   Where weak_this is the hidden mutable std::weak_ptr member of std::shared_from_this.
+   The assignment to the weak_this member is not atomic and conflicts with any
+   potentially concurrent access to the same object. This ensures that future calls to
+   shared_from_this() would share ownership with the shared_ptr created by this raw
+   pointer constructor.
+
+   The test ptr->weak_this.expired() in the exposition code above makes sure that
+   weak_this is not reassigned if it already indicates an owner. This test is required
+   as of C++17.
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <memory>
+ #include <type_traits>
+
+ struct C
+ {
+   C(int i) : i(i) {} //< constructor needed \fI(until C++20)\fP
+   int i;
+ };
+
+ int main()
+ {
+     auto sp = std::make_shared<C>(12);
+
+     static_assert(std::is_same_v<decltype(sp), std::shared_ptr<C>>);
+
+     std::cout << sp->i << '\\n';
+ }
+
+.SH Output:
+
+ 12
+
+.SH See also
+
+   constructor                   constructs new shared_ptr
+                                 \fI(public member function)\fP
+   allocate_shared               creates a shared pointer that manages a new object
+   allocate_shared_for_overwrite allocated using an allocator
+   (C++20)                       \fI(function template)\fP
+   make_unique
+   make_unique_for_overwrite     creates a unique pointer that manages a new object
+   \fI(C++14)\fP                       \fI(function template)\fP
+   (C++20)
+   operator new                  allocation functions
+   operator new[]                \fI(function)\fP

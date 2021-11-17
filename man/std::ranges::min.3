@@ -1,0 +1,150 @@
+.TH std::ranges::min 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::min \- std::ranges::min
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< class T, class Proj = std::identity,
+
+             std::indirect_strict_weak_order<                                   (since
+                 std::projected<const T*, Proj>> Comp = ranges::less >          C++20)
+
+   constexpr const T& min( const T& a, const T& b, Comp comp = {}, Proj proj =
+   {} );
+   template< class T, class Proj = std::identity,
+
+             std::indirect_strict_weak_order<                                   (since
+                 std::projected<const T*, Proj>> Comp = ranges::less >          C++20)
+
+   constexpr const T& min( std::initializer_list<T> r, Comp comp = {}, Proj
+   proj = {} );
+   template< ranges::input_range R, class Proj = std::identity,
+
+             std::indirect_strict_weak_order<
+                 std::projected<ranges::iterator_t<R>, Proj>> Comp =
+   ranges::less >                                                               (since
+   requires std::indirectly_copyable_storable<ranges::iterator_t<R>,            C++20)
+   ranges::range_value_t<R>*>
+
+   constexpr ranges::range_value_t<R> min( R&& r, Comp comp = {}, Proj proj =
+   {} );
+
+   Returns the smaller of the given projected elements.
+
+   1) Returns the smaller of a and b.
+   2) Returns the first smallest element in the initializer list r.
+   3) Returns the first smallest value in the range r.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists may not be specified when calling any of them.
+     * None of them is visible to argument-dependent lookup.
+     * When one of them is found by normal unqualified lookup for the name to the left
+       of the function-call operator, it inhibits argument-dependent lookup.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   a, b - the values to compare
+   r    - the range of values to compare
+   comp - comparison to apply to the projected elements
+   proj - projection to apply to the elements
+
+.SH Return value
+
+   1) The smaller of a and b, according to the projection. If they are equivalent,
+   returns a.
+   2-3) The smallest element in r, according to the projection. If several values are
+   equivalent to the smallest, returns the leftmost one. If the range is empty (as
+   determined by ranges::distance(r)), the behavior is undefined.
+
+.SH Complexity
+
+   1) Exactly one comparison
+   2-3) Exactly ranges::distance(r) - 1 comparisons
+
+.SH Possible implementation
+
+   struct min_fn {
+     template<class T, class Proj = std::identity,
+              std::indirect_strict_weak_order<
+                  std::projected<const T*, Proj>> Comp = ranges::less>
+     constexpr
+     const T& operator()(const T& a, const T& b, Comp comp = {}, Proj proj = {}) const
+     {
+         return std::invoke(comp, std::invoke(proj, a), std::invoke(proj, b)) ? a : b;
+     }
+
+     template<class T, class Proj = std::identity,
+              std::indirect_strict_weak_order<
+                  std::projected<const T*, Proj>> Comp = ranges::less>
+     constexpr
+     const T& operator()(std::initializer_list<T> r, Comp comp = {}, Proj proj = {}) const
+     {
+       return *ranges::min_element(r, std::ref(comp), std::ref(proj));
+     }
+
+     template<ranges::input_range R, class Proj = std::identity,
+              std::indirect_strict_weak_order<
+                   std::projected<ranges::iterator_t<R>, Proj>> Comp = ranges::less>
+     requires std::indirectly_copyable_storable<ranges::iterator_t<R>,
+                                                ranges::range_value_t<R>*>
+     constexpr
+     ranges::range_value_t<R> operator()(R&& r, Comp comp = {}, Proj proj = {}) const
+     {
+         return *ranges::min_element(r, std::ref(comp), std::ref(proj));
+     }
+   };
+
+   inline constexpr min_fn min;
+
+.SH Notes
+
+   Capturing the result of std::ranges::min by reference produces a dangling reference
+   if one of the parameters is a temporary and that parameter is returned:
+
+ int n = 1;
+ const int& r = std::ranges::min(n-1, n+1);
+ // r is dangling
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <iostream>
+ #include <string>
+
+ int main()
+ {
+     namespace ranges = std::ranges;
+     using namespace std::string_view_literals;
+     std::cout << "smaller of 1 and 9999: " << ranges::min(1, 9999) << '\\n'
+               << "smaller of 'a', and 'b': '" << ranges::min('a', 'b') << "'\\n"
+               << "shortest of \\"foo\\", \\"bar\\", and \\"hello\\": \\""
+               << ranges::min({ "foo"sv, "bar"sv, "hello"sv }, {},
+                              &std::string_view::size) << "\\"\\n";
+ }
+
+.SH Output:
+
+ smaller of 1 and 9999: 1
+ smaller of 'a', and 'b': 'a'
+ shortest of "foo", "bar", and "hello": "foo"
+
+.SH See also
+
+   ranges::max         returns the greater of the given values
+   (C++20)             (niebloid)
+   ranges::minmax      returns the smaller and larger of two elements
+   (C++20)             (niebloid)
+   ranges::min_element returns the smallest element in a range
+   (C++20)             (niebloid)
+   ranges::clamp       clamps a value between a pair of boundary values
+   (C++20)             (niebloid)
+   min                 returns the smaller of the given values
+                       \fI(function template)\fP

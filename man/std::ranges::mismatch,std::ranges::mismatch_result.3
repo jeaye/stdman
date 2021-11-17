@@ -1,0 +1,171 @@
+.TH std::ranges::mismatch,std::ranges::mismatch_result 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::mismatch,std::ranges::mismatch_result \- std::ranges::mismatch,std::ranges::mismatch_result
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< std::input_iterator I1, std::sentinel_for<I1> S1,
+
+             std::input_iterator I2, std::sentinel_for<I2> S2,
+             class Pred = ranges::equal_to,
+             class Proj1 = std::identity, class Proj2 = std::identity >     \fB(1)\fP (since
+     requires std::indirectly_comparable<I1, I2, Pred, Proj1, Proj2>            C++20)
+   constexpr ranges::mismatch_result<I1, I2>
+   mismatch( I1 first1, S1 last1, I2 first2, S2 last2,
+
+             Pred pred = {}, Proj1 proj1 = {}, Proj2 proj2 = {} );
+   template< ranges::input_range R1, ranges::input_range R2,
+
+             class Pred = ranges::equal_to,
+             class Proj1 = std::identity, class Proj2 = std::identity >
+     requires std::indirectly_comparable<
+                  ranges::iterator_t<R1>, ranges::iterator_t<R2>, Pred,     \fB(2)\fP (since
+   Proj1, Proj2>                                                                C++20)
+   constexpr ranges::mismatch_result<ranges::borrowed_iterator_t<R1>,
+                                     ranges::borrowed_iterator_t<R2>>
+
+   mismatch( R1&& r1, R2&& r2, Pred pred = {}, Proj1 proj1 = {}, Proj2
+   proj2 = {} );
+.SH Helper types
+   template<class I1, class I2>                                             \fB(3)\fP (since
+   using mismatch_result = ranges::in_in_result<I1, I2>;                        C++20)
+
+   Returns the first mismatching pair of projected elements from two ranges: one
+   defined by [first1, last1) or r1 and another defined by [first2,last2) or r2.
+
+   1) Elements are compared using the given binary predicate p.
+   2) Same as \fB(1)\fP, but uses r as the source range, as if using ranges::begin(r) as
+   first and ranges::end(r) as last.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists may not be specified when calling any of them.
+     * None of them is visible to argument-dependent lookup.
+     * When one of them is found by normal unqualified lookup for the name to the left
+       of the function-call operator, it inhibits argument-dependent lookup.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first1, last1 - an iterator-sentinel pair denoting the first range of the elements
+                   to compare
+   r1            - the first range of the elements to compare
+   first2, last2 - an iterator-sentinel pair denoting the second range of the elements
+                   to compare
+   r2            - the second range of the elements to compare
+   pred          - predicate to apply to the projected elements
+   proj1         - projection to apply to the first range of elements
+   proj2         - projection to apply to the second range of elements
+
+.SH Return value
+
+   ranges::mismatch_result with iterators to the first two non-equal elements.
+
+   If no mismatches are found when the comparison reaches last1 or last2, whichever
+   happens first, the object holds the end iterator and the corresponding iterator from
+   the other range.
+
+.SH Complexity
+
+   At most min(last1 - first1, last2 - first2) applications of the predicate and
+   corresponding projections.
+
+.SH Possible implementation
+
+struct mismatch_fn {
+  template<std::input_iterator I1, std::sentinel_for<I1> S1,
+           std::input_iterator I2, std::sentinel_for<I2> S2,
+           class Pred = ranges::equal_to,
+           class Proj1 = std::identity, class Proj2 = std::identity>
+    requires std::indirectly_comparable<I1, I2, Pred, Proj1, Proj2>
+  constexpr std::mismatch_result<I1, I2>
+  operator()(I1 first1, S1 last1, I2 first2, S2 last2,
+             Pred pred = {}, Proj1 proj1 = {}, Proj2 proj2 = {}) const
+  {
+      for (; first1 != last1 && first2 != last2; ++first1, (void)++first2) {
+          if (!std::invoke(pred, std::invoke(proj1, *first1), std::invoke(proj2, *first2))) {
+            break;
+          }
+      }
+      return {first1, first2};
+  }
+
+  template<ranges::input_range R1, ranges::input_range R2,
+           class Pred = ranges::equal_to,
+           class Proj1 = std::identity, class Proj2 = std::identity >
+  requires std::indirectly_comparable<ranges::iterator_t<R1>, ranges::iterator_t<R2>,
+                                      Pred, Proj1, Proj2>
+  constexpr
+    ranges::mismatch_result<ranges::borrowed_iterator_t<R1>, ranges::borrowed_iterator_t<R2>>
+  operator()(R1&& r1, R2&& r2, Pred pred = {}, Proj1 proj1 = {}, Proj2 proj2 = {}) const
+  {
+     return (*this)(ranges::begin(r1), ranges::end(r1),
+                    ranges::begin(r2), ranges::end(r2),
+                    std::ref(pred), std::ref(proj1), std::ref(proj2));
+  }
+};
+
+inline constexpr mismatch_fn mismatch;
+
+.SH Example
+
+   This program determines the longest substring that is simultaneously found at the
+   very beginning of the given string and at the very end of it, in reverse order
+   (possibly overlapping)
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <cstddef>
+ #include <iostream>
+ #include <ranges>
+ #include <string_view>
+
+ constexpr std::string_view mirror_ends(const std::string_view in)
+ {
+     const auto end = std::ranges::mismatch(in, in | std::views::reverse).in1;
+     const std::size_t length = std::ranges::distance(in.begin(), end);
+     return { in.cbegin(), length };
+ }
+
+ int main()
+ {
+     std::cout << mirror_ends("abXYZba") << '\\n'
+               << mirror_ends("abca") << '\\n'
+               << mirror_ends("ABBA") << '\\n'
+               << mirror_ends("level") << '\\n';
+
+     using namespace std::literals::string_view_literals;
+
+     static_assert("123"sv == mirror_ends("123!@#321"));
+     static_assert("radar"sv == mirror_ends("radar"));
+ }
+
+.SH Output:
+
+ ab
+ a
+ ABBA
+ level
+
+.SH See also
+
+   ranges::equal                   determines if two sets of elements are the same
+   (C++20)                         (niebloid)
+   ranges::find
+   ranges::find_if
+   ranges::find_if_not             finds the first element satisfying specific criteria
+   (C++20)                         (niebloid)
+   (C++20)
+   (C++20)
+   ranges::lexicographical_compare returns true if one range is lexicographically less
+   (C++20)                         than another
+                                   (niebloid)
+   ranges::search                  searches for a range of elements
+   (C++20)                         (niebloid)
+   mismatch                        finds the first position where two ranges differ
+                                   \fI(function template)\fP

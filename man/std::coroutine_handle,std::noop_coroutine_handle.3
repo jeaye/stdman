@@ -1,0 +1,194 @@
+.TH std::coroutine_handle,std::noop_coroutine_handle 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::noop_coroutine_handle
+
+.SH Synopsis
+   Defined in header <coroutine>
+   template< class Promise = void > struct coroutine_handle;        \fB(1)\fP \fI(since C++20)\fP
+   template<> struct coroutine_handle<void>;                        \fB(2)\fP \fI(since C++20)\fP
+   template<> struct coroutine_handle<std::noop_coroutine_promise>; \fB(3)\fP \fI(since C++20)\fP
+   using noop_coroutine_handle =                                    \fB(4)\fP \fI(since C++20)\fP
+       std::coroutine_handle<std::noop_coroutine_promise>;
+
+   The class template coroutine_handle can be used to refer to a suspended or executing
+   coroutine. Every specialization of coroutine_handle is a LiteralType.
+
+   1) Primary template, can be created from the promise object of type Promise.
+   2) Specialization std::coroutine_handle<void> erases the promise type. It is
+   convertible from other specializations.
+   3) Specialization std::coroutine_handle<std::noop_coroutine_promise> refers to no-op
+   coroutines. It cannot be created from a promise object.
+
+   On typical implementations, every specialization of std::coroutine_handle is
+   TriviallyCopyable, and holds a pointer to the coroutine state as its only non-static
+   data member.
+
+   The behavior of a program that adds specializations for coroutine_handle is
+   undefined.
+
+.SH Member functions
+
+   constructor      constructs a coroutine_handle object
+   (C++20)          \fI(public member function)\fP
+   operator=        assigns the coroutine_handle object
+   (C++20)          \fI(public member function)\fP
+   from_promise     creates a coroutine_handle from the promise object of a coroutine
+   \fB[static]\fP (C++20) \fI(public static member function)\fP
+.SH Observers
+   done             check if the coroutine has completed
+   (C++20)          \fI(public member function)\fP
+   operator bool    check if the handle represents a coroutine
+   (C++20)          \fI(public member function)\fP
+         Control
+   operator()       resumes execution of the coroutine
+   resume           \fI(public member function)\fP
+   (C++20)
+   destroy          destroys a coroutine
+   (C++20)          \fI(public member function)\fP
+         Promise Access
+   promise          access the promise of a coroutine
+   (C++20)          \fI(public member function)\fP
+         Export/Import
+   address          exports the underlying address, i.e. the pointer backing the
+   (C++20)          coroutine
+                    \fI(public member function)\fP
+   from_address     import a coroutine from a pointer
+   \fB[static]\fP (C++20) \fI(public static member function)\fP
+
+.SH Non-member functions
+
+   operator==  compares two coroutine_handle objects
+   operator<=> \fI(function)\fP
+   (C++20)
+
+.SH Helper classes
+
+   std::hash<std::coroutine_handle> hash support for std::coroutine_handle
+   (C++20)                          \fI(class template specialization)\fP
+
+.SH Notes
+
+   A coroutine_handle may be dangling, in which case the coroutine_handle must be used
+   carefully in order to avoid undefined behavior.
+
+.SH Example
+
+
+// Run this code
+
+ #include <coroutine>
+ #include <iostream>
+ #include <optional>
+ #include <iterator>
+
+ template<std::movable T>
+ class Generator {
+ public:
+     struct promise_type {
+         Generator<T> get_return_object() {
+             return Generator{Handle::from_promise(*this)};
+         }
+         static std::suspend_always initial_suspend() noexcept {
+             return {};
+         }
+         static std::suspend_always final_suspend() noexcept {
+             return {};
+         }
+         std::suspend_always yield_value(T value) noexcept {
+             current_value = std::move(value);
+             return {};
+         }
+         // Disallow co_await in generator coroutines.
+         void await_transform() = delete;
+         static void unhandled_exception() {
+             throw;
+         }
+
+         std::optional<T> current_value;
+     };
+
+     using Handle = std::coroutine_handle<promise_type>;
+
+     explicit Generator(Handle coroutine) :
+         m_coroutine{coroutine}
+     {}
+
+     Generator() = default;
+     ~Generator() {
+         if (m_coroutine) {
+             m_coroutine.destroy();
+         }
+     }
+
+     Generator(const Generator&) = delete;
+     Generator& operator=(const Generator&) = delete;
+
+     Generator(Generator&& other) noexcept :
+         m_coroutine{other.m_coroutine}
+     {
+         other.m_coroutine = {};
+     }
+
+     Generator& operator=(Generator&& other) noexcept {
+         if (this != &other) {
+             if (m_coroutine) {
+                 m_coroutine.destroy();
+             }
+             m_coroutine = other.m_coroutine;
+             other.m_coroutine = {};
+         }
+         return *this;
+     }
+
+     // Range-based for loop support.
+     class Iter {
+     public:
+         void operator++() {
+             m_coroutine.resume();
+         }
+         const T& operator*() const {
+             return *m_coroutine.promise().current_value;
+         }
+         bool operator==(std::default_sentinel_t) const {
+             return !m_coroutine || m_coroutine.done();
+         }
+
+         explicit Iter(Handle coroutine) :
+             m_coroutine{coroutine}
+         {}
+
+     private:
+         Handle m_coroutine;
+     };
+
+     Iter begin() {
+         if (m_coroutine) {
+             m_coroutine.resume();
+         }
+         return Iter{m_coroutine};
+     }
+     std::default_sentinel_t end() {
+         return {};
+     }
+
+ private:
+     Handle m_coroutine;
+ };
+
+ template<std::integral T>
+ Generator<T> range(T first, T last) {
+     while (first < last) {
+         co_yield first++;
+     }
+ }
+
+ int main() {
+     for (int i : range(-4, 8)) {
+         std::cout << i << ' ';
+     }
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ -4 -3 -2 -1 0 1 2 3 4 5 6 7
