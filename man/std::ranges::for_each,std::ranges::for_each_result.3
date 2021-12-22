@@ -1,0 +1,159 @@
+.TH std::ranges::for_each,std::ranges::for_each_result 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::for_each,std::ranges::for_each_result \- std::ranges::for_each,std::ranges::for_each_result
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< std::input_iterator I, std::sentinel_for<I> S, class Proj =
+   std::identity,
+                                                                                (since
+             std::indirectly_unary_invocable<std::projected<I, Proj>> Fun > \fB(1)\fP C++20)
+
+   constexpr ranges::for_each_result<I, Fun> for_each( I first, S last, Fun
+   f, Proj proj = {} );
+   template< ranges::input_range R, class Proj = std::identity,
+
+
+   std::indirectly_unary_invocable<std::projected<ranges::iterator_t<R>,    \fB(2)\fP (since
+   Proj>> Fun >                                                                 C++20)
+   constexpr ranges::for_each_result<ranges::borrowed_iterator_t<R>, Fun>
+
+   for_each( R&& r, Fun f, Proj proj = {} );
+.SH Helper types
+   template< class I, class F >                                             \fB(3)\fP (since
+   using for_each_result = ranges::in_fun_result<I, F>;                         C++20)
+
+   1) Applies the given function object f to the result of the value projected by each
+   iterator in the range [first, last), in order.
+   2) Same as \fB(1)\fP, but uses r as the source range, as if using ranges::begin(r) as
+   first and ranges::end(r) as last.
+
+   For both overloads, if the iterator type is mutable, f may modify the elements of
+   the range through the dereferenced iterator. If f returns a result, the result is
+   ignored.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists may not be specified when calling any of them.
+     * None of them is visible to argument-dependent lookup.
+     * When one of them is found by normal unqualified lookup for the name to the left
+       of the function-call operator, it inhibits argument-dependent lookup.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first, last - iterator-sentinel pair denoting the range to apply the function to
+   r           - the range of elements to apply the function to
+   f           - the function to apply to the projected range
+   proj        - projection to apply to the elements
+
+.SH Return value
+
+   {std::ranges::next(std::move(first), last), std::move(f)}
+
+.SH Complexity
+
+   Exactly last - first applications of f and proj
+
+.SH Possible implementation
+
+struct for_each_fn {
+  template<std::input_iterator I, std::sentinel_for<I> S, class Proj = std::identity,
+           std::indirectly_unary_invocable<std::projected<I, Proj>> Fun>
+  constexpr ranges::for_each_result<I, Fun>
+  operator()(I first, S last, Fun f, Proj proj = {}) const
+  {
+    for (; first != last; ++first) {
+      std::invoke(f, std::invoke(proj, *first));
+    }
+    return {std::move(first), std::move(f)};
+  }
+
+  template<ranges::input_range R, class Proj = std::identity,
+           std::indirectly_unary_invocable<std::projected<ranges::iterator_t<R>, Proj>> Fun>
+  constexpr ranges::for_each_result<ranges::borrowed_iterator_t<R>, Fun>
+  operator()(R&& r, Fun f, Proj proj = {}) const
+  {
+    return (*this)(ranges::begin(r), ranges::end(r), std::move(f), std::ref(proj));
+  }
+};
+
+inline constexpr for_each_fn for_each;
+
+.SH Example
+
+   The following example uses a lambda expression to increment all of the elements of a
+   vector and then uses an overloaded operator() in a functor to compute their sum.
+   Note that to compute the sum, it is recommended to use the dedicated algorithm
+   std::accumulate.
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <cassert>
+ #include <iostream>
+ #include <string>
+ #include <utility>
+ #include <vector>
+
+ struct Sum
+ {
+     void operator()(int n) { sum += n; }
+     int sum{0};
+ };
+
+ int main()
+ {
+     std::vector<int> nums{3, 4, 2, 8, 15, 267};
+
+     auto print = [](const auto& n) { std::cout << ' ' << n; };
+
+     namespace ranges = std::ranges;
+     std::cout << "before:";
+     ranges::for_each(std::as_const(nums), print);
+     print('\\n');
+
+     ranges::for_each(nums, [](int& n){ ++n; });
+
+     // calls Sum::operator() for each number
+     auto [i, s] = ranges::for_each(nums.begin(), nums.end(), Sum());
+     assert(i == nums.end());
+
+     std::cout << "after: ";
+     ranges::for_each(nums.cbegin(), nums.cend(), print);
+
+     std::cout << "\\n" "sum: " << s.sum << '\\n';
+
+     using pair = std::pair<int, std::string>;
+     std::vector<pair> pairs{{1,"one"}, {2,"two"}, {3,"tree"}};
+
+     std::cout << "project the pair::first: ";
+     ranges::for_each(pairs, print, [](const pair& p) { return p.first; });
+
+     std::cout << "\\n" "project the pair::second:";
+     ranges::for_each(pairs, print, &pair::second);
+     print('\\n');
+ }
+
+.SH Output:
+
+ before: 3 4 2 8 15 267
+ after:  4 5 3 9 16 268
+ sum: 305
+ project the pair::first:  1 2 3
+ project the pair::second: one two tree
+
+.SH See also
+
+   range-for loop\fI(C++11)\fP executes loop over range
+   ranges::transform     applies a function to a range of elements
+   (C++20)               (niebloid)
+   ranges::for_each_n    applies a function object to the first n elements of a
+   (C++20)               sequence
+                         (niebloid)
+   for_each              applies a function to a range of elements
+                         \fI(function template)\fP

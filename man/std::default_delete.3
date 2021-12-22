@@ -1,4 +1,4 @@
-.TH std::default_delete 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::default_delete 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::default_delete \- std::default_delete
 
@@ -8,36 +8,36 @@ std::default_delete \- std::default_delete
    template< class T > struct default_delete<T[]>; \fB(2)\fP \fI(since C++11)\fP
 
    std::default_delete is the default destruction policy used by std::unique_ptr when
-   no deleter is specified.
+   no deleter is specified. Specializations of default_delete are empty classes on
+   typical implementations, and used in the empty base class optimization.
 
    1) The non-specialized default_delete uses delete to deallocate memory for a single
    object.
-
    2) A partial specialization for array types that uses delete[] is also provided.
 
 .SH Member functions
 
    constructor   constructs a default_delete object
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    operator()    deletes the object or array
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
 
 std::default_delete::default_delete
 
-   constexpr default_delete() noexcept =      \fB(1)\fP
+   constexpr default_delete() noexcept =     \fB(1)\fP
    default;
-   template <class U>                             (member only of primary
-   default_delete( const default_delete<U>& d \fB(2)\fP default_delete template)
-   ) noexcept;
-   template<class U>                              \fI(since C++17)\fP
-   default_delete( const default_delete<U[]>& \fB(3)\fP (member only of the array
-   d) noexcept;                                   default_delete specialization)
+   template <class U>                            (member only of primary default_delete
+   default_delete( const default_delete<U>&  \fB(2)\fP template)
+   d ) noexcept;
+   template<class U>                             (member only of default_delete<T[]>
+   default_delete( const                     \fB(3)\fP specialization)
+   default_delete<U[]>& d ) noexcept;
 
    1) Constructs a std::default_delete object.
-   2) Constructs a std::default_delete object from another std::default_delete object.
-   This constructor will only participate in overload resolution if U* is implicitly
-   convertible to T*.
-   3) Constructs a std::default_delete<U[]> object from another
+   2) Constructs a std::default_delete<T> object from another std::default_delete
+   object. This constructor will only participate in overload resolution if U* is
+   implicitly convertible to T*.
+   3) Constructs a std::default_delete<T[]> object from another
    std::default_delete<U[]> object. This constructor will only participate in overload
    resolution if U(*)[] is implicitly convertible to T(*)[].
 
@@ -52,18 +52,13 @@ std::default_delete::default_delete
 
 std::default_delete::operator()
 
-   void operator()(T* ptr) const; \fB(1)\fP (as of C++17, no longer a member of the
-                                      default_delete<T[]> template specialization)
-   template <class U>                 (member only of default_delete<T[]> template
-   void operator()(U* ptr) const; \fB(2)\fP specialization, but defined as deleted prior to
-                                      C++17)
+   void operator()(T* ptr) const; \fB(1)\fP (member only of primary default_delete template)
+   template <class U>             \fB(2)\fP (member only of default_delete<T[]>
+   void operator()(U* ptr) const;     specialization)
 
-   1) Calls delete (primary template) or delete[] (array specialization)
-   on ptr                                                                 \fI(until C++17)\fP
-   2) Defined as deleted
    1) Calls delete on ptr
-   2) Calls delete[] on ptr. This function will only participate in       \fI(since C++17)\fP
-   overload resolution if U(*)[] is implicitly convertible to T(*)[].
+   2) Calls delete[] on ptr. This function will only participate in overload resolution
+   if U(*)[] is implicitly convertible to T(*)[].
 
    In any case, if U is an incomplete type, the program is ill-formed.
 
@@ -86,40 +81,48 @@ std::default_delete::operator()
 
 .SH Example
 
-   
+
 // Run this code
 
  #include <memory>
  #include <vector>
  #include <algorithm>
-  
+
  int main()
  {
  //    {
  //        std::shared_ptr<int> shared_bad(new int[10]);
  //    } // the destructor calls delete, undefined behavior
-  
+
      {
-         std::shared_ptr<int> shared_good(new int[10], std::default_delete<int[]>
- ());
+         std::shared_ptr<int> shared_good(new int[10], std::default_delete<int[]>());
      } // the destructor calls delete[], ok
-  
+
      {
          std::unique_ptr<int> ptr(new int(5));
      } // unique_ptr<int> uses default_delete<int>
-  
+
      {
          std::unique_ptr<int[]> ptr(new int[10]);
      } // unique_ptr<int[]> uses default_delete<int[]>
-  
-    // default_delete can be used anywhere a delete functor is needed
-    std::vector<int*> v;
-    for(int n = 0; n < 100; ++n)
-       v.push_back(new int(n));
-    std::for_each(v.begin(), v.end(), std::default_delete<int>());
+
+     // default_delete can be used anywhere a delete functor is needed
+     std::vector<int*> v;
+     for(int n = 0; n < 100; ++n)
+         v.push_back(new int(n));
+     std::for_each(v.begin(), v.end(), std::default_delete<int>());
  }
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 2118 C++11      member functions of default_delete<T[]>         accept
+                       rejected qualification conversions
 
 .SH See also
 
    unique_ptr smart pointer with unique object ownership semantics
-   \fI(C++11)\fP    \fI(class template)\fP 
+   \fI(C++11)\fP    \fI(class template)\fP

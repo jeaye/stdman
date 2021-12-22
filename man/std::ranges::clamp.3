@@ -1,0 +1,116 @@
+.TH std::ranges::clamp 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::clamp \- std::ranges::clamp
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< class T, class Proj = std::identity,
+
+             std::indirect_strict_weak_order<std::projected<const T*, Proj>>    (since
+   Comp = ranges::less >                                                        C++20)
+
+   constexpr const T& clamp( const T& v, const T& lo, const T& hi, Comp comp =
+   {}, Proj proj = {} );
+
+   If v compares less than lo, returns lo; otherwise if hi compares less than v,
+   returns hi; otherwise returns v.
+
+   The behavior is undefined if lo is greater than hi.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists may not be specified when calling any of them.
+     * None of them is visible to argument-dependent lookup.
+     * When one of them is found by normal unqualified lookup for the name to the left
+       of the function-call operator, it inhibits argument-dependent lookup.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   v      - the value to clamp
+   lo, hi - the boundaries to clamp v to
+   comp   - the comparison to apply to the projected elements
+   proj   - the projection to apply to v, lo and hi
+
+.SH Return value
+
+   Reference to lo if the projected value of v is less than the projected value of lo,
+   reference to hi if the projected value of hi is less than the projected value of v,
+   otherwise reference to v.
+
+.SH Complexity
+
+   At most two comparisons and three applications of the projection.
+
+.SH Possible implementation
+
+struct clamp_fn {
+  template<class T, class Proj = std::identity,
+           std::indirect_strict_weak_order<std::projected<const T*, Proj>> Comp = ranges::less>
+  constexpr const T& operator()(const T& v, const T& lo, const T& hi,
+                                Comp comp = {}, Proj proj = {}) const
+  {
+      assert(!std::invoke(comp, std::invoke(proj, hi), std::invoke(proj, lo)));
+      return std::invoke(comp, std::invoke(proj, v), std::invoke(proj, lo)) ? lo
+           : std::invoke(comp, std::invoke(proj, hi), std::invoke(proj, v)) ? hi : v;
+  }
+};
+
+inline constexpr clamp_fn clamp;
+
+.SH Notes
+
+
+   Capturing the result of std::ranges::clamp by reference produces a dangling
+   reference if one of the parameters is a temporary and that parameter is returned:
+
+ int n = 1;
+ const int& r = std::ranges::clamp(n-1, n+1);
+ // r is dangling
+
+   If v compares equivalent to either bound, returns a reference to v, not the bound.
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <cstdint>
+ #include <iostream>
+ #include <iomanip>
+ #include <random>
+
+ int main()
+ {
+     std::mt19937 g(std::random_device{}());
+     std::uniform_int_distribution<> d(-300, 300);
+     std::cout << " raw   clamped to int8_t   clamped to uint8_t\\n";
+     for(int n = 0; n < 5; ++n) {
+         int v = d(g);
+         std::cout << std::setw(4) << v
+                   << std::setw(20) << std::ranges::clamp(v, INT8_MIN, INT8_MAX)
+                   << std::setw(21) << std::ranges::clamp(v, 0, UINT8_MAX) << '\\n';
+     }
+ }
+
+.SH Possible output:
+
+ .raw   clamped to int8_t   clamped to uint8_t
+  168                 127                  168
+  128                 127                  128
+ -137                -128                    0
+   40                  40                   40
+  -66                 -66                    0
+
+.SH See also
+
+   ranges::min returns the smaller of the given values
+   (C++20)     (niebloid)
+   ranges::max returns the greater of the given values
+   (C++20)     (niebloid)
+   clamp       clamps a value between a pair of boundary values
+   \fI(C++17)\fP     \fI(function template)\fP

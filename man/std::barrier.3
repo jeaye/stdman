@@ -1,0 +1,101 @@
+.TH std::barrier 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::barrier \- std::barrier
+
+.SH Synopsis
+   Defined in header <barrier>
+   template<class CompletionFunction = /* see below */>  \fI(since C++20)\fP
+   class barrier;
+
+   The class template std::barrier provides a thread-coordination mechanism that allows
+   at most an expected number of threads to block until the expected number of threads
+   arrive at the barrier. Unlike std::latch, barriers are reusable: once the arriving
+   threads are unblocked from a barrier phase's synchronization point, the same barrier
+   can be reused.
+
+   A barrier object's lifetime consists of a sequence of barrier phases. Each phase
+   defines a phase synchronization point. Threads that arrive at the barrier during the
+   phase can block on the phase synchronization point by calling wait, and will be
+   unblocked when the phase completion step is run.
+
+   A barrier phase consists following steps:
+
+    1. The expected count is decremented by each call to arrive or arrive_and_drop.
+    2. When the expected count reaches zero, the phase completion step is run. The
+       completion step invokes the completion function object, and unblocks all threads
+       blocked on the phase synchronization point. The end of the completion step
+       strongly happens-before the returns from all calls that were unblocked by the
+       completion step.
+
+          * For the specialization std::barrier<> (using the default template
+            argument), the completion step is run as part of the call to arrive or
+            arrive_and_drop that caused the expected count to reach zero.
+          * For other specializations, the completion step is run on one of the threads
+            that arrived at the barrier during the phase. And the behavior is undefined
+            if any of the barrier object's member functions other than wait are called
+            during the completion step.
+
+    3. When the completion step finishes, the expected count is reset to the value
+       specified in construction, possibly adjusted by calls to arrive_and_drop, and
+       the next phase starts.
+
+   Concurrent invocations of the member functions of barrier, except for the
+   destructor, do not introduce data races.
+
+.SH Template parameters
+
+   CompletionFunction               -               a function object type
+   -
+   CompletionFunction must meet the requirements of MoveConstructible and Destructible.
+   std::is_nothrow_invocable_v<CompletionFunction&> must be true.
+
+   The default template argument of CompletionFunction is an unspecified function
+   object type that addtionally meets the requirements of DefaultConstructible. Calling
+   an lvalue of it with no arguments has no effects.
+
+   Every barrier object behaves as if it holds an exposition-only non-static data
+   member completion_ of type CompletionFunction and calls it by completion_() on every
+   phase completion step.
+
+.SH Member types
+
+   Name          Definition
+   arrival_token an unspecified object type meeting requirements of MoveConstructible,
+                 MoveAssignable and Destructible
+
+.SH Member functions
+
+   constructor     constructs a barrier
+                   \fI(public member function)\fP
+   destructor      destroys the barrier
+                   \fI(public member function)\fP
+   operator=       barrier is not assignable
+   [deleted]       \fI(public member function)\fP
+   arrive          arrives at barrier and decrements the expected count
+                   \fI(public member function)\fP
+                   blocks at the phase synchronization point until its phase completion
+   wait            step is run
+                   \fI(public member function)\fP
+                   arrives at barrier and decrements the expected count by one, then
+   arrive_and_wait blocks until current phase completes
+                   \fI(public member function)\fP
+                   decrements both the initial expected count for subsequent phases and
+   arrive_and_drop the expected count for current phase by one
+                   \fI(public member function)\fP
+.SH Constants
+   max             the maximum value of expected count supported by the implementation
+   \fB[static]\fP        \fI(public static member function)\fP
+
+.SH Example
+
+    This section is incomplete
+    Reason: no example
+
+.SH See also
+
+   latch   single-use thread barrier
+   (C++20) \fI(class)\fP
+
+.SH Category:
+
+     * Todo no example

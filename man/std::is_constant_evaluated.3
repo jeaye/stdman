@@ -1,4 +1,4 @@
-.TH std::is_constant_evaluated 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_constant_evaluated 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_constant_evaluated \- std::is_constant_evaluated
 
@@ -49,7 +49,7 @@ std::is_constant_evaluated \- std::is_constant_evaluated
  const int a = std::is_constant_evaluated() ? y : 1;
  // Trial constant evaluation fails. The constant evaluation is discarded.
  // Variable a is dynamically initialized with 1
-  
+
  const int b = std::is_constant_evaluated() ? 2 : y;
  // Constant evaluation with std::is_constant_evaluation() == true succeeds.
  // Variable b is statically initialized with 2
@@ -70,9 +70,46 @@ std::is_constant_evaluated \- std::is_constant_evaluated
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
 
-.SH Category:
+// Run this code
 
-     * Todo no example
+ #include <type_traits>
+ #include <cmath>
+ #include <iostream>
+
+ constexpr double power(double b, int x)
+ {
+     if (std::is_constant_evaluated() && !(b == 0.0 && x < 0)) {
+         // A constant-evaluation context: Use a constexpr-friendly algorithm.
+         if (x == 0)
+             return 1.0;
+         double r = 1.0, p = x > 0 ? b : 1.0 / b;
+         auto u = unsigned(x > 0 ? x : -x);
+         while (u != 0) {
+             if (u & 1) r *= p;
+             u /= 2;
+             p *= p;
+         }
+         return r;
+     } else {
+         // Let the code generator figure it out.
+         return std::pow(b, double(x));
+     }
+ }
+
+ int main()
+ {
+     // A constant-expression context
+     constexpr double kilo = power(10.0, 3);
+     int n = 3;
+     // Not a constant expression, because n cannot be converted to an rvalue
+     // in a constant-expression context
+     // Equivalent to std::pow(10.0, double(n))
+     double mucho = power(10.0, n);
+
+     std::cout << kilo << " " << mucho << "\\n"; // (3)
+ }
+
+.SH Output:
+
+ 1000 1000

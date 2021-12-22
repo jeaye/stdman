@@ -1,4 +1,4 @@
-.TH std::transform 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::transform 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::transform \- std::transform
 
@@ -60,9 +60,12 @@ std::transform \- std::transform
    1) The unary operation unary_op is applied to the range defined by [first1, last1).
    3) The binary operation binary_op is applied to pairs of elements from two ranges:
    one defined by [first1, last1) and the other beginning at first2.
-   2,4) Same as (1,3), but executed according to policy. This overload only
-   participates in overload resolution if
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true
+   2,4) Same as (1,3), but executed according to policy. These overloads do not
+   participate in overload resolution unless
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
+   \fI(until C++20)\fP
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
+   \fI(since C++20)\fP is true.
 
    unary_op and binary_op must not have side effects.                     \fI(until C++11)\fP
    unary_op and binary_op must not invalidate any iterators, including    \fI(since C++11)\fP
@@ -85,7 +88,7 @@ std::transform \- std::transform
                    The type Type must be such that an object of type InputIt can be
                    dereferenced and then implicitly converted to Type. The type Ret
                    must be such that an object of type OutputIt can be dereferenced and
-                   assigned a value of type Ret.ý¿¿½£¬
+                   assigned a value of type Ret.
                    binary operation function object that will be applied.
 
                    The signature of the function should be equivalent to the following:
@@ -97,7 +100,7 @@ std::transform \- std::transform
                    InputIt1 and InputIt2 can be dereferenced and then implicitly
                    converted to Type1 and Type2 respectively. The type Ret must be such
                    that an object of type OutputIt can be dereferenced and assigned a
-                   value of type Ret.ý¿¿½£¬
+                   value of type Ret.
 .SH Type requirements
    -
    InputIt, InputIt1, InputIt2 must meet the requirements of LegacyInputIterator.
@@ -161,7 +164,7 @@ std::transform \- std::transform
    The following code uses transform to convert a string in place to uppercase using
    the toupper function and then transforms each char to its ordinal value:
 
-   
+
 // Run this code
 
  #include <algorithm>
@@ -169,28 +172,38 @@ std::transform \- std::transform
  #include <iostream>
  #include <string>
  #include <vector>
-  
+
  int main()
  {
      std::string s("hello");
      std::transform(s.begin(), s.end(), s.begin(),
                     [](unsigned char c) -> unsigned char { return std::toupper(c); });
-  
+
      std::vector<std::size_t> ordinals;
      std::transform(s.begin(), s.end(), std::back_inserter(ordinals),
                     [](unsigned char c) -> std::size_t { return c; });
-  
+
      std::cout << s << ':';
      for (auto ord : ordinals) {
         std::cout << ' ' << ord;
      }
+
+     std::transform(ordinals.cbegin(), ordinals.cend(), ordinals.cbegin(),
+                    ordinals.begin(), std::plus<>{});
+
+     std::cout << '\\n';
+     for (auto ord : ordinals) {
+        std::cout << ord << ' ';
+     }
+     std::cout << '\\n';
  }
 
 .SH Output:
 
  HELLO: 72 69 76 76 79
+ 144 138 152 152 158
 
 .SH See also
 
    for_each applies a function to a range of elements
-            \fI(function template)\fP 
+            \fI(function template)\fP

@@ -1,10 +1,10 @@
-.TH std::chrono::is_clock 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::chrono::is_clock 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::chrono::is_clock \- std::chrono::is_clock
 
 .SH Synopsis
    Defined in header <chrono>
-   template< class T >
+   template< class T >         \fI(since C++20)\fP
    struct is_clock;
 
    If T satisfies the Clock requirements, provides the member constant value equal
@@ -19,7 +19,8 @@ std::chrono::is_clock \- std::chrono::is_clock
      * The expressions T::is_steady and T::now() are each well-formed when treated as
        an unevaluated operand.
 
-   The behavior of a program that adds specializations for is_clock is undefined.
+   The behavior of a program that adds specializations for is_clock or is_clock_v is
+   undefined.
 
 .SH Template parameters
 
@@ -30,7 +31,7 @@ std::chrono::is_clock \- std::chrono::is_clock
    template< class T >                                     \fI(since C++20)\fP
    inline constexpr bool is_clock_v = is_clock<T>::value;
 
-   
+
 
 Inherited from std::integral_constant
 
@@ -54,15 +55,17 @@ Inherited from std::integral_constant
 
 .SH Possible implementation
 
-   namespace detail {
-       template<class, class = std::void_t<>>
-       struct is_clock_impl : std::false_type {};
-       template<class T>
-       struct is_clock_impl<T, std::void_t<typename T::rep, typename T::period,
-                                           typename T::duration, typename T::time_point,
-                                           decltype(T::is_steady), decltype(T::now())>>
-           : std::true_type {};
-   }
-    
+   template<class>
+   struct is_clock : std::false_type {};
+
    template<class T>
-   struct is_clock : detail::is_clock_impl<T> {};
+       requires
+           requires {
+               typename T::rep;
+               typename T::period;
+               typename T::duration;
+               typename T::time_point;
+               T::is_steady;
+               T::now();
+           }
+   struct is_clock<T> : std::true_type {};

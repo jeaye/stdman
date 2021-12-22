@@ -1,4 +1,4 @@
-.TH std::input_iterator_tag,std::output_iterator_tag,std::forward_iterator_tag, 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::input_iterator_tag,std::output_iterator_tag,std::forward_iterator_tag, 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::input_iterator_tag,std::output_iterator_tag,std::forward_iterator_tag, \- std::input_iterator_tag,std::output_iterator_tag,std::forward_iterator_tag,
 
@@ -6,14 +6,15 @@ std::input_iterator_tag,std::output_iterator_tag,std::forward_iterator_tag, \- s
                                std::contiguous_iterator_tag
 
    Defined in header <iterator>
-   struct input_iterator_tag { };
-   struct output_iterator_tag { };
-   struct forward_iterator_tag : public input_iterator_tag { };
-   struct bidirectional_iterator_tag : public forward_iterator_tag { };
-   struct random_access_iterator_tag : public bidirectional_iterator_tag
-   { };
-   struct contiguous_iterator_tag: public random_access_iterator_tag {    \fI(since C++20)\fP
+   struct input_iterator_tag { };                                     \fB(1)\fP
+   struct output_iterator_tag { };                                    \fB(2)\fP
+   struct forward_iterator_tag : public input_iterator_tag { };       \fB(3)\fP
+   struct bidirectional_iterator_tag : public forward_iterator_tag {  \fB(4)\fP
    };
+   struct random_access_iterator_tag : public                         \fB(5)\fP
+   bidirectional_iterator_tag { };
+   struct contiguous_iterator_tag: public random_access_iterator_tag  \fB(6)\fP \fI(since C++20)\fP
+   { };
 
    Defines the category of an iterator. Each tag is an empty type and corresponds to
    one of the
@@ -22,13 +23,12 @@ std::input_iterator_tag,std::output_iterator_tag,std::forward_iterator_tag, \- s
    six
    \fI(since C++20)\fP iterator categories:
 
-     * input_iterator_tag corresponds to LegacyInputIterator.
-     * output_iterator_tag corresponds to LegacyOutputIterator.
-     * forward_iterator_tag corresponds to LegacyForwardIterator.
-     * bidirectional_iterator_tag corresponds to LegacyBidirectionalIterator.
-     * random_access_iterator_tag corresponds to LegacyRandomAccessIterator.
-
-     * contiguous_iterator_tag corresponds to LegacyContiguousIterator.   \fI(since C++20)\fP
+   1) input_iterator_tag corresponds to LegacyInputIterator.
+   2) output_iterator_tag corresponds to LegacyOutputIterator.
+   3) forward_iterator_tag corresponds to LegacyForwardIterator.
+   4) bidirectional_iterator_tag corresponds to LegacyBidirectionalIterator.
+   5) random_access_iterator_tag corresponds to LegacyRandomAccessIterator.
+   6) contiguous_iterator_tag corresponds to LegacyContiguousIterator.
 
    Iterator category tags carry information that can be used to select the most
    efficient algorithms for the specific requirement set that is implied by the
@@ -41,8 +41,10 @@ std::input_iterator_tag,std::output_iterator_tag,std::forward_iterator_tag, \- s
    six
    \fI(since C++20)\fP tag types.
 
-   Additionally, std::iterator_traits<It>::iterator_concept may be used   \fI(since C++20)\fP
-   to indicate conformance to the iterator concepts.
+   Additionally, std::iterator_traits<It>::iterator_concept may be
+   declared as an alias to one of these tags, to indicate conformance to  \fI(since C++20)\fP
+   the iterator concepts (provided that the iterator also satisfies other
+   requirements as declared in the concepts).
 
      Notes                                                \fI(since C++17)\fP
                                                           \fI(until C++20)\fP
@@ -53,41 +55,44 @@ std::input_iterator_tag,std::output_iterator_tag,std::forward_iterator_tag, \- s
    Common technique for algorithm selection based on iterator category tags is to use a
    dispatcher function (the alternative is std::enable_if)
 
-   
+
 // Run this code
 
  #include <iostream>
  #include <vector>
  #include <list>
  #include <iterator>
-  
- template< class BDIter >
+
+ // quite often implementation details are hidden in a dedicated namespace
+ namespace implementation_details {
+ template<class BDIter>
  void alg(BDIter, BDIter, std::bidirectional_iterator_tag)
  {
      std::cout << "alg() called for bidirectional iterator\\n";
  }
-  
- template <class RAIter>
+
+ template<class RAIter>
  void alg(RAIter, RAIter, std::random_access_iterator_tag)
  {
      std::cout << "alg() called for random-access iterator\\n";
  }
-  
- template< class Iter >
+ } // namespace implementation_details
+
+ template<class Iter>
  void alg(Iter first, Iter last)
  {
-     alg(first, last,
+     implementation_details::alg(first, last,
          typename std::iterator_traits<Iter>::iterator_category());
  }
-  
+
  int main()
  {
      std::vector<int> v;
      alg(v.begin(), v.end());
-  
+
      std::list<int> l;
      alg(l.begin(), l.end());
-  
+
  //    std::istreambuf_iterator<char> i1(std::cin), i2;
  //    alg(i1, i2); // compile error: no matching function for call
  }
@@ -101,6 +106,6 @@ std::input_iterator_tag,std::output_iterator_tag,std::forward_iterator_tag, \- s
 
    iterator              base class to ease the definition of required types for simple
    (deprecated in C++17) iterators
-                         \fI(class template)\fP 
+                         \fI(class template)\fP
    iterator_traits       provides uniform interface to the properties of an iterator
-                         \fI(class template)\fP 
+                         \fI(class template)\fP

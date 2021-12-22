@@ -1,0 +1,72 @@
+.TH std::indirectly_writable 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::indirectly_writable \- std::indirectly_writable
+
+.SH Synopsis
+   Defined in header <iterator>
+   template<class Out, class T>
+
+     concept indirectly_writable =
+       requires(Out&& o, T&& t) {
+         *o = std::forward<T>(t);
+         *std::forward<Out>(o) = std::forward<T>(t);
+         const_cast<const std::iter_reference_t<Out>&&>(*o) =                   (since
+   std::forward<T>(t);                                                          C++20)
+         const_cast<const std::iter_reference_t<Out>&&>(*std::forward<Out>(o))
+   =
+           std::forward<T>(t);
+       };
+
+       // none of the four expressions above are required to be
+   equality-preserving
+
+   The concept indirectly_writable<Out, T> specifies the requirements for writing a
+   value whose type and value category are encoded by T into an iterator Out's
+   referenced object.
+
+   Semantic requirements
+
+   Let e be an expression such that decltype((e)) is T, and o be a dereferenceable
+   object of type Out, then indirectly_writable<Out, T> is modeled only if:
+
+     * If std::indirectly_readable<Out> is modeled and std::iter_value_t<Out> is the
+       same type as std::decay_t<T>, then *o after any above assignment is equal to the
+       value of e before the assignment.
+
+   o is not required to be dereferenceable after evaluating any of the assignment
+   expressions above. If e is an xvalue, the resulting state of the object it denotes
+   is valid but unspecified.
+
+   Equality preservation
+
+   An expression is equality preserving if it results in equal outputs given equal
+   inputs.
+
+     * The inputs to an expression consist of its operands.
+     * The outputs of an expression consist of its result and all operands modified by
+       the expression (if any).
+
+   In specification of standard concepts, operands are defined as the largest
+   subexpressions that include only:
+
+     * an id-expression, and
+     * invocations of std::move, std::forward, and std::declval.
+
+   The cv-qualification and value category of each operand is determined by assuming
+   that each template type parameter denotes a cv-unqualified complete non-array object
+   type.
+
+   Every expression required to be equality preserving is further required to be
+   stable: two evaluations of such an expression with the same input objects must have
+   equal outputs absent any explicit intervening modification of those input objects.
+
+.SH Notes
+
+   The only valid use of operator* is on the left side of an assignment expression.
+   Assignment through the same value of an indirectly writable type may happen only
+   once.
+
+   The required expressions with const_cast prevent indirectly_readable objects with
+   prvalue reference types from satisfying the syntactic requirements of
+   indirectly_writable by accident, while permitting proxy references to continue to
+   work as long as their constness is shallow. See Ranges TS issue 381.

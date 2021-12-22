@@ -1,0 +1,183 @@
+.TH std::ranges::equal 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::equal \- std::ranges::equal
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< std::input_iterator I1, std::sentinel_for<I1> S1,
+
+             std::input_iterator I2, std::sentinel_for<I2> S2,
+             class Pred = ranges::equal_to,
+             class Proj1 = std::identity, class Proj2 = std::identity >     \fB(1)\fP (since
+     requires std::indirectly_comparable<I1, I2, Pred, Proj1, Proj2>            C++20)
+   constexpr bool equal( I1 first1, S1 last1, I2 first2, S2 last2,
+
+                         Pred pred = {}, Proj1 proj1 = {}, Proj2 proj2 = {}
+   );
+   template< ranges::input_range R1, ranges::input_range R2,
+
+             class Pred = ranges::equal_to,
+             class Proj1 = std::identity, class Proj2 = std::identity >
+     requires std::indirectly_comparable<ranges::iterator_t<R1>,            \fB(2)\fP (since
+   ranges::iterator_t<R2>,                                                      C++20)
+                                         Pred, Proj1, Proj2>
+   constexpr bool equal( R1&& r1, R2&& r2, Pred pred = {},
+
+                         Proj1 proj1 = {}, Proj2 proj2 = {} );
+
+   1) Returns true if the projected values of the range [first1, last1) are equal to
+   the projected values of the range [first2, last2), and false otherwise.
+   2) Same as \fB(1)\fP, but uses r as the source range, as if using ranges::begin(r) as
+   first and ranges::end(r) as last.
+
+   Two ranges are considered equal if they have the same number of elements and every
+   pair of corresponding projected elements satisfies pred. That is, std::invoke(pred,
+   std::invoke(proj1, *first1), std::invoke(proj2, *first2)) returns true for all pairs
+   of corresponding elements in both ranges.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists may not be specified when calling any of them.
+     * None of them is visible to argument-dependent lookup.
+     * When one of them is found by normal unqualified lookup for the name to the left
+       of the function-call operator, it inhibits argument-dependent lookup.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first1, last1 - an iterator-sentinel pair denoting the first range of the elements
+                   to compare
+   r1            - the first range of the elements to compare
+   first2, last2 - an iterator-sentinel pair denoting the second range of the elements
+                   to compare
+   r2            - the second range of the elements to compare
+   pred          - predicate to apply to the projected elements
+   proj1         - projection to apply to the first range of elements
+   proj2         - projection to apply to the second range of elements
+
+.SH Return value
+
+   If the length of the range [first1, last1) does not equal the length of the range
+   [first2, last2), returns false.
+
+   If the elements in the two ranges are equal after projection, returns true.
+
+   Otherwise returns false.
+
+.SH Notes
+
+   ranges::equal should not be used to compare the ranges formed by the iterators from
+   std::unordered_set, std::unordered_multiset, std::unordered_map, or
+   std::unordered_multimap because the order in which the elements are stored in those
+   containers may be different even if the two containers store the same elements.
+
+   When comparing entire containers for equality, operator== for the corresponding
+   container are usually preferred.
+
+.SH Complexity
+
+   At most min(last1 - first1, last2 - first2) applications of the predicate and
+   corresponding projections.
+
+   However, if S1 and S2 both model std::sized_sentinel_for their respective iterators,
+   and last1 - first1 != last2 - first2 then no applications of the predicate are made
+   (size mismatch is detected without looking at any elements).
+
+.SH Possible implementation
+
+struct equal_fn {
+  template<std::input_iterator I1, std::sentinel_for<I1> S1,
+           std::input_iterator I2, std::sentinel_for<I2> S2,
+           class Pred = ranges::equal_to,
+           class Proj1 = std::identity, class Proj2 = std::identity>
+    requires std::indirectly_comparable<I1, I2, Pred, Proj1, Proj2>
+  constexpr bool
+  operator()(I1 first1, S1 last1, I2 first2, S2 last2,
+             Pred pred = {}, Proj1 proj1 = {}, Proj2 proj2 = {}) const
+  {
+      if (ranges::distance(first1, last1) != ranges::distance(first2, last2)) {
+        return false;
+      }
+
+      for (; first1 != last1; ++first1, (void)++first2) {
+          if (!std::invoke(pred, std::invoke(proj1, *first1), std::invoke(proj2, *first2))) {
+              return false;
+          }
+      }
+      return true;
+  }
+
+  template<ranges::input_range R1, std::input_range R2,
+           class Pred = ranges::equal_to,
+           class Proj1 = std::identity, class Proj2 = std::identity>
+    requires std::indirectly_comparable<ranges::iterator_t<R1>, ranges::iterator_t<R2>,
+                                        Pred, Proj1, Proj2>
+  constexpr bool
+  operator()(R1&& r1, R2&& r2, Pred pred = {}, Proj1 proj1 = {}, Proj2 proj2 = {}) const
+  {
+      return (*this)(ranges::begin(r1), ranges::end(r1),
+                     ranges::begin(r2), ranges::end(r2),
+                     std::ref(pred), std::ref(proj1), std::ref(proj2));
+  }
+};
+
+inline constexpr equal_fn equal;
+
+.SH Example
+
+   The following code uses equal() to test if a string is a palindrome.
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <iostream>
+ #include <string_view>
+ #include <ranges>
+
+ bool is_palindrome(const std::string_view s)
+ {
+     namespace views = std::views;
+     auto forward = s | views::take(s.size() / 2);
+     auto backward = s | views::reverse | views::take(s.size() / 2);
+     return std::ranges::equal(forward, backward);
+ }
+
+ void test(const std::string_view s)
+ {
+     std::cout << "\\"" << s << "\\" is"
+         << (is_palindrome(s) ? "" : " not")
+         << " a palindrome\\n";
+ }
+
+ int main()
+ {
+     test("radar");
+     test("hello");
+ }
+
+.SH Output:
+
+ "radar" is a palindrome
+ "hello" is not a palindrome
+
+.SH See also
+
+   ranges::find
+   ranges::find_if
+   ranges::find_if_not             finds the first element satisfying specific criteria
+   (C++20)                         (niebloid)
+   (C++20)
+   (C++20)
+   ranges::lexicographical_compare returns true if one range is lexicographically less
+   (C++20)                         than another
+                                   (niebloid)
+   ranges::mismatch                finds the first position where two ranges differ
+   (C++20)                         (niebloid)
+   ranges::search                  searches for a range of elements
+   (C++20)                         (niebloid)
+   equal                           determines if two sets of elements are the same
+                                   \fI(function template)\fP

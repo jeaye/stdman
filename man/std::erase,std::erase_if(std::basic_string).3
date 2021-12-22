@@ -1,32 +1,53 @@
-.TH std::erase,std::erase_if(std::basic_string) 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::erase,std::erase_if(std::basic_string) 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::erase,std::erase_if(std::basic_string) \- std::erase,std::erase_if(std::basic_string)
 
 .SH Synopsis
    Defined in header <string>
    template< class CharT, class Traits, class Alloc, class U >
-   void erase(std::basic_string<CharT,Traits,Alloc>& c, const U&      \fB(1)\fP \fI(since C++20)\fP
+
+   constexpr typename
+   std::basic_string<CharT,Traits,Alloc>::size_type                   \fB(1)\fP \fI(since C++20)\fP
+
+       erase(std::basic_string<CharT,Traits,Alloc>& c, const U&
    value);
    template< class CharT, class Traits, class Alloc, class Pred >
-   void erase_if(std::basic_string<CharT,Traits,Alloc>& c, Pred       \fB(2)\fP \fI(since C++20)\fP
-   pred);
+
+   constexpr typename                                                 \fB(2)\fP \fI(since C++20)\fP
+   std::basic_string<CharT,Traits,Alloc>::size_type
+
+       erase_if(std::basic_string<CharT,Traits,Alloc>& c, Pred pred);
 
    1) Erases all elements that compare equal to value from the container. Equivalent to
-   c.erase(std::remove(c.begin(), c.end(), value), c.end());
+
+ auto it = std::remove(c.begin(), c.end(), value);
+ auto r = std::distance(it, c.end());
+ c.erase(it, c.end());
+ return r;
+
    2) Erases all elements that satisfy the predicate pred from the container.
-   Equivalent to c.erase(std::remove_if(c.begin(), c.end(), pred), c.end());
+   Equivalent to
+
+ auto it = std::remove_if(c.begin(), c.end(), pred);
+ auto r = std::distance(it, c.end());
+ c.erase(it, c.end());
+ return r;
 
 .SH Parameters
 
    c     - container from which to erase
    value - value to be removed
-           unary predicate which returnsý¿¿½£¬true if the element should be erased.
+           unary predicate which returns true if the element should be erased.
 
            The expression pred(v) must be convertible to bool for every argument v of
    pred  - type (possibly const) CharT, regardless of value category, and must not
            modify v. Thus, a parameter type of CharT&is not allowed
            , nor is CharT unless for CharT a move is equivalent to a copy
-           \fI(since C++11)\fP.ý¿¿½£¬
+           \fI(since C++11)\fP.
+
+.SH Return value
+
+   The number of erased elements.
 
 .SH Complexity
 
@@ -34,14 +55,48 @@ std::erase,std::erase_if(std::basic_string) \- std::erase,std::erase_if(std::bas
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <iostream>
+ #include <numeric>
+ #include <string_view>
+ #include <string>
+
+ void print_container(std::string_view comment, const std::string& c)
+ {
+     std::cout << comment;
+     for (auto x : c) {
+         std::cout << x << ' ';
+     }
+     std::cout << '\\n';
+ }
+
+ int main()
+ {
+     std::string cnt(10, ' ');
+     std::iota(cnt.begin(), cnt.end(), '0');
+     print_container("Init:\\n", cnt);
+
+     std::erase(cnt, '3');
+     print_container("Erase '3':\\n", cnt);
+
+     auto erased = std::erase_if(cnt, [](char x) { return (x - '0') % 2 == 0; });
+     print_container("Erase all even numbers:\\n", cnt);
+     std::cout << "In all " << erased << " even numbers were erased.\\n";
+ }
+
+.SH Output:
+
+ Init:
+ 0 1 2 3 4 5 6 7 8 9
+ Erase '3':
+ 0 1 2 4 5 6 7 8 9
+ Erase all even numbers:
+ 1 5 7 9
+ In all 5 even numbers were erased.
 
 .SH See also
 
    remove    removes elements satisfying specific criteria
-   remove_if \fI(function template)\fP 
-
-.SH Category:
-
-     * Todo no example
+   remove_if \fI(function template)\fP

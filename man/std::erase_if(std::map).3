@@ -1,16 +1,20 @@
-.TH std::erase_if(std::map) 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::erase_if(std::map) 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::erase_if(std::map) \- std::erase_if(std::map)
 
 .SH Synopsis
    Defined in header <map>
-   template< class Key, class T, class Compare, class Alloc, class
-   Pred >                                                             \fB(1)\fP \fI(since C++20)\fP
-   void erase_if(std::map<Key,T,Compare,Alloc>& c, Pred pred);
+   template< class Key, class T, class Compare, class Alloc, class Pred
+   >
+                                                                          \fI(since C++20)\fP
+   typename std::map<Key,T,Compare,Alloc>::size_type
+
+       erase_if(std::map<Key,T,Compare,Alloc>& c, Pred pred);
 
    Erases all elements that satisfy the predicate pred from the container. Equivalent
    to
 
+ auto old_size = c.size();
  for (auto i = c.begin(), last = c.end(); i != last; ) {
    if (pred(*i)) {
      i = c.erase(i);
@@ -18,11 +22,16 @@ std::erase_if(std::map) \- std::erase_if(std::map)
      ++i;
    }
  }
+ return old_size - c.size();
 
 .SH Parameters
 
    c    - container from which to erase
    pred - predicate that returns true if the element should be erased
+
+.SH Return value
+
+   The number of erased elements.
 
 .SH Complexity
 
@@ -30,14 +39,46 @@ std::erase_if(std::map) \- std::erase_if(std::map)
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <map>
+ #include <iostream>
+
+ template<typename Os, typename Container>
+ inline Os& operator<<(Os& os, Container const& cont)
+ {
+     os << "{";
+     for (const auto& item : cont) {
+         os << "{" << item.first << ", " << item.second << "}";
+     }
+     return os << "}";
+ }
+
+ int main()
+ {
+     std::map<int, char> data {{1, 'a'},{2, 'b'},{3, 'c'},{4, 'd'},
+                               {5, 'e'},{4, 'f'},{5, 'g'},{5, 'g'}};
+     std::cout << "Original:\\n" << data << '\\n';
+
+     const auto count = std::erase_if(data, [](const auto& item) {
+         auto const& [key, value] = item;
+         return (key & 1) == 1;
+     });
+
+     std::cout << "Erase items with odd keys:\\n" << data << '\\n'
+               << count << " items removed.\\n";
+ }
+
+.SH Output:
+
+ Original:
+ {{1, a}{2, b}{3, c}{4, d}{5, e}}
+ Erase items with odd keys:
+ {{2, b}{4, d}}
+ 3 items removed.
 
 .SH See also
 
    remove    removes elements satisfying specific criteria
-   remove_if \fI(function template)\fP 
-
-.SH Category:
-
-     * Todo no example
+   remove_if \fI(function template)\fP

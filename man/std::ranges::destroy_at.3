@@ -1,0 +1,108 @@
+.TH std::ranges::destroy_at 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::destroy_at \- std::ranges::destroy_at
+
+.SH Synopsis
+   Defined in header <memory>
+   Call signature
+   template< std::destructible T >              \fI(since C++20)\fP
+   constexpr void destroy_at( T* p ) noexcept;
+
+   If T is not an array type, calls the destructor of the object pointed to by p, as if
+   by p->~T(). Otherwise, recursively destroys elements of *p in order, as if by
+   calling std::destroy(std::begin(*p), std::end(*p)).
+
+   When destroy_at is called in the evaluation of some constant expression e, the
+   argument p must point to either storage obtained by std::allocator<T>::allocate or
+   an object whose lifetime began within the evaluation of e.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists may not be specified when calling any of them.
+     * None of them is visible to argument-dependent lookup.
+     * When one of them is found by normal unqualified lookup for the name to the left
+       of the function-call operator, it inhibits argument-dependent lookup.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   p - a pointer to the object to be destroyed
+
+.SH Return value
+
+   \fI(none)\fP
+
+.SH Possible implementation
+
+   struct destroy_at_fn {
+     template<std::destructible T>
+     constexpr void operator()(T *p) const noexcept
+     {
+       if constexpr (std::is_array_v<T>)
+         for (auto &elem : *p)
+           operator()(std::addressof(elem));
+       else
+         p->~T();
+     }
+   };
+
+   inline constexpr destroy_at_fn destroy_at{};
+
+.SH Notes
+
+   destroy_at deduces the type of object to be destroyed and hence avoids writing it
+   explicitly in the destructor call.
+
+.SH Example
+
+   The following example demonstrates how to use ranges::destroy_at to destroy a
+   contiguous sequence of elements.
+
+
+// Run this code
+
+ #include <memory>
+ #include <new>
+ #include <iostream>
+
+ struct Tracer {
+     int value;
+     ~Tracer() { std::cout << value << " destructed\\n"; }
+ };
+
+ int main()
+ {
+     alignas(Tracer) unsigned char buffer[sizeof(Tracer) * 8];
+
+     for (int i = 0; i < 8; ++i)
+         new(buffer + sizeof(Tracer) * i) Tracer{i}; //manually construct objects
+
+     auto ptr = std::launder(reinterpret_cast<Tracer*>(buffer));
+
+     for (int i = 0; i < 8; ++i)
+         std::ranges::destroy_at(ptr + i);
+ }
+
+.SH Output:
+
+ 0 destructed
+ 1 destructed
+ 2 destructed
+ 3 destructed
+ 4 destructed
+ 5 destructed
+ 6 destructed
+ 7 destructed
+
+.SH See also
+
+   ranges::destroy      destroys a range of objects
+   (C++20)              (niebloid)
+   ranges::destroy_n    destroys a number of objects in a range
+   (C++20)              (niebloid)
+   ranges::construct_at creates an object at a given address
+   (C++20)              (niebloid)
+   destroy_at           destroys an object at a given address
+   \fI(C++17)\fP              \fI(function template)\fP

@@ -1,0 +1,147 @@
+.TH std::ranges::is_sorted_until 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::is_sorted_until \- std::ranges::is_sorted_until
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< std::forward_iterator I, std::sentinel_for<I> S, class Proj =
+   std::identity,
+
+             std::indirect_strict_weak_order<std::projected<I, Proj>> Comp  \fB(1)\fP (since
+   = ranges::less >                                                             C++20)
+
+   constexpr I is_sorted_until( I first, S last, Comp comp = {}, Proj proj
+   = {} );
+   template< std::forward_range R, class Proj = std::identity,
+
+             std::indirect_strict_weak_order<
+                 std::projected<ranges::iterator_t<R>, Proj>> Comp =        \fB(2)\fP (since
+   ranges::less >                                                               C++20)
+     constexpr ranges::borrowed_iterator_t<R>
+
+   is_sorted_until( R&& r, Comp comp = {}, Proj proj = {} );
+
+   Examines the range [first, last) and finds the largest range beginning at first in
+   which the elements are sorted in non-descending order.
+
+   A sequence is sorted with respect to a comparator comp if for any iterator it
+   pointing to the sequence and any non-negative integer n such that it + n is a valid
+   iterator pointing to an element of the sequence, std::invoke(comp, std::invoke(proj,
+   *(it + n)), std::invoke(proj, *it)) evaluates to false.
+
+   1) Elements are compared using the given binary comparison function comp.
+   2) Same as \fB(1)\fP, but uses r as the source range, as if using ranges::begin(r) as
+   first and ranges::end(r) as last.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists may not be specified when calling any of them.
+     * None of them is visible to argument-dependent lookup.
+     * When one of them is found by normal unqualified lookup for the name to the left
+       of the function-call operator, it inhibits argument-dependent lookup.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first, last - iterator-sentinel defining the range to find its sorted upper bound
+   r           - the range to find its sorted upper bound
+   comp        - comparison function to apply to the projected elements
+   proj        - projection to apply to the elements
+
+.SH Return value
+
+   The upper bound of the largest range beginning at first in which the elements are
+   sorted in non-descending order. That is, the last iterator it for which range
+   [first, it) is sorted.
+
+.SH Complexity
+
+   Linear in the distance between first and last.
+
+.SH Possible implementation
+
+  struct is_sorted_until_fn {
+    template<std::forward_iterator I, std::sentinel_for<I> S, class Proj = std::identity,
+             std::indirect_strict_weak_order<std::projected<I, Proj>> Comp = ranges::less>
+    constexpr I operator()(I first, S last, Comp comp = {}, Proj proj = {}) const
+    {
+        if (first == last) {
+            return first;
+        }
+
+        auto next = first;
+        while (++next != last) {
+            if (std::invoke(comp, std::invoke(proj, *next), std::invoke(proj, *first))) {
+                return next;
+            }
+            first = next;
+        }
+
+        return first;
+    }
+
+    template< ranges::forward_range R, class Proj = std::identity,
+            std::indirect_strict_weak_order<
+                std::projected<ranges::iterator_t<R>, Proj>> Comp = ranges::less >
+    constexpr ranges::borrowed_iterator_t<R>
+    operator()( R&& r, Comp comp = {}, Proj proj = {} ) const
+    {
+        return (*this)(ranges::begin(r), ranges::end(r),
+                       std::ref(comp), std::ref(proj));
+    }
+  };
+
+  inline constexpr is_sorted_until_fn is_sorted_until;
+
+.SH Notes
+
+   ranges::is_sorted_until returns an iterator equal to last for empty ranges and
+   ranges of length one.
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <iostream>
+ #include <iterator>
+ #include <random>
+
+ int main()
+ {
+     std::random_device rd;
+     std::mt19937 g{rd()};
+     std::array nums {3, 1, 4, 1, 5, 9};
+
+     constexpr int min_sorted_size = 4;
+     int sorted_size = 0;
+     do {
+         std::ranges::shuffle(nums, g);
+         const auto sorted_end = std::ranges::is_sorted_until(nums);
+         sorted_size = std::ranges::distance(nums.begin(), sorted_end);
+
+         std::ranges::copy(nums, std::ostream_iterator<int>(std::cout, " "));
+         std::cout << " : " << sorted_size << " leading sorted element(s)\\n";
+     } while (sorted_size < min_sorted_size);
+ }
+
+.SH Possible output:
+
+ 4 1 9 5 1 3  : 1 leading sorted element(s)
+ 4 5 9 3 1 1  : 3 leading sorted element(s)
+ 9 3 1 4 5 1  : 1 leading sorted element(s)
+ 1 3 5 4 1 9  : 3 leading sorted element(s)
+ 5 9 1 1 3 4  : 2 leading sorted element(s)
+ 4 9 1 5 1 3  : 2 leading sorted element(s)
+ 1 1 4 9 5 3  : 4 leading sorted element(s)
+
+.SH See also
+
+   ranges::is_sorted checks whether a range is sorted into ascending order
+   (C++20)           (niebloid)
+   is_sorted_until   finds the largest sorted subrange
+   \fI(C++11)\fP           \fI(function template)\fP

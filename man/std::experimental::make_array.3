@@ -1,4 +1,4 @@
-.TH std::experimental::make_array 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::experimental::make_array 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::experimental::make_array \- std::experimental::make_array
 
@@ -18,27 +18,32 @@ std::experimental::make_array \- std::experimental::make_array
    If D is void and any of std::decay_t<Types>... is a specialization of
    std::reference_wrapper, the program is ill-formed.
 
+.SH Notes
+
+   make_array is removed in Library Fundamentals TS v3 because the deduction guide for
+   std::array and std::to_array have been already in C++20.
+
 .SH Possible implementation
 
  namespace details {
    template<class> struct is_ref_wrapper : std::false_type {};
    template<class T> struct is_ref_wrapper<std::reference_wrapper<T>> : std::true_type {};
-  
+
    template<class T>
    using not_ref_wrapper = std::negation<is_ref_wrapper<std::decay_t<T>>>;
-  
+
    template <class D, class...> struct return_type_helper { using type = D; };
    template <class... Types>
    struct return_type_helper<void, Types...> : std::common_type<Types...> {
        static_assert(std::conjunction_v<not_ref_wrapper<Types>...>,
                      "Types cannot contain reference_wrappers when D is void");
    };
-  
+
    template <class D, class... Types>
    using return_type = std::array<typename return_type_helper<D, Types...>::type,
                                   sizeof...(Types)>;
  }
-  
+
  template < class D = void, class... Types>
  constexpr details::return_type<D, Types...> make_array(Types&&... t) {
    return {std::forward<Types>(t)... };
@@ -46,16 +51,16 @@ std::experimental::make_array \- std::experimental::make_array
 
 .SH Example
 
-   
+
 // Run this code
 
  #include <experimental/array>
  #include <iostream>
  #include <type_traits>
-  
+
  int main()
  {
-     decltype(auto) arr = std::experimental::make_array(1, 2, 3, 4, 5);
+     auto arr = std::experimental::make_array(1, 2, 3, 4, 5);
      bool is_array_of_5_ints = std::is_same<decltype(arr), std::array<int, 5>>::value;
      std::cout << "Returns an array of five ints? ";
      std::cout << std::boolalpha << is_array_of_5_ints << '\\n';
@@ -70,4 +75,4 @@ std::experimental::make_array \- std::experimental::make_array
    C++ documentation for
    std::array deduction guides
    to_array Creates a std::array object from a built-in array
-            \fI(function template)\fP 
+            \fI(function template)\fP

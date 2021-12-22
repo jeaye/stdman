@@ -1,11 +1,13 @@
-.TH std::not_fn 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::not_fn 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::not_fn \- std::not_fn
 
 .SH Synopsis
    Defined in header <functional>
-   template< class F>                \fI(since C++17)\fP
-   /*unspecified*/ not_fn( F&& f );
+   template< class F>                          \fI(since C++17)\fP
+   /*unspecified*/ not_fn( F&& f );            \fI(until C++20)\fP
+   template< class F>                          \fI(since C++20)\fP
+   constexpr /*unspecified*/ not_fn( F&& f );
 
    Creates a forwarding call wrapper that returns the negation of the callable object
    it holds.
@@ -32,12 +34,15 @@ std::not_fn return type
 
     Constructors
 
-   explicit T(F&& f);       \fB(1)\fP
-   T(T&& f) = default;      \fB(2)\fP
+   explicit T(F&& f); // exposition only                   \fI(since C++17)\fP
+                                                           \fI(until C++20)\fP
+   explicit constexpr T(F&& f); // exposition only \fB(1)\fP     \fI(since C++20)\fP
+   T(T&& f) = default;                                 \fB(2)\fP
    T(const T& f) = default;
 
-   1) The constructor initializes the member object (of type std::decay_t<F>) from
-   std::forward<F>(f). Throws any exception thrown by the constructor selected
+   1) The constructor direct-non-list-initializes the member object (of type
+   std::decay_t<F>) from std::forward<F>(f). Throws any exception thrown by the
+   constructor selected
    2) Because std::decay_t<F> is required to be MoveConstructible, the returned call
    wrapper is always MoveConstructible, and is CopyConstructible if std::decay_t<F> is
    CopyConstructible.
@@ -46,37 +51,140 @@ std::not_fn return type
 
    template<class... Args> auto operator()(Args&&... args) &
 
-    -> decltype(!std::declval<std::invoke_result_t<std::decay_t<F>&, Args...>>());
-   template<class... Args> auto operator()(Args&&... args) const&                  \fB(1)\fP
+   -> decltype(
+       !std::declval<std::invoke_result_t<std::decay_t<F>&,             (since
+   Args...>>());                                                        C++17)
+   template<class... Args> auto operator()(Args&&... args)              (until
+   const&                                                               C++20)
+   -> decltype(
 
-    -> decltype(!std::declval<std::invoke_result_t<std::decay_t<F> const&,
-   Args...>>());
+       !std::declval<std::invoke_result_t<std::decay_t<F>
+   const&, Args...>>());
+   template<class... Args> constexpr auto operator()(Args&&...
+   args) &
+
+      noexcept(/*see below*/)
+   -> decltype(
+       !std::declval<std::invoke_result_t<std::decay_t<F>&,
+   Args...>>());                                                        (since
+   template<class... Args> constexpr auto operator()(Args&&...          C++20)
+   args) const&
+      noexcept(/*see below*/)
+   -> decltype(
+
+       !std::declval<std::invoke_result_t<std::decay_t<F>
+   const&, Args...>>());                                        \fB(1)\fP
    template<class... Args> auto operator()(Args&&... args) &&
 
-   -> decltype(!std::declval<std::invoke_result_t<std::decay_t<F>, Args...>>());
-   template<class... Args> auto operator()(Args&&... args) const&&                 \fB(2)\fP
+   -> decltype(
+       !std::declval<std::invoke_result_t<std::decay_t<F>,                      (since
+   Args...>>());                                                                C++17)
+   template<class... Args> auto operator()(Args&&... args)                      (until
+   const&&                                                                      C++20)
+   -> decltype(
 
-   -> decltype(!std::declval<std::invoke_result_t<std::decay_t<F> const,
-   Args...>>());
+       !std::declval<std::invoke_result_t<std::decay_t<F>
+   const, Args...>>());
+   template<class... Args> constexpr auto operator()(Args&&...
+   args) &&                                                         \fB(2)\fP
 
-   1) Equivalent to return !std::invoke(fd, std::forward<Args>(args)...)
-   2) Equivalent to return !std::invoke(std::move(fd), std::forward<Args>(args)...)
+      noexcept(/*see below*/)
+   -> decltype(
+       !std::declval<std::invoke_result_t<std::decay_t<F>,
+   Args...>>());                                                                (since
+   template<class... Args> constexpr auto operator()(Args&&...                  C++20)
+   args) const&&
+      noexcept(/*see below*/)
+   -> decltype(
+
+       !std::declval<std::invoke_result_t<std::decay_t<F>
+   const, Args...>>());
+
+   1) Equivalent to return !std::invoke(fd, std::forward<Args>(args)...); \fI(since C++17)\fP
+   2) Equivalent to return !std::invoke(std::move(fd),                    \fI(until C++20)\fP
+   std::forward<Args>(args)...);
+   1) Expression-equivalent to !std::invoke(fd,
+   std::forward<Args>(args)...)                                           \fI(since C++20)\fP
+   2) Expression-equivalent to !std::invoke(std::move(fd),
+   std::forward<Args>(args)...)
 
    where fd is the member object of type std::decay_t<F>
+
+   Expression-equivalent
+
+   Expression e is expression-equivalent to expression f, if e and f have the same
+   effects, either are both potentially-throwing or are both not potentially-throwing
+   (i.e. noexcept(e) == noexcept(f)), and either are both constant subexpressions or
+   are both not constant subexpressions.
 
 .SH Exceptions
 
    Throws no exceptions, unless the construction of fd throws.
 
+.SH Possible implementation
+
+   namespace detail {
+       template<class F>
+       struct not_fn_t {
+           F f;
+           template<class... Args>
+           constexpr auto operator()(Args&&... args) &
+               noexcept(noexcept(!std::invoke(f, std::forward<Args>(args)...)))
+               -> decltype(!std::invoke(f, std::forward<Args>(args)...))
+           {
+               return !std::invoke(f, std::forward<Args>(args)...);
+           }
+
+           template<class... Args>
+           constexpr auto operator()(Args&&... args) const&
+               noexcept(noexcept(!std::invoke(f, std::forward<Args>(args)...)))
+               -> decltype(!std::invoke(f, std::forward<Args>(args)...))
+           {
+               return !std::invoke(f, std::forward<Args>(args)...);
+           }
+
+           template<class... Args>
+           constexpr auto operator()(Args&&... args) &&
+               noexcept(noexcept(!std::invoke(std::move(f), std::forward<Args>(args)...)))
+               -> decltype(!std::invoke(std::move(f), std::forward<Args>(args)...))
+           {
+               return !std::invoke(std::move(f), std::forward<Args>(args)...);
+           }
+
+           template<class... Args>
+           constexpr auto operator()(Args&&... args) const&&
+               noexcept(noexcept(!std::invoke(std::move(f), std::forward<Args>(args)...)))
+               -> decltype(!std::invoke(std::move(f), std::forward<Args>(args)...))
+           {
+               return !std::invoke(std::move(f), std::forward<Args>(args)...);
+           }
+       };
+   }
+
+   template<class F>
+   constexpr detail::not_fn_t<std::decay_t<F>> not_fn(F&& f)
+   {
+       return { std::forward<F>(f) };
+   }
+
 .SH Notes
 
    not_fn is intended to replace the C++03-era negators std::not1 and std::not2.
 
+.SH Example
+
+    This section is incomplete
+    Reason: no example
+
 .SH See also
 
    not1                  constructs custom std::unary_negate object
-   (deprecated in C++17) \fI(function template)\fP 
+   (deprecated in C++17) \fI(function template)\fP
    (removed in C++20)
    not2                  constructs custom std::binary_negate object
-   (deprecated in C++17) \fI(function template)\fP 
+   (deprecated in C++17) \fI(function template)\fP
    (removed in C++20)
+
+.SH Category:
+
+     * Todo no example

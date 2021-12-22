@@ -1,21 +1,16 @@
-.TH std::defer_lock_t,std::try_to_lock_t,std::adopt_lock_t 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::defer_lock_t,std::try_to_lock_t,std::adopt_lock_t 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::defer_lock_t,std::try_to_lock_t,std::adopt_lock_t \- std::defer_lock_t,std::try_to_lock_t,std::adopt_lock_t
 
 .SH Synopsis
    Defined in header <mutex>
-   struct defer_lock_t { };
-                                                                  \fI(since C++11)\fP
-   struct try_to_lock_t { };                                      \fI(until C++17)\fP
-
-   struct adopt_lock_t { };
    struct defer_lock_t { explicit defer_lock_t() = default; };
 
-   struct try_to_lock_t { explicit try_to_lock_t() = default; };  \fI(since C++17)\fP
+   struct try_to_lock_t { explicit try_to_lock_t() = default; };  \fI(since C++11)\fP
 
    struct adopt_lock_t { explicit adopt_lock_t() = default; };
 
-   std::defer_lock_t, std::try_to_lock_t and std::adopt_lock_t are empty struct tag
+   std::defer_lock_t, std::try_to_lock_t and std::adopt_lock_t are empty class tag
    types used to specify locking strategy for std::lock_guard, std::scoped_lock,
    std::unique_lock, and std::shared_lock.
 
@@ -26,19 +21,19 @@ std::defer_lock_t,std::try_to_lock_t,std::adopt_lock_t \- std::defer_lock_t,std:
 
 .SH Example
 
-   
-   
+
+
 // Run this code
 
  #include <mutex>
  #include <thread>
-  
+
  struct bank_account {
      explicit bank_account(int balance) : balance(balance) {}
      int balance;
      std::mutex m;
  };
-  
+
  void transfer(bank_account &from, bank_account &to, int amount)
  {
      // lock both mutexes without deadlock
@@ -46,37 +41,46 @@ std::defer_lock_t,std::try_to_lock_t,std::adopt_lock_t \- std::defer_lock_t,std:
      // make sure both already-locked mutexes are unlocked at the end of scope
      std::lock_guard<std::mutex> lock1(from.m, std::adopt_lock);
      std::lock_guard<std::mutex> lock2(to.m, std::adopt_lock);
-  
+
  // equivalent approach:
  //    std::unique_lock<std::mutex> lock1(from.m, std::defer_lock);
  //    std::unique_lock<std::mutex> lock2(to.m, std::defer_lock);
  //    std::lock(lock1, lock2);
-  
+
      from.balance -= amount;
      to.balance += amount;
  }
-  
+
  int main()
  {
      bank_account my_account(100);
      bank_account your_account(50);
-  
+
      std::thread t1(transfer, std::ref(my_account), std::ref(your_account), 10);
      std::thread t2(transfer, std::ref(your_account), std::ref(my_account), 5);
-  
+
      t1.join();
      t2.join();
  }
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 2510 C++11      the default constructors were non-explicit,     made explicit
+                       which could lead to ambiguity
 
 .SH See also
 
    defer_lock
    try_to_lock
    adopt_lock    tag constants used to specify locking strategy
-   \fI(C++11)\fP       (constant) 
+   \fI(C++11)\fP       (constant)
    \fI(C++11)\fP
    \fI(C++11)\fP
    constructor   constructs a lock_guard, optionally locking the given mutex
-                 \fI(public member function of std::lock_guard<Mutex>)\fP 
+                 \fI(public member function of std::lock_guard<Mutex>)\fP
    constructor   constructs a unique_lock, optionally locking the supplied mutex
-                 \fI(public member function of std::unique_lock<Mutex>)\fP 
+                 \fI(public member function of std::unique_lock<Mutex>)\fP

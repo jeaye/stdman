@@ -1,11 +1,11 @@
-.TH std::bind_front 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::bind_front 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::bind_front \- std::bind_front
 
 .SH Synopsis
    Defined in header <functional>
-   template <class F, class... Args>                     \fI(since C++20)\fP
-   /*unspecified*/ bind_front( F&& f, Args&&... args );
+   template <class F, class... Args>                               \fI(since C++20)\fP
+   constexpr /*unspecified*/ bind_front( F&& f, Args&&... args );
 
    The function template bind_front generates a forwarding call wrapper for f. Calling
    this wrapper is equivalent to invoking f with its first sizeof...(Args) parameters
@@ -14,7 +14,7 @@ std::bind_front \- std::bind_front
    In other words, std::bind_front(f, bound_args...)(call_args...) is equivalent to
    std::invoke(f, bound_args..., call_args....).
 
-   The program is ill-formed if any of the following is not true:
+   The program is ill-formed if any of the following is false:
 
      * std::is_constructible_v<std::decay_t<F>, F>
      * std::is_move_constructible_v<std::decay_t<F>>
@@ -44,10 +44,11 @@ std::bind_front return type
 .SH Member objects
 
    The returned object behaves as if it holds a member object fd of type
-   std::decay_t<F> constructed from std::forward<F>(f), and an std::tuple object tup
-   constructed with std::make_tuple(std::forward<Args>(args)...) (this unwraps any
-   std::reference_wrappers), except that the returned object's assignment behavior is
-   unspecified and the names are for exposition only.
+   std::decay_t<F> direct-non-list-initialized from std::forward<F>(f), and an
+   std::tuple object tup constructed with
+   std::tuple<std::decay_t<Args>...>(std::forward<Args>(args)...), except that the
+   returned object's assignment behavior is unspecified and the names are for
+   exposition only.
 
     Constructors
 
@@ -85,9 +86,9 @@ std::bind_front return type
 
    This function is intended to replace std::bind. Unlike std::bind, it does not
    support arbitrary argument rearrangement and has no special treatment for nested
-   bind-expressions. On the other hand, it pays attention to the value category of the
-   call wrapper object and propagates exception specification of the underlying call
-   operator.
+   bind-expressions or std::reference_wrappers. On the other hand, it pays attention to
+   the value category of the call wrapper object and propagates exception specification
+   of the underlying call operator.
 
    As described in std::invoke, when invoking a pointer to non-static member function
    or pointer to non-static data member, the first argument has to be a reference or
@@ -99,16 +100,27 @@ std::bind_front return type
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <functional>
+ #include <iostream>
+ int minus(int a, int b){
+     return a-b;
+ }
+ int main()
+ {
+     auto fifty_minus = std::bind_front(minus, 50);
+     std::cout << fifty_minus (3);
+ }
+
+.SH Output:
+
+ 47
 
 .SH See also
 
    bind    binds one or more arguments to a function object
-   \fI(C++11)\fP \fI(function template)\fP 
+   \fI(C++11)\fP \fI(function template)\fP
    mem_fn  creates a function object out of a pointer to a member
-   \fI(C++11)\fP \fI(function template)\fP 
-
-.SH Category:
-
-     * Todo no example
+   \fI(C++11)\fP \fI(function template)\fP

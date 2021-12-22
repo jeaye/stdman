@@ -1,4 +1,4 @@
-.TH std::recursive_mutex 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::recursive_mutex 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::recursive_mutex \- std::recursive_mutex
 
@@ -34,18 +34,64 @@ std::recursive_mutex \- std::recursive_mutex
 .SH Member functions
 
    constructor   constructs the mutex
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    destructor    destroys the mutex
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    operator=     not copy-assignable
-   [deleted]     \fI(public member function)\fP 
+   [deleted]     \fI(public member function)\fP
 .SH Locking
    lock          locks the mutex, blocks if the mutex is not available
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    try_lock      tries to lock the mutex, returns if the mutex is not available
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    unlock        unlocks the mutex
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
 .SH Native handle
    native_handle returns the underlying implementation-defined native handle object
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
+
+.SH Example
+
+   one use case for recursive_mutex is protecting shared state in a class whose member
+   functions may call each other
+
+
+// Run this code
+
+ #include <iostream>
+ #include <thread>
+ #include <mutex>
+
+ class X {
+     std::recursive_mutex m;
+     std::string shared;
+   public:
+     void fun1() {
+       std::lock_guard<std::recursive_mutex> lk(m);
+       shared = "fun1";
+       std::cout << "in fun1, shared variable is now " << shared << '\\n';
+     }
+     void fun2() {
+       std::lock_guard<std::recursive_mutex> lk(m);
+       shared = "fun2";
+       std::cout << "in fun2, shared variable is now " << shared << '\\n';
+       fun1(); // recursive lock becomes useful here
+       std::cout << "back in fun2, shared variable is " << shared << '\\n';
+     };
+ };
+
+ int main()
+ {
+     X x;
+     std::thread t1(&X::fun1, &x);
+     std::thread t2(&X::fun2, &x);
+     t1.join();
+     t2.join();
+ }
+
+.SH Possible output:
+
+ in fun1, shared variable is now fun1
+ in fun2, shared variable is now fun2
+ in fun1, shared variable is now fun1
+ back in fun2, shared variable is fun1

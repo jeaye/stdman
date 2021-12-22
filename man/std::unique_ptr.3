@@ -1,4 +1,4 @@
-.TH std::unique_ptr 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::unique_ptr 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unique_ptr \- std::unique_ptr
 
@@ -20,14 +20,14 @@ std::unique_ptr \- std::unique_ptr
    std::unique_ptr is a smart pointer that owns and manages another object through a
    pointer and disposes of that object when the unique_ptr goes out of scope.
 
-   The object is disposed of using the associated deleter when either of the following
+   The object is disposed of, using the associated deleter when either of the following
    happens:
 
      * the managing unique_ptr object is destroyed
      * the managing unique_ptr object is assigned another pointer via operator= or
        reset().
 
-   The object is disposed of using a potentially user-supplied deleter by calling
+   The object is disposed of, using a potentially user-supplied deleter by calling
    get_deleter()(ptr). The default deleter uses the delete operator, which destroys the
    object and deallocates the memory.
 
@@ -101,58 +101,61 @@ std::unique_ptr \- std::unique_ptr
 .SH Member functions
 
    constructor   constructs a new unique_ptr
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    destructor    destructs the managed object if such is present
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    operator=     assigns the unique_ptr
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
 .SH Modifiers
    release       returns a pointer to the managed object and releases the ownership
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    reset         replaces the managed object
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    swap          swaps the managed objects
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
 .SH Observers
    get           returns a pointer to the managed object
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    get_deleter   returns the deleter that is used for destruction of the managed object
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    operator bool checks if there is an associated managed object
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
 .SH Single-object version, unique_ptr<T>
    operator*     dereferences pointer to the managed object
-   operator->    \fI(public member function)\fP 
+   operator->    \fI(public member function)\fP
 .SH Array version, unique_ptr<T[]>
    operator[]    provides indexed access to the managed array
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
 
 .SH Non-member functions
 
    make_unique
-   make_unique_default_init   creates a unique pointer that manages a new object
-   \fI(C++14)\fP                    \fI(function template)\fP 
+   make_unique_for_overwrite  creates a unique pointer that manages a new object
+   \fI(C++14)\fP                    \fI(function template)\fP
    (C++20)
    operator==
    operator!=
-   operator<                  compares to another unique_ptr or with nullptr
-   operator<=                 \fI(function template)\fP 
-   operator>
+   operator<
+   operator<=                 compares to another unique_ptr or with nullptr
+   operator>                  \fI(function template)\fP
    operator>=
+   operator<=>
+   (removed in C++20)
+   (C++20)
    operator<<                 outputs the value of the managed pointer to an output
    (C++20)                    stream
-                              \fI(function template)\fP 
+                              \fI(function template)\fP
    std::swap(std::unique_ptr) specializes the std::swap algorithm
-   \fI(C++11)\fP                    \fI(function template)\fP 
+   \fI(C++11)\fP                    \fI(function template)\fP
 
 .SH Helper classes
 
    std::hash<std::unique_ptr> hash support for std::unique_ptr
-   \fI(C++11)\fP                    \fI(class template specialization)\fP 
+   \fI(C++11)\fP                    \fI(class template specialization)\fP
 
 .SH Example
 
-   
+
 // Run this code
 
  #include <iostream>
@@ -162,7 +165,8 @@ std::unique_ptr \- std::unique_ptr
  #include <fstream>
  #include <cassert>
  #include <functional>
-  
+
+ // helper class for runtime polymorphism demo below
  struct B {
    virtual void bar() { std::cout << "B::bar\\n"; }
    virtual ~B() = default;
@@ -173,16 +177,37 @@ std::unique_ptr \- std::unique_ptr
      ~D() { std::cout << "D::~D\\n";  }
      void bar() override { std::cout << "D::bar\\n";  }
  };
-  
+
  // a function consuming a unique_ptr can take it by value or by rvalue reference
  std::unique_ptr<D> pass_through(std::unique_ptr<D> p)
  {
      p->bar();
      return p;
  }
-  
+
+ // helper function for the custom deleter demo below
  void close_file(std::FILE* fp) { std::fclose(fp); }
-  
+
+ // unique_ptr-based linked list demo
+ struct List {
+   struct Node {
+     int data;
+     std::unique_ptr<Node> next;
+     Node(int data) : data{data}, next{nullptr} {}
+   };
+   List() : head{nullptr} {};
+   // N.B. iterative destructor to avoid stack overflow on long lists
+   ~List() { while(head) head = std::move(head->next); }
+   // copy/move and other APIs skipped for simplicity
+   void push(int data) {
+     auto temp = std::make_unique<Node>(data);
+     if(head) temp->next = std::move(head);
+     head = std::move(temp);
+   }
+ private:
+   std::unique_ptr<Node> head;
+ };
+
  int main()
  {
    std::cout << "unique ownership semantics demo\\n";
@@ -192,20 +217,20 @@ std::unique_ptr \- std::unique_ptr
        assert(!p); // now p owns nothing and holds a null pointer
        q->bar();   // and q owns the D object
    } // ~D called here
-  
+
    std::cout << "Runtime polymorphism demo\\n";
    {
      std::unique_ptr<B> p = std::make_unique<D>(); // p is a unique_ptr that owns a D
                                                    // as a pointer to base
      p->bar(); // virtual dispatch
-  
+
      std::vector<std::unique_ptr<B>> v;  // unique_ptr can be stored in a container
      v.push_back(std::make_unique<D>());
      v.push_back(std::move(p));
      v.emplace_back(new D);
      for(auto& p: v) p->bar(); // virtual dispatch
    } // ~D called 3 times
-  
+
    std::cout << "Custom deleter demo\\n";
    std::ofstream("demo.txt") << 'x'; // prepare the file to read
    {
@@ -215,7 +240,7 @@ std::unique_ptr \- std::unique_ptr
          std::cout << (char)std::fgetc(fp.get()) << '\\n';
    } // fclose() called here, but only if FILE* is not a null pointer
      // (that is, if fopen succeeded)
-  
+
    std::cout << "Custom lambda-expression deleter demo\\n";
    {
      std::unique_ptr<D, std::function<void(D*)>> p(new D, [](D* ptr)
@@ -225,11 +250,17 @@ std::unique_ptr \- std::unique_ptr
          });  // p owns D
      p->bar();
    } // the lambda above is called and D is destroyed
-  
+
    std::cout << "Array form of unique_ptr demo\\n";
    {
        std::unique_ptr<D[]> p{new D[3]};
    } // calls ~D 3 times
+
+   std::cout << "Linked list demo\\n";
+   {
+     List l;
+     for(long n = 0; n != 1'000'000; ++n) l.push(n);
+   } // destroys all 1 million nodes
  }
 
 .SH Output:

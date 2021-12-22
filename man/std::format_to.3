@@ -1,0 +1,137 @@
+.TH std::format_to 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::format_to \- std::format_to
+
+.SH Synopsis
+   Defined in header <format>
+   template<class OutputIt, class... Args>
+   OutputIt format_to(OutputIt out, std::string_view fmt, const       \fB(1)\fP \fI(since C++20)\fP
+   Args&... args);
+   template<class OutputIt, class... Args>
+   OutputIt format_to(OutputIt out, std::wstring_view fmt, const      \fB(2)\fP \fI(since C++20)\fP
+   Args&... args);
+   template<class OutputIt, class... Args>
+
+   OutputIt format_to(OutputIt out, const std::locale& loc,           \fB(3)\fP \fI(since C++20)\fP
+
+                      std::string_view fmt, const Args&... args);
+   template<class OutputIt, class... Args>
+
+   OutputIt format_to(OutputIt out, const std::locale& loc,           \fB(4)\fP \fI(since C++20)\fP
+
+                      std::wstring_view fmt, const Args&... args);
+
+   Format args according to the format string fmt, and write the result to the output
+   iterator out. If present, loc is used for locale-specific formatting.
+
+   Let CharT be decltype(fmt)::char_type (char for overloads (1,3), wchar_t for
+   overloads (2,4)).
+
+   These overloads only participate in overload resolution if OutputIt satisfies the
+   concept std::output_iterator<const CharT&>.
+
+   The behavior is undefined if OutputIt does not model (meet the semantic requirements
+   of) the the concept std::output_iterator<const CharT&>, or if std::formatter<Ti,
+   CharT> does not meet the Formatter requirements for any Ti in Args.
+
+.SH Parameters
+
+   out     - iterator to the output buffer
+             string view representing the format string.
+
+             The format string consists of
+
+               * ordinary characters (except { and }), which are copied unchanged to
+                 the output,
+               * escape sequences {{ and }}, which are replaced with { and }
+                 respectively in the output, and
+               * replacement fields.
+
+             Each replacement field has the following format:
+
+               * introductory { character;
+               * (optional) arg-id, a non-negative number;
+               * (optional) a colon (:) followed by a format specification;
+   fmt     -   * final } character.
+
+             arg-id specifies the index of the argument in args whose value is to be
+             used for formatting; if arg-id is omitted, the arguments are used in
+             order. The arg-ids in a format string must all be present or all be
+             omitted. Mixing manual and automatic indexing is an error.
+
+             The format specification is defined by the std::formatter specialization
+             for the corresponding argument.
+
+               * For basic types and standard string types, the format specification is
+                 interpreted as standard format specification.
+               * For chrono types, the format specification is interpreted as chrono
+                 format specification.
+               * For other formattable types, the format specification is determined by
+                 user-defined formatter specializations.
+   args... - arguments to be formatted
+   loc     - std::locale used for locale-specific formatting
+
+.SH Return value
+
+   iterator past the end of the output range
+
+.SH Exceptions
+
+   Throws std::format_error if fmt is not a valid format string for the provided
+   arguments. Also propagates any exception thrown by formatter or iterator operations.
+
+.SH Example
+
+
+// Run this code
+
+ #include <format>
+ #include <iostream>
+ #include <iterator>
+ #include <string>
+
+ auto main() -> int
+ {
+     std::string buffer;
+
+     std::format_to(
+         std::back_inserter(buffer), //< OutputIt
+         "Hello, C++{}!\\n",          //< fmt
+         "20");                      //< arg
+     std::cout << buffer;
+     buffer.clear();
+
+     std::format_to(
+         std::back_inserter(buffer), //< OutputIt
+         "Hello, {0}::{1}!{2}",      //< fmt
+         "std",                      //< arg {0}
+         "format_to()",              //< arg {1}
+         "\\n",                       //< arg {2}
+         "extra param(s)...");       //< unused
+     std::cout << buffer;
+
+     std::wstring wbuffer;
+     std::format_to(
+         std::back_inserter(wbuffer),//< OutputIt
+         L"Hello, {2}::{1}!{0}",     //< fmt
+         L"\\n",                      //< arg {0}
+         L"format_to()",             //< arg {1}
+         L"std",                     //< arg {2}
+         L"...is not..."             //< unused
+         L"...an error!");           //< unused
+     std::wcout << wbuffer;
+ }
+
+.SH Output:
+
+ Hello, C++20!
+ Hello, std::format_to()!
+ Hello, std::format_to()!
+
+.SH See also
+
+   format      stores formatted representation of the arguments in a new string
+   (C++20)     \fI(function template)\fP
+   format_to_n writes out formatted representation of its arguments through an output
+   (C++20)     iterator, not exceeding specified size
+               \fI(function template)\fP

@@ -1,4 +1,4 @@
-.TH std::midpoint 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::midpoint 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::midpoint \- std::midpoint
 
@@ -11,14 +11,14 @@ std::midpoint \- std::midpoint
 
    Computes the midpoint of the integers, floating-points, or pointers a and b.
 
+   1) This overload only participates in overload resolution if T is an arithmetic type
+   other than bool.
+   2) This overload only participates in overload resolution if T is an object type.
+   Use of this overload is ill-formed if T is an incomplete type.
+
 .SH Parameters
 
-   a, b    -    intergers, floating-points, or pointer values
-.SH Type requirements
-   -
-   T must be an arithmetic type other than bool for overload \fB(1)\fP
-   -
-   T must be a complete object type for overload \fB(2)\fP
+   a, b - integers, floating-points, or pointer values
 
 .SH Return value
 
@@ -26,19 +26,76 @@ std::midpoint \- std::midpoint
    sum is odd, the result is rounded towards a. If a and b have floating-point type, at
    most one inexact operation occurs.
    2) If a and b point to, respectively, x[i] and x[j] of the same array object x (for
-   the purpose of pointer arithmetic), returns a pointer to x[i+(j-i)/2] where the
-   division rounds towards zero. If a and b do not point to elements of the same array
-   object, the behavior is undefined.
+   the purpose of pointer arithmetic), returns a pointer to x[i+(j-i)/2] (or,
+   equivalently x[std::midpoint(i, j)]) where the division rounds towards zero. If a
+   and b do not point to elements of the same array object, the behavior is undefined.
 
 .SH Exceptions
 
    Throws no exceptions.
 
-.SH Examples
+.SH Notes
 
-    This section is incomplete
-    Reason: no example
+   Overload \fB(2)\fP can be simply implemented as return a + (b - a) / 2; on common
+   platforms. However, such implementation is not guaranteed to be portable, because
+   there may be some platforms where creating an array with number of elements greater
+   than PTRDIFF_MAX is possible, and b - a may result in undefined behavior even if
+   both b and a point elements in the same array.
 
-.SH Category:
+.SH Example
 
-     * Todo no example
+
+// Run this code
+
+ #include <cstdint>
+ #include <limits>
+ #include <numeric>
+ #include <iostream>
+
+ int main()
+ {
+     std::uint32_t a = std::numeric_limits<std::uint32_t>::max();
+     std::uint32_t b = std::numeric_limits<std::uint32_t>::max() - 2;
+
+     std::cout << "a: " << a << '\\n'
+               << "b: " << b << '\\n'
+               << "Incorrect (overflow and wrapping): " << (a + b) / 2 << '\\n'
+               << "Correct: " << std::midpoint(a, b) << "\\n\\n";
+
+
+     auto on_pointers = [](int i, int j) {
+         char const* text = "0123456789";
+         char const* p = text + i;
+         char const* q = text + j;
+         std::cout << "std::midpoint('" << *p << "', '" << *q << "'): '"
+                   << *std::midpoint(p, q) << "'\\n";
+     };
+
+     on_pointers(2, 4);
+     on_pointers(2, 5);
+     on_pointers(5, 2);
+     on_pointers(2, 6);
+ }
+
+.SH Output:
+
+ a: 4294967295
+ b: 4294967293
+ Incorrect (overflow and wrapping): 2147483646
+ Correct: 4294967294
+
+ std::midpoint('2', '4'): '3'
+ std::midpoint('2', '5'): '3'
+ std::midpoint('5', '2'): '4'
+ std::midpoint('2', '6'): '4'
+
+.SH References
+
+     * C++20 standard (ISO/IEC 14882:2020):
+
+     * 25.10.15 Midpoint [numeric.ops.midpoint]
+
+.SH See also
+
+   lerp    linear interpolation function
+   (C++20) \fI(function)\fP

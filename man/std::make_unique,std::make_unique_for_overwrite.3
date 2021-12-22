@@ -1,0 +1,178 @@
+.TH std::make_unique,std::make_unique_for_overwrite 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::make_unique,std::make_unique_for_overwrite \- std::make_unique,std::make_unique_for_overwrite
+
+.SH Synopsis
+   Defined in header <memory>
+   template< class T, class... Args >                    \fB(1)\fP \fI(since C++14)\fP
+   unique_ptr<T> make_unique( Args&&... args );              (only for non-array types)
+   template< class T >                                       \fI(since C++14)\fP
+   unique_ptr<T> make_unique( std::size_t size );        \fB(2)\fP (only for array types with
+                                                             unknown bound)
+   template< class T, class... Args >                        \fI(since C++14)\fP
+   /* unspecified */ make_unique( Args&&... args ) =     \fB(3)\fP (only for array types with
+   delete;                                                   known bound)
+   template< class T  >                                  \fB(4)\fP \fI(since C++20)\fP
+   unique_ptr<T> make_unique_for_overwrite( );               (only for non-array types)
+   template< class T >                                       \fI(since C++20)\fP
+   unique_ptr<T> make_unique_for_overwrite( std::size_t  \fB(5)\fP (only for array types with
+   size );                                                   unknown bound)
+   template< class T, class... Args >                        \fI(since C++20)\fP
+   /* unspecified */ make_unique_for_overwrite(          \fB(6)\fP (only for array types with
+   Args&&... args ) = delete;                                known bound)
+
+   Constructs an object of type T and wraps it in a std::unique_ptr.
+
+   1) Constructs a non-array type T. The arguments args are passed to the constructor
+   of T. This overload only participates in overload resolution if T is not an array
+   type. The function is equivalent to:
+
+ unique_ptr<T>(new T(std::forward<Args>(args)...))
+
+   2) Constructs an array of unknown bound T. This overload only participates in
+   overload resolution if T is an array of unknown bound. The function is equivalent
+   to:
+
+ unique_ptr<T>(new typename std::remove_extent<T>::type[size]())
+
+   3,6) Construction of arrays of known bound is disallowed.
+   4) Same as \fB(1)\fP, except that the object is default-initialized. This overload only
+   participates in overload resolution if T is not an array type. The function is
+   equivalent to:
+
+ unique_ptr<T>(new T)
+
+   5) Same as \fB(2)\fP, except that the array is default-initialized. This overload only
+   participates in overload resolution if T is an array of unknown bound. The function
+   is equivalent to:
+
+ unique_ptr<T>(new typename std::remove_extent<T>::type[size])
+
+.SH Parameters
+
+   args - list of arguments with which an instance of T will be constructed.
+   size - the size of the array to construct
+
+.SH Return value
+
+   std::unique_ptr of an instance of type T.
+
+.SH Exceptions
+
+   May throw std::bad_alloc or any exception thrown by the constructor of T. If an
+   exception is thrown, this function has no effect.
+
+   Possible Implementation
+
+.SH First version
+   // C++14 make_unique
+   namespace detail {
+   template<class>
+   constexpr bool is_unbounded_array_v = false;
+   template<class T>
+   constexpr bool is_unbounded_array_v<T[]> = true;
+
+   template<class>
+   constexpr bool is_bounded_array_v = false;
+   template<class T, std::size_t N>
+   constexpr bool is_bounded_array_v<T[N]> = true;
+   } // namespace detail
+
+   template<class T, class... Args>
+   std::enable_if_t<!std::is_array<T>::value, std::unique_ptr<T>>
+   make_unique(Args&&... args)
+   {
+       return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+   }
+
+   template<class T>
+   std::enable_if_t<detail::is_unbounded_array_v<T>, std::unique_ptr<T>>
+   make_unique(std::size_t n)
+   {
+       return std::unique_ptr<T>(new std::remove_extent_t<T>[n]());
+   }
+
+   template<class T, class... Args>
+   std::enable_if_t<detail::is_bounded_array_v<T>> make_unique(Args&&...) = delete;
+.SH Second version
+   // C++20 make_unique_for_overwrite
+   template<class T>
+       requires !std::is_array_v<T>
+   std::unique_ptr<T> make_unique_for_overwrite()
+   {
+       return std::unique_ptr<T>(new T);
+   }
+
+   template<class T, std::size_t N>
+       requires std::is_unbounded_array_v<T>
+   std::unique_ptr<T> make_unique_for_overwrite(std::size_t n)
+   {
+       return std::unique_ptr<T>(new std::remove_extent_t<T>[n]);
+   }
+
+   template<class T, class... Args>
+       requires std::is_bounded_array_v<T>
+   void make_unique_for_overwrite(Args&&...) = delete;
+
+.SH Notes
+
+   Unlike std::make_shared (which has std::allocate_shared), std::make_unique does not
+   have an allocator-aware counterpart. allocate_unique proposed in P0211 would be
+   required to invent the deleter type D for the unique_ptr<T,D> it returns which would
+   contain an allocator object and invoke both destroy and deallocate in its
+   operator().
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <iomanip>
+ #include <memory>
+
+ struct Vec3
+ {
+     int x, y, z;
+     // following constructor is no longer needed since C++20
+     Vec3(int x = 0, int y = 0, int z = 0) noexcept : x(x), y(y), z(z) { }
+     friend std::ostream& operator<<(std::ostream& os, const Vec3& v)
+     {
+         return os << '{' << "x:" << v.x << " y:" << v.y << " z:" << v.z  << '}';
+     }
+ };
+
+ int main()
+ {
+     // Use the default constructor.
+     std::unique_ptr<Vec3> v1 = std::make_unique<Vec3>();
+     // Use the constructor that matches these arguments
+     std::unique_ptr<Vec3> v2 = std::make_unique<Vec3>(0,1,2);
+     // Create a unique_ptr to an array of 5 elements
+     std::unique_ptr<Vec3[]> v3 = std::make_unique<Vec3[]>(5);
+
+     std::cout << "make_unique<Vec3>():      " << *v1 << '\\n'
+               << "make_unique<Vec3>(0,1,2): " << *v2 << '\\n'
+               << "make_unique<Vec3[]>(5):   ";
+     for (int i = 0; i < 5; i++) {
+         std::cout << std::setw(i?27:0) << v3[i] << '\\n';
+     }
+ }
+
+.SH Output:
+
+ make_unique<Vec3>():      {x:0 y:0 z:0}
+ make_unique<Vec3>(0,1,2): {x:0 y:1 z:2}
+ make_unique<Vec3[]>\fB(5)\fP:   {x:0 y:0 z:0}
+                           {x:0 y:0 z:0}
+                           {x:0 y:0 z:0}
+                           {x:0 y:0 z:0}
+                           {x:0 y:0 z:0}
+
+.SH See also
+
+   constructor               constructs a new unique_ptr
+                             \fI(public member function)\fP
+   make_shared               creates a shared pointer that manages a new object
+   make_shared_for_overwrite \fI(function template)\fP
+   (C++20)

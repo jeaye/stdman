@@ -1,0 +1,164 @@
+.TH std::ranges::includes 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::includes \- std::ranges::includes
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< std::input_iterator I1, std::sentinel_for<I1> S1,
+
+             std::input_iterator I2, std::sentinel_for<I2> S2,
+             class Proj1 = std::identity, class Proj2 =
+   std::identity,
+             std::indirect_strict_weak_order<                         \fB(1)\fP \fI(since C++20)\fP
+                 std::projected<I1, Proj1>,
+                 std::projected<I2, Proj2>> Comp = ranges::less >
+   constexpr bool includes( I1 first1, S1 last1, I2 first2, S2 last2,
+
+                            Comp comp = {}, Proj1 proj1 = {}, Proj2
+   proj2 = {} )
+   template< ranges::input_range R1, ranges::input_range R2,
+
+             class Proj1 = std::identity, class Proj2 =
+   std::identity,
+             std::indirect_strict_weak_order<
+                 std::projected<ranges::iterator_t<R1>, Proj1>,       \fB(2)\fP \fI(since C++20)\fP
+                 std::projected<ranges::iterator_t<R2>, Proj2>> Comp
+   = ranges::less >
+   constexpr bool includes( R1&& r1, R2&& r2, Comp comp = {},
+
+                            Proj1 proj1 = {}, Proj2 proj2 = {} )
+
+   1) Returns true if the projections of the sorted range [first2, last2) is a
+   subsequence of the projections of the sorted range [first1, last1).
+   2) Same as \fB(1)\fP, but uses r1 and r2 as the source ranges, as if by using
+   ranges::begin(r1) and ranges::begin(r2) as first1 and first2 respectively, and
+   ranges::end(r1) and ranges::end(r2) as last1 and last2 respectively.
+
+   Both ranges must be sorted with the given comparison function comp. A subsequence
+   need not be contiguous.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists may not be specified when calling any of them.
+     * None of them is visible to argument-dependent lookup.
+     * When one of them is found by normal unqualified lookup for the name to the left
+       of the function-call operator, it inhibits argument-dependent lookup.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first1, last1 - the sorted range of elements to examine
+   r1            - the sorted range of elements to examine
+   first2, last2 - the sorted range of elements to search for
+   r2            - the sorted range of elements to search for
+   comp          - comparison function to apply to the projected elements
+   proj1         - projection to apply to the elements in the first range
+   proj2         - projection to apply to the elements in the second range
+
+.SH Return value
+
+   true if [first2, last2) is a subsequence of [first1, last1); otherwise false.
+
+.SH Complexity
+
+   At most 2·(N[1]+N[2]-1) comparisons, where N[1] = ranges::distance(r1) and N[2] =
+   ranges::distance(r2).
+
+.SH Possible implementation
+
+   struct includes_fn {
+     template<std::input_iterator I1, std::sentinel_for<I1> S1,
+              std::input_iterator I2, std::sentinel_for<I2> S2,
+              class Proj1 = std::identity, class Proj2 = std::identity,
+              std::indirect_strict_weak_order<
+                  std::projected<I1, Proj1>,
+                  std::projected<I2, Proj2>> Comp = ranges::less>
+     constexpr bool operator()(I1 first1, S1 last1, I2 first2, S2 last2,
+                             Comp comp = {}, Proj1 proj1 = {}, Proj2 proj2 = {}) const
+     {
+         for (; first2 != last2; ++first1)
+         {
+             if (first1 == last1 && comp(*first2, *first1))
+                 return false;
+             if (!comp(*first1, *first2))
+                 ++first2;
+         }
+         return true;
+     }
+
+     template<ranges::input_range R1, ranges::input_range R2,
+              class Proj1 = std::identity, class Proj2 = std::identity,
+              std::indirect_strict_weak_order<
+                  std::projected<ranges::iterator_t<R1>, Proj1>,
+                  std::projected<ranges::iterator_t<R2>, Proj2>> Comp = ranges::less>
+     constexpr bool operator()(R1&& r1, R2&& r2, Comp comp = {},
+                               Proj1 proj1 = {}, Proj2 proj2 = {}) const
+     {
+       return (*this)(ranges::begin(r1), ranges::end(r1),
+                      ranges::begin(r2), ranges::end(r2),
+                      std::ref(comp), std::ref(proj1), std::ref(proj2));
+     }
+   };
+
+   inline constexpr auto includes = includes_fn{};
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <algorithm>
+ #include <cctype>
+
+ template <class Os, class R> Os& operator<<(Os& os, const R& r) {
+   for (const auto& e : r) os << e << ' ';
+   return os << '\\t';
+ }
+
+ int main()
+ {
+   const auto
+     v1 = {'a', 'b', 'c', 'f', 'h', 'x'},
+     v2 = {'a', 'b', 'c'},
+     v3 = {'a', 'c'},
+     v4 = {'a', 'a', 'b'},
+     v5 = {'g'},
+     v6 = {'a', 'c', 'g'},
+     v7 = {'A', 'B', 'C'};
+
+   auto no_case = [](char a, char b) { return std::tolower(a) < std::tolower(b); };
+   namespace ranges = std::ranges;
+   std::cout
+     << v1 << "\\nincludes:\\n" << std::boolalpha
+     << v2 << ": " << ranges::includes(v1.begin(), v1.end(), v2.begin(), v2.end()) << '\\n'
+     << v3 << ": " << ranges::includes(v1, v3) << '\\n'
+     << v4 << ": " << ranges::includes(v1, v4) << '\\n'
+     << v5 << ": " << ranges::includes(v1, v5) << '\\n'
+     << v6 << ": " << ranges::includes(v1, v6) << '\\n'
+     << v7 << ": " << ranges::includes(v1, v7, no_case)
+           << " (case-insensitive)\\n";
+ }
+
+.SH Output:
+
+ a b c f h x
+ includes:
+ a b c   : true
+ a c     : true
+ a a b   : false
+ g       : false
+ a c g   : false
+ A B C   : true (case-insensitive)
+
+.SH See also
+
+   ranges::set_difference computes the difference between two sets
+   (C++20)                (niebloid)
+   ranges::search         searches for a range of elements
+   (C++20)                (niebloid)
+   includes               returns true if one sequence is a subsequence of another
+                          \fI(function template)\fP

@@ -1,4 +1,4 @@
-.TH std::is_base_of 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_base_of 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_base_of \- std::is_base_of
 
@@ -14,6 +14,10 @@ std::is_base_of \- std::is_base_of
    If both Base and Derived are non-union class types, and they are not the same type
    (ignoring cv-qualification), Derived shall be a complete type; otherwise the
    behavior is undefined.
+
+   The behavior of a program that adds specializations for is_base_of
+   or is_base_of_v
+   \fI(since C++17)\fP is undefined.
 
 .SH Member constants
 
@@ -47,45 +51,41 @@ std::is_base_of \- std::is_base_of
 
    Possible Implementation
 
-namespace details {
-    template <typename Base> std::true_type is_base_of_test_func(const volatile Base*);
-    template <typename Base> std::false_type is_base_of_test_func(const volatile void*);
-    template <typename Base, typename Derived>
-    using pre_is_base_of = decltype(is_base_of_test_func<Base>(std::declval<Derived*>()));
- 
-    // with <experimental/type_traits>:
-    // template <typename Base, typename Derived>
-    // using pre_is_base_of2 = std::experimental::detected_or_t<std::true_type, pre_is_base_of, Base, Derived>;
-    template <typename Base, typename Derived, typename = void>
-    struct pre_is_base_of2 : public std::true_type { };
-    // note std::void_t is a C++17 feature
-    template <typename Base, typename Derived>
-    struct pre_is_base_of2<Base, Derived, std::void_t<pre_is_base_of<Base, Derived>>> :
-        public pre_is_base_of<Base, Derived> { };
-}
- 
-template <typename Base, typename Derived>
-struct is_base_of :
-    public std::conditional_t<
-        std::is_class<Base>::value && std::is_class<Derived>::value,
-        details::pre_is_base_of2<Base, Derived>,
-        std::false_type
-    > { };
+   namespace details {
+       template <typename B>
+       std::true_type  test_pre_ptr_convertible(const volatile B*);
+       template <typename>
+       std::false_type test_pre_ptr_convertible(const volatile void*);
+
+       template <typename, typename>
+       auto test_pre_is_base_of(...) -> std::true_type;
+       template <typename B, typename D>
+       auto test_pre_is_base_of(int) ->
+           decltype(test_pre_ptr_convertible<B>(static_cast<D*>(nullptr)));
+   }
+
+   template <typename Base, typename Derived>
+   struct is_base_of :
+       std::integral_constant<
+           bool,
+           std::is_class<Base>::value && std::is_class<Derived>::value &&
+           decltype(details::test_pre_is_base_of<Base, Derived>\fB(0)\fP)::value
+       > { };
 
 .SH Example
 
-   
+
 // Run this code
 
  #include <iostream>
  #include <type_traits>
-  
+
  class A {};
-  
+
  class B : A {};
-  
+
  class C {};
-  
+
  int main()
  {
      std::cout << std::boolalpha;
@@ -106,5 +106,5 @@ struct is_base_of :
 
    is_convertible
    is_nothrow_convertible checks if a type can be converted to the other type
-   \fI(C++11)\fP                \fI(class template)\fP 
+   \fI(C++11)\fP                \fI(class template)\fP
    (C++20)

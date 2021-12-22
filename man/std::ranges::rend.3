@@ -1,0 +1,97 @@
+.TH std::ranges::rend 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::rend \- std::ranges::rend
+
+.SH Synopsis
+   Defined in header <ranges>
+   inline namespace /*unspecified*/ {
+                                                                         \fI(since C++20)\fP
+       inline constexpr /*unspecified*/ rend = /*unspecified*/;          (customization
+                                                                         point object)
+   }
+   Call signature
+   template< class T >
+
+       requires /* see below */
+
+   constexpr
+   std::sentinel_for<decltype(ranges::rbegin(std::declval<T&>()))> auto
+   rend(T&& t);
+
+   Returns a sentinel indicating the end of a reversed range.
+
+   range-rbegin-rend.svg
+
+   Let t be an object of type T. If the argument is an lvalue or
+   ranges::enable_borrowed_range<std::remove_cv_t<T>> is true, then a call to
+   ranges::rend is expression-equivalent to:
+
+    1. std::forward<T>(t).rend(), if that expression is valid, and its return type
+       models std::sentinel_for<decltype(ranges::rbegin(std::forward<T>(t)))>.
+    2. Otherwise, rend(std::forward<T>(t)), if T is a class or enumeration type, the
+       aforementioned unqualified call is valid, and its return type models
+       std::sentinel_for<decltype(ranges::rbegin(std::forward<T>(t)))>, where the
+       overload resolution is performed with the following candidates:
+
+          * void rend(auto&) = delete;
+          * void rend(const auto&) = delete;
+          * any declarations of rend found by argument-dependent lookup.
+
+    3. Otherwise, std::make_reverse_iterator(ranges::begin(std::forward<T>)) if both
+       ranges::begin(std::forward<T>(t)) and ranges::end(std::forward<T>(t)) are valid
+       expressions, have the same type, and that type models
+       std::bidirectional_iterator.
+
+   In all other cases, a call to ranges::rend is ill-formed, which can result in
+   substitution failure when ranges::rend(t) appears in the immediate context of a
+   template instantiation.
+
+.SH Notes
+
+   If the argument is an rvalue (i.e. T is an object type) and
+   ranges::enable_borrowed_range<std::remove_cv_t<T>> is false, or if it is of an array
+   type of unknown bound, the call to ranges::rend is ill-formed, which also results in
+   substitution failure.
+
+   If ranges::rend(std::forward<T>(t)) is valid, then
+   decltype(ranges::rend(std::forward<T>(t))) and
+   decltype(ranges::begin(std::forward<T>(t))) model std::sentinel_for in all cases,
+   while T modeling std::ranges::range.
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <iostream>
+ #include <ranges>
+ #include <vector>
+
+ int main()
+ {
+     std::vector<int> v = { 3, 1, 4 };
+     namespace ranges = std::ranges;
+     if (ranges::find(ranges::rbegin(v), ranges::rend(v), 5) != ranges::rend(v)) {
+         std::cout << "found a 5 in vector 'v'!\\n";
+     }
+
+     int a[] = { 5, 10, 15 };
+     if (ranges::find(ranges::rbegin(a), ranges::rend(a), 5) != ranges::rend(a)) {
+         std::cout << "found a 5 in array 'a'!\\n";
+     }
+ }
+
+.SH Output:
+
+ found a 5 in array 'a'!
+
+.SH See also
+
+   ranges::crend  returns a reverse end iterator to a read-only range
+   (C++20)        (customization point object)
+   ranges::rbegin returns a reverse iterator to a range
+   (C++20)        (customization point object)
+   rend           returns a reverse end iterator for a container or array
+   crend          \fI(function template)\fP
+   \fI(C++14)\fP

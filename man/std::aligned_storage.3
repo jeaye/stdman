@@ -1,4 +1,4 @@
-.TH std::aligned_storage 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::aligned_storage 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::aligned_storage \- std::aligned_storage
 
@@ -19,6 +19,9 @@ std::aligned_storage \- std::aligned_storage
    The behavior is undefined if Len == 0.
 
    It is implementation-defined whether any extended alignment is supported.
+
+   The behavior of a program that adds specializations for aligned_storage is
+   undefined.
 
 .SH Member types
 
@@ -57,40 +60,40 @@ std::aligned_storage \- std::aligned_storage
    A primitive static vector class, demonstrating creation, access, and destruction of
    objects in aligned storage
 
-   
+
 // Run this code
 
  #include <iostream>
  #include <type_traits>
  #include <string>
-  
+
  template<class T, std::size_t N>
  class static_vector
  {
      // properly aligned uninitialized storage for N T's
      typename std::aligned_storage<sizeof(T), alignof(T)>::type data[N];
      std::size_t m_size = 0;
-  
+
  public:
      // Create an object in aligned storage
      template<typename ...Args> void emplace_back(Args&&... args)
      {
          if( m_size >= N ) // possible error handling
              throw std::bad_alloc{};
-  
+
          // construct value in memory of aligned storage
          // using inplace operator new
          new(&data[m_size]) T(std::forward<Args>(args)...);
          ++m_size;
      }
-  
+
      // Access an object in aligned storage
      const T& operator[](std::size_t pos) const
      {
          // note: needs std::launder as of C++17
          return *reinterpret_cast<const T*>(&data[pos]);
      }
-  
+
      // Delete objects from aligned storage
      ~static_vector()
      {
@@ -100,7 +103,7 @@ std::aligned_storage \- std::aligned_storage
          }
      }
  };
-  
+
  int main()
  {
      static_vector<std::string, 10> v1;
@@ -116,13 +119,17 @@ std::aligned_storage \- std::aligned_storage
 
 .SH See also
 
-   alignas specifier specifies that the storage for the variable should be aligned by
-                     specific amount \fI(C++11)\fP 
-   alignment_of      obtains the type's alignment requirements
-   \fI(C++11)\fP           \fI(class template)\fP 
-   aligned_union     defines the type suitable for use as uninitialized storage for all
-   \fI(C++11)\fP           given types
-                     \fI(class template)\fP 
-   max_align_t       trivial type with alignment requirement as great as any other
-   \fI(C++11)\fP           scalar type
-                     \fI(typedef)\fP 
+   alignas specifier\fI(C++11)\fP specifies that the storage for the variable should be
+                            aligned by specific amount
+   alignment_of             obtains the type's alignment requirements
+   \fI(C++11)\fP                  \fI(class template)\fP
+   aligned_alloc            allocates aligned memory
+   \fI(C++17)\fP                  \fI(function)\fP
+   aligned_union            defines the type suitable for use as uninitialized storage
+   \fI(C++11)\fP                  for all given types
+                            \fI(class template)\fP
+   max_align_t              trivial type with alignment requirement as great as any
+   \fI(C++11)\fP                  other scalar type
+                            \fI(typedef)\fP
+   launder                  pointer optimization barrier
+   \fI(C++17)\fP                  \fI(function template)\fP

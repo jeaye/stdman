@@ -1,86 +1,136 @@
-.TH std::span::span 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::span::span 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::span::span \- std::span::span
 
 .SH Synopsis
-   constexpr span() noexcept;                                     \fB(1)\fP
-   constexpr span(pointer ptr, index_type count);                 \fB(2)\fP
-   constexpr span(pointer first, pointer last);                   \fB(3)\fP
-   template <std::size_t N>                                       \fB(4)\fP
-   constexpr span(element_type (&arr)[N]) noexcept;
-   template <std::size_t N>                                       \fB(5)\fP
-   constexpr span(std::array<value_type, N>& arr) noexcept;
-   template <std::size_t N>                                       \fB(6)\fP
-   constexpr span(const std::array<value_type, N>& arr) noexcept;
-   template <class Container>                                     \fB(7)\fP
-   constexpr span(Container& cont);
-   template <class Container>                                     \fB(8)\fP
-   constexpr span(const Container& cont);
-   template <class U, std::size_t N>                              \fB(9)\fP
-   constexpr span(const std::span<U, N>& s) noexcept;
-   constexpr span(const span& other) noexcept = default;          \fB(10)\fP
+   constexpr span() noexcept;                                          \fB(1)\fP
+   template< class It >
+
+   explicit(extent != std::dynamic_extent)                             \fB(2)\fP
+
+   constexpr span( It first, size_type count );
+   template< class It, class End >
+
+   explicit(extent != std::dynamic_extent)                             \fB(3)\fP
+
+   constexpr span( It first, End last );
+   template< std::size_t N >                                           \fB(4)\fP
+   constexpr span( element_type (&arr)[N] ) noexcept;
+   template< class U, std::size_t N >                                  \fB(5)\fP
+   constexpr span( std::array<U, N>& arr ) noexcept;
+   template< class U, std::size_t N >                                  \fB(6)\fP
+   constexpr span( const std::array<U, N>& arr ) noexcept;
+   template< class R >
+
+   explicit(extent != std::dynamic_extent)                             \fB(7)\fP
+
+   constexpr span( R&& r );
+   template< class U, std::size_t N >
+
+   explicit(extent != std::dynamic_extent && N == std::dynamic_extent) \fB(8)\fP
+
+   constexpr span( const std::span<U, N>& s ) noexcept;
+   constexpr span( const span& other ) noexcept = default;             \fB(9)\fP
 
    Constructs a span.
 
-   1) Constructs an empty span whose data() == nullptr and size() == 0. This overload
-   only participates in overload resolution if extent == 0 || extent ==
-   std::dynamic_extent.
-   2) Constructs a span that is a view over the range [ptr, ptr + count); the resulting
-   span has data() == ptr and size() == count. The behavior is undefined if [ptr, ptr +
-   count) is not a valid range or if extent != std::dynamic_extent && count != extent.
-   3) Constructs a span that is a view over the range [first, last); equivalent to
-   span(first, last - first).
+   1) Constructs an empty span whose data() == nullptr and size() == 0.
+
+     * This overload only participates in overload resolution if extent == 0 || extent
+       == std::dynamic_extent.
+
+   2) Constructs a span that is a view over the range [first, first + count); the
+   resulting span has data() == std::to_address(first) and size() == count.
+
+     * The behavior is undefined if [first, first + count) is not a valid range, if It
+       does not actually model contiguous_iterator, or if extent != std::dynamic_extent
+       && count != extent.
+     * This overload only participates in overload resolution if
+
+     * It satisfies contiguous_iterator
+     * the conversion from std::iter_reference_t<It> to element_type is at most a
+       qualification conversion.
+
+   3) Constructs a span that is a view over the range [first, last); the resulting span
+   has data() == std::to_address(first) and size() == last-first.
+
+     * The behavior is undefined if [first, last) is not a valid range, if It does not
+       actually model contiguous_iterator, if End does not actually model
+       sized_sentinel_for for It, or if extent != std::dynamic_extent && last-first !=
+       extent.
+     * This overload only participates in overload resolution if
+
+     * It satisfies contiguous_iterator,
+     * End satisfies sized_sentinel_for for It,
+     * the conversion from std::iter_reference_t<It> to element_type is at most a
+       qualification conversion, and
+     * std::is_convertible_v<End, std::size_t> is false.
+
    4-6) Constructs a span that is a view over the array arr; the resulting span has
-   size() == N and data() == std::data(arr). These overloads only participate in
-   overload resolution if extent == std::dynamic_extent || N == extent is true and
-   std::remove_pointer_t<decltype(std::data(arr))>(*)[] is convertible to element_type
-   (*)[]
-   7-8) Constructs a span that is a view over the range [std::data(cont),
-   std::data(cont) + std::size(cont)); the resulting span has size() == std::size(cont)
-   and data() == std::data(cont). The behavior is undefined if that is not a valid
-   range or if extent != std::dynamic_extent && std::size(cont) != extent.
+   size() == N and data() == std::data(arr).
 
-   These overloads only participate in overload resolution if
+     * These overloads only participate in overload resolution if extent ==
+       std::dynamic_extent || N == extent is true and the conversion from
+       std::remove_pointer_t<decltype(data(arr))> to element_type is at most a
+       qualification conversion. These constructor templates are never used for class
+       template argument deduction.
 
-     * Container is not a specialization of std::span, a specialization of std::array,
-       or an array type;
-     * std::data(cont) and std::size(cont) are both well-formed; and
-     * std::remove_pointer_t<decltype(std::data(cont))>(*)[] is convertible to
-       element_type (*)[]
+   7) Constructs a span that is a view over the range r; the resulting span has size()
+   == std::ranges::size(r) and data() == std::ranges::data(r).
 
-   9) Converting constructor from another span s; the resulting span has size() ==
-   s.size() and data() == s.data(). This overload only participates in overload
-   resolution if extent == std::dynamic_extent || N == extent is true and U (*)[] is
-   convertible to element_type (*)[].
-   10) Defaulted copy constructor copies the size and data pointer; the resulting span
+     * The behavior is undefined if R does not actually model contiguous_range and
+       sized_range or if R does not model borrowed_range while element_type is
+       non-const or both extent != dynamic_extent and std::ranges::size(r) != extent
+       are true.
+     * This overload only participates in overload resolution if
+
+     * R satisfies contiguous_range and sized_range,
+     * either R satisfies borrowed_range or std::is_const_v<element_type> is true
+     * std::remove_cvref_t<R> is not a specialization of std::span,
+     * std::remove_cvref_t<R> is not a specialization of std::array
+     * std::is_array_v<std::remove_cvref_t<R>> is false, and
+     * the conversion from std::ranges::range_reference_t<R> to element_type is at most
+       a qualification conversion.
+
+   8) Converting constructor from another span s; the resulting span has size() ==
+   s.size() and data() == s.data().
+
+     * The behavior is undefined if both extent != dynamic_extent and s.size() !=
+       extent are true.
+     * This overload only participates in overload resolution if at least one of extent
+       == std::dynamic_extent, N == std::dynamic_extent and N == extent is true and the
+       conversion from U to element_type is at most a qualification conversion.
+
+   9) Defaulted copy constructor copies the size and data pointer; the resulting span
    has size() == other.size() and data() == other.data().
 
 .SH Parameters
 
-   ptr, first - pointer to the first element of the sequence
-   count      - number of elements in the sequence
-   last       - pointer past the last element of the sequence
-   arr        - array to construct a view for
-   cont       - container to construct a view for
-   s          - another span to convert from
-   other      - another span to copy from
+   first - iterator to the first element of the sequence
+   count - number of elements in the sequence
+   last  - iterator past the last element of the sequence or another sentinel
+   arr   - array to construct a view for
+   r     - range to construct a view for
+   s     - another span to convert from
+   other - another span to copy from
 
 .SH Exceptions
 
-   2-3) Throws nothing.
-   7-8) Throws what and when std::size(cont) and std::data(cont) throw.
+   2) Throws nothing.
+   3) Throws what and when last - first throws.
+   7) Throws what and when std::ranges::size(r) and std::ranges::data(r) throw.
 
 .SH See also
 
    data      returns a pointer to the beginning of the sequence of elements
-             \fI(public member function)\fP 
+             \fI(public member function)\fP
    size      returns the number of elements in the sequence
-             \fI(public member function)\fP 
+             \fI(public member function)\fP
    operator= assigns a span
-             \fI(public member function)\fP 
+             \fI(public member function)\fP
    size
    ssize     returns the size of a container or array
-   \fI(C++17)\fP   \fI(function template)\fP 
+   \fI(C++17)\fP   \fI(function template)\fP
    (C++20)
    data      obtains the pointer to the underlying array
-   \fI(C++17)\fP   \fI(function template)\fP 
+   \fI(C++17)\fP   \fI(function template)\fP

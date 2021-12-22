@@ -1,4 +1,4 @@
-.TH std::condition_variable_any::wait_until 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::condition_variable_any::wait_until 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::condition_variable_any::wait_until \- std::condition_variable_any::wait_until
 
@@ -14,6 +14,14 @@ std::condition_variable_any::wait_until \- std::condition_variable_any::wait_unt
 
    bool wait_until( Lock& lock,
                     const std::chrono::time_point<Clock, Duration>&   \fB(2)\fP \fI(since C++11)\fP
+   timeout_time,
+
+                    Pred pred );
+   template< class Lock, class Clock, class Duration, class Pred >
+
+   void wait_until( Lock& lock,
+                    std::stop_token stoken,                           \fB(3)\fP \fI(since C++20)\fP
+                    const std::chrono::time_point<Clock, Duration>&
    timeout_time,
 
                     Pred pred );
@@ -40,22 +48,35 @@ std::condition_variable_any::wait_until \- std::condition_variable_any::wait_unt
 
    This overload may be used to ignore spurious wakeups.
 
+   3) An interruptible wait: registers the condition_variable_any for the duration of
+   wait_until(), to be notified if a stop request is made on the given stoken's
+   associated stop-state; it is then equivalent to
+
+ while (!stoken.stop_requested()) {
+     if (pred())
+         return true;
+     if (wait_until(lock, timeout_time) == std::cv_status::timeout)
+         return pred();
+ }
+ return pred();
+
    If these functions fail to meet the postcondition (lock is locked by
    the calling thread), std::terminate is called. For example, this could \fI(since C++14)\fP
-   happen if relocking the mutex throws an exception,
+   happen if relocking the mutex throws an exception.
 
 .SH Parameters
 
    lock         - an object of type Lock that meets the requirements of BasicLockable,
                   which must be locked by the current thread
+   stoken       - a std::stop_token to register interruption for
    timeout_time - an object of type std::chrono::time_point representing the time when
                   to stop waiting
-                  predicate which returnsý¿¿½£¬false if the waiting should be continued.
+                  predicate which returns false if the waiting should be continued.
 
    pred         - The signature of the predicate function should be equivalent to the
                   following:
 
-                   bool pred()ý¿¿½£­
+                   bool pred();
 
 .SH Return value
 
@@ -64,18 +85,19 @@ std::condition_variable_any::wait_until \- std::condition_variable_any::wait_unt
    2) false if the predicate pred still evaluates to false after the timeout_time
    timeout expired, otherwise true. If the timeout had already expired, evaluates and
    returns the result of pred.
+   3) pred(), regardless of whether the timeout was met or stop was requested.
 
 .SH Exceptions
 
    1)
 
-   May throw std::system_error, may also propagate exceptions thrown by   \fI(until C++14)\fP
-   lock.lock() or lock.unlock().
-   Any exception thrown by clock, time point, or duration during the
-   execution (clocks, time points, and durations provided by the standard \fI(since C++14)\fP
-   library never throw)
+   May throw std::system_error, may also propagate exceptions thrown by lock.lock() or
+   lock.unlock().
+   Any exception thrown by clock, time point, or duration during the execution
+   (clocks, time points, and durations provided by the standard library never throw)
 
    2) Same as \fB(1)\fP but may also propagate exceptions thrown by pred
+   3) Same as \fB(2)\fP
 
 .SH Notes
 
@@ -99,7 +121,7 @@ std::condition_variable_any::wait_until \- std::condition_variable_any::wait_unt
 
 .SH Example
 
-   
+
 // Run this code
 
  #include <iostream>
@@ -108,11 +130,11 @@ std::condition_variable_any::wait_until \- std::condition_variable_any::wait_unt
  #include <thread>
  #include <chrono>
  using namespace std::chrono_literals;
-  
+
  std::condition_variable cv;
  std::mutex cv_m;
  std::atomic<int> i{0};
-  
+
  void waits(int idx)
  {
      std::unique_lock<std::mutex> lk(cv_m);
@@ -122,7 +144,7 @@ std::condition_variable_any::wait_until \- std::condition_variable_any::wait_unt
      else
          std::cerr << "Thread " << idx << " timed out. i == " << i << '\\n';
  }
-  
+
  void signals()
  {
      std::this_thread::sleep_for(120ms);
@@ -133,7 +155,7 @@ std::condition_variable_any::wait_until \- std::condition_variable_any::wait_unt
      std::cerr << "Notifying again...\\n";
      cv.notify_all();
  }
-  
+
  int main()
  {
      std::thread t1(waits, 1), t2(waits, 2), t3(waits, 3), t4(signals);
@@ -154,10 +176,10 @@ std::condition_variable_any::wait_until \- std::condition_variable_any::wait_unt
 .SH See also
 
    wait     blocks the current thread until the condition variable is woken up
-            \fI(public member function)\fP 
+            \fI(public member function)\fP
             blocks the current thread until the condition variable is woken up or after
    wait_for the specified timeout duration
-            \fI(public member function)\fP 
+            \fI(public member function)\fP
    C documentation for
    cnd_timedwait
 

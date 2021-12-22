@@ -1,4 +1,4 @@
-.TH std::as_bytes,std::as_writable_bytes 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::as_bytes,std::as_writable_bytes 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::as_bytes,std::as_writable_bytes \- std::as_bytes,std::as_writable_bytes
 
@@ -23,3 +23,44 @@ std::as_bytes,std::as_writable_bytes \- std::as_bytes,std::as_writable_bytes
    1) A span constructed with {reinterpret_cast<const std::byte*>(s.data()),
    s.size_bytes()}.
    2) A span constructed with {reinterpret_cast<std::byte*>(s.data()), s.size_bytes()}.
+
+.SH Example
+
+
+// Run this code
+
+ #include <cstddef>
+ #include <iomanip>
+ #include <iostream>
+ #include <span>
+
+ void print(float const x, std::span<const std::byte> const bytes)
+ {
+     std::cout << std::setprecision(6) << std::setw(8)
+               << x << " = { " << std::hex << std::showbase;
+     for (auto const b : bytes) {
+         std::cout << std::to_integer<int>(b) << ' ';
+     }
+     std::cout << std::dec << "}\\n";
+ }
+
+ int main()
+ {
+     /* mutable */ float data[1] { 3.141592f };
+
+     auto const const_bytes = std::as_bytes(std::span{ data });
+
+     print(data[0], const_bytes);
+
+     auto const writable_bytes = std::as_writable_bytes(std::span{ data });
+
+     // Change the sign bit that is the MSB (IEEE 754 Floating-Point Standard).
+     writable_bytes[3] |= std::byte{ 0b1000'0000 };
+
+     print(data[0], const_bytes);
+ }
+
+.SH Possible output:
+
+  3.14159 = { 0xd8 0xf 0x49 0x40 }
+ -3.14159 = { 0xd8 0xf 0x49 0xc0 }

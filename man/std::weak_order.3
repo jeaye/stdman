@@ -1,39 +1,68 @@
-.TH std::weak_order 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::weak_order 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::weak_order \- std::weak_order
 
 .SH Synopsis
    Defined in header <compare>
-   template< class T >                                               \fI(since C++20)\fP
-   constexpr std::weak_ordering weak_order(const T& a, const T& b);
+   inline namespace /* unspecified */ {
+
+       inline constexpr /* unspecified */ weak_order = /* unspecified     \fI(since C++20)\fP
+   */;
+
+   }
+   Call signature
+   template< class T, class U >
+
+       requires /* see below */
+
+   constexpr std::weak_ordering weak_order(T&& t, U&& u) noexcept(/* see
+   below */);
 
    Compares two values using 3-way comparison and produces a result of type
    std::weak_ordering
 
-   Specifically,
+   Let t and u be expressions and T and U denote decltype((t)) and decltype((u))
+   respectively, std::weak_order(t, u) is expression-equivalent to:
 
-     * If the expression a <=> b is well-formed and its result is convertible to
-       std::weak_ordering, returns that result.
-     * Otherwise, if the expression a <=> b is well-formed, but its result is not
-       convertible to std::weak_ordering, then the function is defined as deleted.
-     * Otherwise, if the expression a <=> b is ill-formed, but the expressions a == b
-       and a < b are both well-formed and convertible to bool,
+     * If std::is_same_v<std::decay_t<T>, std::decay_t<U>> == true:
 
-     * if a == b is true, returns std::weak_ordering::equivalent
-     * otherwise, if a < b is true, returns std::weak_ordering::less
-     * otherwise, returns std::weak_ordering::greater
+          * std::weak_ordering(weak_order(t, u)), if it is a well-formed expression
+            with overload resolution performed in a context that does not include a
+            declaration of std::weak_order,
+          * otherwise, if T is a floating-point type:
 
-     * Otherwise, the function is defined as deleted.
+               * if std::numeric_limits<T>::is_iec559 is true, performs the weak
+                 ordering comparison of floating-point values (see below) and returns
+                 that result as a value of type std::weak_ordering,
+               * otherwise, yields a value of type std::weak_ordering that is
+                 consistent with the ordering observed by T's comparison operators,
 
-.SH Parameters
+          * otherwise std::weak_ordering(std::compare_three_way()(t, u), if it is
+            well-formed,
+          * otherwise std::weak_ordering(std::strong_order(t, u)), if it is
+            well-formed,
+          * other the expression is ill-formed, which can result in substitution
+            failure when it appears in the immediate context of a template
+            instantiation.
 
-   a, b - values to compare
-
-.SH Return value
-
-   A value of type std::weak_ordering, as described above.
+     * Otherwise, std::weak_order(t, u) is ill-formed.
 
 .SH Notes
+
+     Strict weak order of IEEE floating-point types
+
+   Let x and y be values of same IEEE floating-point type, and weak_order_less(x, y) be
+   the boolean result indicating if x precedes y in the strict weak order defined by
+   the C++ standard.
+
+     * If neither x nor y is NaN, then weak_order_less(x, y) == true if and only if x <
+       y, i.e. all representations of equal floating-point value are equivalent;
+     * If x is negative NaN and y is not negative NaN, then weak_order_less(x, y) ==
+       true;
+     * If x is not positive NaN and y is positive NaN, then weak_order_less(x, y) ==
+       true;
+     * If both x and y are NaNs with the same sign, then weak_order_less(x, y) ||
+       weak_order_less(y, x) == false, i.e. all NaNs with the same sign are equivalent.
 
 .SH Example
 
@@ -42,18 +71,18 @@ std::weak_order \- std::weak_order
 
 .SH See also
 
-   weak_ordering the result type of 3-way comparison that supports all 6 operators and
-   (C++20)       is not substitutable
-                 \fI(class)\fP 
-   strong_order  performs 3-way comparison and produces a result of type
-   (C++20)       std::strong_ordering
-                 \fI(function template)\fP 
-   partial_order performs 3-way comparison and produces a result of type
-   (C++20)       std::partial_ordering
-                 \fI(function template)\fP 
-   weak_equal    performs 3-way comparison and produces a result of type
-   (C++20)       std::weak_equality
-                 \fI(function template)\fP 
+   weak_ordering               the result type of 3-way comparison that supports all 6
+   (C++20)                     operators and is not substitutable
+                               \fI(class)\fP
+   strong_order                performs 3-way comparison and produces a result of type
+   (C++20)                     std::strong_ordering
+                               (customization point object)
+   partial_order               performs 3-way comparison and produces a result of type
+   (C++20)                     std::partial_ordering
+                               (customization point object)
+   compare_weak_order_fallback performs 3-way comparison and produces a result of type
+   (C++20)                     std::weak_ordering, even if operator<=> is unavailable
+                               (customization point object)
 
 .SH Category:
 

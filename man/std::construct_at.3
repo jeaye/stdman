@@ -1,0 +1,81 @@
+.TH std::construct_at 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::construct_at \- std::construct_at
+
+.SH Synopsis
+   Defined in header <memory>
+   template<class T, class... Args>                    \fI(since C++20)\fP
+   constexpr T* construct_at( T* p, Args&&... args );
+
+   Creates a T object initialized with arguments args... at given address p.
+   Specialization of this function template participates in overload resolution only if
+   ::new(std::declval<void*>()) T(std::declval<Args>()...) is well-formed in
+   unevaluated context.
+
+   Equivalent to
+
+ return ::new (const_cast<void*>(static_cast<const volatile void*>(p)))
+     T(std::forward<Args>(args)...);
+
+   except that construct_at may be used in evaluation of constant expressions.
+
+   When construct_at is called in the evaluation of some constant expression e, the
+   argument p must point to either storage obtained by std::allocator<T>::allocate or
+   an object whose lifetime began within the evaluation of e.
+
+.SH Parameters
+
+   p       - pointer to the uninitialized storage on which a T object will be
+             constructed
+   args... - arguments used for initialization
+
+.SH Return value
+
+   p
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <memory>
+
+ struct S {
+     int x;
+     float y;
+     double z;
+
+     S(int x, float y, double z) : x{x}, y{y}, z{z} { std::cout << "S::S();\\n"; }
+
+     ~S() { std::cout << "S::~S();\\n"; }
+
+     void print() const {
+         std::cout << "S { x=" << x << "; y=" << y << "; z=" << z << "; };\\n";
+     }
+ };
+
+ int main()
+ {
+     alignas(S) unsigned char storage[sizeof(S)];
+
+     S* ptr = std::construct_at(reinterpret_cast<S*>(storage), 42, 2.71828f, 3.1415);
+     ptr->print();
+
+     std::destroy_at(ptr);
+ }
+
+.SH Output:
+
+ S::S();
+ S { x=42; y=2.71828; z=3.1415; };
+ S::~S();
+
+.SH See also
+
+   allocate   allocates uninitialized storage
+              \fI(public member function of std::allocator<T>)\fP
+   construct  constructs an object in the allocated storage
+   \fB[static]\fP   \fI(function template)\fP
+   destroy_at destroys an object at a given address
+   \fI(C++17)\fP    \fI(function template)\fP

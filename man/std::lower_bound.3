@@ -1,4 +1,4 @@
-.TH std::lower_bound 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::lower_bound 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::lower_bound \- std::lower_bound
 
@@ -33,26 +33,26 @@ std::lower_bound \- std::lower_bound
 
 .SH Parameters
 
-   first, last - iterators defining the partially-ordered range to examine
-   value       - value to compare the elements to
-                 binary predicate which returnsý¿¿½£¬true if the first argument is less than
-                 (i.e. is ordered before) the second.
+   first, last  -  iterators defining the partially-ordered range to examine
+   value        -  value to compare the elements to
+                   binary predicate which returns true if the first argument is less
+                   than (i.e. is ordered before) the second.
 
-                 The signature of the predicate function should be equivalent to the
-                 following:
+                   The signature of the predicate function should be equivalent to the
+                   following:
 
-                  bool pred(const Type1 &a, const Type2 &b);
+                    bool pred(const Type1 &a, const Type2 &b);
 
-   comp        - While the signature does not need to have const &, the function must
-                 not modify the objects passed to it and must be able to accept all
-                 values of type (possibly const) Type1 and Type2 regardless of value
-                 category (thus, Type1 & is not allowed
-                 , nor is Type1 unless for Type1 a move is equivalent to a copy
-                 \fI(since C++11)\fP).
-                 The type Type1 must be such that an object of type ForwardIt can be
-                 dereferenced and then implicitly converted to Type1. The type Type2
-                 must be such that an object of type T can be implicitly converted to
-                 Type2.ý¿¿½£¬
+   comp         -  While the signature does not need to have const &, the function must
+                   not modify the objects passed to it and must be able to accept all
+                   values of type (possibly const) Type1 and Type2 regardless of value
+                   category (thus, Type1 & is not allowed
+                   , nor is Type1 unless for Type1 a move is equivalent to a copy
+                   \fI(since C++11)\fP).
+                   The type Type1 must be such that an object of type ForwardIt can be
+                   dereferenced and then implicitly converted to Type1. The type Type2
+                   must be such that an object of type T can be implicitly converted to
+                   Type2.
 .SH Type requirements
    -
    ForwardIt must meet the requirements of LegacyForwardIterator.
@@ -74,6 +74,8 @@ std::lower_bound \- std::lower_bound
 
 .SH Possible implementation
 
+   See also the implementations in libstdc++ and libc++.
+
 .SH First version
    template<class ForwardIt, class T>
    ForwardIt lower_bound(ForwardIt first, ForwardIt last, const T& value)
@@ -81,7 +83,7 @@ std::lower_bound \- std::lower_bound
        ForwardIt it;
        typename std::iterator_traits<ForwardIt>::difference_type count, step;
        count = std::distance(first, last);
-    
+
        while (count > 0) {
            it = first;
            step = count / 2;
@@ -102,7 +104,7 @@ std::lower_bound \- std::lower_bound
        ForwardIt it;
        typename std::iterator_traits<ForwardIt>::difference_type count, step;
        count = std::distance(first, last);
-    
+
        while (count > 0) {
            it = first;
            step = count / 2;
@@ -119,52 +121,40 @@ std::lower_bound \- std::lower_bound
 
 .SH Example
 
-   
+
 // Run this code
 
  #include <algorithm>
  #include <iostream>
- #include <iterator>
  #include <vector>
-  
- template<class ForwardIt, class T, class Compare=std::less<>>
- ForwardIt binary_find(ForwardIt first, ForwardIt last, const T& value, Compare comp={})
- {
-     // Note: BOTH type T and the type after ForwardIt is dereferenced
-     // must be implicitly convertible to BOTH Type1 and Type2, used in Compare.
-     // This is stricter than lower_bound requirement (see above)
-  
-     first = std::lower_bound(first, last, value, comp);
-     return first != last && !comp(value, *first) ? first : last;
- }
-  
+
  int main()
  {
-     std::vector<int> data = { 1, 1, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 6 };
-  
-     auto lower = std::lower_bound(data.begin(), data.end(), 4);
-     auto upper = std::upper_bound(data.begin(), data.end(), 4);
-  
-     std::copy(lower, upper, std::ostream_iterator<int>(std::cout, " "));
-  
-     std::cout << '\\n';
-  
-     // classic binary search, returning a value only if it is present
-  
-     data = { 1, 2, 4, 6, 9, 10 };
-  
-     auto it = binary_find(data.cbegin(), data.cend(), 4); //< choosing '5' will return end()
-  
-     if(it != data.cend())
-       std::cout << *it << " found at index "<< std::distance(data.cbegin(), it);
-  
-     return 0;
+     std::vector<int> data = { 1, 2, 4, 5, 5, 6 };
+
+     for (int i = 0; i < 8; ++i) {
+         // Search for first element that is not less than i
+         auto lower = std::lower_bound(data.begin(), data.end(), i);
+
+         std::cout << i << " <= ";
+         if (lower != data.end())
+             std::cout << *lower << " at index " << std::distance(data.begin(), lower);
+         else
+             std::cout << "not found";
+         std::cout << '\\n';
+     }
  }
 
 .SH Output:
 
- 4 4 4
- 4 found at index 2
+ 0 <= 1 at index 0
+ 1 <= 1 at index 0
+ 2 <= 2 at index 1
+ 3 <= 4 at index 2
+ 4 <= 4 at index 2
+ 5 <= 5 at index 3
+ 6 <= 6 at index 5
+ 7 <= not found
 
    Defect reports
 
@@ -177,9 +167,12 @@ std::lower_bound \- std::lower_bound
 
 .SH See also
 
-   equal_range returns range of elements matching a specific key
-               \fI(function template)\fP 
-   partition   divides a range of elements into two groups
-               \fI(function template)\fP 
-   upper_bound returns an iterator to the first element greater than a certain value
-               \fI(function template)\fP 
+   equal_range     returns range of elements matching a specific key
+                   \fI(function template)\fP
+   partition       divides a range of elements into two groups
+                   \fI(function template)\fP
+   partition_point locates the partition point of a partitioned range
+   \fI(C++11)\fP         \fI(function template)\fP
+                   returns an iterator to the first element greater than a certain
+   upper_bound     value
+                   \fI(function template)\fP

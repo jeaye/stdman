@@ -1,4 +1,4 @@
-.TH std::fgets 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::fgets 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::fgets \- std::fgets
 
@@ -7,10 +7,10 @@ std::fgets \- std::fgets
    char* fgets( char* str, int count, std::FILE* stream );
 
    Reads at most count - 1 characters from the given file stream and stores them in the
-   character array pointed to by str. Reading stops if end-of-file occurs or a newline
-   character is found, in which case str will contain that newline character. If no
-   errors occur, writes a null character at the position immediately after the last
-   character written to str.
+   character array pointed to by str. Parsing stops if a newline character is found, in
+   which case str will contain that newline character, or if end-of-file occurs. If
+   bytes are read and no errors occur, writes a null character at the position
+   immediately after the last character written to str.
 
 .SH Parameters
 
@@ -22,30 +22,45 @@ std::fgets \- std::fgets
 
    str on success, null pointer on failure.
 
-   If the failure has been caused by end-of-file condition, additionally sets the eof
-   indicator (see std::feof()) on stream. The contents of the array pointed to by str
-   are not altered in this case.
+   If the end-of-file condition is encountered, sets the eof indicator on stream (see
+   std::feof()). This is only a failure if it causes no bytes to be read, in which case
+   a null pointer is returned and the contents of the array pointed to by str are not
+   altered (i.e. the first byte is not overwritten with a null character).
 
    If the failure has been caused by some other error, sets the error indicator (see
    std::ferror()) on stream. The contents of the array pointed to by str are
    indeterminate (it may not even be null-terminated).
 
+.SH Notes
+
+   POSIX additionally requires that fgets sets errno if it encounters an failure other
+   than the end-of-file condition.
+
+   Although the standard specification is unclear in the cases where count<=1, common
+   implementations do
+
+     * if count < 1, do nothing, report error
+     * if count == 1,
+
+     * some implementations do nothing, report error,
+     * others read nothing, store zero in str[0], report success
+
 .SH Example
 
-   
+
 // Run this code
 
  #include <iostream>
  #include <cstdio>
  #include <cstdlib>
-  
+
  int main()
  {
      std::FILE* tmpf = std::tmpfile();
      std::fputs("Alan Turing\\n", tmpf);
      std::fputs("John von Neumann\\n", tmpf);
      std::fputs("Alonzo Church\\n", tmpf);
-  
+
      std::rewind(tmpf);
      char buf[8];
      while (std::fgets(buf, sizeof buf, tmpf) != NULL) {
@@ -69,12 +84,12 @@ std::fgets \- std::fgets
 .SH See also
 
    scanf                 reads formatted input from stdin, a file stream or a buffer
-   fscanf                \fI(function)\fP 
+   fscanf                \fI(function)\fP
    sscanf
    gets                  reads a character string from stdin
-   (deprecated in C++11) \fI(function)\fP 
+   (deprecated in C++11) \fI(function)\fP
    (removed in C++14)
    fputs                 writes a character string to a file stream
-                         \fI(function)\fP 
+                         \fI(function)\fP
    C documentation for
    fgets

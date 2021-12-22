@@ -1,13 +1,28 @@
-.TH std::destroy_at 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::destroy_at 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::destroy_at \- std::destroy_at
 
 .SH Synopsis
    Defined in header <memory>
-   template< class T >         \fI(since C++17)\fP
-   void destroy_at( T* p );
+   template< class T >                 \fI(since C++17)\fP
+   void destroy_at( T* p );            \fI(until C++20)\fP
+   template< class T >                 \fI(since C++20)\fP
+   constexpr void destroy_at( T* p );
 
-   Calls the destructor of the object pointed to by p, as if by p->~T().
+   If T is not an array type, calls the destructor of the object pointed to by p, as if
+   by p->~T().
+
+   If T is an array type,
+   the program is ill-formed
+   \fI(until C++20)\fP
+   recursively destroys elements of *p in order, as if by calling
+   std::destroy(std::begin(*p), std::end(*p))
+   \fI(since C++20)\fP.
+
+   When destroy_at is called in the evaluation of some constant
+   expression e, the argument p must point to either storage obtained by  \fI(since C++20)\fP
+   std::allocator<T>::allocate or an object whose lifetime began within
+   the evaluation of e.
 
 .SH Parameters
 
@@ -20,40 +35,50 @@ std::destroy_at \- std::destroy_at
 .SH Possible implementation
 
    template<class T>
-   void destroy_at(T* p)
+   constexpr void destroy_at(T* p)
    {
-       p->~T();
+       if constexpr (std::is_array_v<T>)
+           for (auto &elem : *p)
+               destroy_at(std::addressof(elem));
+       else
+           p->~T();
    }
+   // C++17 version:
+   // template<class T> void destroy_at(T* p) { p->~T(); }
+
+.SH Notes
+
+   destroy_at deduces the type of object to be destroyed and hence avoids writing it
+   explicitly in the destructor call.
 
 .SH Example
 
    The following example demonstrates how to use destroy_at to destroy a contiguous
    sequence of elements.
 
-   
+
 // Run this code
 
  #include <memory>
  #include <new>
  #include <iostream>
-  
+
  struct Tracer {
      int value;
      ~Tracer() { std::cout << value << " destructed\\n"; }
  };
-  
+
  int main()
  {
      alignas(Tracer) unsigned char buffer[sizeof(Tracer) * 8];
-  
+
      for (int i = 0; i < 8; ++i)
          new(buffer + sizeof(Tracer) * i) Tracer{i}; //manually construct objects
-  
+
      auto ptr = std::launder(reinterpret_cast<Tracer*>(buffer));
-  
+
      for (int i = 0; i < 8; ++i)
          std::destroy_at(ptr + i);
-  
  }
 
 .SH Output:
@@ -69,7 +94,9 @@ std::destroy_at \- std::destroy_at
 
 .SH See also
 
-   destroy   destroys a range of objects
-   \fI(C++17)\fP   \fI(function template)\fP 
-   destroy_n destroys a number of objects in a range
-   \fI(C++17)\fP   \fI(function template)\fP 
+   destroy      destroys a range of objects
+   \fI(C++17)\fP      \fI(function template)\fP
+   destroy_n    destroys a number of objects in a range
+   \fI(C++17)\fP      \fI(function template)\fP
+   construct_at creates an object at a given address
+   (C++20)      \fI(function template)\fP

@@ -1,0 +1,121 @@
+.TH std::formatted_size 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::formatted_size \- std::formatted_size
+
+.SH Synopsis
+   Defined in header <format>
+   template<class... Args>
+   std::size_t formatted_size(std::string_view fmt, const Args&...    \fB(1)\fP \fI(since C++20)\fP
+   args);
+   template<class... Args>
+   std::size_t formatted_size(std::wstring_view fmt, const Args&...   \fB(2)\fP \fI(since C++20)\fP
+   args);
+   template<class... Args>
+   std::size_t formatted_size(const std::locale& loc,                 \fB(3)\fP \fI(since C++20)\fP
+   std::string_view fmt, const Args&... args);
+   template<class... Args>
+   std::size_t formatted_size(const std::locale& loc,                 \fB(4)\fP \fI(since C++20)\fP
+   std::wstring_view fmt, const Args&... args);
+
+   Determine the total number of characters in the formatted string by formatting args
+   according to the format string fmt. If present, loc is used for locale-specific
+   formatting.
+
+   The behavior is undefined if std::formatter<Ti, CharT> does not meet the Formatter
+   requirements for each Ti in Args.
+
+.SH Parameters
+
+             string view representing the format string.
+
+             The format string consists of
+
+               * ordinary characters (except { and }), which are copied unchanged to
+                 the output,
+               * escape sequences {{ and }}, which are replaced with { and }
+                 respectively in the output, and
+               * replacement fields.
+
+             Each replacement field has the following format:
+
+               * introductory { character;
+               * (optional) arg-id, a non-negative number;
+               * (optional) a colon (:) followed by a format specification;
+   fmt     -   * final } character.
+
+             arg-id specifies the index of the argument in args whose value is to be
+             used for formatting; if arg-id is omitted, the arguments are used in
+             order. The arg-ids in a format string must all be present or all be
+             omitted. Mixing manual and automatic indexing is an error.
+
+             The format specification is defined by the std::formatter specialization
+             for the corresponding argument.
+
+               * For basic types and standard string types, the format specification is
+                 interpreted as standard format specification.
+               * For chrono types, the format specification is interpreted as chrono
+                 format specification.
+               * For other formattable types, the format specification is determined by
+                 user-defined formatter specializations.
+   args... - arguments to be formatted
+   loc     - std::locale used for locale-specific formatting
+
+.SH Return value
+
+   The total number of characters in the formatted string.
+
+.SH Exceptions
+
+   Throws std::format_error if fmt is not a valid format string for the provided
+   arguments. Also propagates any exception thrown by formatter.
+
+.SH Example
+
+
+// Run this code
+
+ #include <format>
+ #include <iostream>
+ #include <vector>
+ #include <string_view>
+
+ int main()
+ {
+     using namespace std::literals::string_view_literals;
+
+     constexpr auto fmt_str { "Hubble's H{0} {1} {2:*^4} miles/sec/mpc."sv };
+     constexpr auto sub_zero { "₀"sv };  // { "\\u2080"sv } => { 0xe2, 0x82, 0x80 };
+     constexpr auto aprox_equ { "≅"sv }; // { "\\u2245"sv } => { 0xe2, 0x89, 0x85 };
+     constexpr int Ho { 42 }; // H₀
+
+
+     const auto min_buffer_size = std::formatted_size(fmt_str, sub_zero, aprox_equ, Ho);
+
+     std::cout << "Min buffer size = " << min_buffer_size << '\\n';
+
+     // Use std::vector as dynamic buffer. Note: buffer does not include the trailing '\\0'.
+     std::vector<char> buffer(min_buffer_size);
+
+     std::format_to_n(buffer.data(), buffer.size(), fmt_str, sub_zero, aprox_equ, Ho);
+
+     std::cout << "Buffer: \\"" << std::string_view{buffer.data(), min_buffer_size} << "\\"\\n";
+
+     // Or we can print the buffer directly by adding the trailing '\\0'.
+     buffer.push_back('\\0');
+     std::cout << "Buffer: \\"" << buffer.data() << "\\"\\n";
+ }
+
+.SH Output:
+
+ Min buffer size = 37
+ Buffer: "Hubble's H₀ ≅ *42* miles/sec/mpc."
+ Buffer: "Hubble's H₀ ≅ *42* miles/sec/mpc."
+
+.SH See also
+
+   format_to   writes out formatted representation of its arguments through an output
+   (C++20)     iterator
+               \fI(function template)\fP
+   format_to_n writes out formatted representation of its arguments through an output
+   (C++20)     iterator, not exceeding specified size
+               \fI(function template)\fP

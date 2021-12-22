@@ -1,0 +1,183 @@
+.TH std::jthread::jthread 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::jthread::jthread \- std::jthread::jthread
+
+.SH Synopsis
+   jthread() noexcept;                               \fB(1)\fP \fI(since C++20)\fP
+   jthread( jthread&& other ) noexcept;              \fB(2)\fP \fI(since C++20)\fP
+   template< class Function, class... Args >         \fB(3)\fP \fI(since C++20)\fP
+   explicit jthread( Function&& f, Args&&... args );
+   jthread( const jthread& ) = delete;               \fB(4)\fP \fI(since C++20)\fP
+
+   Constructs new jthread object.
+
+   1) Creates new jthread object which does not represent a thread.
+   2) Move constructor. Constructs the jthread object to represent the thread of
+   execution that was represented by other. After this call other no longer represents
+   a thread of execution.
+   3) Creates new std::jthread object and associates it with a thread of execution. The
+   new thread of execution starts executing
+
+ std::invoke(decay_copy(std::forward<Function>(f)),
+             get_stop_token(),
+             decay_copy(std::forward<Args>(args))...);
+
+   if the function f accepts a std::stop_token for its first argument; otherwise it
+   starts executing
+
+ std::invoke(decay_copy(std::forward<Function>(f)),
+             decay_copy(std::forward<Args>(args))...);
+
+   .
+
+   In either case, decay_copy is defined as
+
+ template <class T>
+ std::decay_t<T> decay_copy(T&& v) { return std::forward<T>(v); }
+
+   Except that the calls to decay_copy are evaluated in the context of the caller, so
+   that any exceptions thrown during evaluation and copying/moving of the arguments are
+   thrown in the current thread, without starting the new thread.
+   The completion of the invocation of the constructor synchronizes-with (as defined in
+   std::memory_order) the beginning of the invocation of the copy of f on the new
+   thread of execution.
+   This constructor does not participate in overload resolution if
+   std::remove_cvref_t<Function> is the same type as std::jthread.
+   4) The copy constructor is deleted; threads are not copyable. No two std::jthread
+   objects may represent the same thread of execution.
+
+.SH Parameters
+
+   other   - another jthread object to construct this jthread object with
+   f       - Callable object to execute in the new thread
+   args... - arguments to pass to the new function
+
+.SH Postconditions
+
+   1) get_id() equal to std::jthread::id() (i.e. joinable is false) and
+   get_stop_source().stop_possible() is false
+   2) other.get_id() equal to std::jthread::id() and get_id() returns the value of
+   other.get_id() prior to the start of construction
+   3) get_id() not equal to std::jthread::id() (i.e. joinable is true), and
+   get_stop_source().stop_possible() is true.
+
+.SH Exceptions
+
+   3) std::system_error if the thread could not be started. The exception may represent
+   the error condition std::errc::resource_unavailable_try_again or another
+   implementation-specific error condition.
+
+.SH Notes
+
+   The arguments to the thread function are moved or copied by value. If a reference
+   argument needs to be passed to the thread function, it has to be wrapped (e.g. with
+   std::ref or std::cref).
+
+   Any return value from the function is ignored. If the function throws an exception,
+   std::terminate is called. In order to pass return values or exceptions back to the
+   calling thread, std::promise or std::async may be used.
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <utility>
+ #include <thread>
+ #include <chrono>
+
+ void f1(int n)
+ {
+     for (int i = 0; i < 5; ++i) {
+         std::cout << "Thread 1 executing\\n";
+         ++n;
+         std::this_thread::sleep_for(std::chrono::milliseconds(10));
+     }
+ }
+
+ void f2(int& n)
+ {
+     for (int i = 0; i < 5; ++i) {
+         std::cout << "Thread 2 executing\\n";
+         ++n;
+         std::this_thread::sleep_for(std::chrono::milliseconds(10));
+     }
+ }
+
+ class foo
+ {
+ public:
+     void bar()
+     {
+         for (int i = 0; i < 5; ++i) {
+             std::cout << "Thread 3 executing\\n";
+             ++n;
+             std::this_thread::sleep_for(std::chrono::milliseconds(10));
+         }
+     }
+     int n = 0;
+ };
+
+ class baz
+ {
+ public:
+     void operator()()
+     {
+         for (int i = 0; i < 5; ++i) {
+             std::cout << "Thread 4 executing\\n";
+             ++n;
+             std::this_thread::sleep_for(std::chrono::milliseconds(10));
+         }
+     }
+     int n = 0;
+ };
+
+ int main()
+ {
+     int n = 0;
+     foo f;
+     baz b;
+     std::jthread t0; // t0 is not a thread
+     std::jthread t1(f1, n + 1); // pass by value
+     std::jthread t2a(f2, std::ref(n)); // pass by reference
+     std::jthread t2b(std::move(t2a)); // t2b is now running f2(). t2a is no longer a thread
+     std::jthread t3(&foo::bar, &f); // t3 runs foo::bar() on object f
+     std::jthread t4(b); // t4 runs baz::operator() on object b
+     t1.join();
+     t2b.join();
+     t3.join();
+     std::cout << "Final value of n is " << n << '\\n';
+     std::cout << "Final value of foo::n is " << f.n << '\\n';
+     // t4 joins on destruction
+ }
+
+.SH Possible output:
+
+ Thread 1 executing
+ Thread 2 executing
+ Thread 3 executing
+ Thread 4 executing
+ Thread 3 executing
+ Thread 1 executing
+ Thread 2 executing
+ Thread 4 executing
+ Thread 2 executing
+ Thread 3 executing
+ Thread 1 executing
+ Thread 4 executing
+ Thread 3 executing
+ Thread 2 executing
+ Thread 1 executing
+ Thread 3 executing
+ Thread 1 executing
+ Thread 2 executing
+ Final value of n is 5
+ Thread 4 executing
+ Final value of foo::n is 5
+ Thread 4 executing
+
+.SH See also
+
+   C documentation for
+   thrd_create

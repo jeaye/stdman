@@ -1,4 +1,4 @@
-.TH std::move_iterator 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::move_iterator 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::move_iterator \- std::move_iterator
 
@@ -8,45 +8,55 @@ std::move_iterator \- std::move_iterator
    class move_iterator;
 
    std::move_iterator is an iterator adaptor which behaves exactly like the underlying
-   iterator (which must be at least an LegacyInputIterator), except that dereferencing
-   converts the value returned by the underlying iterator into an rvalue. If this
-   iterator is used as an input iterator, the effect is that the values are moved from,
-   rather than copied from.
+   iterator (which must be at least an LegacyInputIterator
+   or model input_iterator
+   \fI(since C++20)\fP), except that dereferencing converts the value returned by the
+   underlying iterator into an rvalue. If this iterator is used as an input iterator,
+   the effect is that the values are moved from, rather than copied from.
 
 .SH Member types
 
    Member type       Definition
    iterator_type     Iter
-   difference_type   std::iterator_traits<Iter>::difference_type
+                     std::iterator_traits<Iter>::iterator_category               (until
+                                                                                 C++20)
+   iterator_category If std::iterator_traits<Iter>::iterator_category models
+                     std::derived_from<std::random_access_iterator_tag>, this is (since
+                     std::random_access_iterator_tag. Otherwise, this is         C++20)
+                     std::iterator_traits<Iter>::iterator_category unchanged
+   iterator_concept  std::input_iterator_tag
+   \fI(since C++20)\fP
+   value_type        std::iterator_traits<Iter>::value_type \fI(until C++20)\fP
+                     std::iter_value_t<Iter>                \fI(since C++20)\fP
+   difference_type   std::iterator_traits<Iter>::difference_type \fI(until C++20)\fP
+                     std::iter_difference_t<Iter>                \fI(since C++20)\fP
    pointer           Iter
-   value_type        std::iterator_traits<Iter>::value_type
-   iterator_category std::iterator_traits<Iter>::iterator_category
-                     value_type&&                                                (until
-                                                                                 C++17)
                      If std::iterator_traits<Iter>::reference is a reference,
-   reference         this is the rvalue reference version of the same type.      (since
-                     Otherwise (such as if the wrapped iterator returns by       C++17)
-                     value), this is std::iterator_traits<Iter>::reference
+                     this is the rvalue reference version of the same type.      (until
+                     Otherwise (such as if the wrapped iterator returns by       C++20)
+   reference         value), this is std::iterator_traits<Iter>::reference
                      unchanged
+                     std::iter_rvalue_reference_t<Iter>                          (since
+                                                                                 C++20)
 
 .SH Member functions
 
    constructor           constructs a new iterator adaptor
-                         \fI(public member function)\fP 
+                         \fI(public member function)\fP
    operator=             assigns another iterator
-                         \fI(public member function)\fP 
+                         \fI(public member function)\fP
    base                  accesses the underlying iterator
-                         \fI(public member function)\fP 
+                         \fI(public member function)\fP
    operator*             accesses the pointed-to element
-   operator->            \fI(public member function)\fP 
+   operator->            \fI(public member function)\fP
    (deprecated in C++20)
    operator[]            accesses an element by index
-                         \fI(public member function)\fP 
+                         \fI(public member function)\fP
    operator++
    operator++(int)
    operator+=
    operator+             advances or decrements the iterator
-   operator--            \fI(public member function)\fP 
+   operator--            \fI(public member function)\fP
    operator--(int)
    operator-=
    operator-
@@ -60,18 +70,33 @@ std::move_iterator \- std::move_iterator
 
    operator==
    operator!=
-   operator<  compares the underlying iterators
-   operator<= \fI(function template)\fP 
-   operator>
+   operator<
+   operator<=                     compares the underlying iterators
+   operator>                      \fI(function template)\fP
    operator>=
-   operator+  advances the iterator
-              \fI(function template)\fP 
-   operator-  computes the distance between two iterator adaptors
-              \fI(function template)\fP 
+   operator<=>
+   (removed in C++20)
+   (C++20)
+   operator==(std::move_sentinel) compares the underlying iterator and the underlying
+   (C++20)                        sentinel
+                                  \fI(function template)\fP
+   operator+                      advances the iterator
+                                  \fI(function template)\fP
+   operator-                      computes the distance between two iterator adaptors
+                                  \fI(function template)\fP
+   operator-(std::move_sentinel)  computes the distance between the underlying iterator
+   (C++20)                        and the underlying sentinel
+                                  \fI(function template)\fP
+   iter_move                      casts the result of dereferencing the underlying
+   (C++20)                        iterator to its associated rvalue reference type
+                                  \fI(function template)\fP
+   iter_swap                      swap the objects pointed to by two underlying
+   (C++20)                        iterators
+                                  \fI(function template)\fP
 
 .SH Example
 
-   
+
 // Run this code
 
  #include <iostream>
@@ -80,21 +105,21 @@ std::move_iterator \- std::move_iterator
  #include <iterator>
  #include <numeric>
  #include <string>
-  
+
  int main()
  {
      std::vector<std::string> v{"this", "is", "an", "example"};
-  
+
      std::cout << "Old contents of the vector: ";
      for (auto& s : v)
          std::cout << '"' << s << "\\" ";
-  
+
      typedef std::vector<std::string>::iterator iter_t;
      std::string concat = std::accumulate(
                               std::move_iterator<iter_t>(v.begin()),
                               std::move_iterator<iter_t>(v.end()),
                               std::string());  // Can be simplified with std::make_move_iterator
-  
+
      std::cout << "\\nConcatenated as string: " << concat << '\\n'
                << "New contents of the vector: ";
      for (auto& s : v)
@@ -108,7 +133,20 @@ std::move_iterator \- std::move_iterator
  Concatenated as string: thisisanexample
  New contents of the vector: "" "" "" ""
 
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to             Behavior as published              Correct behavior
+                       dereferencing a move_iterator could return a
+   LWG 2106 C++11      dangling reference                            returns the object
+                       if the dereferencing the underlying iterator  instead
+                       returns a prvalue
+
 .SH See also
 
    make_move_iterator creates a std::move_iterator of type inferred from the argument
-   \fI(C++11)\fP            \fI(function template)\fP 
+   \fI(C++11)\fP            \fI(function template)\fP
+   move_sentinel      sentinel adaptor for use with std::move_iterator
+   (C++20)            \fI(class template)\fP

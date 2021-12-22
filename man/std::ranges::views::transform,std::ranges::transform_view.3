@@ -1,0 +1,115 @@
+.TH std::ranges::views::transform,std::ranges::transform_view 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::views::transform,std::ranges::transform_view \- std::ranges::views::transform,std::ranges::transform_view
+
+.SH Synopsis
+   Defined in header <ranges>
+   template< ranges::input_range V,
+
+             std::copy_constructible F >
+     requires ranges::view<V> &&
+              std::is_object_v<F> &&
+              std::regular_invocable<F&,                              \fB(1)\fP \fI(since C++20)\fP
+   ranges::range_reference_t<V>> &&
+              /* invoke_result_t<F&, range_reference_t<V>>& is a
+   valid type */
+
+   class transform_view : public
+   ranges::view_interface<transform_view<V, F>>
+   namespace views {
+
+       inline constexpr /*unspecified*/ transform = /*unspecified*/;  \fB(2)\fP \fI(since C++20)\fP
+
+   }
+
+   1) A range adaptor that represents view of an underlying sequence after applying a
+   transformation function to each element.
+   2) Range adaptor object. The expression views::transform(E, F) is
+   expression-equivalent to transform_view{E, F} for any suitable subexpressions E and
+   F.
+
+   transform_view models the concepts random_access_range, bidirectional_range,
+   forward_range, input_range, common_range, and sized_range when the underlying view V
+   models respective concepts.
+
+.SH Member functions
+
+   constructor   constructs a transform_view
+                 \fI(public member function)\fP
+   base          returns a copy of the underlying (adapted) view
+                 \fI(public member function)\fP
+   begin         returns an iterator to the beginning
+                 \fI(public member function)\fP
+   end           returns an iterator or a sentinel to the end
+                 \fI(public member function)\fP
+                 returns the number of elements. Provided only if the underlying
+   size          (adapted) range satisfies sized_range
+                 \fI(public member function)\fP
+
+   Deduction guides
+
+   Nested classes
+
+   iterator the iterator type
+            \fI(public member class)\fP
+   sentinel the sentinel type
+            \fI(public member class)\fP
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <array>
+ #include <cstdio>
+ #include <ranges>
+ #include <string>
+
+ class Transcoder {
+     static constexpr std::array r{
+         0x02,-0x02,-0x42, 0x05, 0x04, 0x05, 0x04,-0x02,
+         0x00,-0x0a, 0x06,-0x04, 0x00, 0x0c, 0x03,-0x06,
+     };
+     decltype(r.size()) p{}, q{};
+ public:
+     char operator() (int x) {
+         ! (p|q)
+         ? (99 == x ? x += r[p++]  : x -= r[q++])
+         : (0 < p && p < r.size()) ? x += r[p++]
+         : (0 < q && q < r.size()) ? x -= r[q++]
+         : (0)
+         ;
+         return x;
+     }
+ };
+
+ int main()
+ {
+     auto show = [](const char x) { std::putchar(x); };
+
+     std::string in{ "cppreference.com\\n" };
+     std::ranges::for_each(in, show);
+
+     std::string out;
+     std::ranges::copy(
+         std::ranges::views::transform(in, Transcoder{}),
+         std::back_inserter(out));
+     std::ranges::for_each(out, show);
+
+     auto view = std::ranges::transform_view{ out, Transcoder{} };
+     std::ranges::for_each(view, show);
+     std::ranges::for_each(view, show);
+ }
+
+.SH Output:
+
+ cppreference.com
+ en.wikipedia.org
+ cppreference.com
+ en.wikipedia.org
+
+.SH See also
+
+   ranges::transform applies a function to a range of elements
+   (C++20)           (niebloid)

@@ -1,4 +1,4 @@
-.TH std::is_class 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_class 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_class \- std::is_class
 
@@ -11,6 +11,10 @@ std::is_class \- std::is_class
    is equal to true, if T is a class type (but not union). Otherwise, value is equal to
    false.
 
+   The behavior of a program that adds specializations for is_class
+   or is_class_v
+   \fI(since C++17)\fP is undefined.
+
 .SH Template parameters
 
    T - a type to check
@@ -20,7 +24,7 @@ std::is_class \- std::is_class
    template< class T >                                     \fI(since C++17)\fP
    inline constexpr bool is_class_v = is_class<T>::value;
 
-   
+
 
 Inherited from std::integral_constant
 
@@ -45,29 +49,31 @@ Inherited from std::integral_constant
 .SH Possible implementation
 
    namespace detail {
-       template <class T> char test(int T::*);
-       struct two { char c[2]; };
-       template <class T> two test(...);
-   }
-    
    template <class T>
-   struct is_class : std::integral_constant<bool, sizeof(detail::test<T>\fB(0)\fP)==1
-                                               && !std::is_union<T>::value> {};
+   std::integral_constant<bool, !std::is_union<T>::value> test(int T::*);
+
+   template <class>
+   std::false_type test(...);
+   }
+
+   template <class T>
+   struct is_class : decltype(detail::test<T>(nullptr))
+   {};
 
 .SH Example
 
-   
+
 // Run this code
 
  #include <iostream>
  #include <type_traits>
-  
+
  struct A {};
-  
+
  class B {};
-  
+
  enum class C {};
-  
+
  int main()
  {
      std::cout << std::boolalpha;
@@ -87,4 +93,4 @@ Inherited from std::integral_constant
 .SH See also
 
    is_union checks if a type is an union type
-   \fI(C++11)\fP  \fI(class template)\fP 
+   \fI(C++11)\fP  \fI(class template)\fP

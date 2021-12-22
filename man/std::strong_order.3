@@ -1,44 +1,82 @@
-.TH std::strong_order 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::strong_order 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::strong_order \- std::strong_order
 
 .SH Synopsis
    Defined in header <compare>
-   template< class T >                                                   \fI(since C++20)\fP
-   constexpr std::strong_ordering strong_order(const T& a, const T& b);
+   inline namespace /* unspecified */ {
+
+       inline constexpr /* unspecified */ strong_order = /* unspecified   \fI(since C++20)\fP
+   */;
+
+   }
+   Call signature
+   template< class T, class U >
+
+       requires /* see below */
+
+   constexpr std::strong_ordering strong_order(T&& t, U&& u) noexcept(/*
+   see below */);
 
    Compares two values using 3-way comparison and produces a result of type
    std::strong_ordering
 
-   Specifically,
+   Let t and u be expressions and T and U denote decltype((t)) and decltype((u))
+   respectively, std::strong_order(t, u) is expression-equivalent to:
 
-     * First, if std::numeric_limits<T>::is_iec559 is true, performs the ISO/IEC/IEEE
-       60559 totalOrder comparison of floating-point values and returns that result as
-       a value of type std::strong_ordering (note: this comparison can distinguish
-       between the positive and negative zero and between the NaNs with different
-       representations)
-     * Otherwise, if the expression a <=> b is well-formed and its result is
-       convertible to std::strong_ordering, returns that result.
-     * Otherwise, if the expression a <=> b is well-formed, but its result is not
-       convertible to std::strong_ordering, then the function is defined as deleted.
-     * Otherwise, if the expression a <=> b is ill-formed, but the expressions a == b
-       and a < b are both well-formed and convertible to bool,
+     * If std::is_same_v<std::decay_t<T>, std::decay_t<U>> == true:
 
-     * if a == b is true, returns std::strong_ordering::equal
-     * otherwise, if a < b is true, returns std::strong_ordering::less
-     * otherwise, returns std::strong_ordering::greater
+          * std::strong_ordering(strong_order(t, u)), if it is a well-formed expression
+            with overload resolution performed in a context that does not include a
+            declaration of std::strong_order,
+          * otherwise, if T is a floating-point type:
 
-     * Otherwise, the function is defined as deleted.
+               * if std::numeric_limits<T>::is_iec559 is true, performs the
+                 ISO/IEC/IEEE 60559 totalOrder comparison of floating-point values and
+                 returns that result as a value of type std::strong_ordering (note:
+                 this comparison can distinguish between the positive and negative zero
+                 and between the NaNs with different representations),
+               * otherwise, yields a value of type std::strong_ordering that is
+                 consistent with the ordering observed by T's comparison operators,
 
-.SH Parameters
+          * otherwise, std::strong_ordering(std::compare_three_way()(t, u)) if it is
+            well-formed,
+          * otherwise, the expression is ill-formed, which can result in substitution
+            failure when it appears in the immediate context of a template
+            instantiation.
 
-   a, b - values to compare
-
-.SH Return value
-
-   A value of type std::strong_ordering, as described above.
+     * Otherwise, std::strong_order(t, u) is ill-formed.
 
 .SH Notes
+
+     Strict total order of IEEE floating-point types
+
+   Let x and y be values of same IEEE floating-point type, and total_order_less(x, y)
+   be the boolean result indicating if x precedes y in the strict total order defined
+   by totalOrder in ISO/IEC/IEEE 60559.
+
+   (total_order_less(x, y) || total_order_less(y, x)) == false if and only if x and y
+   have the same bit pattern.
+
+     * if neither x nor y is NaN:
+
+          * if x < y, then total_order_less(x, y) == true;
+          * if x == y,
+
+               * if x is negative zero and y is positive zero, total_order_less(x, y)
+                 == true,
+               * if x is not zero and x's exponent field is less than y's, then
+                 total_order_less(x, y) == (x > 0) (only meaningful for decimal
+                 floating-point number);
+
+     * if either x or y is NaN:
+
+          * if x is negative NaN and y is not negative NaN, then total_order_less(x, y)
+            == true,
+          * if x is not positive NaN and y is positive NaN, then total_order_less(x, y)
+            == true,
+          * if both x and y are NaNs with the same sign and x's mantissa field is less
+            than y's, then total_order_less(x, y) == !std::signbit(x).
 
 .SH Example
 
@@ -47,12 +85,19 @@ std::strong_order \- std::strong_order
 
 .SH See also
 
-   strong_ordering the result type of 3-way comparison that supports all 6 operators
-   (C++20)         and is substitutable
-                   \fI(class)\fP 
-   weak_order      performs 3-way comparison and produces a result of type
-   (C++20)         std::weak_ordering
-                   \fI(function template)\fP 
+   strong_ordering               the result type of 3-way comparison that supports all
+   (C++20)                       6 operators and is substitutable
+                                 \fI(class)\fP
+   weak_order                    performs 3-way comparison and produces a result of
+   (C++20)                       type std::weak_ordering
+                                 (customization point object)
+   partial_order                 performs 3-way comparison and produces a result of
+   (C++20)                       type std::partial_ordering
+                                 (customization point object)
+                                 performs 3-way comparison and produces a result of
+   compare_strong_order_fallback type std::strong_ordering, even if operator<=> is
+   (C++20)                       unavailable
+                                 (customization point object)
 
 .SH Category:
 

@@ -1,4 +1,4 @@
-.TH std::add_lvalue_reference,std::add_rvalue_reference 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::add_lvalue_reference,std::add_rvalue_reference 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::add_lvalue_reference,std::add_rvalue_reference \- std::add_lvalue_reference,std::add_rvalue_reference
 
@@ -11,11 +11,14 @@ std::add_lvalue_reference,std::add_rvalue_reference \- std::add_lvalue_reference
 
    Creates a lvalue or rvalue reference type of T.
 
-   1) If T is an object type or a function type that has no cv- or ref- qualifier,
+   1) If T is a function type that has no cv- or ref- qualifier or an object type,
    provides a member typedef type which is T&. If T is an rvalue reference to some type
    U, then type is U&. Otherwise, type is T.
-   2) If T is an object type or a function type that has no cv- or ref- qualifier,
+   2) If T is a function type that has no cv- or ref- qualifier or an object type,
    provides a member typedef type which is T&&, otherwise type is T.
+
+   The behavior of a program that adds specializations for any of the templates
+   described on this page is undefined.
 
 .SH Member types
 
@@ -35,53 +38,59 @@ std::add_lvalue_reference,std::add_rvalue_reference \- std::add_lvalue_reference
 
    These type transformations honor reference collapse rules:
 
-   std::add_lvalue_reference<T&>::type is T&
-   std::add_lvalue_reference<T&&>::type is T&
-   std::add_rvalue_reference<T&>::type is T&
-   std::add_rvalue_reference<T&&>::type is T&&
+     * std::add_lvalue_reference<T&>::type is T&
+     * std::add_lvalue_reference<T&&>::type is T&
+     * std::add_rvalue_reference<T&>::type is T&
+     * std::add_rvalue_reference<T&&>::type is T&&
+
+   The major difference to directly using T& is that
+   std::add_lvalue_reference<void>::type is void, while void& leads to a compilation
+   error.
 
 .SH Possible implementation
 
    namespace detail {
-    
+
    template <class T>
    struct type_identity { using type = T; }; // or use std::type_identity \fI(since C++20)\fP
-    
+
    template <class T>
    auto try_add_lvalue_reference(int) -> type_identity<T&>;
    template <class T>
    auto try_add_lvalue_reference(...) -> type_identity<T>;
-    
+
    template <class T>
    auto try_add_rvalue_reference(int) -> type_identity<T&&>;
    template <class T>
    auto try_add_rvalue_reference(...) -> type_identity<T>;
-    
+
    } // namespace detail
-    
+
    template <class T>
    struct add_lvalue_reference : decltype(detail::try_add_lvalue_reference<T>\fB(0)\fP) {};
-    
+
    template <class T>
    struct add_rvalue_reference : decltype(detail::try_add_rvalue_reference<T>\fB(0)\fP) {};
 
 .SH Example
 
-   
+
 // Run this code
 
  #include <iostream>
  #include <type_traits>
-  
+
  int main() {
     using nonref = int;
     using lref = typename std::add_lvalue_reference<nonref>::type;
     using rref = typename std::add_rvalue_reference<nonref>::type;
-  
+    using voidref = std::add_lvalue_reference_t<void>;
+
     std::cout << std::boolalpha;
     std::cout << std::is_lvalue_reference<nonref>::value << '\\n';
     std::cout << std::is_lvalue_reference<lref>::value << '\\n';
     std::cout << std::is_rvalue_reference<rref>::value << '\\n';
+    std::cout << std::is_reference_v<voidref> << '\\n';
  }
 
 .SH Output:
@@ -89,6 +98,7 @@ std::add_lvalue_reference,std::add_rvalue_reference \- std::add_lvalue_reference
  false
  true
  true
+ false
 
    Defect reports
 
@@ -104,8 +114,8 @@ std::add_lvalue_reference,std::add_rvalue_reference \- std::add_lvalue_reference
 .SH See also
 
    is_reference     checks if a type is either a lvalue reference or rvalue reference
-   \fI(C++11)\fP          \fI(class template)\fP 
+   \fI(C++11)\fP          \fI(class template)\fP
    remove_reference removes a reference from the given type
-   \fI(C++11)\fP          \fI(class template)\fP 
+   \fI(C++11)\fP          \fI(class template)\fP
    remove_cvref     combines std::remove_cv and std::remove_reference
-   (C++20)          \fI(class template)\fP 
+   (C++20)          \fI(class template)\fP

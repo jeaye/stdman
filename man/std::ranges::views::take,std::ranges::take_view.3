@@ -1,0 +1,86 @@
+.TH std::ranges::views::take,std::ranges::take_view 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::views::take,std::ranges::take_view \- std::ranges::views::take,std::ranges::take_view
+
+.SH Synopsis
+   template< ranges::view V >                                    \fB(1)\fP \fI(since C++20)\fP
+   class take_view : public ranges::view_interface<take_view<V>>
+   namespace views {
+
+       inline constexpr /*unspecified*/ take = /*unspecified*/;  \fB(2)\fP \fI(since C++20)\fP
+
+   }
+
+   1) A range adaptor that represents view of the first N elements from an underlying
+   sequence, or all elements if the underlying sequence contains fewer than N.
+   2) The expression views::take(E, F) results in a view that represents the first F
+   elements from E. The result is not necessarily a take_view.
+
+   It is expression-equivalent to (where T is std::remove_cvref_t<decltype((E))> and D
+   is ranges::range_difference_t<decltype((E))>):
+
+     * ((void)F, static_cast<T>(E)), if T is a ranges::empty_view;
+     * T{ranges::begin(E), ranges::begin(E) + std::min<D>(ranges::size(E), F)}, if T
+       models both random_access_range and sized_range, and T is a specialization of
+
+     * std::span where T::extent == std::dynamic_extent,
+     * std::basic_string_view,
+     * ranges::iota_view, or
+     * ranges::subrange;
+
+     * otherwise, take_view{E, F}.
+
+   In all cases, decltype((F)) must model std::convertible_to<D>.
+
+   take_view models the concepts contiguous_range, random_access_range,
+   bidirectional_range, forward_range, input_range, and sized_range when the underlying
+   view V models respective concepts. It models common_range when the underlying view V
+   models both random_access_range and sized_range.
+
+.SH Member functions
+
+   constructor   constructs a take_view
+                 \fI(public member function)\fP
+   base          returns a copy of the underlying (adapted) view
+                 \fI(public member function)\fP
+   begin         returns an iterator to the beginning
+                 \fI(public member function)\fP
+   end           returns an iterator or a sentinel to the end
+                 \fI(public member function)\fP
+                 returns the number of elements. Provided only if the underlying
+   size          (adapted) range satisfies sized_range
+                 \fI(public member function)\fP
+
+   Deduction guides
+
+   Nested classes
+
+   sentinel the sentinel type
+            \fI(public member class)\fP
+
+.SH Example
+
+
+// Run this code
+
+ #include <ranges>
+ #include <algorithm> // for std::ranges::for_each
+ #include <iostream>
+
+ auto print = [](char x) { std::cout << x; };
+
+ int main()
+ {
+     constexpr char pi[] { '3', '.', '1', '4', '1', '5', '9', '2', '6', '5' };
+
+     std::ranges::for_each(pi | std::ranges::views::take(8), print);
+     std::cout << '\\n';
+
+     std::ranges::for_each(std::ranges::take_view{pi, 8}, print);
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ 3.141592
+ 3.141592

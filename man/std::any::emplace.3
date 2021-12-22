@@ -1,4 +1,4 @@
-.TH std::any::emplace 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::any::emplace 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::any::emplace \- std::any::emplace
 
@@ -15,15 +15,19 @@ std::any::emplace \- std::any::emplace
    First destroys the current contained object (if any) by reset(), then:
 
    1) constructs an object of type std::decay_t<ValueType>, direct-non-list-initialized
-   from std::forward<Args>(args)..., as the contained object. This overload only
-   participates in overload resolution if
-   std::is_constructible_v<std::decay_t<ValueType>, Args...> and
-   std::is_copy_constructible_v<std::decay_t<ValueType>> are both true.
+   from std::forward<Args>(args)..., as the contained object.
+
+     * This overload only participates in overload resolution if
+       std::is_constructible_v<std::decay_t<ValueType>, Args...> and
+       std::is_copy_constructible_v<std::decay_t<ValueType>> are both true.
+
    2) constructs an object of type std::decay_t<ValueType>, direct-non-list-initialized
-   from il, std::forward<Args>(args)..., as the contained object. This overload only
-   participates in overload resolution if
-   std::is_constructible_v<std::decay_t<ValueType>, std::initializer_list<U>&, Args...>
-   and std::is_copy_constructible_v<std::decay_t<ValueType>> are both true.
+   from il, std::forward<Args>(args)..., as the contained object.
+
+     * This overload only participates in overload resolution if
+       std::is_constructible_v<std::decay_t<ValueType>, std::initializer_list<U>&,
+       Args...> and std::is_copy_constructible_v<std::decay_t<ValueType>> are both
+       true.
 
 .SH Template parameters
 
@@ -44,16 +48,59 @@ std::any::emplace \- std::any::emplace
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <algorithm>
+ #include <any>
+ #include <iostream>
+ #include <string>
+ #include <vector>
+
+ class Star
+ {
+     std::string name;
+     int id;
+
+ public:
+     Star(std::string name, int id) : name { name }, id { id }
+     {
+         std::cout << "Star::Star(string, int)\\n";
+     }
+
+     void print() const
+     {
+         std::cout << "Star{ \\"" << name << "\\" : " << id << " };\\n";
+     }
+ };
+
+ auto main() -> int
+ {
+     std::any celestial;
+     // (1) emplace( Args&&... args );
+     celestial.emplace<Star>("Procyon", 2943);
+     const auto* star = std::any_cast<Star>(&celestial);
+     star->print();
+
+     std::any av;
+     // (2) emplace( std::initializer_list<U> il, Args&&... args );
+     av.emplace<std::vector<char>>({ 'C', '+', '+', '1', '7' } /* no args */ );
+     std::cout << av.type().name() << '\\n';
+     const auto* va = std::any_cast<std::vector<char>>(&av);
+     std::for_each(va->cbegin(), va->cend(), [](char const& c) { std::cout << c; });
+     std::cout << '\\n';
+ }
+
+.SH Possible output:
+
+ Star::Star(string, int)
+ Star{ "Procyon" : 2943 };
+ St6vectorIcSaIcEE
+ C++17
 
 .SH See also
 
    constructor   constructs an any object
-                 \fI(public member function)\fP 
+                 \fI(public member function)\fP
    reset         destroys contained object
-                 \fI(public member function)\fP 
-
-.SH Category:
-
-     * Todo no example
+                 \fI(public member function)\fP

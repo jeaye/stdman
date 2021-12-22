@@ -1,0 +1,120 @@
+.TH std::ranges::is_sorted 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::is_sorted \- std::ranges::is_sorted
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< std::forward_iterator I, std::sentinel_for<I> S, class Proj =
+   std::identity,
+
+             std::indirect_strict_weak_order<std::projected<I, Proj>> Comp  \fB(1)\fP (since
+   = ranges::less >                                                             C++20)
+
+   constexpr bool is_sorted( I first, S last, Comp comp = {}, Proj proj =
+   {} );
+   template< ranges::forward_range R, class Proj = std::identity,
+
+             std::indirect_strict_weak_order<                                   (since
+                 std::projected<ranges::iterator_t<R>, Proj>> Comp =        \fB(2)\fP C++20)
+   ranges::less >
+
+   constexpr bool is_sorted( R&& r, Comp comp = {}, Proj proj = {} );
+
+   Checks if the elements in range [first, last) are sorted in non-descending order.
+
+   A sequence is sorted with respect to a comparator comp if for any iterator it
+   pointing to the sequence and any non-negative integer n such that it + n is a valid
+   iterator pointing to an element of the sequence, std::invoke(comp, std::invoke(proj,
+   *(it + n)), std::invoke(proj, *it)) evaluates to false.
+
+   1) Elements are compared using the given binary comparison function comp.
+   2) Same as \fB(1)\fP, but uses r as the source range, as if using ranges::begin(r) as
+   first and ranges::end(r) as last.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists may not be specified when calling any of them.
+     * None of them is visible to argument-dependent lookup.
+     * When one of them is found by normal unqualified lookup for the name to the left
+       of the function-call operator, it inhibits argument-dependent lookup.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first, last - iterator-sentinel defining the range to check if it is sorted
+   r           - the range to check if it is sorted
+   comp        - comparison function to apply to the projected elements
+   proj        - projection to apply to the elements
+
+.SH Return value
+
+   true if the elements in the range are sorted according to comp.
+
+.SH Complexity
+
+   Linear in the distance between first and last.
+
+.SH Possible implementation
+
+  struct is_sorted_fn {
+    template<std::forward_iterator I, std::sentinel_for<I> S, class Proj = std::identity,
+             std::indirect_strict_weak_order<std::projected<I, Proj>> Comp = ranges::less>
+    constexpr bool operator()(I first, S last, Comp comp = {}, Proj proj = {}) const
+    {
+        return ranges::is_sorted_until(first, last, comp, proj) == last;
+    }
+
+    template<ranges::forward_range R, class Proj = std::identity,
+             std::indirect_strict_weak_order<
+                 std::projected<ranges::iterator_t<R>, Proj>> Comp = ranges::less>
+    constexpr bool operator()(R&& r, Comp comp = {}, Proj proj = {}) const
+    {
+        return (*this)(ranges::begin(r), ranges::end(r),
+                       std::ref(comp), std::ref(proj));
+    }
+  };
+
+  inline constexpr is_sorted_fn is_sorted;
+
+.SH Notes
+
+   ranges::is_sorted returns true for empty ranges and ranges of length one.
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <iostream>
+ #include <iterator>
+
+ int main()
+ {
+     std::array<int, 5> digits = {3, 1, 4, 1, 5};
+
+     ranges::copy(digits, std::ostream_iterator<int>(std::cout, " "));
+     std::cout << ": is_sorted: " << std::boolalpha
+               << ranges::is_sorted(digits) << '\\n';
+
+     ranges::sort(digits);
+
+     ranges::copy(digits, std::ostream_iterator<int>(std::cout, " "));
+     std::cout << ": is_sorted: "
+               << ranges::is_sorted(ranges::begin(digits), ranges::end(digits)) << '\\n';
+ }
+
+.SH Output:
+
+ 3 1 4 1 5 : is_sorted: false
+ 1 1 3 4 5 : is_sorted: true
+
+.SH See also
+
+   ranges::is_sorted_until finds the largest sorted subrange
+   (C++20)                 (niebloid)
+   is_sorted               checks whether a range is sorted into ascending order
+   \fI(C++11)\fP                 \fI(function template)\fP

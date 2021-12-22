@@ -1,23 +1,97 @@
-.TH deductionguidesforstd::span 3 "2020.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH deductionguidesforstd::span 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 deductionguidesforstd::span \- deductionguidesforstd::span
 
 .SH Synopsis
    Defined in header <span>
-   template<class T, std::size_t N>                                      \fB(1)\fP
+   template <class It, class EndOrSize>
+   span(It, EndOrSize) ->                                                          \fB(1)\fP
+   span<std::remove_reference_t<std::iter_reference_t<It>>>;
+   template<class T, std::size_t N>                                                \fB(2)\fP
    span(T (&)[N]) -> span<T, N>;
-   template<class T, std::size_t N>                                      \fB(2)\fP
+   template<class T, std::size_t N>                                                \fB(3)\fP
    span(std::array<T, N>&) -> span<T, N>;
-   template<class T, std::size_t N>                                      \fB(3)\fP
+   template<class T, std::size_t N>                                                \fB(4)\fP
    span(const std::array<T, N>&) -> span<const T, N>;
-   template<class Container>                                             \fB(4)\fP
-   span(Container&) -> span<typename Container::value_type>;
-   template<class Container>                                             \fB(5)\fP
-   span(const Container&) -> span<const typename Container::value_type>;
+   template<class R>                                                               \fB(5)\fP
+   span(R&&) -> span<std::remove_reference_t<std::ranges::range_reference_t<R>>>;
 
-   Five deduction guides are provided for span.
+   The following deduction guides are provided for span.
 
-   (1-3) allow the static extent to be deduced from built-in arrays and std::array.
+   \fB(1)\fP allow the element type to be deduced from the iterator-sentinel pair. This
+   overload only participates in overload resolution if It satisfies
+   contiguous_iterator
 
-   (4-5) allow the element type to be deduced from containers that supply a nested type
-   value_type.
+   (2-4) allow the static extent to be deduced from built-in arrays and std::array.
+
+   \fB(5)\fP allow the element type to be deduced from ranges. This overload only
+   participates in overload resolution if R satisfies contiguous_range
+
+.SH Example
+
+
+// Run this code
+
+ #include <array>
+ #include <cstddef>
+ #include <iomanip>
+ #include <iostream>
+ #include <span>
+ #include <string_view>
+ #include <vector>
+
+ void print(std::string_view rem = "", std::size_t size_of = 0, std::size_t extent = 0) {
+     if (rem.empty()) {
+         std::cout << "name │ sizeof │ extent\\n─────┼────────┼────────\\n";
+         return;
+     }
+     std::cout << std::setw(4) << rem << " │ " << std::setw(6) << size_of << " │ ";
+     if (extent == std::dynamic_extent)
+         std::cout << "dynamic";
+     else
+         std::cout << extent;
+     std::cout << '\\n';
+ }
+
+ int main() {
+     int a[] {1, 2, 3, 4, 5};
+
+     print();
+     std::span s1 {std::begin(a), std::end(a)}; // guide (1)
+     print("s1", sizeof s1, s1.extent);
+
+     std::span s2 {std::begin(a), 3}; // guide (1)
+     print("s2", sizeof s2, s2.extent);
+
+     std::span s3 {a}; // guide (2)
+     print("s3", sizeof s3, s3.extent);
+
+     std::span<int> s4 {a}; // does not use a guide, makes a dynamic span
+     print("s4", sizeof s4, s4.extent);
+
+     std::array arr {6, 7, 8};
+     std::span s5 {arr}; // guide (3)
+     print("s5", sizeof s5, s5.extent);
+     s5[0] = 42; // OK, element_type is 'int'
+
+     const std::array arr2 {9, 10, 11};
+     std::span s6 {arr2}; // guide (4)
+     print("s6", sizeof s6, s6.extent);
+     // s6[0] = 42; // Error: element_type is 'const int'
+
+     std::vector v {66, 69, 99};
+     std::span s7 {v}; // guide (5)
+     print("s7", sizeof s7, s7.extent);
+ }
+
+.SH Output:
+
+ name │ sizeof │ extent
+ ─────┼────────┼────────
+   s1 │     16 │ dynamic
+   s2 │     16 │ dynamic
+   s3 │      8 │ 5
+   s4 │     16 │ dynamic
+   s5 │      8 │ 3
+   s6 │      8 │ 3
+   s7 │     16 │ dynamic

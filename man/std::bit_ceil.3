@@ -1,0 +1,90 @@
+.TH std::bit_ceil 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::bit_ceil \- std::bit_ceil
+
+.SH Synopsis
+   Defined in header <bit>
+   template< class T >         \fI(since C++20)\fP
+   constexpr T bit_ceil(T x);
+
+   Calculates the smallest integral power of two that is not smaller than x.
+
+   If that value is not representable in T, the behavior is undefined. Call to this
+   function is permitted in constant evaluation only if the undefined behavior does not
+   occur.
+
+   This overload only participates in overload resolution if T is an unsigned integer
+   type (that is, unsigned char, unsigned short, unsigned int, unsigned long, unsigned
+   long long, or an extended unsigned integer type).
+
+.SH Parameters
+
+   x - values of unsigned integer type
+
+.SH Return value
+
+   The smallest integral power of two that is not smaller than x.
+
+.SH Exceptions
+
+   Throws nothing.
+
+.SH Possible implementation
+
+   See possible implementations in libstdc++ (gcc) and libc++ (clang)
+
+   template <std::unsigned_integral T>
+       requires !std::same_as<T, bool> && !std::same_as<T, char> &&
+                !std::same_as<T, char8_t> && !std::same_as<T, char16_t> &&
+                !std::same_as<T, char32_t> && !std::same_as<T, wchar_t>
+   constexpr T bit_ceil(T x) noexcept
+   {
+       if (x <= 1u)
+           return T\fB(1)\fP;
+       if constexpr (std::same_as<T, decltype(+x)>)
+           return T\fB(1)\fP << std::bit_width(T(x - 1));
+       else { // for types subject to integral promotion
+           constexpr int offset_for_ub =
+               std::numeric_limits<unsigned>::digits - std::numeric_limits<T>::digits;
+           return T(1u << (std::bit_width(T(x - 1)) + offset_for_ub) >> offset_for_ub);
+       }
+   }
+
+.SH Example
+
+
+// Run this code
+
+ #include <bit>
+ #include <bitset>
+ #include <iostream>
+
+ auto main() -> int
+ {
+     using bin = std::bitset<8>;
+
+     for (unsigned x{0}; x != 10; ++x)
+     {
+         auto const z = std::bit_ceil(x); // `ceil2` before P1956R1
+
+         std::cout << "bit_ceil(" << bin(x) << ") = " << bin(z) << '\\n';
+     }
+ }
+
+.SH Output:
+
+ bit_ceil(00000000) = 00000001
+ bit_ceil(00000001) = 00000001
+ bit_ceil(00000010) = 00000010
+ bit_ceil(00000011) = 00000100
+ bit_ceil(00000100) = 00000100
+ bit_ceil(00000101) = 00001000
+ bit_ceil(00000110) = 00001000
+ bit_ceil(00000111) = 00001000
+ bit_ceil(00001000) = 00001000
+ bit_ceil(00001001) = 00010000
+
+.SH See also
+
+   bit_floor finds the largest integral power of two not greater than the given value
+   (C++20)   \fI(function template)\fP
