@@ -1,4 +1,4 @@
-.TH std::mem_fun 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::mem_fun 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::mem_fun \- std::mem_fun
 
@@ -19,12 +19,13 @@ std::mem_fun \- std::mem_fun
    arguments. The wrapper object expects a pointer to an object of type T as the first
    parameter to its operator().
 
-   1) Effectively calls std::mem_fun_t<S,T>(f) or std::const_mem_fun_t<S,T>(f).
-   2) Effectively calls std::mem_fun1_t<S,T>(f) or std::const_mem_fun1_t<S,T>(f).
+   1) Effectively calls std::mem_fun_t<Res,T>(f) or std::const_mem_fun_t<Res,T>(f).
+   2) Effectively calls std::mem_fun1_t<Res,T,Arg>(f) or
+   std::const_mem_fun1_t<Res,T,Arg>(f).
 
    This function and the related types were deprecated in C++11 and removed in C++17 in
    favor of the more general std::mem_fn and std::bind, both of which create callable
-   adapter-compatible function objects from member functions.
+   adaptor-compatible function objects from member functions.
 
 .SH Parameters
 
@@ -46,8 +47,54 @@ std::mem_fun \- std::mem_fun
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+   demonstrates std::mem_fun usage and compares it with std::mem_fn. C++11/14
+   compatible compilation mode might be necessary (e.g. g++/clang++ with -std=c++11, cl
+   with /std:c++11).
+
+
+// Run this code
+
+ #include <iostream>
+ #include <functional>
+
+ struct S {
+     int get_data() const { return data; }
+     void no_args() const { std::cout << "void S::no_args() const\\n"; }
+     void one_arg(int) { std::cout << "void S::one_arg()\\n"; }
+     void two_args(int, int) { std::cout << "void S::two_args(int, int)\\n"; }
+     int data{42};
+ };
+
+ int main() {
+     S s;
+
+     auto p = std::mem_fun(&S::get_data);
+     std::cout << "s.get_data(): " << p(&s) << '\\n';
+
+     auto p0 = std::mem_fun(&S::no_args);
+     p0(&s);
+     auto p1 = std::mem_fun(&S::one_arg);
+     p1(&s, 1);
+
+ //  auto p2 = std::mem_fun(&S::two_args); // Error: mem_fun supports only member functions
+                                           // without parameters or with only one parameter.
+                                           // Thus, std::mem_fn is a better alternative:
+     auto p2 = std::mem_fn(&S::two_args);
+     p2(s, 1, 2);
+
+ //  auto pd = std::mem_fun(&S::data); // Error: pointers to data members are not supported.
+                                       // Use std::mem_fn instead:
+     auto pd = std::mem_fn(&S::data);
+     std::cout << "s.data = " << pd(s) << '\\n';
+ }
+
+.SH Possible output:
+
+ s.get_data(): 42
+ void S::no_args() const
+ void S::one_arg(int)
+ void S::two_args(int, int)
+ s.data = 42
 
 .SH See also
 
@@ -56,7 +103,3 @@ std::mem_fun \- std::mem_fun
    mem_fun_ref           creates a wrapper from a pointer to member function, callable
    (deprecated in C++11) with a reference to object
    (removed in C++17)    \fI(function template)\fP
-
-.SH Category:
-
-     * Todo no example

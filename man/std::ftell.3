@@ -1,4 +1,4 @@
-.TH std::ftell 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ftell 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ftell \- std::ftell
 
@@ -12,7 +12,7 @@ std::ftell \- std::ftell
    number of bytes from the beginning of the file.
 
    If the stream is open in text mode, the value returned by this function is
-   unspecified and is only meaningful as the input to std::fseek
+   unspecified and is only meaningful as the input to std::fseek.
 
 .SH Parameters
 
@@ -25,8 +25,68 @@ std::ftell \- std::ftell
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+   Demonstrates std::ftell() with error checking. Writes then reads a few
+   floating-point (FP) values to/from a file.
+
+
+// Run this code
+
+ #include <cstdio>
+ #include <cstdlib>
+ #include <iostream>
+
+ // If the condition is not met then exit the program with error message.
+ void check(bool condition, const char* func, int line)
+ {
+     if (condition)
+         return;
+     std::perror(func);
+     std::cerr << func << " failed in file " << __FILE__ << " at line # " << line - 1
+               << '\\n';
+     std::exit(EXIT_FAILURE);
+ }
+
+ int main()
+ {
+     // Prepare an array of FP values.
+     constexpr int SIZE {5};
+     double A[SIZE] = {1.1, 2.2, 3.3, 4.4, 5.5};
+
+     // Write array to a file.
+     const char* fname = "/tmp/test.bin";
+     FILE* file = std::fopen(fname, "wb");
+     check(file != NULL, "fopen()", __LINE__);
+
+     const int write_count = std::fwrite(A, sizeof(double), SIZE, file);
+     check(write_count == SIZE, "fwrite()", __LINE__);
+
+     std::fclose(file);
+
+     // Read the FP values into array B.
+     double B[SIZE];
+     file = std::fopen(fname, "rb");
+     check(file != NULL, "fopen()", __LINE__);
+
+     long pos = std::ftell(file); // position indicator at start of file
+     check(pos != -1L, "ftell()", __LINE__);
+     std::cout << "pos: " << pos << '\\n';
+
+     const int read_count = std::fread(B, sizeof(double), 1, file); // read one FP value
+     check(read_count == 1, "fread()", __LINE__);
+
+     pos = std::ftell(file); // position indicator after reading one FP value
+     check(pos != -1L, "ftell()", __LINE__);
+     std::cout << "pos: " << pos << '\\n';
+     std::cout << "B[0]: " << B[0] << '\\n'; // print one FP value
+
+     return EXIT_SUCCESS;
+ }
+
+.SH Possible output:
+
+ pos: 0
+ pos: 8
+ B[0]: 1.1
 
 .SH See also
 
@@ -40,9 +100,3 @@ std::ftell \- std::ftell
            \fI(public member function of std::basic_istream<CharT,Traits>)\fP
    tellp   returns the output position indicator
            \fI(public member function of std::basic_ostream<CharT,Traits>)\fP
-   C documentation for
-   ftell
-
-.SH Category:
-
-     * Todo no example

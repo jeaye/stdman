@@ -1,54 +1,64 @@
-.TH std::indirectly_readable_traits 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::indirectly_readable_traits 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::indirectly_readable_traits \- std::indirectly_readable_traits
 
 .SH Synopsis
    Defined in header <iterator>
-   template< class I >                                                \fB(1)\fP \fI(since C++20)\fP
+   template< class I >                                      \fB(1)\fP \fI(since C++20)\fP
    struct indirectly_readable_traits { };
-   template< class T >                                                \fB(2)\fP \fI(since C++20)\fP
+   template< class T >                                      \fB(2)\fP \fI(since C++20)\fP
    struct indirectly_readable_traits<T*>;
    template< class I >
 
-     requires std::is_array_v<I>                                      \fB(3)\fP \fI(since C++20)\fP
+   requires std::is_array_v<I>                              \fB(3)\fP \fI(since C++20)\fP
 
    struct indirectly_readable_traits<I>;
    template< class T >
-   struct indirectly_readable_traits<const T> :                       \fB(4)\fP \fI(since C++20)\fP
+
+   struct indirectly_readable_traits<const T> :             \fB(4)\fP \fI(since C++20)\fP
+
    indirectly_readable_traits<T> { };
-   template <class T>
-
-     requires requires { typename T::value_type; }                    \fB(5)\fP \fI(since C++20)\fP
-
+   template </*has-member-value-type*/ T>                   \fB(5)\fP \fI(since C++20)\fP
    struct indirectly_readable_traits<T>;
-   template <class T>
+   template </*has-member-element-type*/ T>                 \fB(6)\fP \fI(since C++20)\fP
+   struct indirectly_readable_traits<T>;
+   template </*has-member-value-type*/ T>
 
-     requires requires { typename T::element_type; }                  \fB(6)\fP \fI(since C++20)\fP
+   requires /*has-member-element-type*/<T>                  \fB(7)\fP \fI(since C++20)\fP
+
+   struct indirectly_readable_traits<T> { };
+   template </*has-member-value-type*/ T>
+
+   requires /*has-member-element-type*/<T> &&
+   std::same_as<std::remove_cv_t<typename T::element_type>, \fB(8)\fP \fI(since C++20)\fP
+   std::remove_cv_t<typename T::value_type>>
 
    struct indirectly_readable_traits<T>;
 
    Computes the associated value type of the type I, if any. Users may specialize
    indirectly_readable_traits for a program-defined type.
 
-   1) Primary template is an empty struct.
+   1) Primary template has no member value_type.
    2) Specialization for pointers. If T is an object type, provides a member type
    value_type equal to std::remove_cv_t<T>. Otherwise, there is no member value_type.
    3) Specialization for array types. Provides a member type value_type equal to
    std::remove_cv_t<std::remove_extent_t<I>>.
    4) Specialization for const-qualified types.
    5) Specialization for types that define a public and accessible member type
-   value_type. If T::value_type is an object type, provides a member type value_type
-   equal to std::remove_cv_t<typename T::value_type>. Otherwise, there is no member
-   value_type.
+   value_type (e.g., std::reverse_iterator). If T::value_type is an object type,
+   provides a member type value_type equal to std::remove_cv_t<typename T::value_type>.
+   Otherwise, there is no member value_type.
    6) Specialization for types that define a public and accessible member type
    element_type (e.g., std::shared_ptr). If T::element_type is an object type, provides
    a member type value_type equal to std::remove_cv_t<typename T::element_type>.
    Otherwise, there is no member value_type.
+   7-8) Specialization for types that define public and accessible member types
+   value_type and element_type (e.g., std::span). If both T::value_type and
+   T::element_type are object types and they become the same type after removing
+   cv-qualifiers on the top-level, provides a member type value_type equal to
+   std::remove_cv_t<typename T::value_type>. Otherwise, there is no member value_type.
 
 .SH Notes
-
-   If a type contains both a value_type member and a element_type member, then the
-   specializations \fB(5)\fP and \fB(6)\fP are ambiguous.
 
    value_type is intended for use with indirectly_readable types such as iterators. It
    is not intended for use with ranges.
@@ -57,6 +67,21 @@ std::indirectly_readable_traits \- std::indirectly_readable_traits
 
     This section is incomplete
     Reason: no example
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to        Behavior as published              Correct behavior
+                       specializations were ambiguous for
+   LWG 3446 C++20      types containing                     a disambiguating
+                       both value_type and element_type     specialization added
+                       member types
+                       LWG 3446 introduced hard error for
+   LWG 3541 C++20      ambiguous cases that                 made resulting substitution
+                       value_type and element_type are      failure
+                       different
 
 .SH See also
 
@@ -67,7 +92,7 @@ std::indirectly_readable_traits \- std::indirectly_readable_traits
    iter_reference_t
    iter_difference_t
    iter_rvalue_reference_t
-   iter_common_reference_t computes the associate types of an iterator
+   iter_common_reference_t computes the associated types of an iterator
    (C++20)                 (alias template)
    (C++20)
    (C++20)
@@ -75,7 +100,3 @@ std::indirectly_readable_traits \- std::indirectly_readable_traits
    (C++20)
    iterator_traits         provides uniform interface to the properties of an iterator
                            \fI(class template)\fP
-
-.SH Category:
-
-     * Todo no example

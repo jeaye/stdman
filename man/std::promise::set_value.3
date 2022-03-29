@@ -1,4 +1,4 @@
-.TH std::promise::set_value 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::promise::set_value 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::promise::set_value \- std::promise::set_value
 
@@ -24,8 +24,8 @@ std::promise::set_value \- std::promise::set_value
    An exception is thrown if there is no shared state or the shared state already
    stores a value or exception.
 
-   Calls to this function do not introduce data races with calls to get_future (but
-   they need not synchronize with each other).
+   Calls to this function do not introduce data races with calls to get_future
+   (therefore they need not synchronize with each other).
 
 .SH Parameters
 
@@ -39,19 +39,19 @@ std::promise::set_value \- std::promise::set_value
 
    std::future_error on the following conditions:
 
-     * *this has no shared state. The error category is set to no_state.
+     * *this has no shared state. The error code is set to no_state.
 
-     * The shared state already stores a value or exception. The error category is set
-       to promise_already_satisfied.
+     * The shared state already stores a value or exception. The error code is set to
+       promise_already_satisfied.
 
    Additionally:
 
-   1, 3) Any exception thrown by the copy constructor of value
+   1) Any exception thrown by the copy constructor of value
    2) Any exception thrown by the move constructor of value
 
 .SH Example
 
-   This example shows how promise<void> can be used as signals between threads.
+   This example shows how std::promise<void> can be used as signals between threads.
 
 
 // Run this code
@@ -64,6 +64,8 @@ std::promise::set_value \- std::promise::set_value
  #include <iterator>
  #include <iostream>
  #include <sstream>
+ #include <chrono>
+ using namespace std::chrono_literals;
 
  int main()
  {
@@ -84,7 +86,7 @@ std::promise::set_value \- std::promise::set_value
                    std::istream_iterator<int>{},
                    std::back_inserter(numbers));
 
-         //Notify for numbers.
+         // Notify for numbers.
          numbers_promise.set_value();
 
          std::copy_if(std::istreambuf_iterator<char>{iss_letters},
@@ -92,7 +94,7 @@ std::promise::set_value \- std::promise::set_value
                       std::back_inserter(letters),
                       ::isalpha);
 
-         //Notify for letters.
+         // Notify for letters.
          letters_promise.set_value();
      });
 
@@ -101,18 +103,17 @@ std::promise::set_value \- std::promise::set_value
 
      std::sort(numbers.begin(), numbers.end());
 
-     if (letter_ready.wait_for(std::chrono::seconds(1)) ==
-             std::future_status::timeout)
+     if (letter_ready.wait_for(1s) == std::future_status::timeout)
      {
-         //output the numbers while letters are being obtained.
+         // Output the numbers while letters are being obtained.
          for (int num : numbers) std::cout << num << ' ';
-         numbers.clear(); //Numbers were already printed.
+         numbers.clear(); // Numbers were already printed.
      }
 
      letter_ready.wait();
      std::sort(letters.begin(), letters.end());
 
-     //If numbers were already printed, it does nothing.
+     // If numbers were already printed, it does nothing.
      for (int num : numbers) std::cout << num << ' ';
      std::cout << '\\n';
 

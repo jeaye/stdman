@@ -1,4 +1,4 @@
-.TH std::placeholders::_1,std::placeholders::_2,...,std::placeholders::_N 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::placeholders::_1,std::placeholders::_2,...,std::placeholders::_N 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::placeholders::_1,std::placeholders::_2,...,std::placeholders::_N \- std::placeholders::_1,std::placeholders::_2,...,std::placeholders::_N
 
@@ -27,13 +27,13 @@ std::placeholders::_1,std::placeholders::_2,...,std::placeholders::_N \- std::pl
 
    The types of the placeholder objects are DefaultConstructible and CopyConstructible,
    their default copy/move constructors do not throw exceptions, and for any
-   placeholder _N, the type std::is_placeholder<decltype(_N)> is defined and is derived
-   from std::integral_constant<int, N>.
+   placeholder _N, the type std::is_placeholder<decltype(_N)> is defined, where
+   std::is_placeholder<decltype(_N)> is derived from std::integral_constant<int, N>.
 
 .SH Example
 
-   The following code shows the creation of function objects with a placeholder
-   argument.
+   The following code shows the creation of function objects with placeholder
+   arguments.
 
 
 // Run this code
@@ -57,25 +57,35 @@ std::placeholders::_1,std::placeholders::_2,...,std::placeholders::_N \- std::pl
 
  int main()
  {
+     using namespace std::placeholders;
+
      using ExampleFunction = std::function<void(const std::string&)>;
      Object instance;
      std::string str("World");
-     ExampleFunction f = std::bind(&Object::hello, &instance,
-                                   std::placeholders::_1);
 
-     // equivalent to instance.hello(str)
-     f(str);
+     ExampleFunction f = std::bind(&Object::hello, &instance, _1);
+     f(str);  // equivalent to instance.hello(str)
+
      f = std::bind(&goodbye, std::placeholders::_1);
+     f(str);  // equivalent to goodbye(str)
 
-     // equivalent to goodbye(str)
-     f(str);
-     return 0;
+     auto lambda = [](std::string pre, char o, int rep, std::string post) {
+         std::cout << pre;
+         while (rep-- > 0) std::cout << o;
+         std::cout << post << '\\n';
+     };
+
+     // binding the lambda:
+     std::function<void(std::string, char, int, std::string)> g =
+         std::bind(&decltype(lambda)::operator(), &lambda, _1, _2, _3, _4);
+     g("G", 'o', 'o'-'g', "gol");
  }
 
 .SH Output:
 
  Hello World
  Goodbye World
+ Goooooooogol
 
 .SH See also
 
@@ -85,4 +95,4 @@ std::placeholders::_1,std::placeholders::_2,...,std::placeholders::_N \- std::pl
    \fI(C++11)\fP        one
                   \fI(class template)\fP
    ignore         placeholder to skip an element when unpacking a tuple using tie
-                  (constant)
+   \fI(C++11)\fP        (constant)

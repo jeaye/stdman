@@ -1,15 +1,15 @@
-.TH std::remquo,std::remquof,std::remquol 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::remquo,std::remquof,std::remquol 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::remquo,std::remquof,std::remquol \- std::remquo,std::remquof,std::remquol
 
 .SH Synopsis
    Defined in header <cmath>
-   float       remquo ( float x, float y, int* quo );             \fB(1)\fP \fI(since C++11)\fP
-   float       remquof( float x, float y, int* quo );
-   double      remquo ( double x, double y, int* quo );           \fB(2)\fP \fI(since C++11)\fP
+   float remquo ( float x, float y, int* quo );                   \fB(1)\fP \fI(since C++11)\fP
+   float remquof( float x, float y, int* quo );
+   double remquo ( double x, double y, int* quo );                \fB(2)\fP \fI(since C++11)\fP
    long double remquo ( long double x, long double y, int* quo ); \fB(3)\fP \fI(since C++11)\fP
    long double remquol( long double x, long double y, int* quo );
-   Promoted    remquo ( Arithmetic1 x, Arithmetic2 y, int* quo ); \fB(4)\fP \fI(since C++11)\fP
+   Promoted remquo ( Arithmetic1 x, Arithmetic2 y, int* quo );    \fB(4)\fP \fI(since C++11)\fP
 
    1-3) Computes the floating-point remainder of the division operation x/y as the
    std::remainder() function does. Additionally, the sign and at least the three of the
@@ -81,58 +81,67 @@ std::remquo,std::remquof,std::remquol \- std::remquo,std::remquof,std::remquol
  #include <iostream>
  #include <cmath>
  #include <cfenv>
-
+ #ifndef __GNUC__
  #pragma STDC FENV_ACCESS ON
- const double pi = std::acos(-1);
+ #endif
+
+ const double pi = std::acos(-1); // or std::numbers::pi since C++20
  double cos_pi_x_naive(double x) { return std::cos(pi * x); }
  // the period is 2, values are (0;0.5) positive, (0.5;1.5) negative, (1.5,2) positive
  double cos_pi_x_smart(double x)
  {
      int quadrant;
      double rem = std::remquo(x, 1, &quadrant);
-     quadrant = (unsigned)quadrant % 2;  // The period is 2.
-     switch(quadrant) {
-         case 0: return std::cos(pi * rem);
-         case 1: return -std::cos(pi * rem);
-     };
+     quadrant = static_cast<unsigned>(quadrant) % 2;  // The period is 2.
+     return quadrant == 0 ?  std::cos(pi * rem)
+                          :- std::cos(pi * rem);
  }
  int main()
  {
-     std::cout << "cos(pi * 0.25) = " << cos_pi_x_naive(0.25) << '\\n'
-               << "cos(pi * 1.25) = " << cos_pi_x_naive(1.25) << '\\n'
-               << "cos(pi * 2.25) = " << cos_pi_x_naive(2.25) << '\\n'
-               << "cos(pi * 0.25) = " << cos_pi_x_smart(0.25) << '\\n'
-               << "cos(pi * 1.25) = " << cos_pi_x_smart(1.25) << '\\n'
-               << "cos(pi * 2.25) = " << cos_pi_x_smart(2.25) << '\\n'
-               << "cos(pi * 1000000000000.25) = "
+     std::cout << std::showpos
+               << "naive:\\n"
+               << "  cos(pi * 0.25) = " << cos_pi_x_naive(0.25) << '\\n'
+               << "  cos(pi * 1.25) = " << cos_pi_x_naive(1.25) << '\\n'
+               << "  cos(pi * 2.25) = " << cos_pi_x_naive(2.25) << '\\n'
+               << "smart:\\n"
+               << "  cos(pi * 0.25) = " << cos_pi_x_smart(0.25) << '\\n'
+               << "  cos(pi * 1.25) = " << cos_pi_x_smart(1.25) << '\\n'
+               << "  cos(pi * 2.25) = " << cos_pi_x_smart(2.25) << '\\n'
+               << "naive:\\n"
+               << "  cos(pi * 1000000000000.25) = "
                << cos_pi_x_naive(1000000000000.25) << '\\n'
-               << "cos(pi * 1000000000001.25) = "
+               << "  cos(pi * 1000000000001.25) = "
                << cos_pi_x_naive(1000000000001.25) << '\\n'
-               << "cos(pi * 1000000000000.25) = "
+               << "smart:\\n"
+               << "  cos(pi * 1000000000000.25) = "
                << cos_pi_x_smart(1000000000000.25) << '\\n'
-               << "cos(pi * 1000000000001.25) = "
+               << "  cos(pi * 1000000000001.25) = "
                << cos_pi_x_smart(1000000000001.25) << '\\n';
      // error handling
      std::feclearexcept(FE_ALL_EXCEPT);
      int quo;
      std::cout << "remquo(+Inf, 1) = " << std::remquo(INFINITY, 1, &quo) << '\\n';
-     if(fetestexcept(FE_INVALID)) std::cout << "    FE_INVALID raised\\n";
+     if(fetestexcept(FE_INVALID)) std::cout << "  FE_INVALID raised\\n";
  }
 
 .SH Possible output:
 
- cos(pi * 0.25) = 0.707107
- cos(pi * 1.25) = -0.707107
- cos(pi * 2.25) = 0.707107
- cos(pi * 0.25) = 0.707107
- cos(pi * 1.25) = -0.707107
- cos(pi * 2.25) = 0.707107
- cos(pi * 1000000000000.25) = 0.707123
- cos(pi * 1000000000001.25) = -0.707117
- cos(pi * 1000000000000.25) = 0.707107
- cos(pi * 1000000000001.25) = -0.707107
+ naive:
+   cos(pi * 0.25) = +0.707107
+   cos(pi * 1.25) = -0.707107
+   cos(pi * 2.25) = +0.707107
+ smart:
+   cos(pi * 0.25) = +0.707107
+   cos(pi * 1.25) = -0.707107
+   cos(pi * 2.25) = +0.707107
+ naive:
+   cos(pi * 1000000000000.25) = +0.707123
+   cos(pi * 1000000000001.25) = -0.707117
+ smart:
+   cos(pi * 1000000000000.25) = +0.707107
+   cos(pi * 1000000000001.25) = -0.707107
  remquo(+Inf, 1) = -nan
-     FE_INVALID raised
+   FE_INVALID raised
 
 .SH See also
 
@@ -151,5 +160,3 @@ std::remquo,std::remquof,std::remquol \- std::remquo,std::remquof,std::remquol
    \fI(C++11)\fP    \fI(function)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
-   C documentation for
-   remquo

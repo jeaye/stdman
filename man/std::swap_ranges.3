@@ -1,4 +1,4 @@
-.TH std::swap_ranges 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::swap_ranges 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::swap_ranges \- std::swap_ranges
 
@@ -8,23 +8,24 @@ std::swap_ranges \- std::swap_ranges
 
    ForwardIt2 swap_ranges( ForwardIt1 first1, ForwardIt1 last1,           \fI(until C++20)\fP
 
-                           ForwardIt2 first2 );
+   ForwardIt2 first2 );
    template< class ForwardIt1, class ForwardIt2 >
 
    constexpr ForwardIt2 swap_ranges( ForwardIt1 first1,                   \fI(since C++20)\fP
    ForwardIt1 last1,                                              \fB(1)\fP
 
-                                     ForwardIt2 first2 );
+   ForwardIt2 first2 );
    template< class ExecutionPolicy, class ForwardIt1, class
    ForwardIt2 >
+                                                                      \fB(2)\fP \fI(since C++17)\fP
+   ForwardIt2 swap_ranges( ExecutionPolicy&& policy,
 
-   ForwardIt2 swap_ranges( ExecutionPolicy&& policy,                  \fB(2)\fP \fI(since C++17)\fP
-
-                           ForwardIt1 first1, ForwardIt1 last1,
-   ForwardIt2 first2 );
+   ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2 );
 
    1) Exchanges elements between range [first1, last1) and another range starting at
    first2.
+   Precondition: the two ranges [first1, last1) and [first2, last2) do not overlap,
+   where last2 = std::next(first2, std::distance(first1, last1)).
    2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
    in overload resolution unless
    std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
@@ -50,6 +51,10 @@ std::swap_ranges \- std::swap_ranges
    Iterator to the element past the last element exchanged in the range beginning with
    first2.
 
+.SH Complexity
+
+   linear in the distance between first1 and last1.
+
 .SH Exceptions
 
    The overload with a template parameter named ExecutionPolicy reports errors as
@@ -60,57 +65,69 @@ std::swap_ranges \- std::swap_ranges
        For any other ExecutionPolicy, the behavior is implementation-defined.
      * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
+.SH Notes
+
+   Implementations (e.g. MSVC STL) may enable vectorization when the iterator type
+   satisfies LegacyContiguousIterator and swapping its value type calls neither
+   non-trivial special member function nor ADL-found swap.
+
 .SH Possible implementation
 
-   template<class ForwardIt1, class ForwardIt2>
-   constexpr ForwardIt2 swap_ranges(ForwardIt1 first1,
-                                ForwardIt1 last1,
-                                ForwardIt2 first2)
-   {
-       while (first1 != last1) {
-           std::iter_swap(first1++, first2++);
-       }
-       return first2;
-   }
+  template<class ForwardIt1, class ForwardIt2>
+  constexpr ForwardIt2 swap_ranges(ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2)
+  {
+      while (first1 != last1) {
+          std::iter_swap(first1++, first2++);
+      }
+      return first2;
+  }
 
 .SH Example
 
-   Demonstrates swapping of subranges from different containers
+   Demonstrates swapping of subranges from different containers.
 
 
 // Run this code
 
- #include <algorithm>
  #include <list>
  #include <vector>
  #include <iostream>
+ #include <algorithm>
+
+ auto print = [](auto comment, auto const& seq) {
+     std::cout << comment;
+     for (const auto& e : seq) { std::cout << e << ' '; }
+     std::cout << '\\n';
+ };
+
  int main()
  {
-     std::vector<int> v = {1, 2, 3, 4, 5};
-     std::list<int> l = {-1, -2, -3, -4, -5};
+     std::vector<char> v = {'a', 'b', 'c', 'd', 'e'};
+     std::list<char> l = {'1', '2', '3', '4', '5'};
+
+     print("Before swap_ranges:\\n" "v: ", v);
+     print("l: ", l);
 
      std::swap_ranges(v.begin(), v.begin()+3, l.begin());
 
-     for(int n : v)
-        std::cout << n << ' ';
-     std::cout << '\\n';
-     for(int n : l)
-        std::cout << n << ' ';
-     std::cout << '\\n';
+     print("After swap_ranges:\\n" "v: ", v);
+     print("l: ", l);
  }
 
 .SH Output:
 
- -1 -2 -3 4 5
- 1 2 3 -4 -5
-
-.SH Complexity
-
-   linear in the distance between first1 and last1
+ Before swap_ranges:
+ v: a b c d e
+ l: 1 2 3 4 5
+ After swap_ranges:
+ v: 1 2 3 d e
+ l: a b c 4 5
 
 .SH See also
 
-   iter_swap swaps the elements pointed to by two iterators
-             \fI(function template)\fP
-   swap      swaps the values of two objects
-             \fI(function template)\fP
+   iter_swap           swaps the elements pointed to by two iterators
+                       \fI(function template)\fP
+   swap                swaps the values of two objects
+                       \fI(function template)\fP
+   ranges::swap_ranges swaps two ranges of elements
+   (C++20)             (niebloid)

@@ -1,130 +1,59 @@
-.TH std::to_string 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::to_string 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::to_string \- std::to_string
 
 .SH Synopsis
-   Defined in header <string>
-   std::string to_string( int value );                \fB(1)\fP \fI(since C++11)\fP
-   std::string to_string( long value );               \fB(2)\fP \fI(since C++11)\fP
-   std::string to_string( long long value );          \fB(3)\fP \fI(since C++11)\fP
-   std::string to_string( unsigned value );           \fB(4)\fP \fI(since C++11)\fP
-   std::string to_string( unsigned long value );      \fB(5)\fP \fI(since C++11)\fP
-   std::string to_string( unsigned long long value ); \fB(6)\fP \fI(since C++11)\fP
-   std::string to_string( float value );              \fB(7)\fP \fI(since C++11)\fP
-   std::string to_string( double value );             \fB(8)\fP \fI(since C++11)\fP
-   std::string to_string( long double value );        \fB(9)\fP \fI(since C++11)\fP
+   Defined in header <stacktrace>
+   template< class Allocator >                                           (since C++23)
+   std::string to_string( const std::basic_stacktrace<Allocator>& st );
 
-   Converts a numeric value to std::string.
+   Returns a string with a description of st.
 
-   1) Converts a signed integer to a string with the same content as what
-   std::sprintf(buf, "%d", value) would produce for sufficiently large buf.
-   2) Converts a signed integer to a string with the same content as what
-   std::sprintf(buf, "%ld", value) would produce for sufficiently large buf.
-   3) Converts a signed integer to a string with the same content as what
-   std::sprintf(buf, "%lld", value) would produce for sufficiently large buf.
-   4) Converts an unsigned integer to a string with the same content as what
-   std::sprintf(buf, "%u", value) would produce for sufficiently large buf.
-   5) Converts an unsigned integer to a string with the same content as what
-   std::sprintf(buf, "%lu", value) would produce for sufficiently large buf.
-   6) Converts an unsigned integer to a string with the same content as what
-   std::sprintf(buf, "%llu", value) would produce for sufficiently large buf.
-   7,8) Converts a floating point value to a string with the same content as what
-   std::sprintf(buf, "%f", value) would produce for sufficiently large buf.
-   9) Converts a floating point value to a string with the same content as what
-   std::sprintf(buf, "%Lf", value) would produce for sufficiently large buf.
+   The description of a basic_stacktrace typically contains description of its entries,
+   although the number of lines is not required to be equal to size().
 
 .SH Parameters
 
-   value - a numeric value to convert
+   st - a basic_stacktrace whose description is to be returned
 
 .SH Return value
 
-   a string holding the converted value
+   A string with a description of st.
 
 .SH Exceptions
 
-   May throw std::bad_alloc from the std::string constructor.
+   May throw implementation-defined exceptions.
 
 .SH Notes
 
-     * With floating point types std::to_string may yield unexpected results as the
-       number of significant digits in the returned string can be zero, see the
-       example.
-     * The return value may differ significantly from what std::cout prints by default,
-       see the example.
-     * std::to_string relies on the current locale for formatting purposes, and
-       therefore concurrent calls to std::to_string from multiple threads may result in
-       partial serialization of calls. C++17 provides std::to_chars as a
-       higher-performance locale-independent alternative.
+   Custom allocators support for this function is not provided, because the
+   implementations usually require platform specific allocations, system calls and a
+   lot of CPU intensive work, while a custom allocator does not provide benefits for
+   this function as the platform specific operations take an order of magnitude more
+   time than the allocation.
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
+ #include <stacktrace>
  #include <string>
+ #include <iostream>
 
  int main()
  {
-     double f = 23.43;
-     double f2 = 1e-9;
-     double f3 = 1e40;
-     double f4 = 1e-40;
-     double f5 = 123456789;
-     std::string f_str = std::to_string(f);
-     std::string f_str2 = std::to_string(f2); // Note: returns "0.000000"
-     std::string f_str3 = std::to_string(f3); // Note: Does not return "1e+40".
-     std::string f_str4 = std::to_string(f4); // Note: returns "0.000000"
-     std::string f_str5 = std::to_string(f5);
-     std::cout << "std::cout: " << f << '\\n'
-               << "to_string: " << f_str  << "\\n\\n"
-               << "std::cout: " << f2 << '\\n'
-               << "to_string: " << f_str2 << "\\n\\n"
-               << "std::cout: " << f3 << '\\n'
-               << "to_string: " << f_str3 << "\\n\\n"
-               << "std::cout: " << f4 << '\\n'
-               << "to_string: " << f_str4 << "\\n\\n"
-               << "std::cout: " << f5 << '\\n'
-               << "to_string: " << f_str5 << '\\n';
+     auto trace = std::stacktrace::current();
+     std::cout << std::to_string(trace) << '\\n';
  }
 
-.SH Output:
+.SH Possible output:
 
- std::cout: 23.43
- to_string: 23.430000
-
- std::cout: 1e-09
- to_string: 0.000000
-
- std::cout: 1e+40
- to_string: 10000000000000000303786028427003666890752.000000
-
- std::cout: 1e-40
- to_string: 0.000000
-
- std::cout: 1.23457e+08
- to_string: 123456789.000000
+  0# 0x0000000000402D97 in ./prog.exe
+  1# __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+  2# 0x0000000000402CA9 in ./prog.exe
 
 .SH See also
 
-   to_wstring converts an integral or floating point value to wstring
-   \fI(C++11)\fP    \fI(function)\fP
-   stoul
-   stoull     converts a string to an unsigned integer
-   \fI(C++11)\fP    \fI(function)\fP
-   \fI(C++11)\fP
-   stoi
-   stol
-   stoll      converts a string to a signed integer
-   \fI(C++11)\fP    \fI(function)\fP
-   \fI(C++11)\fP
-   \fI(C++11)\fP
-   stof
-   stod
-   stold      converts a string to a floating point value
-   \fI(C++11)\fP    \fI(function)\fP
-   \fI(C++11)\fP
-   \fI(C++11)\fP
-   to_chars   converts an integer or floating-point value to a character sequence
-   \fI(C++17)\fP    \fI(function)\fP
+   to_string returns a string with a description of the stacktrace_entry
+   (C++23)   \fI(function)\fP

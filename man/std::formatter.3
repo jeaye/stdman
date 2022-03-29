@@ -1,193 +1,471 @@
-.TH std::formatter 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::formatter 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::formatter \- std::formatter
 
 .SH Synopsis
-   Defined in header <chrono>
-   template<class CharT>
-   struct formatter<std::chrono::year_month, CharT>;
+   Defined in header <format>
+   template<class T, class CharT = char>  \fI(since C++20)\fP
+   struct formatter;
 
-   Specialization of std::formatter that defines formatting rules for
-   std::chrono::year_month.
+   The enabled specializations of formatter define formatting rules for a given type.
+   Enabled specializations meet the Formatter requirements. In particular, they define
+   callables parse and format.
 
-   The std::formatter specialization is usually not directly accessed, but is used
-   through formatting functions.
+   For all types T and CharT for which no specialization std::formatter<T, CharT> is
+   enabled, that specialization is a complete type and is disabled.
 
-   Format specification
+   Disabled specializations do not meet the Formatter requirements, and the following
+   are all false:
 
-   The format specification has the form
+     * std::is_default_constructible_v
+     * std::is_copy_constructible_v
+     * std::is_move_constructible_v
+     * std::is_copy_assignable_v
+     * std::is_move_assignable_v.
 
-   fill-and-align(optional) width(optional) precision(optional)
-   chrono-spec(optional)
+  Standard specializations for basic types and string types
 
-   fill-and-align, width, and precision have the same meaning as in standard format
-   specification. precision is valid only for std::chrono::duration types where the
-   representation type Rep is a floating-point type, otherwise std::format_error is
-   thrown.
+   In the following list, CharT is either char or wchar_t, ArithmeticT is any
+   cv-unqualified arithmetic type other than char, wchar_t, char8_t, char16_t, or
+   char32_t.
 
-   The chrono-spec consists of one or more conversion specifiers and ordinary
-   characters (other than {, } and %). A chrono-spec must start with a conversion
-   specifier. All ordinary characters are written to the output without modification.
-   Each unmodified conversion specifier begins with a % character followed by a
-   character that determines the behavior of the specifier. Some conversion specifiers
-   have a modified form in which an E or O modifier character is inserted after the %
-   character. Each conversion specifier is replaced by appropriate characters in the
-   output as described below.
+   template<> struct formatter<char, char>;
 
-   If the chrono-spec is empty, the chrono object is formatted as if by streaming it to
-   std::stringstream os and copying os.str() to the output buffer with additional
-   padding and adjustments as per format specifiers.
+   template<> struct formatter<char, wchar_t>;
+   template<> struct formatter<wchar_t, wchar_t>;
 
-   The following format specifiers are available:
+   template<> struct formatter<CharT*, CharT>;
+   template<> struct formatter<const CharT*, CharT>;
+   template<std::size_t N> struct formatter<const CharT[N], CharT>;
+   template<class Traits, class Alloc>
+   struct formatter<std::basic_string<CharT, Traits, Alloc>, CharT>;
+   template<class Traits>
+   struct formatter<std::basic_string_view<CharT, Traits>, CharT>;
 
-   Conversion                               Explanation
-   specifier
-       %%     Writes a literal % character.
-       %n     Writes a newline character.
-       %t     Writes a horizontal tab character.
-                                           Year
-              Writes the year divided by 100 using floored division. If the result is
-       %C     a single decimal digit, it is prefixed with 0.
-      %EC
-              The modified command %EC writes the locale's alternative representation
-              of the century.
-              Writes the last two decimal digits of the year. If the result is a
-              single digit it is prefixed by 0.
-       %y
-      %Oy     The modified command %Oy writes the locale's alternative representation.
-      %Ey
-              The modified command %Ey writes the locale's alternative representation
-              of offset from %EC (year only).
-              Writes the year as a decimal number. If the result is less than four
-       %Y     digits it is left-padded with 0 to four digits.
-      %EY
-              The modified command %EY writes the locale's alternative full year
-              representation.
-                                          Month
-       %b     Writes the locale's abbreviated month name.
-       %h
-       %B     Writes the locale's full month name.
-              Writes the month as a decimal number (January is 01). If the result is a
-       %m     single digit, it is prefixed with 0.
-      %Om
-              The modified command %Om writes the locale's alternative representation.
+   template<> struct formatter<ArithmeticT, CharT>;
 
-   The following specifiers are recognized, but will cause std::format_error to be
-   thrown:
+   template<> struct formatter<std::nullptr_t, CharT>;
+   template<> struct formatter<void*, CharT>;
 
-   Conversion                               Explanation
-   specifier
-                                           Day
-              Writes the day of month as a decimal number. If the result is a single
-       %d     decimal digit, it is prefixed with 0.
-      %Od
-              The modified command %Od writes the locale's alternative representation.
-              Writes the day of month as a decimal number. If the result is a single
-       %e     decimal digit, it is prefixed with a space.
-      %Oe
-              The modified command %Oe writes the locale's alternative representation.
-                                     Day of the week
-       %a     Writes the locale's abbreviated weekday name.
-       %A     Writes the locale's full weekday name.
-       %u     Writes the ISO weekday as a decimal number (1-7), where Monday is 1.
-      %Ou
-              The modified command %Ou writes the locale's alternative representation.
-       %w     Writes the weekday as a decimal number (0-6), where Sunday is 0.
-      %Ow
-              The modified command %Ow writes the locale's alternative representation.
-                                 ISO 8601 week-based year
-   In ISO 8601 weeks begin with Monday and the first week of the year must satisfy the
-   following requirements:
+   template<> struct formatter<const void*, CharT>;
 
-     * Includes January 4
-     * Includes first Thursday of the year
-       %g     Writes the last two decimal digits of the ISO 8601 week-based year. If
-              the result is a single digit it is prefixed by 0.
-       %G     Writes the ISO 8601 week-based year as a decimal number. If the result
-              is less than four digits it is left-padded with 0 to four digits.
-              Writes the ISO 8601 week of the year as a decimal number. If the result
-       %V     is a single digit, it is prefixed with 0.
-      %OV
-              The modified command %OV writes the locale's alternative representation.
-                                   Week/day of the year
-              Writes the day of the year as a decimal number (January 1 is 001). If
-       %j     the result is less than three digits, it is left-padded with 0 to three
-              digits.
-              Writes the week number of the year as a decimal number. The first Sunday
-              of the year is the first day of week 01. Days of the same year prior to
-       %U     that are in week 00. If the result is a single digit, it is prefixed
-      %OU     with 0.
+   Formatters for other pointers and pointers to members are disabled.
 
-              The modified command %OU writes the locale's alternative representation.
-              Writes the week number of the year as a decimal number. The first Monday
-              of the year is the first day of week 01. Days of the same year prior to
-       %W     that are in week 00. If the result is a single digit, it is prefixed
-      %OW     with 0.
+   Specializations such as std::formatter<wchar_t, char> and std::formatter<const
+   char*, wchar_t> that would require encoding conversions are disabled.
 
-              The modified command %OW writes the locale's alternative representation.
-                                           Date
-       %D     Equivalent to "%m/%d/%y".
-       %F     Equivalent to "%Y-%m-%d".
-              Writes the locale's date representation.
-       %x
-      %Ex     The modified command %Ex produces the locale's alternate date
-              representation.
-                                       Time of day
-              Writes the hour (24-hour clock) as a decimal number. If the result is a
-       %H     single digit, it is prefixed with 0.
-      %OH
-              The modified command %OH writes the locale's alternative representation.
-              Writes the hour (12-hour clock) as a decimal number. If the result is a
-       %I     single digit, it is prefixed with 0.
-      %OI
-              The modified command %OI writes the locale's alternative representation.
-              Writes the minute as a decimal number. If the result is a single digit,
-       %M     it is prefixed with 0.
-      %OM
-              The modified command %OM writes the locale's alternative representation.
-              Writes the second as a decimal number. If the number of seconds is less
-              than 10, the result is prefixed with 0.
+    Standard format specification
 
-              If the precision of the input cannot be exactly represented with
-       %S     seconds, then the format is a decimal floating point number with a fixed
-      %OS     format and a precision matching that of the precision of the input (or
-              to a microseconds precision if the conversion to floating point decimal
-              seconds cannot be made within 18 fractional digits). The character for
-              the decimal point is localized according to the locale.
+   For basic types and string types, the format specification is based on the format
+   specification in Python.
 
-              The modified command %OS writes the locale's alternative representation.
-       %p     Writes the locale's equivalent of the AM/PM designations associated with
-              a 12-hour clock.
-       %R     Equivalent to "%H:%M".
-       %T     Equivalent to "%H:%M:%S".
-       %r     Writes the locale's 12-hour clock time.
-              Writes the locale's time representation.
-       %X
-      %EX     The modified command %EX writes the locale's alternate time
-              representation.
-.SH Miscellaneous
-              Writes the locale's date and time representation.
-       %c
-      %Ec     The modified command %Ec writes the locale's alternative date and time
-              representation.
-              Writes the offset from UTC in the ISO 8601 format. For example -0430
-       %z     refers to 4 hours 30 minutes behind UTC. If the offset is zero, +0000 is
-      %Ez     used.
-      %Oz
-              The modified commands %Ez and %Oz insert a : between the hours and
-              minutes (e.g., -04:30).
-       %Z     Writes the time zone abbreviation.
+   The syntax of format specifications is:
+
+   fill-and-align(optional) sign(optional) #(optional) 0(optional)
+   width(optional) precision(optional) L(optional) type(optional)
+
+   The sign, # and 0 options are only valid when an integer or floating-point
+   presentation type is used.
+
+      fill and align
+
+   fill-and-align is an optional fill character (which can be any character other than
+   { or }), followed by one of the align options <, >, ^. The meaning of align options
+   is as follows:
+
+     * <: Forces the field to be aligned to the start of the available space. This is
+       the default when a non-integer non-floating-point presentation type is used.
+     * >: Forces the field to be aligned to the end of the available space. This is the
+       default when an integer or floating-point presentation type is used.
+     * ^: Forces the field to be centered within the available space by inserting ⌊
+
+       n
+       2
+
+       ⌋ characters before and ⌈
+
+       n
+       2
+
+       ⌉ characters after the value, where n is the total number of fill characters
+       to insert.
+
+ char c = 120;
+ auto s0 = std::format("{:6}", 42);    // value of s0 is "    42"
+ auto s1 = std::format("{:6}", 'x');   // value of s1 is "x     "
+ auto s2 = std::format("{:*<6}", 'x'); // value of s2 is "x*****"
+ auto s3 = std::format("{:*>6}", 'x'); // value of s3 is "*****x"
+ auto s4 = std::format("{:*^6}", 'x'); // value of s4 is "**x***"
+ auto s5 = std::format("{:6d}", c);    // value of s5 is "   120"
+ auto s6 = std::format("{:6}", true);  // value of s6 is "true  "
+
+      sign, #, and 0
+
+   The sign option can be one of following:
+
+     * +: Indicates that a sign should be used for both non-negative and negative
+       numbers. The + sign is inserted before the output value for non-negative
+       numbers.
+     * -: Indicates that a sign should be used for negative numbers only (this is the
+       default behavior).
+     * space: Indicates that a leading space should be used for non-negative numbers,
+       and a minus sign for negative numbers.
+
+   Negative zero is treated as a negative number.
+
+   The sign option applies to floating-point infinity and NaN.
+
+ double inf = std::numeric_limits<double>::infinity();
+ double nan = std::numeric_limits<double>::quiet_NaN();
+ auto s0 = std::format("{0:},{0:+},{0:-},{0: }", 1);   // value of s0 is "1,+1,1, 1"
+ auto s1 = std::format("{0:},{0:+},{0:-},{0: }", -1);  // value of s1 is "-1,-1,-1,-1"
+ auto s2 = std::format("{0:},{0:+},{0:-},{0: }", inf); // value of s2 is "inf,+inf,inf, inf"
+ auto s3 = std::format("{0:},{0:+},{0:-},{0: }", nan); // value of s3 is "nan,+nan,nan, nan"
+
+   The # option causes the alternate form to be used for the conversion.
+
+     * For integral types, when binary, octal, or hexadecimal presentation type is
+       used, the alternate form inserts the prefix (0b, 0, or 0x) into the output value
+       after the sign character (possibly space) if there is one, or add it before the
+       output value otherwise.
+     * For floating-point types, the alternate form causes the result of the conversion
+       of finite values to always contain a decimal-point character, even if no digits
+       follow it. Normally, a decimal-point character appears in the result of these
+       conversions only if a digit follows it. In addition, for g and G conversions,
+       trailing zeros are not removed from the result.
+
+   The 0 option pads the field with leading zeros (following any indication of sign or
+   base) to the field width, except when applied to an infinity or NaN. If the 0
+   character and an align option both appear, the 0 character is ignored.
+
+ char c = 120;
+ auto s1 = std::format("{:+06d}", c);   // value of s1 is "+00120"
+ auto s2 = std::format("{:#06x}", 0xa); // value of s2 is "0x000a"
+ auto s3 = std::format("{:<06}", -42);  // value of s3 is "-42   "
+                                        // (0 is ignored because of < alignment)
+
+      width and precision
+
+   width is either a positive decimal number, or a nested replacement field ({} or
+   {n}). If present, it specifies the minimum field width.
+
+   precision is a dot (.) followed by either a non-negative decimal number or a nested
+   replacement field. This field indicates the precision or maximum field size. It can
+   only be used with floating-point and string types. For floating-point types, this
+   field specifies the formatting precision. For string types, it provides an upper
+   bound for the estimated width (see below) of the prefix of the string to be copied
+   to the output. For a string in a Unicode encoding, the text to be copied to the
+   output is the longest prefix of whole extended grapheme clusters whose estimated
+   width is no greater than the precision.
+
+   If a nested replacement field is used for width or precision, and the corresponding
+   argument is not of integral type, or is negative, or is zero for width, an exception
+   of type std::format_error is thrown.
+
+ float pi = 3.14f;
+ auto s1 = std::format("{:10f}", pi);           // s1 = "  3.140000" (width = 10)
+ auto s2 = std::format("{:{}f}", pi, 10);       // s2 = "  3.140000" (width = 10)
+ auto s3 = std::format("{:.5f}", pi);           // s3 = "3.14000" (precision = 5)
+ auto s4 = std::format("{:.{}f}", pi, 5);       // s4 = "3.14000" (precision = 5)
+ auto s5 = std::format("{:10.5f}", pi);         // s5 = "   3.14000"
+                                                // (width = 10, precision = 5)
+ auto s6 = std::format("{:{}.{}f}", pi, 10, 5); // s6 = "   3.14000"
+                                                // (width = 10, precision = 5)
+
+ auto b1 = std::format("{:{}f}", pi, 10.0);     // throws: width is not of integral type
+ auto b2 = std::format("{:{}f}", pi, -10);      // throws: width is negative
+ auto b3 = std::format("{:.{}f}", pi, 5.0);     // throws: precision is not of integral type
+
+   For string types, the width is defined as the estimated number of column positions
+   appropriate for displaying it in a terminal.
+
+   For the purpose of width computation, a string is assumed to be in a
+   implementation-defined encoding. The method of width computation is unspecified, but
+   for a string in a Unicode encoding, implementation should estimate the width of the
+   string as the sum of estimated widths of the first code points in its extended
+   grapheme clusters. The estimated width of a Unicode code point is 2 if the code
+   point is within the following range, or 1 if it isn't:
+
+     * U+1100 - U+115F
+     * U+2329 - U+232A
+     * U+2E80 - U+303E
+     * U+3040 - U+A4CF
+     * U+AC00 - U+D7A3
+     * U+F900 - U+FAFF
+     * U+FE10 - U+FE19
+     * U+FE30 - U+FE6F
+     * U+FF00 - U+FF60
+     * U+FFE0 - U+FFE6
+     * U+1F300 - U+1F64F
+     * U+1F900 - U+1F9FF
+     * U+20000 - U+2FFFD
+     * U+30000 - U+3FFFD
+
+ auto s1 = std::format("{:.^5s}",   "🐱");      // s1 = ".🐱.."
+ auto s2 = std::format("{:.5s}",    "🐱🐱🐱");  // s2 = "🐱🐱"
+ auto s3 = std::format("{:.<5.5s}", "🐱🐱🐱");  // s3 = "🐱🐱."
+
+      L (locale-specific formatting)
+
+   The L option causes the locale-specific form to be used. This option is only valid
+   for arithmetic types.
+
+     * For integral types, the locale-specific form inserts the appropriate digit group
+       separator characters according to the context's locale.
+     * For floating-point types, the locale-specific form inserts the appropriate digit
+       group and radix separator characters according to the context's locale.
+     * For the textual representation of bool, the locale-specific form uses the
+       appropriate string as if obtained with std::numpunct::truename or
+       std::numpunct::falsename.
+
+      type
+
+   The type option determines how the data should be presented.
+
+   The available string presentation types are:
+
+     * none, s: Copies the string to the output.
+
+   The available integer presentation types for integral types other than char,
+   wchar_t, and bool are:
+
+     * b: Binary format. Produces the output as if by calling std::to_chars(first,
+       last, value, 2). The base prefix is 0b.
+     * B: same as b, except that the base prefix is 0B.
+     * c: Copies the character static_cast<CharT>(value) to the output, where CharT is
+       the character type of the format string. Throws std::format_error if value is
+       not in the range of representable values for CharT.
+     * d: Decimal format. Produces the output as if by calling std::to_chars(first,
+       last, value).
+     * o: Octal format. Produces the output as if by calling std::to_chars(first, last,
+       value, 8). The base prefix is 0 if the corresponding argument value is nonzero
+       and is empty otherwise.
+     * x: Hex format. Produces the output as if by calling std::to_chars(first, last,
+       value, 16). The base prefix is 0x.
+     * X: same as x, except that it uses uppercase letters for digits above 9 and the
+       base prefix is 0X.
+     * none: same as d.
+
+   The available char and wchar_t presentation types are:
+
+     * none, c: Copies the character to the output.
+     * b, B, d, o, x, X: Uses integer presentation types.
+
+   The available bool presentation types are:
+
+     * none, s: Copies textual representation (true or false, or the locale-specific
+       form) to the output.
+     * b, B, c, d, o, x, X: Uses integer presentation types with the value
+       static_cast<unsigned char>(value).
+
+   The available floating-point presentation types are:
+
+     * a: If precision is specified, produces the output as if by calling
+       std::to_chars(first, last, value, std::chars_format::hex, precision) where
+       precision is the specified precision; otherwise, the output is produced as if by
+       calling std::to_chars(first, last, value, std::chars_format::hex).
+     * A: same as a, except that it uses uppercase letters for digits above 9 and uses
+       P to indicate the exponent.
+     * e: Produces the output as if by calling std::to_chars(first, last, value,
+       std::chars_format::scientific, precision) where precision is the specified
+       precision, or 6 if precision is not specified.
+     * E: same as e, except that it uses E to indicate the exponent.
+     * f, F: Produces the output as if by calling std::to_chars(first, last, value,
+       std::chars_format::fixed, precision) where precision is the specified precision,
+       or 6 if precision is not specified.
+     * g: Produces the output as if by calling std::to_chars(first, last, value,
+       std::chars_format::general, precision) where precision is the specified
+       precision, or 6 if precision is not specified.
+     * G: same as g, except that it uses E to indicate the exponent.
+     * none: If precision is specified, produces the output as if by calling
+       std::to_chars(first, last, value, std::chars_format::general, precision) where
+       precision is the specified precision; otherwise, the output is produced as if by
+       calling std::to_chars(first, last, value).
+
+   For lower-case presentation types, infinity and NaN are formatted as inf and nan,
+   respectively. For upper-case presentation types, infinity and NaN are formatted as
+   INF and NAN, respectively.
+
+   The available pointer presentation types (also used for std::nullptr_t) are:
+
+     * none, p: If std::uintptr_t is defined, produces the output as if by calling
+       std::to_chars(first, last, reinterpret_cast<std::uintptr_t>(value), 16) with the
+       prefix 0x added to the output; otherwise, the output is implementation-defined.
+
+.SH Standard specializations for library types
+
+                                                        specialization of
+   std::formatter<std::chrono::duration>                std::formatter that formats a
+   (C++20)                                              duration according to the
+                                                        provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::sys_time>                std::formatter that formats a
+   (C++20)                                              sys_time according to the
+                                                        provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::utc_time>                std::formatter that formats a
+   (C++20)                                              utc_time according to the
+                                                        provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::tai_time>                std::formatter that formats a
+   (C++20)                                              tai_time according to the
+                                                        provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::gps_time>                std::formatter that formats a
+   (C++20)                                              gps_time according to the
+                                                        provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::file_time>               std::formatter that formats a
+   (C++20)                                              file_time according to the
+                                                        provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::local_time>              std::formatter that formats a
+   (C++20)                                              local_time according to the
+                                                        provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::day>                     std::formatter that formats a
+   (C++20)                                              day according to the provided
+                                                        format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::month>                   std::formatter that formats a
+   (C++20)                                              month according to the provided
+                                                        format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::year>                    std::formatter that formats a
+   (C++20)                                              year according to the provided
+                                                        format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::weekday>                 std::formatter that formats a
+   (C++20)                                              weekday according to the
+                                                        provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::weekday_indexed>         std::formatter that formats a
+   (C++20)                                              weekday_indexed according to
+                                                        the provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::weekday_last>            std::formatter that formats a
+   (C++20)                                              weekday_last according to the
+                                                        provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::month_day>               std::formatter that formats a
+   (C++20)                                              month_day according to the
+                                                        provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::month_day_last>          std::formatter that formats a
+   (C++20)                                              month_day_last according to the
+                                                        provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::month_weekday>           std::formatter that formats a
+   (C++20)                                              month_weekday according to the
+                                                        provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::month_weekday_last>      std::formatter that formats a
+   (C++20)                                              month_weekday_last according to
+                                                        the provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::year_month>              std::formatter that formats a
+   (C++20)                                              year_month according to the
+                                                        provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::year_month_day>          std::formatter that formats a
+   (C++20)                                              year_month_day according to the
+                                                        provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::year_month_day_last>     std::formatter that formats a
+   (C++20)                                              year_month_day_last according
+                                                        to the provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::year_month_weekday>      std::formatter that formats a
+   (C++20)                                              year_month_weekday according to
+                                                        the provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+                                                        std::formatter that formats a
+   std::formatter<std::chrono::year_month_weekday_last> year_month_weekday_last
+   (C++20)                                              according to the provided
+                                                        format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::hh_mm_ss>                std::formatter that formats a
+   (C++20)                                              hh_mm_ss according to the
+                                                        provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::sys_info>                std::formatter that formats a
+   (C++20)                                              sys_info according to the
+                                                        provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::local_info>              std::formatter that formats a
+   (C++20)                                              local_info according to the
+                                                        provided format
+                                                        \fI(class template specialization)\fP
+                                                        specialization of
+   std::formatter<std::chrono::zoned_time>              std::formatter that formats a
+   (C++20)                                              zoned_time according to the
+                                                        provided format
+                                                        \fI(class template specialization)\fP
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <format>
+ #include <iostream>
+
+ // A wrapper for type T
+ template<class T>
+ struct Box {
+     T value;
+ };
+
+ // The wrapper Box<T> can be formatted using the format specification of the wrapped value
+ template<class T, class CharT>
+ struct std::formatter<Box<T>, CharT> : std::formatter<T, CharT> {
+     // parse() is inherited from the base class
+
+     // Define format() by calling the base class implementation with the wrapped value
+     template<class FormatContext>
+     auto format(Box<T> t, FormatContext& fc) const {
+         return std::formatter<T, CharT>::format(t.value, fc);
+     }
+ };
+
+ int main() {
+     Box<int> v = { 42 };
+     std::cout << std::format("{:#x}", v);
+ }
+
+.SH Output:
+
+ 0x2a
 
 .SH See also
 
-   format  stores formatted representation of the arguments in a new string
-   (C++20) \fI(function template)\fP
-
-.SH Category:
-
-     * Todo no example
+   basic_format_context
+   format_context       formatting state, including all formatting arguments and the
+   wformat_context      output iterator
+   (C++20)              \fI(class template)\fP
+   (C++20)
+   (C++20)

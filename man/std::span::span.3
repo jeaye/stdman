@@ -1,4 +1,4 @@
-.TH std::span::span 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::span::span 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::span::span \- std::span::span
 
@@ -24,19 +24,19 @@ std::span::span \- std::span::span
 
    explicit(extent != std::dynamic_extent)                             \fB(7)\fP
 
-   constexpr span( R&& r );
+   constexpr span( R&& range );
    template< class U, std::size_t N >
 
    explicit(extent != std::dynamic_extent && N == std::dynamic_extent) \fB(8)\fP
 
-   constexpr span( const std::span<U, N>& s ) noexcept;
+   constexpr span( const std::span<U, N>& source ) noexcept;
    constexpr span( const span& other ) noexcept = default;             \fB(9)\fP
 
    Constructs a span.
 
    1) Constructs an empty span whose data() == nullptr and size() == 0.
 
-     * This overload only participates in overload resolution if extent == 0 || extent
+     * This overload participates in overload resolution only if extent == 0 || extent
        == std::dynamic_extent.
 
    2) Constructs a span that is a view over the range [first, first + count); the
@@ -45,11 +45,11 @@ std::span::span \- std::span::span
      * The behavior is undefined if [first, first + count) is not a valid range, if It
        does not actually model contiguous_iterator, or if extent != std::dynamic_extent
        && count != extent.
-     * This overload only participates in overload resolution if
+     * This overload participates in overload resolution only if
 
-     * It satisfies contiguous_iterator
-     * the conversion from std::iter_reference_t<It> to element_type is at most a
-       qualification conversion.
+              * It satisfies contiguous_iterator
+              * the conversion from std::iter_reference_t<It> to element_type is at
+                most a qualification conversion.
 
    3) Constructs a span that is a view over the range [first, last); the resulting span
    has data() == std::to_address(first) and size() == last-first.
@@ -58,46 +58,47 @@ std::span::span \- std::span::span
        actually model contiguous_iterator, if End does not actually model
        sized_sentinel_for for It, or if extent != std::dynamic_extent && last-first !=
        extent.
-     * This overload only participates in overload resolution if
+     * This overload participates in overload resolution only if
 
-     * It satisfies contiguous_iterator,
-     * End satisfies sized_sentinel_for for It,
-     * the conversion from std::iter_reference_t<It> to element_type is at most a
-       qualification conversion, and
-     * std::is_convertible_v<End, std::size_t> is false.
+              * It satisfies contiguous_iterator,
+              * End satisfies sized_sentinel_for for It,
+              * the conversion from std::iter_reference_t<It> to element_type is at
+                most a qualification conversion, and
+              * std::is_convertible_v<End, std::size_t> is false.
 
    4-6) Constructs a span that is a view over the array arr; the resulting span has
    size() == N and data() == std::data(arr).
 
-     * These overloads only participate in overload resolution if extent ==
+     * These overloads participate in overload resolution only if extent ==
        std::dynamic_extent || N == extent is true and the conversion from
        std::remove_pointer_t<decltype(data(arr))> to element_type is at most a
        qualification conversion. These constructor templates are never used for class
        template argument deduction.
 
-   7) Constructs a span that is a view over the range r; the resulting span has size()
-   == std::ranges::size(r) and data() == std::ranges::data(r).
+   7) Constructs a span that is a view over the range range; the resulting span has
+   size() == std::ranges::size(range) and data() == std::ranges::data(range).
 
      * The behavior is undefined if R does not actually model contiguous_range and
        sized_range or if R does not model borrowed_range while element_type is
-       non-const or both extent != dynamic_extent and std::ranges::size(r) != extent
-       are true.
-     * This overload only participates in overload resolution if
-
-     * R satisfies contiguous_range and sized_range,
-     * either R satisfies borrowed_range or std::is_const_v<element_type> is true
-     * std::remove_cvref_t<R> is not a specialization of std::span,
-     * std::remove_cvref_t<R> is not a specialization of std::array
-     * std::is_array_v<std::remove_cvref_t<R>> is false, and
-     * the conversion from std::ranges::range_reference_t<R> to element_type is at most
-       a qualification conversion.
-
-   8) Converting constructor from another span s; the resulting span has size() ==
-   s.size() and data() == s.data().
-
-     * The behavior is undefined if both extent != dynamic_extent and s.size() !=
+       non-const or both extent != dynamic_extent and std::ranges::size(range) !=
        extent are true.
-     * This overload only participates in overload resolution if at least one of extent
+     * This overload participates in overload resolution only if
+
+              * R satisfies contiguous_range and sized_range,
+              * either R satisfies borrowed_range or std::is_const_v<element_type> is
+                true
+              * std::remove_cvref_t<R> is not a specialization of std::span,
+              * std::remove_cvref_t<R> is not a specialization of std::array
+              * std::is_array_v<std::remove_cvref_t<R>> is false, and
+              * the conversion from std::ranges::range_reference_t<R> to element_type
+                is at most a qualification conversion.
+
+   8) Converting constructor from another span source; the resulting span has size() ==
+   source.size() and data() == source.data().
+
+     * The behavior is undefined if both extent != dynamic_extent and source.size() !=
+       extent are true.
+     * This overload participates in overload resolution only if at least one of extent
        == std::dynamic_extent, N == std::dynamic_extent and N == extent is true and the
        conversion from U to element_type is at most a qualification conversion.
 
@@ -106,13 +107,13 @@ std::span::span \- std::span::span
 
 .SH Parameters
 
-   first - iterator to the first element of the sequence
-   count - number of elements in the sequence
-   last  - iterator past the last element of the sequence or another sentinel
-   arr   - array to construct a view for
-   r     - range to construct a view for
-   s     - another span to convert from
-   other - another span to copy from
+   first  - iterator to the first element of the sequence
+   count  - number of elements in the sequence
+   last   - iterator past the last element of the sequence or another sentinel
+   arr    - array to construct a view for
+   range  - range to construct a view for
+   source - another span to convert from
+   other  - another span to copy from
 
 .SH Exceptions
 

@@ -1,15 +1,15 @@
-.TH std::cyl_neumann,std::cyl_neumannf,std::cyl_neumannl 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::cyl_neumann,std::cyl_neumannf,std::cyl_neumannl 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::cyl_neumann,std::cyl_neumannf,std::cyl_neumannl \- std::cyl_neumann,std::cyl_neumannf,std::cyl_neumannl
 
 .SH Synopsis
    Defined in header <cmath>
-   double      cyl_neumann( double ν, double x );
+   double cyl_neumann( double ν, double x );
 
-   float       cyl_neumannf( float ν, float x  );            \fB(1)\fP \fI(since C++17)\fP
+   float cyl_neumannf( float ν, float x );                   \fB(1)\fP \fI(since C++17)\fP
 
    long double cyl_neumannl( long double ν, long double x );
-   Promoted    cyl_neumann( Arithmetic ν, Arithmetic x );    \fB(2)\fP \fI(since C++17)\fP
+   Promoted cyl_neumann( Arithmetic ν, Arithmetic x );       \fB(2)\fP \fI(since C++17)\fP
 
    1) Computes the cylindrical Neumann function (also known as Bessel function of the
    second kind or Weber function) of ν and x.
@@ -21,7 +21,7 @@ std::cyl_neumann,std::cyl_neumannf,std::cyl_neumannl \- std::cyl_neumann,std::cy
 .SH Parameters
 
    ν - the order of the function
-   x - the argument of the function)
+   x  - the argument of the function
 
 .SH Return value
 
@@ -35,12 +35,12 @@ std::cyl_neumann,std::cyl_neumannf,std::cyl_neumannl \- std::cyl_neumann,std::cy
    sin(νπ)
 
    (where J
-   ν(x) is std::cyl_bessel_j(ν,x)) for x≥0 and non-integer ν; for integer ν a limit is
-   used.
+   ν(x) is std::cyl_bessel_j(ν,x)) for x≥0 and non-integer ν; for integer ν a
+   limit is used.
 
 .SH Error handling
 
-   Errors may be reported as specified in math_errhandling
+   Errors may be reported as specified in math_errhandling:
 
      * If the argument is NaN, NaN is returned and domain error is not reported
      * If ν>=128, the behavior is implementation-defined
@@ -53,7 +53,7 @@ std::cyl_neumann,std::cyl_neumannf,std::cyl_neumannl \- std::cyl_neumann,std::cy
    including any standard library headers.
 
    Implementations that do not support ISO 29124:2010 but support TR 19768:2007 (TR1),
-   provide this function in the header tr1/cmath and namespace std::tr1
+   provide this function in the header tr1/cmath and namespace std::tr1.
 
    An implementation of this function is also available in boost.math
 
@@ -62,29 +62,49 @@ std::cyl_neumann,std::cyl_neumannf,std::cyl_neumannl \- std::cyl_neumann,std::cy
 
 // Run this code
 
+ #include <cassert>
  #include <cmath>
  #include <iostream>
+ #include <numbers>
+
+ const double π = std::numbers::pi; // or std::acos(-1) in pre C++20
+
+ // To calculate the cylindrical Neumann function via cylindrical Bessel function of the
+ // first kind we have to implement the J₋ᵥ, because the direct invocation of the
+ // std::cyl_bessel_j(ν,x), per formula above, for negative ν raises 'std::domain_error':
+ // Bad argument in __cyl_bessel_j.
+
+ double J₋ᵥ (double ν, double x) {
+     return std::cos(-ν*π) * std::cyl_bessel_j(-ν,x)
+           -std::sin(-ν*π) * std::cyl_neumann(-ν,x);
+ }
+
+ double J₊ᵥ (double ν, double x) { return std::cyl_bessel_j(ν,x); }
+
+ double Jᵥ (double ν, double x) { return ν < 0.0 ? J₋ᵥ(ν,x) : J₊ᵥ(ν,x); }
+
  int main()
  {
-     double pi = std::acos(-1);
-     double x = 1.2345;
-
-     // spot check for ν == 0.5
-     std::cout << "N_.5(" << x << ") = " << std::cyl_neumann(.5, x) << '\\n'
-               << "calculated via J = " <<
-               (std::cyl_bessel_j(.5,x)*std::cos(.5*pi)
-              - std::cyl_bessel_j(-.5,x))/std::sin(.5*pi) << '\\n';
+     std::cout << "spot checks for ν == 0.5\\n" << std::fixed << std::showpos;
+     double ν = 0.5;
+     for (double x = 0.0; x <= 2.0; x += 0.333) {
+         const double n = std::cyl_neumann(ν, x);
+         const double j = (Jᵥ(ν, x)*std::cos(ν*π) - Jᵥ(-ν, x)) / std::sin(ν*π);
+         std::cout << "N_.5(" << x << ") = " << n << ", calculated via J = " << j << '\\n';
+         assert(n == j);
+     }
  }
 
 .SH Output:
 
- N_.5(1.2345) = -0.236973
- calculated via J = -0.236973
-
-.SH External links
-
-   Weisstein, Eric W. "Bessel Function of the Second Kind." From MathWorld--A Wolfram
-   Web Resource.
+ spot checks for ν == 0.5
+ N_.5(+0.000000) = -inf, calculated via J = -inf
+ N_.5(+0.333000) = -1.306713, calculated via J = -1.306713
+ N_.5(+0.666000) = -0.768760, calculated via J = -0.768760
+ N_.5(+0.999000) = -0.431986, calculated via J = -0.431986
+ N_.5(+1.332000) = -0.163524, calculated via J = -0.163524
+ N_.5(+1.665000) = +0.058165, calculated via J = +0.058165
+ N_.5(+1.998000) = +0.233876, calculated via J = +0.233876
 
 .SH See also
 
@@ -106,3 +126,8 @@ std::cyl_neumann,std::cyl_neumannf,std::cyl_neumannl \- std::cyl_neumann,std::cy
    \fI(C++17)\fP       \fI(function)\fP
    \fI(C++17)\fP
    \fI(C++17)\fP
+
+.SH External links
+
+   Weisstein, Eric W. "Bessel Function of the Second Kind." From MathWorld — A
+   Wolfram Web Resource.

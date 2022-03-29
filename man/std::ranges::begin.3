@@ -1,4 +1,4 @@
-.TH std::ranges::begin 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::begin 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::begin \- std::ranges::begin
 
@@ -6,44 +6,71 @@ std::ranges::begin \- std::ranges::begin
    Defined in header <ranges>
    inline namespace /*unspecified*/ {
 
-       inline constexpr /*unspecified*/ begin =            \fI(since C++20)\fP
+   inline constexpr /*unspecified*/ begin =                \fI(since C++20)\fP
    /*unspecified*/;                                        (customization point object)
 
    }
    Call signature
    template< class T >
 
-       requires /* see below */
+   requires /* see below */                                \fI(since C++20)\fP
 
-   constexpr std::input_or_output_iterator auto begin(T&&
-   t);
+   constexpr std::input_or_output_iterator auto begin(
+   T&& t );
 
    Returns an iterator to the first element of the argument.
 
    range-begin-end.svg
 
-   Let t be an object of type T. If the argument is an lvalue or
-   ranges::enable_borrowed_range<std::remove_cv_t<T>> is true, then a call to
-   ranges::begin is expression-equivalent to:
+   If the argument is an lvalue or ranges::enable_borrowed_range<std::remove_cv_t<T>>
+   is true, then a call to ranges::begin is expression-equivalent to:
 
-    1. t + 0 if T is an array type.
+    1. t + 0 if t has an array type.
 
-       If std::remove_all_extents_t<T> is incomplete, then
-       ranges::begin(std::forward<T>(t)) is ill-formed, no diagnostic required.
-    2. Otherwise, std::forward<T>(t).begin(), if that expression is valid, and its
-       return type models std::input_or_output_iterator.
-    3. Otherwise, begin(std::forward<T>(t)), if T is a class or enumeration type, the
-       aforementioned unqualified call is valid, its return type models
-       std::input_or_output_iterator, where the overload resolution is performed with
-       the following candidates:
+                    If std::remove_all_extents_t<std::remove_reference_t<T>> is
+                    incomplete, then the call to ranges::begin is ill-formed, no
+                    diagnostic required.
 
+    2. Otherwise, t.begin() converted to its decayed type, if that expression with
+       conversion is valid, and its converted type models
+       std::input_or_output_iterator.
+    3. Otherwise, begin(t) converted to its decayed type, if t has a class or
+       enumeration type, the aforementioned unqualified call with conversion is valid,
+       and its converted type models std::input_or_output_iterator, where the overload
+       resolution is performed with the following candidates:
+
+          * any declarations of begin found by argument-dependent lookup.
           * void begin(auto&) = delete;
           * void begin(const auto&) = delete;
-          * any declarations of begin found by argument-dependent lookup.
 
    In all other cases, a call to ranges::begin is ill-formed, which can result in
-   substitution failure when ranges::begin(t) appears in the immediate context of a
-   template instantiation.
+   substitution failure when the call appears in the immediate context of a template
+   instantiation.
+
+  Expression-equivalent
+
+   Expression e is expression-equivalent to expression f, if e and f have the same
+   effects, either are both potentially-throwing or are both not potentially-throwing
+   (i.e. noexcept(e) == noexcept(f)), and either are both constant subexpressions or
+   are both not constant subexpressions.
+
+  Customization point objects
+
+   The name ranges::begin denotes a customization point object, which is a const
+   function object of a literal semiregular class type. For exposition purposes, the
+   cv-unqualified version of its type is denoted as __begin_fn.
+
+   All instances of __begin_fn are equal. The effects of invoking different instances
+   of type __begin_fn on the same arguments are equivalent, regardless of whether the
+   expression denoting the instance is an lvalue or rvalue, and is const-qualified or
+   not (however, a volatile-qualified instance is not required to be invocable). Thus,
+   ranges::begin can be copied freely and its copies can be used interchangeably.
+
+   Given a set of types Args..., if std::declval<Args>()... meet the requirements for
+   arguments to ranges::begin above, __begin_fn models std::invocable<__begin_fn,
+   Args...>, std::invocable<const __begin_fn, Args...>, std::invocable<__begin_fn&,
+   Args...>, and std::invocable<const __begin_fn&, Args...>. Otherwise, no function
+   call operator of __begin_fn participates in overload resolution.
 
 .SH Notes
 
@@ -52,6 +79,11 @@ std::ranges::begin \- std::ranges::begin
    ranges::begin is ill-formed, which also results in substitution failure.
 
    The return type models std::input_or_output_iterator in all cases.
+
+   The C++20 standard requires that if the underlying begin function call returns a
+   prvalue, the return value is move-constructed from the materialized temporary
+   object. All implementations directly return the prvalue instead. The requirement is
+   corrected by the post-C++20 proposal P0849R8 to match the implementations.
 
 .SH Example
 

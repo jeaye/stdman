@@ -1,4 +1,4 @@
-.TH std::swap 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::swap 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::swap \- std::swap
 
@@ -49,12 +49,12 @@ std::swap \- std::swap
 
    1)
 
-   \fI(none)\fP                                              \fI(until C++11)\fP
+   \fI(none)\fP                                          \fI(until C++11)\fP
    noexcept specification:
    noexcept(
 
-       std::is_nothrow_move_constructible<T>::value && \fI(since C++11)\fP
-       std::is_nothrow_move_assignable<T>::value
+   std::is_nothrow_move_constructible<T>::value && \fI(since C++11)\fP
+   std::is_nothrow_move_assignable<T>::value
 
    )
 
@@ -126,12 +126,12 @@ std::swap \- std::swap
    std::swap(std::unordered_multiset)  specializes the std::swap algorithm
    \fI(C++11)\fP                             \fI(function template)\fP
    std::swap(std::queue)               specializes the std::swap algorithm
-                                       \fI(function template)\fP
+   \fI(C++11)\fP                             \fI(function template)\fP
    std::swap(std::priority_queue)      specializes the std::swap algorithm
-                                       \fI(function template)\fP
+   \fI(C++11)\fP                             \fI(function template)\fP
    std::swap(std::stack)               specializes the std::swap algorithm
-                                       \fI(function template)\fP
-   std::swap(std::valarray)            specializes the std::swap() algorithm
+   \fI(C++11)\fP                             \fI(function template)\fP
+   std::swap(std::valarray)            specializes the std::swap algorithm
    \fI(C++11)\fP                             \fI(function template)\fP
    std::swap(std::basic_stringbuf)     specializes the std::swap algorithm
    \fI(C++11)\fP                             \fI(function template)\fP
@@ -151,9 +151,17 @@ std::swap \- std::swap
    \fI(C++11)\fP                             \fI(function template)\fP
    std::swap(std::basic_syncbuf)       specializes the std::swap algorithm
    (C++20)                             \fI(function template)\fP
+   std::swap(std::basic_spanbuf)       specializes the std::swap algorithm
+   (C++23)                             \fI(function template)\fP
+   std::swap(std::basic_ispanstream)   specializes the std::swap algorithm
+   (C++23)                             \fI(function template)\fP
+   std::swap(std::basic_ospanstream)   specializes the std::swap algorithm
+   (C++23)                             \fI(function template)\fP
+   std::swap(std::basic_spanstream)    specializes the std::swap algorithm
+   (C++23)                             \fI(function template)\fP
    std::swap(std::basic_regex)         specializes the std::swap algorithm
    \fI(C++11)\fP                             \fI(function template)\fP
-   std::swap(std::match_results)       specializes the std::swap() algorithm
+   std::swap(std::match_results)       specializes the std::swap algorithm
    \fI(C++11)\fP                             \fI(function template)\fP
    std::swap(std::thread)              specializes the std::swap algorithm
    \fI(C++11)\fP                             \fI(function)\fP
@@ -164,13 +172,13 @@ std::swap \- std::swap
    std::swap(std::packaged_task)       specializes the std::swap algorithm
    \fI(C++11)\fP                             \fI(function template)\fP
    std::swap(std::optional)            specializes the std::swap algorithm
-   \fI(C++17)\fP                             \fI(function)\fP
+   \fI(C++17)\fP                             \fI(function template)\fP
    std::swap(std::any)                 specializes the std::swap algorithm
    \fI(C++17)\fP                             \fI(function)\fP
    std::swap(std::variant)             specializes the std::swap algorithm
-   \fI(C++17)\fP                             \fI(function)\fP
+   \fI(C++17)\fP                             \fI(function template)\fP
    swap(std::filesystem::path)         swaps two paths
-                                       \fI(function)\fP
+   \fI(C++17)\fP                             \fI(function)\fP
 
 .SH Example
 
@@ -180,25 +188,49 @@ std::swap \- std::swap
  #include <algorithm>
  #include <iostream>
 
+ namespace Ns {
+ class A {
+     int id{};
+
+     friend void swap(A& lhs, A& rhs) {
+         std::cout << "swap(" << lhs << ", " << rhs << ")\\n";
+         std::swap(lhs.id, rhs.id);
+     }
+
+     friend std::ostream& operator<< (std::ostream& os, A const& a) {
+         return os << "A::id=" << a.id;
+     }
+
+ public:
+     A(int i) : id{i} { }
+     A(A const&) = delete;
+     A& operator = (A const&) = delete;
+ };
+ }
+
  int main()
  {
-    int a = 5, b = 3;
+     int a = 5, b = 3;
+     std::cout << a << ' ' << b << '\\n';
+     std::swap(a,b);
+     std::cout << a << ' ' << b << '\\n';
 
-    // before
-    std::cout << a << ' ' << b << '\\n';
-
-    std::swap(a,b);
-
-    // after
-    std::cout << a << ' ' << b << '\\n';
+     Ns::A p{6}, q{9};
+     std::cout << p << ' ' << q << '\\n';
+ //  std::swap(p, q);  // error, type requirements are not satisfied
+     swap(p, q);  // OK, ADL finds the appropriate friend `swap`
+     std::cout << p << ' ' << q << '\\n';
  }
 
 .SH Output:
 
  5 3
  3 5
+ A::id=6 A::id=9
+ swap(A::id=6, A::id=9)
+ A::id=9 A::id=6
 
-   Defect reports
+  Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
@@ -215,7 +247,3 @@ std::swap \- std::swap
                \fI(function template)\fP
    exchange    replaces the argument with a new value and returns its previous value
    \fI(C++14)\fP     \fI(function template)\fP
-
-.SH Category:
-
-     * conditionally noexcept

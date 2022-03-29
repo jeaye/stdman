@@ -1,4 +1,4 @@
-.TH std::source_location::source_location 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::source_location::source_location 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::source_location::source_location \- std::source_location::source_location
 
@@ -7,7 +7,7 @@ std::source_location::source_location \- std::source_location::source_location
    source_location( const source_location& other );     \fB(2)\fP \fI(since C++20)\fP
    source_location( source_location&& other ) noexcept; \fB(3)\fP \fI(since C++20)\fP
 
-   1) Constructs an source_location object of unspecified value.
+   1) Constructs a source_location object of unspecified value.
    2-3) Copy and move constructors. It is unspecified whether they are trivial and/or
    constexpr.
 
@@ -15,8 +15,89 @@ std::source_location::source_location \- std::source_location::source_location
 
    other - another source_location to copy or move from
 
+.SH Example
+
+
+// Run this code
+
+ #include <iomanip>
+ #include <iostream>
+ #include <ranges>
+ #include <vector>
+ #include <source_location>
+ #include <string_view>
+
+ // GCC specific type name printer
+ #if (__GNUG__ >= 11)
+ template <typename T>
+ auto type_name_helper(const std::source_location s = std::source_location::current()) {
+     using std::operator""sv;
+     const std::string_view fun_name{s.function_name()};
+     constexpr auto prefix {"[with T = "sv};
+     const auto type_name_begin {fun_name.find(prefix)};
+     if (""sv.npos == type_name_begin) return ""sv;
+     const std::size_t first {type_name_begin + prefix.length()};
+     return std::string_view{fun_name.cbegin() + first, fun_name.cend() - 1};
+ }
+ template <typename T>
+ auto type_name() { return type_name_helper<T>(); }
+ #endif
+
+
+ void print(std::string_view const comment, std::source_location const l) {
+     std::cout
+         << comment << ":\\n"
+         << "  file_name     : " << std::quoted(l.file_name()) << '\\n'
+         << "  function_name : " << std::quoted(l.function_name()) << '\\n'
+         << "  line          : " << l.line() << '\\n'
+         << "  column        : " << l.column() << '\\n';
+ }
+
+ int main()
+ {
+     constexpr std::source_location default_constructed;
+     print("default constructed", default_constructed);
+
+     constexpr std::source_location current = std::source_location::current();
+     print("current", current);
+
+ #   if (__GNUG__ >= 11)
+     const std::vector<std::vector<int>> v{ {1,2}, {3,4,5}, {6} };
+     auto jv = std::ranges::join_view(v);
+     std::cout
+         << '\\n'
+         << '[' << type_name<int>() << "]\\n"
+         << '[' << type_name<double*>() << "]\\n"
+         << '[' << type_name<decltype([](){})>() << "]\\n"
+         << '[' << type_name<decltype(type_name<int>())>() << "]\\n"
+         << '[' << type_name<decltype(jv)>() << "]\\n"
+         ;
+ #   endif
+ }
+
+.SH Possible output:
+
+ default constructed:
+   file_name     : ""
+   function_name : ""
+   line          : 0
+   column        : 0
+ current:
+   file_name     : "main.cpp"
+   function_name : "int main()"
+   line          : 39
+   column        : 75
+
+ [int]
+ [double*]
+ [main()::<lambda()>]
+ [std::basic_string_view<char>]
+ [std::ranges::join_view<std::ranges::ref_view<const std::vector<std::vector<int> > > >]
+
 .SH See also
 
-   current  constructs a new source_location corresponding to the location of the call
-   \fB[static]\fP site
-            \fI(public static member function)\fP
+   current       constructs a new source_location corresponding to the location of the
+   \fB[static]\fP      call site
+                 \fI(public static member function)\fP
+   constructor   constructs a new stacktrace_entry
+   (C++23)       \fI(public member function of std::stacktrace_entry)\fP

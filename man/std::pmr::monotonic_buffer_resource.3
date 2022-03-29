@@ -1,4 +1,4 @@
-.TH std::pmr::monotonic_buffer_resource 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::pmr::monotonic_buffer_resource 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::pmr::monotonic_buffer_resource \- std::pmr::monotonic_buffer_resource
 
@@ -40,3 +40,82 @@ std::pmr::monotonic_buffer_resource \- std::pmr::monotonic_buffer_resource
    \fB[virtual]\fP         \fI(virtual protected member function)\fP
    do_is_equal       Compare for equality with another std::pmr::memory_resource
    \fB[virtual]\fP         \fI(virtual protected member function)\fP
+
+.SH Example
+
+   The program measures the time of creating huge double-linked lists using the
+   following allocators:
+
+     * default standard allocator,
+     * default pmr allocator,
+     * pmr allocator with monotonic resource but without explicit memory buffer,
+     * pmr allocator with monotonic resource and external memory buffer (on stack).
+
+
+// Run this code
+
+ #include <list>
+ #include <array>
+ #include <chrono>
+ #include <cstddef>
+ #include <iomanip>
+ #include <iostream>
+ #include <memory_resource>
+
+ template <typename Func>
+ auto benchmark(Func test_func, int iterations) {
+     const auto start = std::chrono::system_clock::now();
+     while (iterations-- > 0) { test_func(); }
+     const auto stop = std::chrono::system_clock::now();
+     const auto secs = std::chrono::duration<double>(stop - start);
+     return secs.count();
+ }
+
+ int main()
+ {
+     constexpr int iterations{100};
+     constexpr int total_nodes{2'00'000};
+
+     auto default_std_alloc = [total_nodes] {
+         std::list<int> list;
+         for (int i{}; i != total_nodes; ++i) { list.push_back(i); }
+     };
+
+     auto default_pmr_alloc = [total_nodes] {
+         std::pmr::list<int> list;
+         for (int i{}; i != total_nodes; ++i) { list.push_back(i); }
+     };
+
+     auto pmr_alloc_no_buf = [total_nodes] {
+         std::pmr::monotonic_buffer_resource mbr;
+         std::pmr::polymorphic_allocator<int> pa{&mbr};
+         std::pmr::list<int> list{pa};
+         for (int i{}; i != total_nodes; ++i) { list.push_back(i); }
+     };
+
+     auto pmr_alloc_and_buf = [total_nodes] {
+         std::array<std::byte, total_nodes * 32> buffer; // enough to fit in all nodes
+         std::pmr::monotonic_buffer_resource mbr{buffer.data(), buffer.size()};
+         std::pmr::polymorphic_allocator<int> pa{&mbr};
+         std::pmr::list<int> list{pa};
+         for (int i{}; i != total_nodes; ++i) { list.push_back(i); }
+     };
+
+     const double t1 = benchmark(default_std_alloc, iterations);
+     const double t2 = benchmark(default_pmr_alloc, iterations);
+     const double t3 = benchmark(pmr_alloc_no_buf , iterations);
+     const double t4 = benchmark(pmr_alloc_and_buf, iterations);
+
+     std::cout << std::fixed << std::setprecision(3)
+               << "t1 (default std alloc): " << t1 << " sec; t1/t1: " << t1/t1 << '\\n'
+               << "t2 (default pmr alloc): " << t2 << " sec; t1/t2: " << t1/t2 << '\\n'
+               << "t3 (pmr alloc  no buf): " << t3 << " sec; t1/t3: " << t1/t3 << '\\n'
+               << "t4 (pmr alloc and buf): " << t4 << " sec; t1/t4: " << t1/t4 << '\\n';
+ }
+
+.SH Possible output:
+
+ t1 (default std alloc): 0.720 sec; t1/t1: 1.000
+ t2 (default pmr alloc): 0.915 sec; t1/t2: 0.787
+ t3 (pmr alloc  no buf): 0.370 sec; t1/t3: 1.945
+ t4 (pmr alloc and buf): 0.247 sec; t1/t4: 2.914

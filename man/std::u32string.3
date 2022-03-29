@@ -1,4 +1,4 @@
-.TH std::basic_string 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_string 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_string \- std::basic_string
 
@@ -6,17 +6,16 @@ std::basic_string \- std::basic_string
    Defined in header <string>
    template<
 
-       class CharT,
-       class Traits = std::char_traits<CharT>,                        \fB(1)\fP
-       class Allocator = std::allocator<CharT>
+   class CharT,
+   class Traits = std::char_traits<CharT>,                        \fB(1)\fP
+   class Allocator = std::allocator<CharT>
 
    > class basic_string;
    namespace pmr {
 
-       template <class CharT, class Traits = std::char_traits<CharT>>
-       using basic_string = std::basic_string< CharT, Traits,         \fB(2)\fP \fI(since C++17)\fP
-
-   std::polymorphic_allocator<CharT>>
+   template <class CharT, class Traits = std::char_traits<CharT>>
+   using basic_string = std::basic_string< CharT, Traits,         \fB(2)\fP \fI(since C++17)\fP
+   std::polymorphic_allocator<CharT> >;
 
    }
 
@@ -35,10 +34,19 @@ std::basic_string \- std::basic_string
    null-terminated
    \fI(since C++11)\fPCharT[] array.
 
-   std::basic_string satisfies the requirements of AllocatorAwareContainer,
+   std::basic_string satisfies the requirements of AllocatorAwareContainer (except that
+   customized construct/destroy are not used for construction/destruction of elements),
    SequenceContainer
    and ContiguousContainer
    \fI(since C++17)\fP
+
+   Member functions of std::basic_string are constexpr: it is possible to
+   create and use std::string objects in the evaluation of a constant
+   expression.
+                                                                          \fI(since C++20)\fP
+   However, std::string objects generally cannot be constexpr, because
+   any dynamically allocated storage must be released in the same
+   evaluation of constant expression.
 
    Several typedefs for common character types are provided:
 
@@ -67,34 +75,28 @@ std::basic_string \- std::basic_string
    traits_type            Traits
    value_type             CharT
    allocator_type         Allocator
-                          Allocator::size_type                        \fI(until C++11)\fP
-   size_type              std::allocator_traits<Allocator>::size_type \fI(since C++11)\fP
-
-
+   size_type              Allocator::size_type                        \fI(until C++11)\fP
+                          std::allocator_traits<Allocator>::size_type \fI(since C++11)\fP
                           Allocator::difference_type                        (until
+   difference_type                                                          C++11)
+                          std::allocator_traits<Allocator>::difference_type (since
                                                                             C++11)
-   difference_type        std::allocator_traits<Allocator>::difference_type (since
-                                                                            C++11)
-
-
-                          Allocator::reference \fI(until C++11)\fP
-   reference              value_type&          \fI(since C++11)\fP
-
-
-                          Allocator::const_reference \fI(until C++11)\fP
-   const_reference        const value_type&          \fI(since C++11)\fP
-
-
-                          Allocator::pointer                        \fI(until C++11)\fP
-   pointer                std::allocator_traits<Allocator>::pointer \fI(since C++11)\fP
-
-
-                          Allocator::const_pointer                        \fI(until C++11)\fP
-   const_pointer          std::allocator_traits<Allocator>::const_pointer \fI(since C++11)\fP
-
-
-   iterator               LegacyRandomAccessIterator
-   const_iterator         Constant LegacyRandomAccessIterator
+   reference              value_type&
+   const_reference        const value_type&
+   pointer                Allocator::pointer                        \fI(until C++11)\fP
+                          std::allocator_traits<Allocator>::pointer \fI(since C++11)\fP
+   const_pointer          Allocator::const_pointer                        \fI(until C++11)\fP
+                          std::allocator_traits<Allocator>::const_pointer \fI(since C++11)\fP
+                          LegacyRandomAccessIterator and                  \fI(until C++20)\fP
+                          LegacyContiguousIterator to value_type
+   iterator               LegacyRandomAccessIterator,
+                          contiguous_iterator, and ConstexprIterator to   \fI(since C++20)\fP
+                          value_type
+                          LegacyRandomAccessIterator and                  \fI(until C++20)\fP
+                          LegacyContiguousIterator to const value_type
+   const_iterator         LegacyRandomAccessIterator,
+                          contiguous_iterator, and ConstexprIterator to   \fI(since C++20)\fP
+                          const value_type
    reverse_iterator       std::reverse_iterator<iterator>
    const_reverse_iterator std::reverse_iterator<const_iterator>
 
@@ -176,6 +178,9 @@ std::basic_string \- std::basic_string
    (C++20)                    \fI(public member function)\fP
    ends_with                  checks if the string ends with the given suffix
    (C++20)                    \fI(public member function)\fP
+   contains                   checks if the string contains the given substring or
+   (C++23)                    character
+                              \fI(public member function)\fP
    replace                    replaces specified portion of a string
                               \fI(public member function)\fP
    substr                     returns a substring
@@ -183,6 +188,10 @@ std::basic_string \- std::basic_string
    copy                       copies characters
                               \fI(public member function)\fP
    resize                     changes the number of characters stored
+                              \fI(public member function)\fP
+                              changes the number of characters stored and possibly
+   resize_and_overwrite       overwrites indeterminate contents via user-provided
+   (C++23)                    operation
                               \fI(public member function)\fP
    swap                       swaps the contents
                               \fI(public member function)\fP
@@ -275,14 +284,65 @@ std::basic_string \- std::basic_string
    \fI(C++11)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
+   \fI(C++17)\fP
    (C++20)
-   (C++20)
-   (C++20)
-   (C++20)
-   (C++20)
+   \fI(C++17)\fP
+   \fI(C++17)\fP
+   \fI(C++17)\fP
 
-   Deduction guides\fI(since C++17)\fP
+  Deduction guides \fI(since C++17)\fP
 
-.SH Hidden category:
+.SH Notes
 
-     * Pages with unreviewed LWG DR marker
+   Although it is required that customized construct or destroy is used when
+   constructing or destroying elements of std::basic_string until C++23, all
+   implementations only used the default mechanism. The requirement is corrected by
+   P1072R10 to match existing practice.
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <string>
+
+ int main()
+ {
+     using namespace std::literals;
+
+     // Creating a string from const char*
+     std::string str1 = "hello";
+
+     // Creating a string using string literal
+     auto str2 = "world"s;
+
+     // Concatenating strings
+     std::string str3 = str1 + " " + str2;
+
+     // Print out the result
+     std::cout << str3 << '\\n';
+
+     std::string::size_type pos = str3.find(" ");
+     str1 = str3.substr(pos + 1); // the part after the space
+     str2 = str3.substr(0, pos);  // the part till the space
+
+     std::cout << str1 << ' ' << str2 << '\\n';
+
+     // Accessing an element using subscript operator[]
+     std::cout << str1[0] << '\\n';
+     str1[0] = 'W';
+     std::cout << str1 << '\\n';
+ }
+
+.SH Output:
+
+ hello world
+ world hello
+ w
+ World
+
+.SH See also
+
+   basic_string_view read-only string view
+   \fI(C++17)\fP           \fI(class template)\fP

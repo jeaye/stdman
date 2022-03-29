@@ -1,4 +1,4 @@
-.TH std::disjunction 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::disjunction 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::disjunction \- std::disjunction
 
@@ -32,7 +32,7 @@ std::disjunction \- std::disjunction
    B... - every template argument Bi for which Bi::value is instantiated must be usable
           as a base class and define member value that is convertible to bool
 
-   Helper variable template
+  Helper variable template
 
    template<class... B>                                             \fI(since C++17)\fP
    inline constexpr bool disjunction_v = disjunction<B...>::value;
@@ -59,13 +59,45 @@ std::disjunction \- std::disjunction
    is particularly useful if the later type is expensive to instantiate or can cause a
    hard error when instantiated with the wrong type.
 
+   Feature testing macro: __cpp_lib_logical_traits
+
 .SH Example
 
 
 // Run this code
 
  #include <type_traits>
+ #include <cstdint>
  #include <string>
+
+ // values_equal<a, b, T>::value is true if and only if a == b.
+ template <auto V1, decltype(V1) V2, typename T>
+ struct values_equal : std::bool_constant<V1 == V2> {
+   using type = T;
+ };
+
+ // default_type<T>::value is always true
+ template <typename T>
+ struct default_type : std::true_type {
+   using type = T;
+ };
+
+ // Now we can use disjunction like a switch statement:
+ template <int I>
+ using int_of_size = typename std::disjunction<  //
+     values_equal<I, 1, std::int8_t>,            //
+     values_equal<I, 2, std::int16_t>,           //
+     values_equal<I, 4, std::int32_t>,           //
+     values_equal<I, 8, std::int64_t>,           //
+     default_type<void>                          // must be last!
+     >::type;
+
+ static_assert(sizeof(int_of_size<1>) == 1);
+ static_assert(sizeof(int_of_size<2>) == 2);
+ static_assert(sizeof(int_of_size<4>) == 4);
+ static_assert(sizeof(int_of_size<8>) == 8);
+ static_assert(std::is_same_v<int_of_size<13>, void>);
+
 
  // checking if Foo is constructible from double will cause a hard error
  struct Foo {

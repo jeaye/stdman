@@ -1,4 +1,4 @@
-.TH std::rotate 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::rotate 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::rotate \- std::rotate
 
@@ -10,15 +10,14 @@ std::rotate \- std::rotate
    template< class ForwardIt >                                            \fI(since C++11)\fP
    ForwardIt rotate( ForwardIt first, ForwardIt n_first,                  \fI(until C++20)\fP
    ForwardIt last );
-   template< class ForwardIt >
-   constexpr ForwardIt rotate( ForwardIt first, ForwardIt         \fB(1)\fP     \fI(since C++20)\fP
+   template< class ForwardIt >                                    \fB(1)\fP
+   constexpr ForwardIt rotate( ForwardIt first, ForwardIt                 \fI(since C++20)\fP
    n_first, ForwardIt last );
    template< class ExecutionPolicy, class ForwardIt >
 
    ForwardIt rotate( ExecutionPolicy&& policy,                        \fB(2)\fP \fI(since C++17)\fP
 
-                     ForwardIt first, ForwardIt n_first,
-   ForwardIt last );
+   ForwardIt first, ForwardIt n_first, ForwardIt last );
 
    1) Performs a left rotation on a range of elements.
    Specifically, std::rotate swaps the elements in the range [first, last) in such a
@@ -56,7 +55,7 @@ std::rotate \- std::rotate
 
 .SH Complexity
 
-   Linear in the distance between first and last
+   Linear in the distance between first and last.
 
 .SH Exceptions
 
@@ -68,12 +67,23 @@ std::rotate \- std::rotate
        For any other ExecutionPolicy, the behavior is implementation-defined.
      * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
+.SH Notes
+
+   std::rotate has better efficiency on common implementations if ForwardIt statisfies
+   LegacyBidirectionalIterator or (better) LegacyRandomAccessIterator.
+
+   Implementations (e.g. MSVC STL) may enable vectorization when the iterator type
+   satisfies LegacyContiguousIterator and swapping its value type calls neither
+   non-trivial special member function nor ADL-found swap.
+
 .SH Possible implementation
 
-   See also the implementations in libstdc++ and libc++.
+   See also the implementations in libstdc++, libc++, and MSVC STL.
 
    template<class ForwardIt>
-   ForwardIt rotate(ForwardIt first, ForwardIt n_first, ForwardIt last)
+   constexpr // since C++20
+   ForwardIt // void until C++11
+   rotate(ForwardIt first, ForwardIt n_first, ForwardIt last)
    {
       if(first == n_first) return last;
       if(n_first == last) return first;
@@ -95,7 +105,7 @@ std::rotate \- std::rotate
 .SH Example
 
    std::rotate is a common building block in many algorithms. This example demonstrates
-   insertion sort:
+   insertion sort.
 
 
 // Run this code
@@ -104,40 +114,35 @@ std::rotate \- std::rotate
  #include <iostream>
  #include <algorithm>
 
+ auto print = [](auto const& remark, auto const& v) {
+     std::cout << remark;
+     for (int n: v)
+         std::cout << n << ' ';
+     std::cout << '\\n';
+ };
+
  int main()
  {
      std::vector<int> v{2, 4, 2, 0, 5, 10, 7, 3, 7, 1};
 
-     std::cout << "before sort:\\t\\t";
-     for (int n: v)
-         std::cout << n << ' ';
-     std::cout << '\\n';
+     print("before sort:\\t\\t", v);
 
      // insertion sort
      for (auto i = v.begin(); i != v.end(); ++i) {
          std::rotate(std::upper_bound(v.begin(), i, *i), i, i+1);
      }
 
-     std::cout << "after sort:\\t\\t";
-     for (int n: v)
-         std::cout << n << ' ';
-     std::cout << '\\n';
+     print("after sort:\\t\\t", v);
 
      // simple rotation to the left
      std::rotate(v.begin(), v.begin() + 1, v.end());
 
-     std::cout << "simple rotate left:\\t";
-     for (int n: v)
-         std::cout << n << ' ';
-     std::cout << '\\n';
+     print("simple rotate left:\\t", v);
 
      // simple rotation to the right
      std::rotate(v.rbegin(), v.rbegin() + 1, v.rend());
 
-     std::cout << "simple rotate right:\\t";
-     for (int n: v)
-         std::cout << n << ' ';
-     std::cout << '\\n';
+     print("simple rotate right:\\t", v);
  }
 
 .SH Output:
@@ -149,5 +154,7 @@ std::rotate \- std::rotate
 
 .SH See also
 
-   rotate_copy copies and rotate a range of elements
-               \fI(function template)\fP
+   rotate_copy    copies and rotate a range of elements
+                  \fI(function template)\fP
+   ranges::rotate rotates the order of elements in a range
+   (C++20)        (niebloid)

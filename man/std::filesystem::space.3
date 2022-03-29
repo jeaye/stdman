@@ -1,4 +1,4 @@
-.TH std::filesystem::space 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::space 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::space \- std::filesystem::space
 
@@ -8,42 +8,44 @@ std::filesystem::space \- std::filesystem::space
 
    std::filesystem::space_info space(const std::filesystem::path& p,   \fI(since C++17)\fP
 
-                                     std::error_code& ec) noexcept;
+   std::error_code& ec) noexcept;
 
    Determines the information about the filesystem on which the pathname p is located,
-   as if by POSIX statvfs
+   as if by POSIX statvfs.
 
-   Populates and returns an object of type space_info, set from the members of the
-   POSIX struct statvfs as follows
+   Populates and returns an object of type filesystem::space_info, set from the members
+   of the POSIX struct statvfs as follows
 
      * space_info.capacity is set as if by f_blocks*f_frsize
      * space_info.free is set to f_bfree*f_frsize
      * space_info.available is set to f_bavail*f_frsize
-     * Any member that could not be determined is set to static_cast<uintmax_t>(-1)
+     * Any member that could not be determined is set to
+       static_cast<std::uintmax_t>(-1)
 
-   The non-throwing overload sets all members to static_cast<uintmax_t>(-1) on error.
+   The non-throwing overload sets all members to static_cast<std::uintmax_t>(-1) on
+   error.
 
 .SH Parameters
 
    p  - path to examine
-   ec - out-parameter for error reporting in the non-throwing overload
+   ec - out-parameter for error reporting in the non-throwing overload.
 
 .SH Return value
 
-   The filesystem information (a space_info object)
+   The filesystem information (a filesystem::space_info object).
 
 .SH Exceptions
 
-   The overload that does not take a std::error_code& parameter throws filesystem_error
-   on underlying OS API errors, constructed with p as the first path argument and the
-   OS error code as the error code argument. The overload taking a std::error_code&
-   parameter sets it to the OS API error code if an OS API call fails, and executes
-   ec.clear() if no errors occur. Any overload not marked noexcept may throw
-   std::bad_alloc if memory allocation fails.
+   The overload that does not take a std::error_code& parameter throws
+   filesystem::filesystem_error on underlying OS API errors, constructed with p as the
+   first path argument and the OS error code as the error code argument. The overload
+   taking a std::error_code& parameter sets it to the OS API error code if an OS API
+   call fails, and executes ec.clear() if no errors occur. Any overload not marked
+   noexcept may throw std::bad_alloc if memory allocation fails.
 
 .SH Notes
 
-   space_info.available may be less than space_info.free
+   space_info.available may be less than space_info.free.
 
 .SH Example
 
@@ -52,24 +54,38 @@ std::filesystem::space \- std::filesystem::space
 
  #include <iostream>
  #include <filesystem>
- namespace fs = std::filesystem;
+ #include <cstdint>
+
+ void print_space_info(auto const& dirs, int width = 14)
+ {
+     std::cout << std::left;
+     for (const auto s : {"Capacity", "Free", "Available", "Dir"})
+         std::cout << "│ " << std::setw(width) << s << ' ';
+     std::cout << '\\n';
+     std::error_code ec;
+     for (auto const& dir : dirs) {
+         const std::filesystem::space_info si = std::filesystem::space(dir, ec);
+         std::cout
+             << "│ " << std::setw(width) << static_cast<std::intmax_t>(si.capacity) << ' '
+             << "│ " << std::setw(width) << static_cast<std::intmax_t>(si.free) << ' '
+             << "│ " << std::setw(width) << static_cast<std::intmax_t>(si.available) << ' '
+             << "│ " << dir << '\\n';
+     }
+ }
+
  int main()
  {
-     fs::space_info devi = fs::space("/dev/null");
-     fs::space_info tmpi = fs::space("/tmp");
-
-     std::cout << ".        Capacity       Free      Available\\n"
-               << "/dev:   " << devi.capacity << "   "
-               << devi.free << "   " << devi.available  << '\\n'
-               << "/tmp: " << tmpi.capacity << " "
-               << tmpi.free << " " << tmpi.available  << '\\n';
+     const auto dirs = { "/dev/null", "/tmp", "/home", "/null" };
+     print_space_info(dirs);
  }
 
 .SH Possible output:
 
- .         Capacity       Free      Available
- /dev:   4175114240   4175110144   4175110144
- /tmp: 420651237376 411962273792 390570749952
+ │ Capacity       │ Free           │ Available      │ Dir
+ │ 8342851584     │ 8342851584     │ 8342851584     │ /dev/null
+ │ 12884901888    │ 3045265408     │ 3045265408     │ /tmp
+ │ 250321567744   │ 37623181312    │ 25152159744    │ /home
+ │ -1             │ -1             │ -1             │ /null
 
 .SH See also
 

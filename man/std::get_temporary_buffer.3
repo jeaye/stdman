@@ -1,4 +1,4 @@
-.TH std::get_temporary_buffer 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::get_temporary_buffer 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::get_temporary_buffer \- std::get_temporary_buffer
 
@@ -6,14 +6,14 @@ std::get_temporary_buffer \- std::get_temporary_buffer
    Defined in header <memory>
    template< class T >
 
-   std::pair<T*, std::ptrdiff_t>                               \fI(until C++11)\fP
+   std::pair<T*, std::ptrdiff_t>                           \fI(until C++11)\fP
 
-      get_temporary_buffer( std::ptrdiff_t count );
+   get_temporary_buffer( std::ptrdiff_t count );
    template< class T >
-                                                               \fI(since C++11)\fP
-   std::pair<T*, std::ptrdiff_t>                               (deprecated in C++17)
-                                                               (removed in C++20)
-       get_temporary_buffer( std::ptrdiff_t count ) noexcept;
+                                                           \fI(since C++11)\fP
+   std::pair<T*, std::ptrdiff_t>                           (deprecated in C++17)
+                                                           (removed in C++20)
+   get_temporary_buffer( std::ptrdiff_t count ) noexcept;
 
    Allocates uninitialized contiguous storage, which should be sufficient to store up
    to count adjacent objects of type T. The request is non-binding and the
@@ -33,8 +33,13 @@ std::get_temporary_buffer \- std::get_temporary_buffer
    single element of type T, the first element of the result is a null pointer and the
    second element is zero.
 
-.SH Example
+.SH Notes
 
+   This API was originally designed with the intent of providing a more efficient
+   implementation than the general-purpose operator new, but no such implementation was
+   created and the API was deprecated and removed.
+
+.SH Example
 
 
 // Run this code
@@ -54,6 +59,7 @@ std::get_temporary_buffer \- std::get_temporary_buffer
 
      std::copy(s, s + p.second,
                std::raw_storage_iterator<std::string*, std::string>(p.first));
+     // has same effect as: std::uninitialized_copy(s, s + p.second, p.first);
      // requires that each string in p is individually destroyed
      // (beware of early exit points and exceptions)
 
@@ -62,7 +68,7 @@ std::get_temporary_buffer \- std::get_temporary_buffer
 
      std::for_each(p.first, p.first + p.second, [](std::string& e) {
          e.~basic_string<char>();
-     });
+     }); // same as: std::destroy(p.first, p.first + p.second);
 
      std::return_temporary_buffer(p.first);
  }

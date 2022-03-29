@@ -1,40 +1,40 @@
-.TH std::format_to_n 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::format_to_n 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::format_to_n \- std::format_to_n
 
 .SH Synopsis
    Defined in header <format>
-   template<class OutputIt, class... Args>
+   template< class OutputIt, class... Args >
 
    std::format_to_n_result<OutputIt>                                  \fB(1)\fP \fI(since C++20)\fP
-       format_to_n(OutputIt out, std::iter_difference_t<OutputIt> n,
+   format_to_n( OutputIt out, std::iter_difference_t<OutputIt> n,
 
-                   std::string_view fmt, const Args&... args);
-   template<class OutputIt, class... Args>
+   /*format_string<Args...>*/ fmt, Args&&... args );
+   template< class OutputIt, class... Args >
 
    std::format_to_n_result<OutputIt>                                  \fB(2)\fP \fI(since C++20)\fP
-       format_to_n(OutputIt out, std::iter_difference_t<OutputIt> n,
+   format_to_n( OutputIt out, std::iter_difference_t<OutputIt> n,
 
-                   std::wstring_view fmt, const Args&... args);
-   template<class OutputIt, class... Args>
-
-   std::format_to_n_result<OutputIt>
-       format_to_n(OutputIt out, std::iter_difference_t<OutputIt> n,  \fB(3)\fP \fI(since C++20)\fP
-
-                   const std::locale& loc, std::string_view fmt,
-   const Args&... args);
-   template<class OutputIt, class... Args>
+   /*wformat_string<Args...>*/ fmt, Args&&... args );
+   template< class OutputIt, class... Args >
 
    std::format_to_n_result<OutputIt>
-       format_to_n(OutputIt out, std::iter_difference_t<OutputIt> n,  \fB(4)\fP \fI(since C++20)\fP
+   format_to_n( OutputIt out, std::iter_difference_t<OutputIt> n,     \fB(3)\fP \fI(since C++20)\fP
 
-                   const std::locale& loc, std::wstring_view fmt,
-   const Args&... args);
-   template<class OutputIt>
+   const std::locale& loc, /*format_string<Args...>*/ fmt, Args&&...
+   args );
+   template< class OutputIt, class... Args >
+
+   std::format_to_n_result<OutputIt>
+   format_to_n( OutputIt out, std::iter_difference_t<OutputIt> n,     \fB(4)\fP \fI(since C++20)\fP
+
+   const std::locale& loc, /*wformat_string<Args...>*/ fmt, Args&&...
+   args );
+   template< class OutputIt >
 
    struct format_to_n_result {
-       OutputIt out;                                                  \fB(5)\fP \fI(since C++20)\fP
-       std::iter_difference_t<OutputIt> size;
+   OutputIt out;                                                      \fB(5)\fP \fI(since C++20)\fP
+   std::iter_difference_t<OutputIt> size;
 
    };
 
@@ -42,15 +42,15 @@ std::format_to_n \- std::format_to_n
    iterator out. At most n characters are written. If present, loc is used for
    locale-specific formatting.
 
-   Let CharT be decltype(fmt)::char_type (char for overloads (1,3), wchar_t for
-   overloads (2,4)).
+   Let CharT be char for overloads (1,3), wchar_t for overloads (2,4).
 
-   These overloads only participate in overload resolution if OutputIt satisfies the
+   These overloads participate in overload resolution only if OutputIt satisfies the
    concept std::output_iterator<const CharT&>.
 
    The behavior is undefined if OutputIt does not model (meet the semantic requirements
-   of) the the concept std::output_iterator<const CharT&>, or if std::formatter<Ti,
-   CharT> does not meet the Formatter requirements for any Ti in Args.
+   of) the concept std::output_iterator<const CharT&>, or if
+   std::formatter<std::remove_cvref_t<Ti>, CharT> does not meet the BasicFormatter
+   requirements for any Ti in Args.
 
    5) std::format_to_n_result has no base classes, or members other than out, size and
    implicitly declared special member functions.
@@ -59,9 +59,11 @@ std::format_to_n \- std::format_to_n
 
    out     - iterator to the output buffer
    n       - maximum number of characters to be written to the buffer
-             string view representing the format string.
-
-             The format string consists of
+             parameter of unspecified type, whose initialization is valid only if the
+             argument is convertible to std::string_view (for (1,3)) or
+             std::wstring_view (for (2,4)), and the result of conversion is a constant
+             expression and a valid format string for Args. The format string consists
+             of
 
                * ordinary characters (except { and }), which are copied unchanged to
                  the output,
@@ -71,18 +73,20 @@ std::format_to_n \- std::format_to_n
 
              Each replacement field has the following format:
 
-               * introductory { character;
-               * (optional) arg-id, a non-negative number;
-               * (optional) a colon (:) followed by a format specification;
-   fmt     -   * final } character.
+             { arg-id (optional) }               \fB(1)\fP
+             { arg-id (optional) : format-spec } \fB(2)\fP
 
-             arg-id specifies the index of the argument in args whose value is to be
-             used for formatting; if arg-id is omitted, the arguments are used in
-             order. The arg-ids in a format string must all be present or all be
-             omitted. Mixing manual and automatic indexing is an error.
+   fmt     - 1) replacement field without a format speficiation
+             2) replacement field with a format specification
 
-             The format specification is defined by the std::formatter specialization
-             for the corresponding argument.
+                           specifies the index of the argument in args whose value is
+                           to be used for formatting; if it is omitted, the arguments
+             arg-id      - are used in order.
+
+                           The arg-ids in a format string must all be present or all be
+                           omitted. Mixing manual and automatic indexing is an error.
+             format-spec - the format specification defined by the std::formatter
+                           specialization for the corresponding argument.
 
                * For basic types and standard string types, the format specification is
                  interpreted as standard format specification.
@@ -100,8 +104,7 @@ std::format_to_n \- std::format_to_n
 
 .SH Exceptions
 
-   Throws std::format_error if fmt is not a valid format string for the provided
-   arguments. Also propagates any exception thrown by formatter or iterator operations.
+   Propagates any exception thrown by formatter or iterator operations.
 
 .SH Example
 
@@ -109,28 +112,50 @@ std::format_to_n \- std::format_to_n
 // Run this code
 
  #include <format>
- #include <string_view>
  #include <iostream>
+ #include <string_view>
 
  int main()
  {
      char buffer[64];
 
      const auto result =
-         std::format_to_n(buffer, std::size(buffer),
-                          "Hubble's H{0} {1} {2} miles/sec/mpc.",
-                          "\\u2080", "\\u2245", 42);
+         std::format_to_n(buffer, std::size(buffer) - 1,
+                          "Hubble's H{2} {3} {0}{4}{1} km/sec/Mpc.",
+                          71,       // {0}, occupies 2 bytes
+                          8,        // {1}, occupies 1 byte
+                          "\\u2080", // {2}, occupies 3 bytes
+                          "\\u2245", // {3}, occupies 3 bytes
+                          "\\u00B1"  // {4}, occupies 2 bytes
+                          );
+     *result.out = '\\0';
 
-     std::cout << "Buffer: \\"" << std::string_view{buffer, result.size} << "\\"\\n"
+     const std::string_view str{buffer, result.out}; // uses C++20 ctor
+
+     std::cout << "Buffer: \\"" << str << "\\"\\n"
                << "Buffer size = " << std::size(buffer) << '\\n'
                << "Untruncated output size = " << result.size << '\\n';
  }
 
 .SH Output:
 
- Buffer: "Hubble's H₀ ≅ 42 miles/sec/mpc."
+ Buffer: "Hubble's H₀ ≅ 71±8 km/sec/Mpc."
  Buffer size = 64
  Untruncated output size = 35
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to           Behavior as published              Correct behavior
+                      throws std::format_error for invalid      invalid format string
+   P2216R3 C++20      format string                             results in compile-time
+                                                                error
+                      objects that are neither const-usable nor
+   P2418R2 C++20      copyable                                  allow formatting these
+                      (such as generator-like objects) are not  objects
+                      formattable
 
 .SH See also
 

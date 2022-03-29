@@ -1,4 +1,4 @@
-.TH std::jthread::request_stop 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::jthread::request_stop 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::jthread::request_stop \- std::jthread::request_stop
 
@@ -64,40 +64,40 @@ std::jthread::request_stop \- std::jthread::request_stop
 
  int main()
  {
-         // A sleepy worker thread
-         std::jthread sleepy_worker([] (std::stop_token stoken) {
-                 for(int i=0; i < 10; i++) {
-                         std::this_thread::sleep_for(300ms);
-                         if(stoken.stop_requested()) {
-                                 std::cout << "Sleepy worker is requested to stop\\n";
-                                 return;
-                         }
-                         std::cout << "Sleepy worker goes back to sleep\\n";
-                 }
-         });
+     // A sleepy worker thread
+     std::jthread sleepy_worker([](std::stop_token stoken) {
+         for (int i = 10; i; --i) {
+             std::this_thread::sleep_for(300ms);
+             if (stoken.stop_requested()) {
+                 std::cout << "Sleepy worker is requested to stop\\n";
+                 return;
+             }
+             std::cout << "Sleepy worker goes back to sleep\\n";
+         }
+     });
 
-         // A waiting worker thread
-         // The condition variable will be awoken by the stop request.
-         std::jthread waiting_worker([] (std::stop_token stoken) {
-                 std::mutex mutex;
-                 std::unique_lock lock(mutex);
-                 std::condition_variable_any().wait(lock, stoken,
-                         [&stoken] { return stoken.stop_requested(); });
-                 if(stoken.stop_requested()) {
-                         std::cout << "Waiting worker is requested to stop" << "\\n";
-                         return;
-                 }
-         });
+     // A waiting worker thread
+     // The condition variable will be awoken by the stop request.
+     std::jthread waiting_worker([](std::stop_token stoken) {
+         std::mutex mutex;
+         std::unique_lock lock(mutex);
+         std::condition_variable_any().wait(lock, stoken,
+             [&stoken] { return false; });
+         if (stoken.stop_requested()) {
+             std::cout << "Waiting worker is requested to stop\\n";
+             return;
+         }
+     });
 
-         // std::jthread::request_stop() can be called explicitly:
-         std::cout << "Requesting stop of sleepy worker\\n";
-         sleepy_worker.request_stop();
-         sleepy_worker.join();
-         std::cout << "Sleepy worker joined\\n";
+     // std::jthread::request_stop() can be called explicitly:
+     std::cout << "Requesting stop of sleepy worker\\n";
+     sleepy_worker.request_stop();
+     sleepy_worker.join();
+     std::cout << "Sleepy worker joined\\n";
 
-         // Or automatically using RAII:
-         // waiting_worker's destructor will call request_stop()
-         // and join the thread automatically.
+     // Or automatically using RAII:
+     // waiting_worker's destructor will call request_stop()
+     // and join the thread automatically.
  }
 
 .SH Possible output:

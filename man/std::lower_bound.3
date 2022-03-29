@@ -1,4 +1,4 @@
-.TH std::lower_bound 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::lower_bound 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::lower_bound \- std::lower_bound
 
@@ -41,7 +41,7 @@ std::lower_bound \- std::lower_bound
                    The signature of the predicate function should be equivalent to the
                    following:
 
-                    bool pred(const Type1 &a, const Type2 &b);
+                   bool pred(const Type1 &a, const Type2 &b);
 
    comp         -  While the signature does not need to have const &, the function must
                    not modify the objects passed to it and must be able to accept all
@@ -70,7 +70,9 @@ std::lower_bound \- std::lower_bound
    The number of comparisons performed is logarithmic in the distance between first and
    last (At most log
    2(last - first) + O(1) comparisons). However, for non-LegacyRandomAccessIterators,
-   the number of iterator increments is linear.
+   the number of iterator increments is linear. Notably, std::set and std::multiset
+   iterators are not random access, and so their member functions std::set::lower_bound
+   (resp. std::multiset::lower_bound) should be preferred.
 
 .SH Possible implementation
 
@@ -128,35 +130,50 @@ std::lower_bound \- std::lower_bound
  #include <iostream>
  #include <vector>
 
+ struct PriceInfo { double price; };
+
  int main()
  {
-     std::vector<int> data = { 1, 2, 4, 5, 5, 6 };
-
+     const std::vector<int> data = { 1, 2, 4, 5, 5, 6 };
      for (int i = 0; i < 8; ++i) {
-         // Search for first element that is not less than i
+         // Search for first element x such that i ≤ x
          auto lower = std::lower_bound(data.begin(), data.end(), i);
 
-         std::cout << i << " <= ";
-         if (lower != data.end())
-             std::cout << *lower << " at index " << std::distance(data.begin(), lower);
-         else
-             std::cout << "not found";
+         std::cout << i << " ≤ ";
+         lower != data.end()
+             ? std::cout << *lower << " at index " << std::distance(data.begin(), lower)
+             : std::cout << "[not found]";
          std::cout << '\\n';
+     }
+
+     std::vector<PriceInfo> prices = { {100.0}, {101.5}, {102.5}, {102.5}, {107.3} };
+     for(double to_find: {102.5, 110.2}) {
+       auto prc_info = std::lower_bound(prices.begin(), prices.end(), to_find,
+           [](const PriceInfo& info, double value){
+               return info.price < value;
+           });
+
+       prc_info != prices.end()
+           ? std::cout << prc_info->price << " at index " << prc_info - prices.begin()
+           : std::cout << to_find << " not found";
+       std::cout << '\\n';
      }
  }
 
 .SH Output:
 
- 0 <= 1 at index 0
- 1 <= 1 at index 0
- 2 <= 2 at index 1
- 3 <= 4 at index 2
- 4 <= 4 at index 2
- 5 <= 5 at index 3
- 6 <= 6 at index 5
- 7 <= not found
+ 0 ≤ 1 at index 0
+ 1 ≤ 1 at index 0
+ 2 ≤ 2 at index 1
+ 3 ≤ 4 at index 2
+ 4 ≤ 4 at index 2
+ 5 ≤ 5 at index 3
+ 6 ≤ 6 at index 5
+ 7 ≤ [not found]
+ 102.5 at index 2
+ 110.2 not found
 
-   Defect reports
+  Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
@@ -167,12 +184,21 @@ std::lower_bound \- std::lower_bound
 
 .SH See also
 
-   equal_range     returns range of elements matching a specific key
-                   \fI(function template)\fP
-   partition       divides a range of elements into two groups
-                   \fI(function template)\fP
-   partition_point locates the partition point of a partitioned range
-   \fI(C++11)\fP         \fI(function template)\fP
-                   returns an iterator to the first element greater than a certain
-   upper_bound     value
-                   \fI(function template)\fP
+   equal_range         returns range of elements matching a specific key
+                       \fI(function template)\fP
+   partition           divides a range of elements into two groups
+                       \fI(function template)\fP
+   partition_point     locates the partition point of a partitioned range
+   \fI(C++11)\fP             \fI(function template)\fP
+                       returns an iterator to the first element greater than a certain
+   upper_bound         value
+                       \fI(function template)\fP
+                       returns an iterator to the first element not less than the given
+   lower_bound         key
+                       \fI(public member function of std::set<Key,Compare,Allocator>)\fP
+                       returns an iterator to the first element not less than the given
+   lower_bound         key
+                       \fI(public member function of std::multiset<Key,Compare,Allocator>)\fP
+   ranges::lower_bound returns an iterator to the first element not less than the given
+   (C++20)             value
+                       (niebloid)

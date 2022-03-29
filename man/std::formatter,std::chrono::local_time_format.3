@@ -1,26 +1,26 @@
-.TH std::formatter,std::chrono::local_time_format 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::formatter,std::chrono::local_time_format 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::formatter,std::chrono::local_time_format \- std::formatter,std::chrono::local_time_format
 
 .SH Synopsis
    Defined in header <chrono>
-   template<class Duration, class CharT>                                    \fB(1)\fP
+   template<class Duration, class CharT>                          \fB(1)\fP
    struct formatter<std::chrono::local_time<Duration>, CharT>;
    template<class Duration>
 
    struct /*local-time-format-t*/ { // exposition only
-       std::chrono::local_time<Duration> time; // exposition only
-       const std::string* abbrev;              // exposition only
-       const std::chrono::seconds* offset;     // exposition only
+   std::chrono::local_time<Duration> time; // exposition only
+   const std::string* abbrev; // exposition only
+   const std::chrono::seconds* offset; // exposition only
 
    };
-   template<class Duration>                                                 \fB(2)\fP
+   template<class Duration>                                       \fB(2)\fP
 
    /*local-time-format-t*/<Duration>
-       local_time_format(const std::chrono::local_time<Duration>& tp,
-                         const std::string* abbrev = nullptr,
+   local_time_format(const std::chrono::local_time<Duration>& tp,
+   const std::string* abbrev = nullptr,
 
-                         const std::chrono::seconds* offset_sec = nullptr);
+   const std::chrono::seconds* offset_sec = nullptr);
    template<class Duration, class CharT>
    struct formatter</*local-time-format-t*/<Duration>, CharT>;
 
@@ -39,17 +39,25 @@ std::formatter,std::chrono::local_time_format \- std::formatter,std::chrono::loc
    std::formatter is usually not directly accessed, but is used through formatting
    functions.
 
-   Format specification
+  Format specification
 
    The format specification has the form
 
-   fill-and-align(optional) width(optional) precision(optional)
+   fill-and-align(optional) width(optional) precision(optional) L(optional)
    chrono-spec(optional)
 
    fill-and-align, width, and precision have the same meaning as in standard format
    specification. precision is valid only for std::chrono::duration types where the
    representation type Rep is a floating-point type, otherwise std::format_error is
    thrown.
+
+   The locale used for formatting is determined as follows:
+
+     * the default "C" locale if L is not present in the format specification,
+     * otherwise, the locale denoted by the std::locale passed to the formatting
+       function, if any,
+     * otherwise (L is present but no std::locale is passed to the formatting
+       function), the global locale.
 
    The chrono-spec consists of one or more conversion specifiers and ordinary
    characters (other than {, } and %). A chrono-spec must start with a conversion
@@ -61,8 +69,10 @@ std::formatter,std::chrono::local_time_format \- std::formatter,std::chrono::loc
    output as described below.
 
    If the chrono-spec is empty, the chrono object is formatted as if by streaming it to
-   std::stringstream os and copying os.str() to the output buffer with additional
-   padding and adjustments as per format specifiers.
+   an object os of type std::stringstream with the formatting locale (one of
+   std::locale::classic(), the passed std::locale object, and std::locale::global())
+   imbued and copying os.str() to the output buffer with additional padding and
+   adjustments as per format specifiers.
 
    The following format specifiers are available:
 
@@ -169,9 +179,9 @@ std::formatter,std::chrono::local_time_format \- std::formatter,std::chrono::loc
               than 10, the result is prefixed with 0.
 
               If the precision of the input cannot be exactly represented with
-       %S     seconds, then the format is a decimal floating point number with a fixed
+       %S     seconds, then the format is a decimal floating-point number with a fixed
       %OS     format and a precision matching that of the precision of the input (or
-              to a microseconds precision if the conversion to floating point decimal
+              to a microseconds precision if the conversion to floating-point decimal
               seconds cannot be made within 18 fractional digits). The character for
               the decimal point is localized according to the locale.
 
@@ -185,11 +195,7 @@ std::formatter,std::chrono::local_time_format \- std::formatter,std::chrono::loc
        %X
       %EX     The modified command %EX writes the locale's alternate time
               representation.
-.SH Miscellaneous
-              Writes the locale's date and time representation.
-       %c
-      %Ec     The modified command %Ec writes the locale's alternative date and time
-              representation.
+                                        Time zone
               Writes the offset from UTC in the ISO 8601 format. For example -0430
        %z     refers to 4 hours 30 minutes behind UTC. If the offset is zero, +0000 is
       %Ez     used.
@@ -197,6 +203,21 @@ std::formatter,std::chrono::local_time_format \- std::formatter,std::chrono::loc
               The modified commands %Ez and %Oz insert a : between the hours and
               minutes (e.g., -04:30).
        %Z     Writes the time zone abbreviation.
+.SH Miscellaneous
+              Writes the locale's date and time representation.
+       %c
+      %Ec     The modified command %Ec writes the locale's alternative date and time
+              representation.
+
+   The following specifiers are recognized, but will cause std::format_error to be
+   thrown:
+
+   Conversion                               Explanation
+   specifier
+                                      Duration count
+       %Q     Writes the count of ticks of the duration, i.e. the value obtained via
+              count().
+       %q     Writes the unit suffix of the duration, as specified in operator<<().
 
 .SH Example
 
@@ -207,7 +228,3 @@ std::formatter,std::chrono::local_time_format \- std::formatter,std::chrono::loc
 
    format  stores formatted representation of the arguments in a new string
    (C++20) \fI(function template)\fP
-
-.SH Category:
-
-     * Todo no example

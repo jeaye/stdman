@@ -1,4 +1,4 @@
-.TH std::filesystem::file_type 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::file_type 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::file_type \- std::filesystem::file_type
 
@@ -6,24 +6,22 @@ std::filesystem::file_type \- std::filesystem::file_type
    Defined in header <filesystem>
    enum class file_type {
 
-       none = /* unspecified */,
-       not_found = /* unspecified */,
-       regular = /* unspecified */,
-       directory = /* unspecified */,
-       symlink = /* unspecified */,
-       block = /* unspecified */,      \fI(since C++17)\fP
-       character = /* unspecified */,
-       fifo = /* unspecified */,
-       socket = /* unspecified */,
-       unknown = /* unspecified */,
-       /* implementation-defined */
+   none = /* unspecified */,
+   not_found = /* unspecified */,
+   regular = /* unspecified */,
+   directory = /* unspecified */,
+   symlink = /* unspecified */,
+   block = /* unspecified */,      \fI(since C++17)\fP
+   character = /* unspecified */,
+   fifo = /* unspecified */,
+   socket = /* unspecified */,
+   unknown = /* unspecified */,
+   /* implementation-defined */
 
    };
 
    file_type defines constants that indicate a type of a file or directory a path
    refers to. The value of the enumerators are distinct.
-
-    This section is incomplete
 
 .SH Constants
 
@@ -39,14 +37,102 @@ std::filesystem::file_type \- std::filesystem::file_type
    character              a character special file
    fifo                   a FIFO (also known as pipe) file
    socket                 a socket file
-   implementation-defined an additional implementation-defined constant for each
-                          additional file type supported by the implementation
+                          an additional implementation-defined constant for each
+   implementation-defined additional file type supported by the implementation (e.g.
+                          MSVC STL defines junction for NTFS junctions)
    unknown                the file exists but its type could not be determined
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <fstream>
+ #include <cstdio>
+ #include <cstring>
+ #include <filesystem>
+ #include <unistd.h>
+ #include <sys/socket.h>
+ #include <sys/un.h>
+ #include <sys/stat.h>
+
+ namespace fs = std::filesystem;
+
+ void demo_status(const fs::path& p, fs::file_status s)
+ {
+     std::cout << p;
+     switch(s.type())
+     {
+         case fs::file_type::none: std::cout << " has `not-evaluated-yet` type"; break;
+         case fs::file_type::not_found: std::cout << " does not exist"; break;
+         case fs::file_type::regular: std::cout << " is a regular file"; break;
+         case fs::file_type::directory: std::cout << " is a directory"; break;
+         case fs::file_type::symlink: std::cout << " is a symlink"; break;
+         case fs::file_type::block: std::cout << " is a block device"; break;
+         case fs::file_type::character: std::cout << " is a character device"; break;
+         case fs::file_type::fifo: std::cout << " is a named IPC pipe"; break;
+         case fs::file_type::socket: std::cout << " is a named IPC socket"; break;
+         case fs::file_type::unknown: std::cout << " has `unknown` type"; break;
+         default: std::cout << " has `implementation-defined` type"; break;
+     }
+     std::cout << '\\n';
+ }
+
+ int main()
+ {
+     // create files of different kinds
+     fs::create_directory("sandbox");
+     std::ofstream("sandbox/file"); // create regular file
+     fs::create_directory("sandbox/dir");
+     mkfifo("sandbox/pipe", 0644);
+     sockaddr_un addr;
+     addr.sun_family = AF_UNIX;
+     std::strcpy(addr.sun_path, "sandbox/sock");
+     int fd = socket(PF_UNIX, SOCK_STREAM, 0);
+     bind(fd, reinterpret_cast<sockaddr*>(&addr), sizeof addr);
+     fs::create_symlink("file", "sandbox/symlink");
+
+     // demo different status accessors
+     for(auto it = fs::directory_iterator("sandbox"); it != fs::directory_iterator(); ++it)
+         demo_status(*it, it->symlink_status()); // use cached status from directory entry
+     demo_status("/dev/null", fs::status("/dev/null")); // direct calls to status
+     demo_status("/dev/sda", fs::status("/dev/sda"));
+     demo_status("sandbox/no", fs::status("/sandbox/no"));
+
+     // cleanup
+     close(fd);
+     fs::remove_all("sandbox");
+ }
+
+.SH Possible output:
+
+ "sandbox/file" is a regular file
+ "sandbox/dir" is a directory
+ "sandbox/pipe" is a named IPC pipe
+ "sandbox/sock" is a named IPC socket
+ "sandbox/symlink" is a symlink
+ "/dev/null" is a character device
+ "/dev/sda" is a block device
+ "sandbox/no" does not exist
 
 .SH See also
 
-    This section is incomplete
-
-.SH Category:
-
-     * Todo without reason
+   file_status       represents file type and permissions
+   \fI(C++17)\fP           \fI(class)\fP
+   is_block_file     checks whether the given path refers to block device
+   \fI(C++17)\fP           \fI(function)\fP
+   is_character_file checks whether the given path refers to a character device
+   \fI(C++17)\fP           \fI(function)\fP
+   is_directory      checks whether the given path refers to a directory
+   \fI(C++17)\fP           \fI(function)\fP
+   is_fifo           checks whether the given path refers to a named pipe
+   \fI(C++17)\fP           \fI(function)\fP
+   is_other          checks whether the argument refers to an other file
+   \fI(C++17)\fP           \fI(function)\fP
+   is_socket         checks whether the argument refers to a named IPC socket
+   \fI(C++17)\fP           \fI(function)\fP
+   is_symlink        checks whether the argument refers to a symbolic link
+   \fI(C++17)\fP           \fI(function)\fP
+   is_regular_file   checks whether the directory entry refers to a regular file
+                     \fI(public member function of std::filesystem::directory_entry)\fP

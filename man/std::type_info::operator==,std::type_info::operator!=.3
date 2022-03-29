@@ -1,15 +1,19 @@
-.TH std::type_info::operator==,std::type_info::operator!= 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::type_info::operator==,std::type_info::operator!= 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::type_info::operator==,std::type_info::operator!= \- std::type_info::operator==,std::type_info::operator!=
 
 .SH Synopsis
-   bool operator==( const type_info& rhs ) const;           \fI(until C++11)\fP
-   bool operator==( const type_info& rhs ) const noexcept;  \fI(since C++11)\fP
-   bool operator!=( const type_info& rhs ) const;           \fI(until C++11)\fP
-   bool operator!=( const type_info& rhs ) const noexcept;  \fI(since C++11)\fP
-                                                            \fI(until C++20)\fP
+   bool operator==( const type_info& rhs ) const;                     \fI(until C++11)\fP
+   bool operator==( const type_info& rhs ) const noexcept;            \fI(since C++11)\fP
+                                                                      (until C++23)
+   constexpr bool operator==( const type_info& rhs ) const noexcept;  (since C++23)
+   bool operator!=( const type_info& rhs ) const;                     \fI(until C++11)\fP
+   bool operator!=( const type_info& rhs ) const noexcept;            \fI(since C++11)\fP
+                                                                      \fI(until C++20)\fP
 
    Checks if the objects refer to the same types.
+
+   The != operator is synthesized from operator==. \fI(since C++20)\fP
 
 .SH Parameters
 
@@ -32,48 +36,57 @@ std::type_info::operator==,std::type_info::operator!= \- std::type_info::operato
  class person
  {
    public:
-
-    person(std::string&& n) : _name(n) {}
-    virtual const std::string& name() const{ return _name; }
+     person(std::string n) : name_(std::move(n)) {}
+     virtual const std::string& name() const{ return name_; }
 
    private:
-
-     std::string _name;
+     std::string name_;
  };
 
  class employee : public person
  {
-    public:
+   public:
+     employee(std::string n, std::string p)
+       : person(std::move(n)), profession_(std::move(p)) {}
 
-      employee(std::string&& n, std::string&& p) :
-          person(std::move(n)), _profession(std::move(p)) {}
+     const std::string& profession() const { return profession_; }
 
-      const std::string& profession() const { return _profession; }
-
-    private:
-
-      std::string _profession;
+   private:
+     std::string profession_;
  };
 
- void somefunc(const person& p)
+ void print_info(const person& p)
  {
-    if(typeid(employee) == typeid(p))
-    {
-       std::cout << p.name() << " is an employee ";
-       auto& emp = dynamic_cast<const employee&>(p);
-       std::cout << "who works in " << emp.profession() << '\\n';
-    }
+     if(typeid(person) == typeid(p))
+     {
+         std::cout << p.name() << " is not an employee\\n";
+     }
+     else if(typeid(employee) == typeid(p))
+     {
+         std::cout << p.name() << " is an employee ";
+         auto& emp = dynamic_cast<const employee&>(p);
+         std::cout << "who works in " << emp.profession() << '\\n';
+     }
  }
 
  int main()
  {
-    employee paul("Paul","Economics");
-    somefunc(paul);
+     print_info(employee{"Paul","Economics"});
+     print_info(person{"Kate"});
+
+ #   if defined(__cpp_lib_constexpr_typeinfo) // C++23
+     if constexpr (typeid(employee) != typeid(person))
+     {
+         std::cout << "class `employee` != class `person`\\n";
+     }
+ #   endif
  }
 
-.SH Output:
+.SH Possible output:
 
  Paul is an employee who works in Economics
+ Kate is not an employee
+ class `employee` != class `person`
 
 .SH See also
 

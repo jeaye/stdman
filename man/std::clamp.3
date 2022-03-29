@@ -1,4 +1,4 @@
-.TH std::clamp 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::clamp 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::clamp \- std::clamp
 
@@ -11,10 +11,11 @@ std::clamp \- std::clamp
    Compare comp );
 
    1) If v compares less than lo, returns lo; otherwise if hi compares less than v,
-   returns hi; otherwise returns v. Uses operator< to compare the values.
+   returns hi; otherwise returns v.
+   Uses operator< to compare the values.
    2) Same as \fB(1)\fP, but uses comp to compare the values.
 
-   The behavior is undefined if the value of lo is greater than hi
+   The behavior is undefined if the value of lo is greater than hi.
 
 .SH Parameters
 
@@ -27,7 +28,7 @@ std::clamp \- std::clamp
            The signature of the comparison function should be equivalent to the
            following:
 
-            bool cmp(const Type1 &a, const Type2 &b);
+           bool cmp(const Type1 &a, const Type2 &b);
    comp  -
            While the signature does not need to have const &, the function must not
            modify the objects passed to it and must be able to accept all values of
@@ -57,19 +58,16 @@ std::clamp \- std::clamp
    template<class T>
    constexpr const T& clamp( const T& v, const T& lo, const T& hi )
    {
-       assert( !(hi < lo) );
-       return (v < lo) ? lo : (hi < v) ? hi : v;
+       return clamp(v, lo, hi, less{});
    }
 .SH Second version
    template<class T, class Compare>
    constexpr const T& clamp( const T& v, const T& lo, const T& hi, Compare comp )
    {
-       assert( !comp(hi, lo) );
        return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
    }
 
 .SH Notes
-
 
    Capturing the result of std::clamp by reference produces a dangling reference if one
    of the parameters is a temporary and that parameter is returned:
@@ -80,6 +78,8 @@ std::clamp \- std::clamp
 
    If v compares equivalent to either bound, returns a reference to v, not the bound.
 
+   Feature testing macro: __cpp_lib_clamp
+
 .SH Example
 
 
@@ -89,33 +89,37 @@ std::clamp \- std::clamp
  #include <algorithm>
  #include <iostream>
  #include <iomanip>
- #include <random>
 
  int main()
  {
-     std::mt19937 g(std::random_device{}());
-     std::uniform_int_distribution<> d(-300, 300);
      std::cout << " raw   clamped to int8_t   clamped to uint8_t\\n";
-     for(int n = 0; n < 5; ++n) {
-         int v = d(g);
-         std::cout << std::setw(4) << v
+     for(int const v: {-129, -128, -1, 0, 42, 127, 128, 255, 256}) {
+         std::cout << std::setw(04) << v
                    << std::setw(20) << std::clamp(v, INT8_MIN, INT8_MAX)
                    << std::setw(21) << std::clamp(v, 0, UINT8_MAX) << '\\n';
      }
  }
 
-.SH Possible output:
+.SH Output:
 
- .raw   clamped to int8_t   clamped to uint8_t
-  168                 127                  168
+  raw   clamped to int8_t   clamped to uint8_t
+ -129                -128                    0
+ -128                -128                    0
+   -1                  -1                    0
+    0                   0                    0
+   42                  42                   42
+  127                 127                  127
   128                 127                  128
- -137                -128                    0
-   40                  40                   40
-  -66                 -66                    0
+  255                 127                  255
+  256                 127                  255
 
 .SH See also
 
-   min returns the smaller of the given values
-       \fI(function template)\fP
-   max returns the greater of the given values
-       \fI(function template)\fP
+   min           returns the smaller of the given values
+                 \fI(function template)\fP
+   max           returns the greater of the given values
+                 \fI(function template)\fP
+   in_range      checks if an integer value is in the range of a given integer type
+   (C++20)       \fI(function template)\fP
+   ranges::clamp clamps a value between a pair of boundary values
+   (C++20)       (niebloid)

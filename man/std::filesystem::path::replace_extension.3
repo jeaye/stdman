@@ -1,9 +1,9 @@
-.TH std::filesystem::path::replace_extension 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::path::replace_extension 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::path::replace_extension \- std::filesystem::path::replace_extension
 
 .SH Synopsis
-   path& replace_extension( const path& replacement = path() ); \fB(1)\fP \fI(since C++17)\fP
+   path& replace_extension( const path& replacement = path() );  \fI(since C++17)\fP
 
    Replaces the extension with replacement or removes it when the default value of
    replacement is used.
@@ -12,9 +12,9 @@ std::filesystem::path::replace_extension \- std::filesystem::path::replace_exten
    of the pathname.
 
    Then, a dot character is appended to the generic-format view of the pathname, if
-   replacement is not empty or does not begin with a dot character.
+   replacement is not empty and does not begin with a dot character.
 
-   Then replacement is appended as if by operator+=(replacement)
+   Then replacement is appended as if by operator+=(replacement).
 
 .SH Parameters
 
@@ -39,22 +39,57 @@ std::filesystem::path::replace_extension \- std::filesystem::path::replace_exten
 
 // Run this code
 
- #include <iostream>
  #include <filesystem>
+ #include <iomanip>
+ #include <iostream>
+ #include <utility>
  namespace fs = std::filesystem;
 
  int main()
  {
-     fs::path p = "/foo/bar.jpeg";
-     std::cout << "Was: " << p << '\\n';
-     p.replace_extension(".jpg");
-     std::cout << "Now: " << p << '\\n';
+     std::cout << "Path:             Ext:       Result:\\n" << std::left;
+     for (const auto& [path, extension] : {
+             std::make_pair( "/foo/bar.jpg", ".png" ),
+             std::make_pair( "/foo/bar.jpg", "png"  ),
+             std::make_pair( "/foo/bar.jpg", "."    ),
+             std::make_pair( "/foo/bar.jpg", ""     ),
+             std::make_pair( "/foo/bar."   , "png"  ),
+             std::make_pair( "/foo/bar"    , ".png" ),
+             std::make_pair( "/foo/bar"    , "png"  ),
+             std::make_pair( "/foo/bar"    , "."    ),
+             std::make_pair( "/foo/bar"    , ""     ),
+             std::make_pair( "/foo/."      , ".png" ),
+             std::make_pair( "/foo/."      , "png"  ),
+             std::make_pair( "/foo/."      , "."    ),
+             std::make_pair( "/foo/."      , ""     ),
+             std::make_pair( "/foo/"       , ".png" ),
+             std::make_pair( "/foo/"       , "png"  ), })
+     {
+         fs::path p = path, e = extension;
+         std::cout << std::setw(18) << p << std::setw(11) << e;
+         p.replace_extension(e);
+         std::cout << p << '\\n';
+     }
  }
 
 .SH Output:
 
- Was: "/foo/bar.jpeg"
- Now: "/foo/bar.jpg"
+ Path:             Ext:       Result:
+ "/foo/bar.jpg"    ".png"     "/foo/bar.png"
+ "/foo/bar.jpg"    "png"      "/foo/bar.png"
+ "/foo/bar.jpg"    "."        "/foo/bar."
+ "/foo/bar.jpg"    ""         "/foo/bar"
+ "/foo/bar."       "png"      "/foo/bar.png"
+ "/foo/bar"        ".png"     "/foo/bar.png"
+ "/foo/bar"        "png"      "/foo/bar.png"
+ "/foo/bar"        "."        "/foo/bar."
+ "/foo/bar"        ""         "/foo/bar"
+ "/foo/."          ".png"     "/foo/..png"
+ "/foo/."          "png"      "/foo/..png"
+ "/foo/."          "."        "/foo/.."
+ "/foo/."          ""         "/foo/."
+ "/foo/"           ".png"     "/foo/.png"
+ "/foo/"           "png"      "/foo/.png"
 
 .SH See also
 
@@ -62,7 +97,7 @@ std::filesystem::path::replace_extension \- std::filesystem::path::replace_exten
                  \fI(public member function)\fP
    filename      returns the filename path component
                  \fI(public member function)\fP
-   stem          returns the stem path component
+   stem          returns the stem path component (filename without the final extension)
                  \fI(public member function)\fP
    has_extension checks if the corresponding path element is not empty
                  \fI(public member function)\fP

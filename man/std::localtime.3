@@ -1,4 +1,4 @@
-.TH std::localtime 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::localtime 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::localtime \- std::localtime
 
@@ -11,7 +11,7 @@ std::localtime \- std::localtime
 
 .SH Parameters
 
-   time - pointer to a time_t object to convert
+   time - pointer to a std::time_t object to convert
 
 .SH Return value
 
@@ -35,31 +35,39 @@ std::localtime \- std::localtime
 // Run this code
 
  #include <iostream>
+ #include <sstream>
  #include <iomanip>
  #include <ctime>
- #include <stdlib.h> // defines putenv in POSIX
 
  int main()
  {
-     std::time_t t = std::time(nullptr);
-     std::cout << "UTC:       " << std::put_time(std::gmtime(&t), "%c %Z") << '\\n';
-     std::cout << "local:     " << std::put_time(std::localtime(&t), "%c %Z") << '\\n';
-     // POSIX-specific:
-     std::string tz = "TZ=Asia/Singapore";
-     putenv(tz.data());
-     std::cout << "Singapore: " << std::put_time(std::localtime(&t), "%c %Z") << '\\n';
+     setenv("TZ", "/usr/share/zoneinfo/America/Los_Angeles", 1); // POSIX-specific
+
+     std::tm tm{};  // zero initialise
+     tm.tm_year = 2020-1900; // 2020
+     tm.tm_mon = 2-1; // February
+     tm.tm_mday = 15; // 15th
+     tm.tm_hour = 10;
+     tm.tm_min = 15;
+     tm.tm_isdst = 0; // Not daylight saving
+     std::time_t t = std::mktime(&tm);
+
+     std::cout << "UTC:   " << std::put_time(std::gmtime(&t), "%c %Z") << '\\n';
+     std::cout << "local: " << std::put_time(std::localtime(&t), "%c %Z") << '\\n';
  }
 
-.SH Output:
+.SH Possible output:
 
- UTC:       Fri Sep 15 14:16:29 2017 GMT
- local:     Fri Sep 15 14:16:29 2017 UTC
- Singapore: Fri Sep 15 22:16:29 2017 SGT
+ UTC:   Sat Feb 15 18:15:00 2020 GMT
+ local: Sat Feb 15 10:15:00 2020 PST
 
 .SH See also
 
-          converts time since epoch to calendar time expressed as Universal Coordinated
-   gmtime Time
-          \fI(function)\fP
-   C documentation for
+               converts time since epoch to calendar time expressed as Universal
+   gmtime      Coordinated Time
+               \fI(function)\fP
    localtime
+   localtime_r converts time since epoch to calendar time expressed as local time
+   localtime_s \fI(function)\fP
+   (C23)
+   (C11)

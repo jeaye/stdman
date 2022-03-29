@@ -1,4 +1,4 @@
-.TH std::unique_ptr 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::unique_ptr 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unique_ptr \- std::unique_ptr
 
@@ -6,14 +6,14 @@ std::unique_ptr \- std::unique_ptr
    Defined in header <memory>
    template<
 
-       class T,                               \fB(1)\fP \fI(since C++11)\fP
-       class Deleter = std::default_delete<T>
+   class T,                               \fB(1)\fP \fI(since C++11)\fP
+   class Deleter = std::default_delete<T>
 
    > class unique_ptr;
    template <
 
-       class T,                               \fB(2)\fP \fI(since C++11)\fP
-       class Deleter
+   class T,                               \fB(2)\fP \fI(since C++11)\fP
+   class Deleter
 
    > class unique_ptr<T[], Deleter>;
 
@@ -35,11 +35,11 @@ std::unique_ptr \- std::unique_ptr
 
    There are two versions of std::unique_ptr:
 
-   1) Manages a single object (e.g. allocated with new)
-   2) Manages a dynamically-allocated array of objects (e.g. allocated with new[])
+    1. Manages a single object (e.g. allocated with new)
+    2. Manages a dynamically-allocated array of objects (e.g. allocated with new[])
 
-   The class satisfies the requirements of MoveConstructible and MoveAssignable, but
-   not the requirements of either CopyConstructible or CopyAssignable.
+   The class satisfies the requirements of MoveConstructible and MoveAssignable, but of
+   neither CopyConstructible nor CopyAssignable.
 
 .SH Type requirements
    -
@@ -158,24 +158,27 @@ std::unique_ptr \- std::unique_ptr
 
 // Run this code
 
- #include <iostream>
- #include <vector>
- #include <memory>
+ #include <cassert>
  #include <cstdio>
  #include <fstream>
- #include <cassert>
- #include <functional>
+ #include <iostream>
+ #include <memory>
+ #include <stdexcept>
 
  // helper class for runtime polymorphism demo below
- struct B {
-   virtual void bar() { std::cout << "B::bar\\n"; }
-   virtual ~B() = default;
+ struct B
+ {
+     virtual ~B() = default;
+
+     virtual void bar() { std::cout << "B::bar\\n"; }
  };
+
  struct D : B
  {
-     D() { std::cout << "D::D\\n";  }
-     ~D() { std::cout << "D::~D\\n";  }
-     void bar() override { std::cout << "D::bar\\n";  }
+     D() { std::cout << "D::D\\n"; }
+     ~D() { std::cout << "D::~D\\n"; }
+
+     void bar() override { std::cout << "D::bar\\n"; }
  };
 
  // a function consuming a unique_ptr can take it by value or by rvalue reference
@@ -186,112 +189,133 @@ std::unique_ptr \- std::unique_ptr
  }
 
  // helper function for the custom deleter demo below
- void close_file(std::FILE* fp) { std::fclose(fp); }
+ void close_file(std::FILE* fp)
+ {
+     std::fclose(fp);
+ }
 
  // unique_ptr-based linked list demo
- struct List {
-   struct Node {
-     int data;
-     std::unique_ptr<Node> next;
-     Node(int data) : data{data}, next{nullptr} {}
-   };
-   List() : head{nullptr} {};
-   // N.B. iterative destructor to avoid stack overflow on long lists
-   ~List() { while(head) head = std::move(head->next); }
-   // copy/move and other APIs skipped for simplicity
-   void push(int data) {
-     auto temp = std::make_unique<Node>(data);
-     if(head) temp->next = std::move(head);
-     head = std::move(temp);
-   }
- private:
-   std::unique_ptr<Node> head;
+ struct List
+ {
+     struct Node
+     {
+         int data;
+         std::unique_ptr<Node> next;
+     };
+
+     std::unique_ptr<Node> head;
+
+     ~List()
+     {
+         // destroy list nodes sequentially in a loop, the default destructor
+         // would have invoked its `next`'s destructor recursively, which would
+         // cause stack overflow for sufficiently large lists.
+         while (head)
+             head = std::move(head->next);
+     }
+
+     void push(int data)
+     {
+         head = std::unique_ptr<Node>(new Node{data, std::move(head)});
+     }
  };
 
  int main()
  {
-   std::cout << "unique ownership semantics demo\\n";
-   {
-       auto p = std::make_unique<D>(); // p is a unique_ptr that owns a D
-       auto q = pass_through(std::move(p));
-       assert(!p); // now p owns nothing and holds a null pointer
-       q->bar();   // and q owns the D object
-   } // ~D called here
+     std::cout << "1) Unique ownership semantics demo\\n";
+     {
+         // Create a (uniquely owned) resource
+         std::unique_ptr<D> p = std::make_unique<D>();
 
-   std::cout << "Runtime polymorphism demo\\n";
-   {
-     std::unique_ptr<B> p = std::make_unique<D>(); // p is a unique_ptr that owns a D
-                                                   // as a pointer to base
-     p->bar(); // virtual dispatch
+         // Transfer ownership to `pass_through`,
+         // which in turn transfers ownership back through the return value
+         std::unique_ptr<D> q = pass_through(std::move(p));
 
-     std::vector<std::unique_ptr<B>> v;  // unique_ptr can be stored in a container
-     v.push_back(std::make_unique<D>());
-     v.push_back(std::move(p));
-     v.emplace_back(new D);
-     for(auto& p: v) p->bar(); // virtual dispatch
-   } // ~D called 3 times
+         // `p` is now in a moved-from 'empty' state, equal to `nullptr`
+         assert(!p);
+     }
 
-   std::cout << "Custom deleter demo\\n";
-   std::ofstream("demo.txt") << 'x'; // prepare the file to read
-   {
-       std::unique_ptr<std::FILE, decltype(&close_file)> fp(std::fopen("demo.txt", "r"),
-                                                            &close_file);
-       if(fp) // fopen could have failed; in which case fp holds a null pointer
-         std::cout << (char)std::fgetc(fp.get()) << '\\n';
-   } // fclose() called here, but only if FILE* is not a null pointer
-     // (that is, if fopen succeeded)
+     std::cout << "\\n" "2) Runtime polymorphism demo\\n";
+     {
+         // Create a derived resource and point to it via base type
+         std::unique_ptr<B> p = std::make_unique<D>();
 
-   std::cout << "Custom lambda-expression deleter demo\\n";
-   {
-     std::unique_ptr<D, std::function<void(D*)>> p(new D, [](D* ptr)
+         // Dynamic dispatch works as expected
+         p->bar();
+     }
+
+     std::cout << "\\n" "3) Custom deleter demo\\n";
+     std::ofstream("demo.txt") << 'x'; // prepare the file to read
+     {
+         using unique_file_t = std::unique_ptr<std::FILE, decltype(&close_file)>;
+         unique_file_t fp(std::fopen("demo.txt", "r"), &close_file);
+         if (fp)
+             std::cout << char(std::fgetc(fp.get())) << '\\n';
+     } // `close_file()` called here (if `fp` is not null)
+
+     std::cout << "\\n" "4) Custom lambda-expression deleter and exception safety demo\\n";
+     try
+     {
+         std::unique_ptr<D, void(*)(D*)> p(new D, [](D* ptr)
          {
              std::cout << "destroying from a custom deleter...\\n";
              delete ptr;
-         });  // p owns D
-     p->bar();
-   } // the lambda above is called and D is destroyed
+         });
 
-   std::cout << "Array form of unique_ptr demo\\n";
-   {
-       std::unique_ptr<D[]> p{new D[3]};
-   } // calls ~D 3 times
+         throw std::runtime_error(""); // `p` would leak here if it were instead a plain pointer
+     }
+     catch (const std::exception&) { std::cout << "Caught exception\\n"; }
 
-   std::cout << "Linked list demo\\n";
-   {
-     List l;
-     for(long n = 0; n != 1'000'000; ++n) l.push(n);
-   } // destroys all 1 million nodes
+     std::cout << "\\n" "5) Array form of unique_ptr demo\\n";
+     {
+         std::unique_ptr<D[]> p(new D[3]);
+     } // `D::~D()` is called 3 times
+
+     std::cout << "\\n" "6) Linked list demo\\n";
+     {
+         List wall;
+         for (int beer = 0; beer != 1'000'000; ++beer)
+             wall.push(beer);
+
+         std::cout << "1'000'000 bottles of beer on the wall...\\n";
+     } // destroys all the beers
  }
 
-.SH Output:
+.SH Possible output:
 
- unique ownership semantics demo
+ 1) Unique ownership semantics demo
  D::D
  D::bar
- D::bar
  D::~D
- Runtime polymorphism demo
+
+ 2) Runtime polymorphism demo
  D::D
  D::bar
- D::D
- D::D
- D::bar
- D::bar
- D::bar
  D::~D
- D::~D
- D::~D
- Custom deleter demo
+
+ 3) Custom deleter demo
  x
- Custom lambda-expression deleter demo
+
+ 4) Custom lambda-expression deleter and exception safety demo
  D::D
- D::bar
  destroying from a custom deleter...
  D::~D
- Array form of unique_ptr demo
+ Caught exception
+
+ 5) Array form of unique_ptr demo
  D::D
  D::D
  D::D
  D::~D
  D::~D
  D::~D
+
+ 6) Linked list demo
+ 1'000'000 bottles of beer on the wall...
+
+.SH See also
+
+   shared_ptr smart pointer with shared object ownership semantics
+   \fI(C++11)\fP    \fI(class template)\fP
+   weak_ptr   weak reference to an object managed by std::shared_ptr
+   \fI(C++11)\fP    \fI(class template)\fP

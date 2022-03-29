@@ -1,4 +1,4 @@
-.TH std::filesystem::canonical,std::filesystem::weakly_canonical 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::canonical,std::filesystem::weakly_canonical 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::canonical,std::filesystem::weakly_canonical \- std::filesystem::canonical,std::filesystem::weakly_canonical
 
@@ -6,10 +6,10 @@ std::filesystem::canonical,std::filesystem::weakly_canonical \- std::filesystem:
    Defined in header <filesystem>
    path canonical( const std::filesystem::path& p );      \fB(1)\fP \fI(since C++17)\fP
    path canonical( const std::filesystem::path& p,        \fB(2)\fP \fI(since C++17)\fP
-                   std::error_code& ec );
+   std::error_code& ec );
    path weakly_canonical(const std::filesystem::path& p); \fB(3)\fP \fI(since C++17)\fP
    path weakly_canonical(const std::filesystem::path& p,  \fB(4)\fP \fI(since C++17)\fP
-                         std::error_code& ec);
+   std::error_code& ec);
 
    1-2) Converts path p to a canonical absolute path, i.e. an absolute path that has no
    dot, dot-dot elements or symbolic links in its generic format representation. If p
@@ -18,7 +18,7 @@ std::filesystem::canonical,std::filesystem::weakly_canonical \- std::filesystem:
    3-4) Returns a path composed by operator/= from the result of calling canonical()
    with a path argument composed of the leading elements of p that exist (as determined
    by status(p) or status(p, ec)), if any, followed by the elements of p that do not
-   exist, if any. The resulting path is in normal form.
+   exist. The resulting path is in normal form.
 
 .SH Parameters
 
@@ -36,12 +36,12 @@ std::filesystem::canonical,std::filesystem::weakly_canonical \- std::filesystem:
 
 .SH Exceptions
 
-   The overload that does not take a std::error_code& parameter throws filesystem_error
-   on underlying OS API errors, constructed with p as the first path argument and the
-   OS error code as the error code argument. The overload taking a std::error_code&
-   parameter sets it to the OS API error code if an OS API call fails, and executes
-   ec.clear() if no errors occur. Any overload not marked noexcept may throw
-   std::bad_alloc if memory allocation fails.
+   The overload that does not take a std::error_code& parameter throws
+   filesystem::filesystem_error on underlying OS API errors, constructed with p as the
+   first path argument and the OS error code as the error code argument. The overload
+   taking a std::error_code& parameter sets it to the OS API error code if an OS API
+   call fails, and executes ec.clear() if no errors occur. Any overload not marked
+   noexcept may throw std::bad_alloc if memory allocation fails.
 
 .SH Notes
 
@@ -50,14 +50,6 @@ std::filesystem::canonical,std::filesystem::weakly_canonical \- std::filesystem:
    The function weakly_canonical() was introduced to simplify operational semantics of
    relative().
 
-   Defect reports
-
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
-
-      DR    Applied to          Behavior as published          Correct behavior
-   LWG 2956 C++17      canonical has a spurious base parameter removed
-
 .SH Example
 
 
@@ -65,18 +57,67 @@ std::filesystem::canonical,std::filesystem::weakly_canonical \- std::filesystem:
 
  #include <iostream>
  #include <filesystem>
- namespace fs = std::filesystem;
+
  int main()
  {
-     fs::path p = fs::path("..") / ".." / ".." / "AppData";
-     std::cout << "Current path is " << fs::current_path() << '\\n'
-               << "Canonical path for " << p << " is " << fs::canonical(p) << '\\n';
+     /* set up sandbox directories:
+      a
+      └── b
+          ├── c1
+          │   └── d <== current path
+          └── c2
+              └── e
+     */
+     auto old = std::filesystem::current_path();
+     auto tmp = std::filesystem::temp_directory_path();
+     std::filesystem::current_path(tmp);
+     auto d1 = tmp / "a/b/c1/d";
+     auto d2 = tmp / "a/b/c2/e";
+     std::filesystem::create_directories(d1);
+     std::filesystem::create_directories(d2);
+     std::filesystem::current_path(d1);
+
+     auto p1 = std::filesystem::path("../../c2/./e");
+     auto p2 = std::filesystem::path("../no-such-file");
+     std::cout << "Current path is "
+               << std::filesystem::current_path() << '\\n'
+               << "Canonical path for " << p1 << " is "
+               << std::filesystem::canonical(p1) << '\\n'
+               << "Weakly canonical path for " << p2 << " is "
+               << std::filesystem::weakly_canonical(p2) << '\\n';
+     try
+     {
+         std::filesystem::canonical(p2);
+         // NOT REACHED
+     }
+     catch(const std::exception& ex)
+     {
+         std::cout << "Canonical path for " << p2 << " threw exception:\\n"
+                   << ex.what() << '\\n';
+     }
+
+     // cleanup
+     std::filesystem::current_path(old);
+     const auto count = std::filesystem::remove_all(tmp / "a");
+     std::cout << "Deleted " << count << " files or directories.\\n";
  }
 
 .SH Possible output:
 
- Current path is "C:\\Users\\abcdef\\AppData\\Local\\Temp"
- Canonical path for "..\\..\\..\\AppData" is "C:\\Users\\abcdef\\AppData"
+ Current path is "/tmp/a/b/c1/d"
+ Canonical path for "../../c2/./e" is "/tmp/a/b/c2/e"
+ Weakly canonical path for "../no-such-file" is "/tmp/a/b/c1/no-such-file"
+ Canonical path for "../no-such-file" threw exception:
+ filesystem error: in canonical: No such file or directory [../no-such-file] [/tmp/a/b/c1/d]
+ Deleted 6 files or directories.
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to          Behavior as published          Correct behavior
+   LWG 2956 C++17      canonical has a spurious base parameter removed
 
 .SH See also
 

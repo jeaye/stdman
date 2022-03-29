@@ -1,4 +1,4 @@
-.TH std::launder 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::launder 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::launder \- std::launder
 
@@ -20,15 +20,16 @@ std::launder \- std::launder
      * every byte that would be reachable through the result is reachable through p
        (bytes are reachable through a pointer that points to an object Y if those bytes
        are within the storage of an object Z that is pointer-interconvertible with Y,
-       or within the immediately enclosing array of which Z is an element)
+       or within the immediately enclosing array of which Z is an element).
 
    Then std::launder(p) returns a value of type T* that points to the object X.
    Otherwise, the behavior is undefined.
 
    The program is ill-formed if T is a function type or (possibly cv-qualified) void.
 
-   std::launder may be used in a core constant expression if the value of its argument
-   may be used in a core constant expression.
+   std::launder may be used in a core constant expression if and only if the
+   (converted) value of its argument may be used in place of the function invocation.
+   In other words, std::launder does not relax restrictions in constant evaluation.
 
 .SH Notes
 
@@ -75,11 +76,6 @@ std::launder \- std::launder
  #include <cstddef>
  #include <cassert>
 
- struct X {
-   const int n; // note: X has a const member
-   int m;
- };
-
  struct Y {
    int z;
  };
@@ -98,30 +94,29 @@ std::launder \- std::launder
 
  int main()
  {
-   X *p = new X{3, 4};
-   const int a = p->n;
-   X* np = new (p) X{5, 6};    // p does not point to new object because X::n is const; np does
-   const int b = p->n; // undefined behavior
-   const int c = p->m; // undefined behavior (even though m is non-const, p can't be used)
-   const int d = std::launder(p)->n; // OK, std::launder(p) points to new object
-   const int e = np->n; // OK
-
-   alignas(Y) std::byte s[sizeof(Y)];
-   Y* q = new(&s) Y{2};
-   const int f = reinterpret_cast<Y*>(&s)->z; // Class member access is undefined behavior:
-                                              // reinterpret_cast<Y*>(&s) has value "pointer to s"
-                                              // and does not point to a Y object
-   const int g = q->z; // OK
-   const int h = std::launder(reinterpret_cast<Y*>(&s))->z; // OK
-
+   // Case 1: the new object failed to be transparently replaceable because it is a
+   // base subobject but the old object is a complete object.
    A i;
    int n = i.transmogrify();
    // int m = i.transmogrify(); // undefined behavior
    int m = std::launder(&i)->transmogrify(); // OK
    assert(m + n == 3);
+
+   // Case 2: access to a new object whose storage is provided by a byte array through
+   // a pointer to the array.
+   alignas(Y) std::byte s[sizeof(Y)];
+   Y* q = new(&s) Y{2};
+   const int f = reinterpret_cast<Y*>(&s)->z; // Class member access is undefined behavior:
+                                              // reinterpret_cast<Y*>(&s) has value
+                                              // "pointer to s" and does not
+                                              // point to a Y object
+   const int g = q->z; // OK
+   const int h = std::launder(reinterpret_cast<Y*>(&s))->z; // OK
+
+   [f, g, h] {}; // suppresses "unused-variable" warnings; see also [[maybe_unused]].
  }
 
-   Defect reports
+  Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
@@ -130,3 +125,5 @@ std::launder \- std::launder
                        definition of reachable didn't consider
    LWG 2859 C++17      pointer-arithmetic from                         included
                        pointer-interconvertible object
+   LWG 3495 C++17      launder might make pointer to an inactive       forbidden
+                       member dereferenceable in constant expression

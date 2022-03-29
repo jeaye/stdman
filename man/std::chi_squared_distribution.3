@@ -1,4 +1,4 @@
-.TH std::chi_squared_distribution 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::chi_squared_distribution 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::chi_squared_distribution \- std::chi_squared_distribution
 
@@ -7,17 +7,18 @@ std::chi_squared_distribution \- std::chi_squared_distribution
    template< class RealType = double >  \fI(since C++11)\fP
    class chi_squared_distribution;
 
-   The chi_squared_distribution produces random numbers x>0 according to the
-   Chi-squared distribution:
+   The chi_squared_distribution produces random numbers \\(\\small x>0\\)x>0 according to
+   the Chi-squared distribution:
 
-   f(x;n) =
+           \\({\\small f(x;n) = }\\frac{x^{(n/2)-1}\\exp{(-x/2)} }{\\Gamma{(n/2)}2^{n/2}
+           }\\)f(x;n) =
 
-   x(n/2)-1
-   e^-x/2
-   Γ(n/2) 2n/2
+           x(n/2)-1
+           e^-x/2
+           Γ(n/2) 2n/2
 
-   Γ is the Gamma function (See also std::tgamma) and n are the degrees of freedom
-   (default 1).
+   \\(\\small\\Gamma\\)Γ is the Gamma function (See also std::tgamma) and \\(\\small n\\)n
+   are the degrees of freedom (default 1).
 
    std::chi_squared_distribution satisfies all requirements of RandomNumberDistribution
 
@@ -28,47 +29,155 @@ std::chi_squared_distribution \- std::chi_squared_distribution
 
 .SH Member types
 
-   Member type Definition
-   result_type RealType
-   param_type  the type of the parameter set, see RandomNumberDistribution.
+   Member type        Definition
+   result_type\fI(C++11)\fP RealType
+   param_type\fI(C++11)\fP  the type of the parameter set, see RandomNumberDistribution.
 
 .SH Member functions
 
    constructor   constructs new distribution
-                 \fI(public member function)\fP
+   \fI(C++11)\fP       \fI(public member function)\fP
    reset         resets the internal state of the distribution
-                 \fI(public member function)\fP
+   \fI(C++11)\fP       \fI(public member function)\fP
 .SH Generation
    operator()    generates the next random number in the distribution
-                 \fI(public member function)\fP
+   \fI(C++11)\fP       \fI(public member function)\fP
 .SH Characteristics
-   n             returns the degrees of freedom (n) distribution parameter
-                 \fI(public member function)\fP
+   n             returns the degrees of freedom (\\(\\small n\\)n) distribution parameter
+   \fI(C++11)\fP       \fI(public member function)\fP
    param         gets or sets the distribution parameter object
-                 \fI(public member function)\fP
+   \fI(C++11)\fP       \fI(public member function)\fP
    min           returns the minimum potentially generated value
-                 \fI(public member function)\fP
+   \fI(C++11)\fP       \fI(public member function)\fP
    max           returns the maximum potentially generated value
-                 \fI(public member function)\fP
+   \fI(C++11)\fP       \fI(public member function)\fP
 
 .SH Non-member functions
 
-   operator== compares two distribution objects
-   operator!= \fI(function)\fP
-   operator<< performs stream input and output on pseudo-random number distribution
-   operator>> \fI(function template)\fP
+   operator==
+   operator!=                compares two distribution objects
+   \fI(C++11)\fP                   \fI(function)\fP
+   \fI(C++11)\fP(removed in C++20)
+   operator<<                performs stream input and output on pseudo-random number
+   operator>>                distribution
+   \fI(C++11)\fP                   \fI(function template)\fP
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <algorithm>
+ #include <cmath>
+ #include <iomanip>
+ #include <iostream>
+ #include <map>
+ #include <random>
+ #include <vector>
+
+ template <int Height = 5, int BarWidth = 1, int Padding = 1, int Offset = 0,
+           bool DrawMinMax = true, class Sample>
+ void draw_vbars(Sample const& s) {
+     static_assert((Height > 0) && (BarWidth > 0) && (Padding >= 0) && (Offset >= 0));
+     auto cout_n = [](auto const& v, int n) { while (n-- > 0) std::cout << v; };
+     const auto [min, max] = std::minmax_element(std::cbegin(s), std::cend(s));
+     std::vector<std::div_t> qr;
+     for (float e : s) {
+         qr.push_back(std::div(std::lerp(0.f, Height*8, (e - *min)/(*max - *min)), 8));
+     }
+     for (auto h{Height}; h-- > 0 ;) {
+         cout_n(' ', Offset);
+         for (auto [q, r] : qr) {
+             char d[] = "█"; // == { 0xe2, 0x96, 0x88, 0 }
+             q < h ? d[0] = ' ', d[1] = '\\0' : q == h ? d[2] -= (7 - r) : 0;
+             cout_n(d, BarWidth);
+             cout_n(' ', Padding);
+         }
+         if (DrawMinMax && Height > 1)
+             h == Height - 1 ? std::cout << "┬ " << *max:
+                      h != 0 ? std::cout << "│"
+                             : std::cout << "┴ " << *min;
+         cout_n('\\n', 1);
+     }
+ }
+
+ int main() {
+     std::random_device rd{};
+     std::mt19937 gen{rd()};
+
+     auto χ² = [&gen](const float dof) {
+         std::chi_squared_distribution<float> d{ dof /* n */ };
+
+         const int norm = 1'00'00;
+         const float cutoff = 0.002f;
+
+         std::map<int, int> hist{};
+         for (int n=0; n!=norm; ++n) { ++hist[std::round(d(gen))]; }
+
+         std::vector<float> bars;
+         std::vector<int> indices;
+         for (const auto [n, p] : hist) {
+             if (float x = p * (1.0/norm); cutoff < x) {
+                 bars.push_back(x);
+                 indices.push_back(n);
+             }
+         }
+
+         std::cout << "dof = " << dof << ":\\n";
+         draw_vbars<4,3>(bars);
+         for (int n : indices) { std::cout << "" << std::setw(2) << n << "  "; }
+         std::cout << "\\n\\n";
+     };
+
+     for (float dof : {1.f, 2.f, 3.f, 4.f, 6.f, 9.f}) χ²(dof);
+ }
+
+.SH Possible output:
+
+ dof = 1:
+ ███                                 ┬ 0.5271
+ ███                                 │
+ ███ ███                             │
+ ███ ███ ▇▇▇ ▃▃▃ ▂▂▂ ▁▁▁ ▁▁▁ ▁▁▁ ▁▁▁ ┴ 0.003
+  0   1   2   3   4   5   6   7   8
+
+ dof = 2:
+     ███                                     ┬ 0.3169
+ ▆▆▆ ███ ▃▃▃                                 │
+ ███ ███ ███ ▄▄▄                             │
+ ███ ███ ███ ███ ▇▇▇ ▄▄▄ ▃▃▃ ▂▂▂ ▁▁▁ ▁▁▁ ▁▁▁ ┴ 0.004
+  0   1   2   3   4   5   6   7   8   9  10
+
+ dof = 3:
+     ███ ▃▃▃                                         ┬ 0.2439
+     ███ ███ ▄▄▄                                     │
+ ▃▃▃ ███ ███ ███ ▇▇▇ ▁▁▁                             │
+ ███ ███ ███ ███ ███ ███ ▆▆▆ ▄▄▄ ▃▃▃ ▂▂▂ ▁▁▁ ▁▁▁ ▁▁▁ ┴ 0.0033
+  0   1   2   3   4   5   6   7   8   9  10  11  12
+
+ dof = 4:
+     ▂▂▂ ███ ▃▃▃                                                 ┬ 0.1864
+     ███ ███ ███ ███ ▂▂▂                                         │
+     ███ ███ ███ ███ ███ ▅▅▅ ▁▁▁                                 │
+ ▅▅▅ ███ ███ ███ ███ ███ ███ ███ ▆▆▆ ▄▄▄ ▃▃▃ ▂▂▂ ▂▂▂ ▁▁▁ ▁▁▁ ▁▁▁ ┴ 0.0026
+  0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15
+
+ dof = 6:
+             ▅▅▅ ▇▇▇ ███ ▂▂▂                                                 ┬ 0.1351
+         ▅▅▅ ███ ███ ███ ███ ▇▇▇ ▁▁▁                                         │
+     ▁▁▁ ███ ███ ███ ███ ███ ███ ███ ▅▅▅ ▂▂▂                                 │
+ ▁▁▁ ███ ███ ███ ███ ███ ███ ███ ███ ███ ███ ███ ▅▅▅ ▄▄▄ ▃▃▃ ▂▂▂ ▁▁▁ ▁▁▁ ▁▁▁ ┴ 0.0031
+  0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18
+
+ dof = 9:
+             ▅▅▅ ▇▇▇ ███ ███ ▄▄▄ ▂▂▂                                                 ┬ 0.1044
+         ▃▃▃ ███ ███ ███ ███ ███ ███ ▅▅▅ ▁▁▁                                         │
+     ▄▄▄ ███ ███ ███ ███ ███ ███ ███ ███ ███ ▆▆▆ ▃▃▃                                 │
+ ▄▄▄ ███ ███ ███ ███ ███ ███ ███ ███ ███ ███ ███ ███ ███ ▆▆▆ ▄▄▄ ▃▃▃ ▂▂▂ ▁▁▁ ▁▁▁ ▁▁▁ ┴ 0.0034
+  2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20  21  22
 
 .SH External links
 
      * Weisstein, Eric W. "Chi-Squared Distribution." From MathWorld--A Wolfram Web
        Resource.
      * Chi-squared distribution. From Wikipedia.
-
-.SH Category:
-
-     * Todo no example

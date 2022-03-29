@@ -1,4 +1,4 @@
-.TH std::counting_semaphore,std::binary_semaphore 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::counting_semaphore,std::binary_semaphore 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::counting_semaphore,std::binary_semaphore \- std::counting_semaphore,std::binary_semaphore
 
@@ -23,7 +23,7 @@ std::counting_semaphore,std::binary_semaphore \- std::counting_semaphore,std::bi
    the counter is incremented, but try_acquire() does not block; try_acquire_for() and
    try_acquire_until() block until the counter is incremented or a timeout is reached.
 
-   Similar to std::condition_variable's wait(), counting_semaphore's try_acquire() can
+   Similar to std::condition_variable::wait(), counting_semaphore's try_acquire() can
    spuriously fail.
 
    Specializations of std::counting_semaphore are not DefaultConstructible,
@@ -72,11 +72,70 @@ std::counting_semaphore,std::binary_semaphore \- std::counting_semaphore,std::bi
    release(n). In this respect semaphores can be considered alternatives to
    std::condition_variables, often with better performance.
 
+   Feature testing macro: __cpp_lib_semaphore
+
 .SH Example
 
-    This section is incomplete
-    Reason: no example
 
-.SH Category:
+// Run this code
 
-     * Todo no example
+ #include <iostream>
+ #include <thread>
+ #include <chrono>
+ #include <semaphore>
+
+
+ // global binary semaphore instances
+ // object counts are set to zero
+ // objects are in non-signaled state
+ std::binary_semaphore
+         smphSignalMainToThread{0},
+         smphSignalThreadToMain{0};
+
+ void ThreadProc()
+ {
+         // wait for a signal from the main proc
+         // by attempting to decrement the semaphore
+         smphSignalMainToThread.acquire();
+
+         // this call blocks until the semaphore's count
+         // is increased from the main proc
+
+         std::cout << "[thread] Got the signal\\n"; // response message
+
+         // wait for 3 seconds to imitate some work
+         // being done by the thread
+         using namespace std::literals;
+         std::this_thread::sleep_for(3s);
+
+         std::cout << "[thread] Send the signal\\n"; // message
+
+         // signal the main proc back
+         smphSignalThreadToMain.release();
+ }
+
+ int main()
+ {
+         // create some worker thread
+         std::thread thrWorker(ThreadProc);
+
+         std::cout << "[main] Send the signal\\n"; // message
+
+         // signal the worker thread to start working
+         // by increasing the semaphore's count
+         smphSignalMainToThread.release();
+
+         // wait until the worker thread is done doing the work
+         // by attempting to decrement the semaphore's count
+         smphSignalThreadToMain.acquire();
+
+         std::cout << "[main] Got the signal\\n"; // response message
+         thrWorker.join();
+ }
+
+.SH Output:
+
+ [main] Send the signal
+ [thread] Got the signal
+ [thread] Send the signal
+ [main] Got the signal

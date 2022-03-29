@@ -1,41 +1,78 @@
-.TH std::variant::emplace 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::variant::emplace 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::variant::emplace \- std::variant::emplace
 
 .SH Synopsis
-   template <class T, class... Args>                                  \fB(1)\fP \fI(since C++17)\fP
-   T& emplace(Args&&... args);
-   template <class T, class U, class... Args>                         \fB(2)\fP \fI(since C++17)\fP
-   T& emplace( std::initializer_list<U> il, Args&&... args );
-   template <size_t I, class... Args>                                 \fB(3)\fP \fI(since C++17)\fP
-   std::variant_alternative_t<I, variant>& emplace( Args&&... args );
-   template <size_t I, class U, class... Args>
+                                                        (since
+   template <class T, class... Args>                    C++17)
+   T& emplace(Args&&... args);                          (until
+                                                        C++20)
+   template <class T, class... Args>                    (since
+   constexpr T& emplace(Args&&... args);                C++20)
+   template <class T, class U, class... Args>                   (since
+   T& emplace( std::initializer_list<U> il,                     C++17)
+   Args&&... args );                                            (until
+                                                                C++20)
+   template <class T, class U, class... Args>
+   constexpr T& emplace(                                        (since
+   std::initializer_list<U> il, Args&&... args                  C++20)
+   );
+   template <std::size_t I, class... Args>                              (since
+   std::variant_alternative_t<I, variant>&                              C++17)
+   emplace( Args&&... args );                                           (until
+                                                \fB(1)\fP                     C++20)
+   template <std::size_t I, class... Args>                              (since
+   constexpr std::variant_alternative_t<I,                              C++20)
+   variant>& emplace( Args&&... args );             \fB(2)\fP
+   template <std::size_t I, class U, class...
+   Args>                                                                        (since
+                                                                                C++17)
+   std::variant_alternative_t<I, variant>&              \fB(3)\fP                     (until
+                                                                                C++20)
+   emplace( std::initializer_list<U> il,
+   Args&&... args );
+   template <std::size_t I, class U, class...                   \fB(4)\fP
+   Args>
 
-   std::variant_alternative_t<I, variant>&                            \fB(4)\fP \fI(since C++17)\fP
+   constexpr std::variant_alternative_t<I,                                      (since
+   variant>&                                                                    C++20)
 
-       emplace( std::initializer_list<U> il, Args&&... args );
+   emplace( std::initializer_list<U> il,
+   Args&&... args );
 
    Creates a new value in-place, in an existing variant object
 
    1) Equivalent to emplace<I>(std::forward<Args>(args)...), where I is the zero-based
-   index of T in Types.... This overload only participates in overload resolution if
-   std::is_constructible_v<T, Args...> is true, and T occurs exactly once in Types...
+   index of T in Types....
+
+     * This overload participates in overload resolution only if
+       std::is_constructible_v<T, Args...> is true, and T occurs exactly once in
+       Types...
+
    2) Equivalent to emplace<I>(il, std::forward<Args>(args)...), where I is the
-   zero-based index of T in Types.... This overload only participates in overload
-   resolution if std::is_constructible_v<T, std::initializer_list<U>&, Args...> is
-   true, and T occurs exactly once in Types...
+   zero-based index of T in Types....
+
+     * This overload participates in overload resolution only if
+       std::is_constructible_v<T, std::initializer_list<U>&, Args...> is true, and T
+       occurs exactly once in Types...
+
    3) First, destroys the currently contained value (if any). Then direct-initializes
    the contained value as if constructing a value of type T_I with the arguments
    std::forward<Args>(args).... If an exception is thrown, *this may become
-   valueless_by_exception. This overload only participates in overload resolution if
-   std::is_constructible_v<T_I, Args...> is true. The behavior is undefined if I is not
-   less than sizeof...(Types).
+   valueless_by_exception.
+
+     * This overload participates in overload resolution only if
+       std::is_constructible_v<T_I, Args...> is true.
+     * It is a compile-time error if I is not less than sizeof...(Types).
+
    4) First, destroys the currently contained value (if any). Then direct-initializes
    the contained value as if constructing a value of type T_I with the arguments il,
    std::forward<Args>(args).... If an exception is thrown, *this may become
-   valueless_by_exception. This overload only participates in overload resolution if
-   std::is_constructible_v<T_I, initializer_list<U>&, Args...> is true. The behavior is
-   undefined if I is not less than sizeof...(Types).
+   valueless_by_exception.
+
+     * This overload participates in overload resolution only if
+       std::is_constructible_v<T_I, std::initializer_list<U>&, Args...> is true.
+     * It is a compile-time error if I is not less than sizeof...(Types).
 
 .SH Parameters
 
@@ -61,16 +98,16 @@ std::variant::emplace \- std::variant::emplace
 
  int main()
  {
-   std::variant<std::string> v1;
-   v1.emplace<0>("abc"); // OK
-   std::cout << std::get<0>(v1) << '\\n';
-   v1.emplace<std::string>("def"); // OK
-   std::cout << std::get<0>(v1) << '\\n';
+     std::variant<std::string> v1;
+     v1.emplace<0>("abc"); // OK
+     std::cout << std::get<0>(v1) << '\\n';
+     v1.emplace<std::string>("def"); // OK
+     std::cout << std::get<0>(v1) << '\\n';
 
-   std::variant<std::string, std::string> v2;
-   v2.emplace<1>("ghi"); // OK
-   std::cout << std::get<1>(v2) << '\\n';
-   // v2.emplace<std::string>("abc"); -> Error
+     std::variant<std::string, std::string> v2;
+     v2.emplace<1>("ghi"); // OK
+     std::cout << std::get<1>(v2) << '\\n';
+     // v2.emplace<std::string>("abc"); -> Error
  }
 
 .SH Output:
@@ -78,6 +115,15 @@ std::variant::emplace \- std::variant::emplace
  abc
  def
  ghi
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to              Behavior as published               Correct behavior
+   P2231R1 C++20      emplace was not constexpr while the required     made constexpr
+                      operations can be constexpr in C++20
 
 .SH See also
 

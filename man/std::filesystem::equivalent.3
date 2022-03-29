@@ -1,4 +1,4 @@
-.TH std::filesystem::equivalent 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::equivalent 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::equivalent \- std::filesystem::equivalent
 
@@ -6,11 +6,11 @@ std::filesystem::equivalent \- std::filesystem::equivalent
    Defined in header <filesystem>
    bool equivalent( const std::filesystem::path& p1,
 
-                    const std::filesystem::path& p2 );
-   bool equivalent( const std::filesystem::path& p1,   \fB(1)\fP \fI(since C++17)\fP
-                    const std::filesystem::path& p2,
+   const std::filesystem::path& p2 );
+   bool equivalent( const std::filesystem::path& p1,  \fI(since C++17)\fP
+   const std::filesystem::path& p2,
 
-                    std::error_code& ec ) noexcept;
+   std::error_code& ec ) noexcept;
 
    Checks whether the paths p1 and p2 resolve to the same file system entity.
 
@@ -30,30 +30,23 @@ std::filesystem::equivalent \- std::filesystem::equivalent
 
 .SH Exceptions
 
-   The overload that does not take a std::error_code& parameter throws filesystem_error
-   on underlying OS API errors, constructed with p1 as the first path argument, p2 as
-   the second path argument, and the OS error code as the error code argument. The
-   overload taking a std::error_code& parameter sets it to the OS API error code if an
-   OS API call fails, and executes ec.clear() if no errors occur. Any overload not
-   marked noexcept may throw std::bad_alloc if memory allocation fails.
+   The overload that does not take a std::error_code& parameter throws
+   filesystem::filesystem_error on underlying OS API errors, constructed with p1 as the
+   first path argument, p2 as the second path argument, and the OS error code as the
+   error code argument. The overload taking a std::error_code& parameter sets it to the
+   OS API error code if an OS API call fails, and executes ec.clear() if no errors
+   occur. Any overload not marked noexcept may throw std::bad_alloc if memory
+   allocation fails.
 
 .SH Notes
 
    Two paths are considered to resolve to the same file system entity if the two
    candidate entities the paths resolve to are located on the same device at the same
    location. For POSIX, this means that the st_dev and st_ino members of their POSIX
-   stat structure, obtained as if by POSIX stat, are equal.
+   stat structure, obtained as if by POSIX stat(), are equal.
 
    In particular, all hard links for the same file or directory are equivalent, and a
    symlink and its target on the same file system are equivalent.
-
-   Defect reports
-
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
-
-      DR    Applied to         Behavior as published         Correct behavior
-   LWG 2937 C++17      error condition specified incorrectly corrected
 
 .SH Example
 
@@ -73,19 +66,49 @@ std::filesystem::equivalent \- std::filesystem::equivalent
          std::cout << p1 << " is equivalent to " << p2 << '\\n';
 
      // symlink equivalency
-     fs::path p3 = "/lib/libc.so.6";
-     fs::path p4 = p3.parent_path() / fs::read_symlink(p3);
-     if(fs::equivalent(p3, p4))
-         std::cout << p3 << " is equivalent to " << p4 << '\\n';
+     for(const fs::path lib : {"/lib/libc.so.6", "/lib/x86_64-linux-gnu/libc.so.6"}) {
+         try {
+           p2 = lib.parent_path() / fs::read_symlink(lib);
+         } catch(std::filesystem::filesystem_error const& ex) {
+             std::cout << ex.what() << '\\n';
+             continue;
+         }
+         if(fs::equivalent(lib, p2))
+             std::cout << lib << " is equivalent to " << p2 << '\\n';
+     }
  }
 
 .SH Possible output:
 
  "." is equivalent to "/var/tmp/test"
- "/lib/libc.so.6" is equivalent to "/lib/libc-2.12.so"
+ filesystem error: read_symlink: No such file or directory [/lib/libc.so.6]
+ "/lib/x86_64-linux-gnu/libc.so.6" is equivalent to "/lib/x86_64-linux-gnu/libc-2.23.so"
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to         Behavior as published         Correct behavior
+   LWG 2937 C++17      error condition specified incorrectly corrected
 
 .SH See also
 
+   compare        compares the lexical representations of two paths lexicographically
+                  \fI(public member function of std::filesystem::path)\fP
+   operator==
+   operator!=
+   operator<
+   operator<=
+   operator>
+   operator>=     lexicographically compares two paths
+   operator<=>    \fI(function)\fP
+   \fI(until C++20)\fP
+   \fI(until C++20)\fP
+   \fI(until C++20)\fP
+   \fI(until C++20)\fP
+   \fI(until C++20)\fP
+   (C++20)
    status         determines file attributes
    symlink_status determines file attributes, checking the symlink target
    \fI(C++17)\fP        \fI(function)\fP

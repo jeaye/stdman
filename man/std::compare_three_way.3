@@ -1,4 +1,4 @@
-.TH std::compare_three_way 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::compare_three_way 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::compare_three_way \- std::compare_three_way
 
@@ -9,6 +9,23 @@ std::compare_three_way \- std::compare_three_way
 
    Function object for performing comparisons. Deduces the parameter types and the
    return type of the function call operator.
+
+  Implementation-defined strict total order over pointers
+
+   The function call operator yields the implementation-defined strict total order over
+   pointers if the <=> operator between arguments invokes a built-in comparison
+   operator for a pointer, even if the built-in <=> operator does not.
+
+   The implementation-defined strict total order is consistent with the partial order
+   imposed by built-in comparison operators (<=>, <, >, <=, and >=), and consistent
+   among following standard function objects:
+
+     * std::less, std::greater, std::less_equal, and std::greater_equal, when the
+       template argument is a pointer type or void
+
+     * std::ranges::equal_to, std::ranges::not_equal_to, std::ranges::less,
+       std::ranges::greater, std::ranges::less_equal, std::ranges::greater_equal, and
+       std::compare_three_way
 
 .SH Member types
 
@@ -22,17 +39,19 @@ std::compare_three_way \- std::compare_three_way
 
 std::compare_three_way::operator()
 
-   template<class T, class U>
+   template< class T, class U >
 
-       requires std::three_way_comparable_with<T, U> ||
-                /* std::declval<T>() <=> std::declval<U>() resolves to
-                   a built-in operator comparing pointers */
+   requires std::three_way_comparable_with<T, U> // with different semantic
+   requirements
 
-   constexpr auto operator()(T&& t, U&& u) const;
+   constexpr auto operator()( T&& t, U&& u ) const;
 
    Compares t and u, equivalent to return std::forward<T>(t) <=> std::forward<U>(u);,
    except when that expression resolves to a call to a builtin operator<=> comparing
    pointers.
+
+   When a call would not invoke a built-in operator comparing pointers, the behavior is
+   undefined if std::three_way_comparable_with<T, U> is not modeled.
 
    When a call would invoke a built-in operator comparing pointers of type P, the
    result is instead determined as follows:
@@ -47,10 +66,10 @@ std::compare_three_way::operator()
        argument in the same strict total ordering.
      * Otherwise, returns std::strong_ordering::equal.
 
-   The behavior is undefined unless the the conversion sequences from both T and U to P
-   are equality-preserving (see below).
+   The behavior is undefined unless the conversion sequences from both T and U to P are
+   equality-preserving (see below).
 
-   Equality preservation
+  Equality preservation
 
    An expression is equality preserving if it results in equal outputs given equal
    inputs.
@@ -81,38 +100,49 @@ std::compare_three_way::operator()
  #include <iostream>
  #include <compare>
 
- struct Rational_2 {
+ struct Rational {
      int num;
      int den; // > 0
+
+     // Although the comparison X <=> Y will work, a direct call
+     // to std::compare_three_way{}(X,Y) requires the operator==
+     // be defined, to satisfy the std::three_way_comparable_with.
+     constexpr bool operator==(Rational const&) const = default;
  };
 
- constexpr std::weak_ordering operator<=>(Rational_2 lhs, Rational_2 rhs)
+ constexpr std::weak_ordering operator<=>(Rational lhs, Rational rhs)
  {
      return lhs.num * rhs.den <=> rhs.num * lhs.den;
  }
 
  void print(std::weak_ordering value)
  {
-     if (value == 0)
-         std::cout << "equal\\n";
-     else if (value < 0)
-         std::cout << "less\\n";
-     else
-         std::cout << "greater\\n";
+     value < 0 ? std::cout << "less\\n"    :
+     value > 0 ? std::cout << "greater\\n" :
+                 std::cout << "equal\\n"   ;
  }
 
  int main()
  {
-     Rational_2 c{6,5};
-     Rational_2 d{8,7};
-     print(c <=> d);
-     print(std::compare_three_way{}(c,d));
+     Rational a{6,5};
+     Rational b{8,7};
+     print(a <=> b);
+     print(std::compare_three_way{}(a,b));
  }
 
 .SH Output:
 
  greater
  greater
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to         Behavior as published              Correct behavior
+   LWG 3530 C++20      syntactic checks were relaxed while   only semantic requirements
+                       comparing pointers                    relaxed
 
 .SH See also
 

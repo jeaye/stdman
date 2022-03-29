@@ -1,4 +1,4 @@
-.TH std::shared_ptr::shared_ptr 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::shared_ptr::shared_ptr 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
 
@@ -31,7 +31,7 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
    template< class Y >                                          \fB(12)\fP (removed in C++17)
    shared_ptr( std::auto_ptr<Y>&& r );
    template< class Y, class Deleter >                           \fB(13)\fP
-   shared_ptr( std::unique_ptr<Y,Deleter>&& r );
+   shared_ptr( std::unique_ptr<Y, Deleter>&& r );
 
    Constructs new shared_ptr from a variety of pointer types that refer to an object to
    manage.
@@ -82,7 +82,7 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
    the call.
    \fI(since C++20)\fP
    9) Constructs a shared_ptr which shares ownership of the object managed by r. If r
-   manages no object, *this manages no object too. The template overload doesn't
+   manages no object, *this manages no object either. The template overload doesn't
    participate in overload resolution if Y* is not
    implicitly convertible to
    \fI(until C++17)\fP
@@ -98,7 +98,7 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
    11) Constructs a shared_ptr which shares ownership of the object managed by r.
    Y* must be implicitly convertible to T*.
    \fI(until C++17)\fP
-   This overload only participates in overload resolution if Y* is compatible with T*.
+   This overload participates in overload resolution only if Y* is compatible with T*.
    \fI(since C++17)\fP Note that r.lock() may be used for the same purpose: the difference is
    that this constructor throws an exception if the argument is empty, while
    std::weak_ptr<T>::lock() constructs an empty std::shared_ptr in that case.
@@ -113,13 +113,38 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
    r.get() is a null pointer, this overload is equivalent to the default
    constructor \fB(1)\fP.
 
-   If Deleter is a reference type, equivalent to shared_ptr(r.release(),
-   std::ref(r.get_deleter()). Otherwise, equivalent to shared_ptr(r.release(),
-   r.get_deleter())
+   If Deleter is a reference type, it is equivalent to shared_ptr(r.release(),
+   std::ref(r.get_deleter()). Otherwise, it is equivalent to shared_ptr(r.release(),
+   std::move(r.get_deleter()))
 
    When T is not an array type, the overloads \fB(3)\fP, \fB(4)\fP, and \fB(6)\fP enable shared_from_this
    with ptr, and the overload \fB(13)\fP enables shared_from_this with the pointer returned
    by r.release().
+
+.SH Parameters
+
+   ptr   - a pointer to an object to manage
+   d     - a deleter to use to destroy the object
+   alloc - an allocator to use for allocations of data for internal use
+   r     - another smart pointer to share the ownership to or acquire the ownership
+           from
+
+.SH Exceptions
+
+   3) std::bad_alloc if required additional memory could not be obtained. May throw
+   implementation-defined exception for other errors. If an exception occurs, this
+   calls delete ptr
+   if T is not an array type, and calls delete[] ptr otherwise
+   \fI(since C++17)\fP.
+   4-7) std::bad_alloc if required additional memory could not be obtained. May throw
+   implementation-defined exception for other errors. d(ptr) is called if an exception
+   occurs.
+   11) std::bad_weak_ptr if r.expired() == true. The constructor has no effect in this
+   case.
+   12) std::bad_alloc if required additional memory could not be obtained. May throw
+   implementation-defined exception for other errors. This constructor has no effect if
+   an exception occurs.
+   13) If an exception is thrown, the constructor has no effects.
 
 .SH Notes
 
@@ -133,11 +158,11 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
    ptr->weak_this = std::shared_ptr<std::remove_cv_t<U>>(*this,
                                    const_cast<std::remove_cv_t<U>*>(ptr));
 
-   Where weak_this is the hidden mutable std::weak_ptr member of std::shared_from_this.
-   The assignment to the weak_this member is not atomic and conflicts with any
-   potentially concurrent access to the same object. This ensures that future calls to
-   shared_from_this() would share ownership with the shared_ptr created by this raw
-   pointer constructor.
+   Where weak_this is the hidden mutable std::weak_ptr member of
+   std::enable_shared_from_this. The assignment to the weak_this member is not atomic
+   and conflicts with any potentially concurrent access to the same object. This
+   ensures that future calls to shared_from_this() would share ownership with the
+   std::shared_ptr created by this raw pointer constructor.
 
    The test ptr->weak_this.expired() in the exposition code above makes sure that
    weak_this is not reassigned if it already indicates an owner. This test is required
@@ -161,34 +186,10 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
  std::shared_ptr<int> ptr(std::move(arr));
 
    Since the shared_ptr obtains its deleter (a std::default_delete<T[]> object) from
-   the unique_ptr, the array will be correctly deallocated.
+   the std::unique_ptr, the array will be correctly deallocated.
 
    This is no longer allowed in C++17. Instead the array form std::shared_ptr<T[]>
    should be used.
-
-.SH Parameters
-
-   ptr   - a pointer to an object to manage
-   d     - a deleter to use to destroy the object
-   alloc - an allocator to use for allocations of data for internal use
-   r     - another smart pointer to share the ownership to or acquire the ownership
-           from
-
-.SH Exceptions
-
-   3) std::bad_alloc if required additional memory could not be obtained. May throw
-   implementation-defined exception for other errors. delete ptr
-   if T is not an array type, delete[] ptr otherwise)
-   \fI(since C++17)\fP is called if an exception occurs.
-   4-7) std::bad_alloc if required additional memory could not be obtained. May throw
-   implementation-defined exception for other errors. d(ptr) is called if an exception
-   occurs.
-   11) std::bad_weak_ptr if r.expired() == true. The constructor has no effect in this
-   case.
-   12) std::bad_alloc if required additional memory could not be obtained. May throw
-   implementation-defined exception for other errors. This constructor has no effect if
-   an exception occurs.
-   13) If an exception is thrown, the constructor has no effects.
 
 .SH Example
 
@@ -199,13 +200,14 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
  #include <iostream>
 
  struct Foo {
-     Foo() { std::cout << "Foo...\\n"; }
-     ~Foo() { std::cout << "~Foo...\\n"; }
+     int id{0};
+     Foo(int i = 0) : id{i} { std::cout << "Foo::Foo(" << i <<  ")\\n"; }
+     ~Foo() { std::cout << "Foo::~Foo(), id=" << id << '\\n'; }
  };
 
  struct D {
      void operator()(Foo* p) const {
-         std::cout << "Call delete from function object...\\n";
+         std::cout << "Call delete from function object. Foo::id=" << p->id << '\\n';
          delete p;
      }
  };
@@ -213,23 +215,24 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
  int main()
  {
      {
-         std::cout << "constructor with no managed object\\n";
+         std::cout << "1) constructor with no managed object\\n";
          std::shared_ptr<Foo> sh1;
      }
 
      {
-         std::cout << "constructor with object\\n";
-         std::shared_ptr<Foo> sh2(new Foo);
+         std::cout << "2) constructor with object\\n";
+         std::shared_ptr<Foo> sh2(new Foo{10});
+         std::cout << "sh2.use_count(): " << sh2.use_count() << '\\n';
          std::shared_ptr<Foo> sh3(sh2);
-         std::cout << sh2.use_count() << '\\n';
-         std::cout << sh3.use_count() << '\\n';
+         std::cout << "sh2.use_count(): " << sh2.use_count() << '\\n';
+         std::cout << "sh3.use_count(): " << sh3.use_count() << '\\n';
      }
 
      {
-         std::cout << "constructor with object and deleter\\n";
-         std::shared_ptr<Foo> sh4(new Foo, D());
-         std::shared_ptr<Foo> sh5(new Foo, [](auto p) {
-            std::cout << "Call delete from lambda...\\n";
+         std::cout << "3) constructor with object and deleter\\n";
+         std::shared_ptr<Foo> sh4(new Foo{11}, D());
+         std::shared_ptr<Foo> sh5(new Foo{12}, [](auto p) {
+            std::cout << "Call delete from lambda... p->id=" << p->id << "\\n";
             delete p;
          });
      }
@@ -237,19 +240,29 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
 
 .SH Output:
 
- constructor with no managed object
- constructor with object
- Foo...
- 2
- 2
- ~Foo...
- constructor with object and deleter
- Foo...
- Foo...
- Call delete from lambda...
- ~Foo...
- Call delete from function object...
- ~Foo..
+ 1) constructor with no managed object
+ 2) constructor with object
+ Foo::Foo\fB(10)\fP
+ sh2.use_count(): 1
+ sh2.use_count(): 2
+ sh3.use_count(): 2
+ Foo::~Foo(), id=10
+ 3) constructor with object and deleter
+ Foo::Foo\fB(11)\fP
+ Foo::Foo\fB(12)\fP
+ Call delete from lambda... p->id=12
+ Foo::~Foo(), id=12
+ Call delete from function object. Foo::id=11
+ Foo::~Foo(), id=11
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to          Behavior as published              Correct behavior
+   LWG 3548 C++11      the constructor from unique_ptr          move-constructs instead
+                       copy-constructed the deleter
 
 .SH See also
 

@@ -1,24 +1,24 @@
-.TH std::condition_variable::wait 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::condition_variable::wait 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::condition_variable::wait \- std::condition_variable::wait
 
 .SH Synopsis
-   void wait( std::unique_lock<std::mutex>& lock );                 \fB(1)\fP \fI(since C++11)\fP
-   template< class Predicate >                                      \fB(2)\fP \fI(since C++11)\fP
-   void wait( std::unique_lock<std::mutex>& lock, Predicate pred );
+   void wait( std::unique_lock<std::mutex>& lock );                   \fB(1)\fP \fI(since C++11)\fP
+   template< class Predicate >
+   void wait( std::unique_lock<std::mutex>& lock, Predicate           \fB(2)\fP \fI(since C++11)\fP
+   stop_waiting );
 
    wait causes the current thread to block until the condition variable is notified or
-   a spurious wakeup occurs, optionally looping until some predicate is satisfied.
+   a spurious wakeup occurs, optionally looping until some predicate is satisfied
+   (bool(stop_waiting()) == true).
 
    1) Atomically unlocks lock, blocks the current executing thread, and adds it to the
    list of threads waiting on *this. The thread will be unblocked when notify_all() or
    notify_one() is executed. It may also be unblocked spuriously. When unblocked,
    regardless of the reason, lock is reacquired and wait exits.
-   If this function exits via exception, lock is also reacquired.
-   \fI(until C++14)\fP
    2) Equivalent to
 
- while (!pred()) {
+ while (!stop_waiting()) {
      wait(lock);
  }
 
@@ -26,23 +26,24 @@ std::condition_variable::wait \- std::condition_variable::wait
    condition to become true.
 
    Note that lock must be acquired before entering this method, and it is reacquired
-   after wait(lock) exits, which means that lock can be used to guard access to pred().
+   after wait(lock) exits, which means that lock can be used to guard access to
+   stop_waiting().
 
-   If these functions fail to meet the postconditions
-   (lock.owns_lock()==true and lock.mutex() is locked by the calling      \fI(since C++14)\fP
-   thread), std::terminate is called. For example, this could happen if
-   relocking the mutex throws an exception.
+   If these functions fail to meet the postconditions (lock.owns_lock()==true and
+   lock.mutex() is locked by the calling thread), std::terminate is called. For
+   example, this could happen if relocking the mutex throws an exception.
 
 .SH Parameters
 
-   lock - an object of type std::unique_lock<std::mutex>, which must be locked by the
-          current thread
-          predicate which returns false if the waiting should be continued.
+   lock         - an object of type std::unique_lock<std::mutex>, which must be locked
+                  by the current thread
+                  predicate which returns false if the waiting should be continued
+                  (bool(stop_waiting()) == false).
 
-   pred - The signature of the predicate function should be equivalent to the
-          following:
+   stop_waiting - The signature of the predicate function should be equivalent to the
+                  following:
 
-           bool pred();
+                  bool pred();
 
 .SH Return value
 
@@ -50,13 +51,8 @@ std::condition_variable::wait \- std::condition_variable::wait
 
 .SH Exceptions
 
-   1)
-
-   May throw std::system_error, may also propagate exceptions thrown by   \fI(until C++14)\fP
-   lock.lock() or lock.unlock().
-   Does not throw                                                         \fI(since C++14)\fP
-
-   2) Same as \fB(1)\fP but may also propagate exceptions thrown by pred
+   1) Does not throw
+   2) Same as \fB(1)\fP but may also propagate exceptions thrown by stop_waiting
 
 .SH Notes
 
@@ -70,12 +66,11 @@ std::condition_variable::wait \- std::condition_variable::wait
    The effects of notify_one()/notify_all() and each of the three atomic parts of
    wait()/wait_for()/wait_until() (unlock+wait, wakeup, and lock) take place in a
    single total order that can be viewed as modification order of an atomic variable:
-   the order is specific to this individual condition_variable. This makes it
+   the order is specific to this individual condition variable. This makes it
    impossible for notify_one() to, for example, be delayed and unblock a thread that
    started waiting just after the call to notify_one() was made.
 
 .SH Example
-
 
 
 // Run this code
@@ -139,6 +134,15 @@ std::condition_variable::wait \- std::condition_variable::wait
  ...finished waiting. i == 1
  ...finished waiting. i == 1
 
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to            Behavior as published              Correct behavior
+   LWG 2135 C++11      wait threw an exception on                  calls std::terminate
+                       unlocking/relocking failure
+
 .SH See also
 
               blocks the current thread until the condition variable is woken up or
@@ -147,9 +151,3 @@ std::condition_variable::wait \- std::condition_variable::wait
               blocks the current thread until the condition variable is woken up or
    wait_until until specified time point has been reached
               \fI(public member function)\fP
-   C documentation for
-   cnd_wait
-
-.SH Hidden category:
-
-     * Pages with unreviewed LWG DR marker

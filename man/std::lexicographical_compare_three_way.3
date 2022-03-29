@@ -1,4 +1,4 @@
-.TH std::lexicographical_compare_three_way 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::lexicographical_compare_three_way 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::lexicographical_compare_three_way \- std::lexicographical_compare_three_way
 
@@ -7,35 +7,26 @@ std::lexicographical_compare_three_way \- std::lexicographical_compare_three_way
    template< class InputIt1, class InputIt2, class Cmp >
 
    constexpr auto lexicographical_compare_three_way( InputIt1 first1,
-   InputIt1 last1,
-                                                     InputIt2 first2, \fB(1)\fP \fI(since C++20)\fP
-   InputIt2 last2,
-                                                     Cmp comp)
+   InputIt1 last1,                                                    \fB(1)\fP \fI(since C++20)\fP
+   InputIt2 first2, InputIt2 last2,
+   Cmp comp );
 
    -> decltype(comp(*first1, *first2));
    template< class InputIt1, class InputIt2 >
 
-   constexpr auto lexicographical_compare_three_way( InputIt1 first1,
-   InputIt1 last1,                                                    \fB(2)\fP \fI(since C++20)\fP
+   constexpr auto lexicographical_compare_three_way( InputIt1 first1, \fB(2)\fP \fI(since C++20)\fP
+   InputIt1 last1,
 
-                                                     InputIt2 first2,
-   InputIt2 last2);
+   InputIt2 first2, InputIt2 last2 );
 
    Lexicographically compares two ranges [first1, last1) and [first2, last2) using
    three-way comparison and produces a result of the strongest applicable comparison
    category type.
 
-   1) Behaves as if defined as follows:
-
- for ( ; first1 != last1 && first2 != last2; void(++first1), void(++first2) )
-     if (auto cmp = comp(*first1, *first2); cmp != 0)
-         return cmp;
-
- return first1 != last1 ? std::strong_ordering::greater :
-        first2 != last2 ? std::strong_ordering::less :
-                          std::strong_ordering::equal;
-
-   2) Behaves as if defined as follows:
+   1) Returns the order between the first non-equivalent pair of elements according to
+   comp in both ranges if any, otherwise (if one ranges is equivalent to the prefix of
+   another according to comp), returns the order between the length of both ranges.
+   2) Equivalent to:
 
  return std::lexicographical_compare_three_way(
      first1, last1, first2, last2, std::compare_three_way());
@@ -44,30 +35,110 @@ std::lexicographical_compare_three_way \- std::lexicographical_compare_three_way
 
    first1, last1 - the first range of elements to examine
    first2, last2 - the second range of elements to examine
-                   a function object type. The behavior is undefined if its return type
-   comp          - is not one of the three comparison category types (strong_ordering,
-                   weak_ordering, or partial_ordering)
+                   a function object type. The program is ill-formed if its return type
+   comp          - is not one of the three comparison category types
+                   (std::strong_ordering, std::weak_ordering, or
+                   std::partial_ordering).
 .SH Type requirements
    -
    InputIt1, InputIt2 must meet the requirements of LegacyInputIterator.
 
 .SH Return value
 
-   A comparison category type as defined above.
+   The value of a comparison category type specified above.
+
+.SH Complexity
+
+   At most N applications of comp, where N is the smaller of length of both ranges.
+
+.SH Possible implementation
+
+  template< class I1, class I2, class Cmp >
+  constexpr auto lexicographical_compare_three_way( I1 f1, I1 l1, I2 f2, I2 l2, Cmp comp )
+      -> decltype(comp(*f1, *f2))
+  {
+      using ret_t = decltype(comp(*f1, *f2));
+      static_assert(std::disjunction_v<
+                        std::is_same<ret_t, std::strong_ordering>,
+                        std::is_same<ret_t, std::weak_ordering>,
+                        std::is_same<ret_t, std::partial_ordering>>,
+                    "The return type must be a comparison category type.");
+
+      bool exhaust1 = (f1 == l1);
+      bool exhaust2 = (f2 == l2);
+      for (; !exhaust1 && !exhaust2; exhaust1 = (++f1 == l1), exhaust2 = (++f2 == l2))
+          if (auto c = comp(*f1, *f2); c != 0)
+              return c;
+
+      return !exhaust1 ? std::strong_ordering::greater :
+             !exhaust2 ? std::strong_ordering::less :
+                         std::strong_ordering::equal;
+  }
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <algorithm>
+ #include <cctype>
+ #include <compare>
+ #include <iomanip>
+ #include <iostream>
+ #include <string_view>
+ #include <utility>
+ using namespace std::literals;
+
+ void show_result(std::string_view s1, std::string_view s2, std::strong_ordering o)
+ {
+     std::cout << quoted(s1) << " is ";
+     (o < 0) ? std::cout << "less than " :
+     (o > 0) ? std::cout << "greater than " :
+               std::cout << "equal to ";
+     std::cout << quoted(s2) << '\\n';
+ }
+
+ int main()
+ {
+     auto cmp_icase = [](char x, char y) {
+         const auto ux { std::toupper(x) };
+         const auto uy { std::toupper(y) };
+         return (ux < uy) ? std::strong_ordering::less:
+                (ux > uy) ? std::strong_ordering::greater:
+                            std::strong_ordering::equal;
+     };
+
+     for (const auto& [s1, s2] : { std::pair{"one"sv, "ONE"sv},
+                                            {"two"sv, "four"sv},
+                                            {"three"sv, "two"sv} }) {
+         const auto res = std::lexicographical_compare_three_way(
+             s1.cbegin(), s1.cend(), s2.cbegin(), s2.cend(), cmp_icase);
+         show_result(s1, s2, res);
+     }
+ }
+
+.SH Output:
+
+ "one" is equal to "ONE"
+ "two" is greater than "four"
+ "three" is less than "two"
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to          Behavior as published              Correct behavior
+   LWG 3410 C++20      extraneous comparisons between          such requirement removed
+                       iterators were required
 
 .SH See also
 
-                           returns true if one range is lexicographically less than
-   lexicographical_compare another
-                           \fI(function template)\fP
-   compare_three_way       function object implementing x <=> y
-   (C++20)                 \fI(class)\fP
-
-.SH Category:
-
-     * Todo no example
+                                   returns true if one range is lexicographically less
+   lexicographical_compare         than another
+                                   \fI(function template)\fP
+   compare_three_way               function object implementing x <=> y
+   (C++20)                         \fI(class)\fP
+   ranges::lexicographical_compare returns true if one range is lexicographically less
+   (C++20)                         than another
+                                   (niebloid)

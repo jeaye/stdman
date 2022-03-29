@@ -1,4 +1,4 @@
-.TH std::random_access_iterator 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::random_access_iterator 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::random_access_iterator \- std::random_access_iterator
 
@@ -6,25 +6,138 @@ std::random_access_iterator \- std::random_access_iterator
    Defined in header <iterator>
    template<class I>
 
-     concept random_access_iterator =
-       std::bidirectional_iterator<I> &&
-       std::derived_from</*ITER_CONCEPT*/<I>,
+   concept random_access_iterator =
+   std::bidirectional_iterator<I> &&
+   std::derived_from</*ITER_CONCEPT*/<I>,
    std::random_access_iterator_tag> &&
-       std::totally_ordered<I> &&
-       std::sized_sentinel_for<I, I> &&
-       requires(I i, const I j, const std::iter_difference_t<I> n) {      \fI(since C++20)\fP
-         { i += n } -> std::same_as<I&>;
-         { j +  n } -> std::same_as<I>;
-         { n +  j } -> std::same_as<I>;
-         { i -= n } -> std::same_as<I&>;
-         { j -  n } -> std::same_as<I>;
-         {  j[n]  } -> std::same_as<std::iter_reference_t<I>>;
+   std::totally_ordered<I> &&
+   std::sized_sentinel_for<I, I> &&
+   requires(I i, const I j, const std::iter_difference_t<I> n) {          \fI(since C++20)\fP
+   { i += n } -> std::same_as<I&>;
+   { j + n } -> std::same_as<I>;
+   { n + j } -> std::same_as<I>;
+   { i -= n } -> std::same_as<I&>;
+   { j - n } -> std::same_as<I>;
+   { j[n] } -> std::same_as<std::iter_reference_t<I>>;
 
-       };
+   };
 
    The concept random_access_iterator refines bidirectional_iterator by adding support
    for constant time advancement with the +=, +, -=, and - operators, constant time
    computation of distance with -, and array notation with subscripting.
+
+  Iterator concept determination
+
+   Definition of this concept is specified via an exposition-only alias template
+   /*ITER_CONCEPT*/.
+
+   In order to determine /*ITER_CONCEPT*/<I>, let ITER_TRAITS<I> denote I if the
+   specialization std::iterator_traits<I> is generated from the primary template, or
+   std::iterator_traits<I> otherwise:
+
+     * If ITER_TRAITS<I>::iterator_concept is valid and names a type,
+       /*ITER_CONCEPT*/<I> denotes the type.
+     * Otherwise, if ITER_TRAITS<I>::iterator_category is valid and names a type,
+       /*ITER_CONCEPT*/<I> denotes the type.
+     * Otherwise, if std::iterator_traits<I> is generated from the primary template,
+       /*ITER_CONCEPT*/<I> denotes std::random_access_iterator_tag.
+     * Otherwise, /*ITER_CONCEPT*/<I> does not denote a type and results in a
+       substitution failure.
+
+  Semantic requirements
+
+   Let a and b be valid iterators of type I such that b is reachable from a, and let n
+   be a value of type std::iter_difference_t<I> equal to b - a.
+   random_access_iterator<I> is modeled only if all the concepts it subsumes are
+   modeled and:
+
+     * (a += n) is equal to b.
+     * std::addressof(a += n) is equal to std::addressof(a).
+     * (a + n) is equal to (a += n).
+     * (a + n) is equal to (n + a).
+     * For any two positive integers x and y, if a + (x + y) is valid, then a + (x + y)
+       is equal to (a + x) + y.
+     * a + 0 is equal to a.
+     * If (a + (n - 1)) is valid, then --b is equal to (a + (n - 1)).
+     * (b += -n) and (b -= n) are both equal to a.
+     * std::addressof(b -= n) is equal to std::addressof(b).
+     * (b - n) is equal to (b -= n).
+     * If b is dereferenceable, then a[n] is valid and is equal to *b.
+     * bool(a <= b) is true.
+     * Every required operation has constant time complexity.
+
+  Equality preservation
+
+   An expression is equality preserving if it results in equal outputs given equal
+   inputs.
+
+     * The inputs to an expression consist of its operands.
+     * The outputs of an expression consist of its result and all operands modified by
+       the expression (if any).
+
+   In specification of standard concepts, operands are defined as the largest
+   subexpressions that include only:
+
+     * an id-expression, and
+     * invocations of std::move, std::forward, and std::declval.
+
+   The cv-qualification and value category of each operand is determined by assuming
+   that each template type parameter denotes a cv-unqualified complete non-array object
+   type.
+
+   Every expression required to be equality preserving is further required to be
+   stable: two evaluations of such an expression with the same input objects must have
+   equal outputs absent any explicit intervening modification of those input objects.
+
+   Unless noted otherwise, every expression used in a requires-expression is required
+   to be equality preserving and stable, and the evaluation of the expression may only
+   modify its non-constant operands. Operands that are constant must not be modified.
+
+  Implicit expression variations
+
+   A requires-expression that uses an expression that is non-modifying for some
+   constant lvalue operand also implicitly requires additional variations of that
+   expression that accept a non-constant lvalue or (possibly constant) rvalue for the
+   given operand unless such an expression variation is explicitly required with
+   differing semantics. These implicit expression variations must meet the same
+   semantic requirements of the declared expression. The extent to which an
+   implementation validates the syntax of the variations is unspecified.
+
+.SH Notes
+
+   Unlike the LegacyRandomAccessIterator requirements, the random_access_iterator
+   concept does not require dereference to return an lvalue.
+
+.SH Example
+
+   Demonstrates a possible implementation of std::distance via C++20 concepts.
+
+
+// Run this code
+
+ #include <iterator>
+
+ namespace cxx20 {
+    template<std::input_or_output_iterator Iter>
+    constexpr std::iter_difference_t<Iter> distance(Iter first, Iter last)
+    {
+        if constexpr(std::random_access_iterator<Iter>)
+            return last - first;
+        else
+        {
+            std::iter_difference_t<Iter> result{};
+            for (;first != last;++first)
+                ++result;
+            return result;
+        }
+    }
+ }
+
+ int main() {
+     static constexpr auto il = { 3, 1, 4 };
+     static_assert(cxx20::distance(il.begin(), il.end()) == 3);
+     static_assert(cxx20::distance(il.end(), il.begin()) == -3);
+ }
 
 .SH See also
 

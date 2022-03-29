@@ -1,4 +1,4 @@
-.TH std::bind_front 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::bind_front 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::bind_front \- std::bind_front
 
@@ -75,7 +75,7 @@ std::bind_front return type
 
    The member operator() is noexcept if the std::invoke expression it calls is noexcept
    (in other words, it preserves the exception specification of the underlying call
-   operator)
+   operator).
 
 .SH Exceptions
 
@@ -98,6 +98,8 @@ std::bind_front return type
    The arguments to std::bind_front are copied or moved, and are never passed by
    reference unless wrapped in std::ref or std::cref.
 
+   Feature testing macro: __cpp_lib_bind_front
+
 .SH Example
 
 
@@ -105,17 +107,41 @@ std::bind_front return type
 
  #include <functional>
  #include <iostream>
+
  int minus(int a, int b){
      return a-b;
  }
+
+ struct S
+ {
+   int val;
+   int minus(int arg) const noexcept { return val - arg; }
+ };
+
  int main()
  {
      auto fifty_minus = std::bind_front(minus, 50);
-     std::cout << fifty_minus (3);
+     std::cout << fifty_minus (3) << '\\n';
+
+     auto member_minus = std::bind_front(&S::minus, S{50});
+
+
+     std::cout << member_minus (3) << '\\n';
+
+     // noexcept-specification is preserved!
+     static_assert(! noexcept(fifty_minus (3)));
+     static_assert(noexcept(member_minus (3)));
+
+     // binding of a lambda
+     auto plus = [](int a, int b) { return a+b; };
+     auto forty_plus = std::bind_front(plus, 40);
+     std::cout << forty_plus(7) << '\\n';
  }
 
 .SH Output:
 
+ 47
+ 47
  47
 
 .SH See also

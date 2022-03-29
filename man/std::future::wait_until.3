@@ -1,4 +1,4 @@
-.TH std::future::wait_until 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::future::wait_until 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::future::wait_until \- std::future::wait_until
 
@@ -11,7 +11,13 @@ std::future::wait_until \- std::future::wait_until
    timeout_time has been reached or the result becomes available, whichever comes
    first. The return value indicates why wait_until returned.
 
-   The behavior is undefined if valid() == false before the call to this function.
+   If the future is the result of a call to async that used lazy evaluation, this
+   function returns immediately without waiting.
+
+   The behavior is undefined if valid() is false before the call to this function, or
+   Clock does not meet the Clock requirements.
+   The programs is ill-formed if std::chrono::is_clock_v<Clock> is false.
+   \fI(since C++20)\fP
 
 .SH Parameters
 
@@ -20,8 +26,9 @@ std::future::wait_until \- std::future::wait_until
 .SH Return value
 
    Constant                Explanation
-   future_status::deferred The function to calculate the result has not been started
-                           yet
+                           The shared state contains a deferred function using lazy
+   future_status::deferred evaluation, so the result will be computed only when
+                           explicitly requested
    future_status::ready    The result is ready
    future_status::timeout  The timeout has expired
 
@@ -36,13 +43,14 @@ std::future::wait_until \- std::future::wait_until
    the call and throw a std::future_error with an error condition of
    future_errc::no_state.
 
-   The clock tied to timeout_time is used, which is not required to be a monotonic
-   clock.There are no guarantees regarding the behavior of this function if the clock
-   is adjusted discontinuously, but the existing implementations convert timeout_time
-   from Clock to std::chrono::system_clock and delegate to POSIX pthread_cond_timedwait
-   so that the wait honors ajustments to the system clock, but not to the the
-   user-provided Clock. In any case, the function also may wait for longer than until
-   after timeout_time has been reached due to scheduling or resource contention delays.
+   The standard recommends that the clock tied to timeout_time be used to measure time;
+   that clock is not required to be a monotonic clock. There are no guarantees
+   regarding the behavior of this function if the clock is adjusted discontinuously,
+   but the existing implementations convert timeout_time from Clock to
+   std::chrono::system_clock and delegate to POSIX pthread_cond_timedwait so that the
+   wait honors adjustments to the system clock, but not to the user-provided Clock. In
+   any case, the function also may wait for longer than until after timeout_time has
+   been reached due to scheduling or resource contention delays.
 
 .SH Example
 

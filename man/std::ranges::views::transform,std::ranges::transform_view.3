@@ -1,4 +1,4 @@
-.TH std::ranges::views::transform,std::ranges::transform_view 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::views::transform,std::ranges::transform_view 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::views::transform,std::ranges::transform_view \- std::ranges::views::transform,std::ranges::transform_view
 
@@ -6,54 +6,83 @@ std::ranges::views::transform,std::ranges::transform_view \- std::ranges::views:
    Defined in header <ranges>
    template< ranges::input_range V,
 
-             std::copy_constructible F >
-     requires ranges::view<V> &&
-              std::is_object_v<F> &&
-              std::regular_invocable<F&,                              \fB(1)\fP \fI(since C++20)\fP
-   ranges::range_reference_t<V>> &&
-              /* invoke_result_t<F&, range_reference_t<V>>& is a
-   valid type */
+   std::copy_constructible F >
+   requires ranges::view<V> &&
+   std::is_object_v<F> &&                                             \fB(1)\fP \fI(since C++20)\fP
+   std::regular_invocable<F&, ranges::range_reference_t<V>> &&
+   /* invoke_result_t<F&, range_reference_t<V>>& is a valid type */
 
    class transform_view : public
    ranges::view_interface<transform_view<V, F>>
    namespace views {
 
-       inline constexpr /*unspecified*/ transform = /*unspecified*/;  \fB(2)\fP \fI(since C++20)\fP
+   inline constexpr /*unspecified*/ transform = /*unspecified*/;      \fB(2)\fP \fI(since C++20)\fP
 
    }
+   Call signature
+   template< ranges::viewable_range R, class F >
+
+   requires /* see below */                                               \fI(since C++20)\fP
+
+   constexpr ranges::view auto transform( R&& r, F&& fun );
+   template< class F >                                                    \fI(since C++20)\fP
+   constexpr /*range adaptor closure*/ transform( F&& fun );
 
    1) A range adaptor that represents view of an underlying sequence after applying a
    transformation function to each element.
-   2) Range adaptor object. The expression views::transform(E, F) is
-   expression-equivalent to transform_view{E, F} for any suitable subexpressions E and
-   F.
+   2) Range adaptor object. The expression views::transform(e, f) is
+   expression-equivalent to transform_view(e, f) for any suitable subexpressions e and
+   f.
 
    transform_view models the concepts random_access_range, bidirectional_range,
    forward_range, input_range, common_range, and sized_range when the underlying view V
    models respective concepts.
 
+  Expression-equivalent
+
+   Expression e is expression-equivalent to expression f, if e and f have the same
+   effects, either are both potentially-throwing or are both not potentially-throwing
+   (i.e. noexcept(e) == noexcept(f)), and either are both constant subexpressions or
+   are both not constant subexpressions.
+
 .SH Member functions
 
    constructor   constructs a transform_view
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
    base          returns a copy of the underlying (adapted) view
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
    begin         returns an iterator to the beginning
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
    end           returns an iterator or a sentinel to the end
+   (C++20)       \fI(public member function)\fP
+   size          returns the number of elements. Provided only if the underlying
+   (C++20)       (adapted) range satisfies sized_range
                  \fI(public member function)\fP
-                 returns the number of elements. Provided only if the underlying
-   size          (adapted) range satisfies sized_range
-                 \fI(public member function)\fP
+         Inherited from std::ranges::view_interface
+   empty         Returns whether the derived view is empty. Provided if it satisfies
+   (C++20)       forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator bool Returns whether the derived view is not empty. Provided if
+   (C++20)       ranges::empty is applicable to it.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   front         Returns the first element in the derived view. Provided if it
+   (C++20)       satisfies forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   back          Returns the last element in the derived view. Provided if it satisfies
+   (C++20)       bidirectional_range and common_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator[]    Returns the nth element in the derived view. Provided if it satisfies
+   (C++20)       random_access_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
 
-   Deduction guides
+  Deduction guides
 
-   Nested classes
+  Nested classes
 
    iterator the iterator type
-            \fI(public member class)\fP
+   (C++20)  (exposition-only member class template)
    sentinel the sentinel type
-            \fI(public member class)\fP
+   (C++20)  (exposition-only member class template)
 
 .SH Example
 
@@ -61,53 +90,49 @@ std::ranges::views::transform,std::ranges::transform_view \- std::ranges::views:
 // Run this code
 
  #include <algorithm>
- #include <array>
  #include <cstdio>
+ #include <iterator>
  #include <ranges>
  #include <string>
 
- class Transcoder {
-     static constexpr std::array r{
-         0x02,-0x02,-0x42, 0x05, 0x04, 0x05, 0x04,-0x02,
-         0x00,-0x0a, 0x06,-0x04, 0x00, 0x0c, 0x03,-0x06,
-     };
-     decltype(r.size()) p{}, q{};
- public:
-     char operator() (int x) {
-         ! (p|q)
-         ? (99 == x ? x += r[p++]  : x -= r[q++])
-         : (0 < p && p < r.size()) ? x += r[p++]
-         : (0 < q && q < r.size()) ? x -= r[q++]
-         : (0)
-         ;
-         return x;
+ char rot13a(const char x, const char a)
+ {
+     return a + (x - a + 13) % 26;
+ }
+
+ char rot13(const char x)
+ {
+     if (x >= 'A' && x <= 'Z') {
+         return rot13a(x, 'A');
      }
- };
+
+     if (x >= 'a' && x <= 'z') {
+         return rot13a(x, 'a');
+     }
+
+     return x;
+ }
 
  int main()
  {
-     auto show = [](const char x) { std::putchar(x); };
+     auto show = [](const unsigned char x) { std::putchar(x); };
 
      std::string in{ "cppreference.com\\n" };
      std::ranges::for_each(in, show);
+     std::ranges::for_each(in | std::views::transform(rot13), show);
 
      std::string out;
-     std::ranges::copy(
-         std::ranges::views::transform(in, Transcoder{}),
-         std::back_inserter(out));
+     std::ranges::copy( std::views::transform(in, rot13), std::back_inserter(out) );
      std::ranges::for_each(out, show);
-
-     auto view = std::ranges::transform_view{ out, Transcoder{} };
-     std::ranges::for_each(view, show);
-     std::ranges::for_each(view, show);
+     std::ranges::for_each(out | std::views::transform(rot13), show);
  }
 
 .SH Output:
 
  cppreference.com
- en.wikipedia.org
+ pccersrerapr.pbz
+ pccersrerapr.pbz
  cppreference.com
- en.wikipedia.org
 
 .SH See also
 

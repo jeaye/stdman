@@ -1,4 +1,4 @@
-.TH std::identity 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::identity 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::identity \- std::identity
 
@@ -43,11 +43,56 @@ std::identity::operator()
    particular, template functions such as std::set::find and std::set::lower_bound make
    use of this member type on their Compare types.
 
+   std::identity serves as the default projection in constrained algorithms. Its direct
+   usage is usually not needed.
+
 .SH Example
 
-    This section is incomplete
-    Reason: no example
 
-.SH Category:
+// Run this code
 
-     * Todo no example
+ #include <algorithm>
+ #include <functional>
+ #include <iostream>
+ #include <ranges>
+ #include <string>
+ #include <vector>
+
+ struct Pair {
+     int n; std::string s;
+     friend std::ostream& operator<< (std::ostream& os, const Pair& p) {
+         return os << "{ " << p.n << ", " << p.s << " }";
+     }
+ };
+
+ // A range-printer that can print projected (modified) elements of a range.
+ template <std::ranges::input_range R,
+           typename Projection = std::identity> //<- Notice the default projection
+ void print(std::string_view const rem, R&& r, Projection proj = {}) {
+     std::cout << rem << "{ ";
+     std::ranges::for_each(r, [](const auto& o){ std::cout << o << ' '; }, proj);
+     std::cout << "}\\n";
+ }
+
+ int main()
+ {
+     const std::vector<Pair> v{ {1, "one"}, {2, "two"}, {3, "three"} };
+
+     print("Print using std::identity as a projection: ", v);
+     print("Project the Pair::n: ", v, &Pair::n);
+     print("Project the Pair::s: ", v, &Pair::s);
+     print("Print using custom closure as a projection: ", v,
+         [](Pair const& p) { return std::to_string(p.n) + ':' + p.s; });
+ }
+
+.SH Output:
+
+ Print using std::identity as a projection: { { 1, one } { 2, two } { 3, three } }
+ Project the Pair::n: { 1 2 3 }
+ Project the Pair::s: { one two three }
+ Print using custom closure as a projection: { 1:one 2:two 3:three }
+
+.SH See also
+
+   type_identity returns the type argument unchanged
+   (C++20)       \fI(class template)\fP

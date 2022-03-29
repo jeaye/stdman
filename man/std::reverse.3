@@ -1,4 +1,4 @@
-.TH std::reverse 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::reverse 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::reverse \- std::reverse
 
@@ -12,9 +12,9 @@ std::reverse \- std::reverse
    void reverse( ExecutionPolicy&& policy, BidirIt first, BidirIt     \fB(2)\fP \fI(since C++17)\fP
    last );
 
-   1) Reverses the order of the elements in the range [first, last)
+   1) Reverses the order of the elements in the range [first, last).
    Behaves as if applying std::iter_swap to every pair of iterators first+i, (last-i) -
-   1 for each non-negative i < (last-first)/2
+   1 for each non-negative i < (last-first)/2.
    2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
    in overload resolution unless
    std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
@@ -35,6 +35,10 @@ std::reverse \- std::reverse
 
    \fI(none)\fP
 
+.SH Complexity
+
+   Exactly (last - first)/2 swaps.
+
 .SH Exceptions
 
    The overload with a template parameter named ExecutionPolicy reports errors as
@@ -45,21 +49,37 @@ std::reverse \- std::reverse
        For any other ExecutionPolicy, the behavior is implementation-defined.
      * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
+.SH Notes
+
+   Implementations (e.g. MSVC STL) may enable vectorization when the iterator type
+   satisfies LegacyContiguousIterator and swapping its value type calls neither
+   non-trivial special member function nor ADL-found swap.
+
 .SH Possible implementation
 
-   See also the implementations in libstdc++ and libc++.
+   See also the implementations in libstdc++, libc++, and MSVC STL.
 
    template<class BidirIt>
+   constexpr // since C++20
    void reverse(BidirIt first, BidirIt last)
    {
-       while ((first != last) && (first != --last)) {
-           std::iter_swap(first++, last);
+       using iter_cat = typename std::iterator_traits<BidirIt>::iterator_category;
+
+       // Tag dispatch, e.g. calling reverse_impl(first, last, iter_cat()),
+       // can be used in C++14 and earlier modes.
+       if constexpr (std::is_base_of_v<std::random_access_iterator_tag, iter_cat>) {
+           if (first == last)
+               return;
+           for (--last; first < last; (void)++first, --last) {
+               std::iter_swap(first, last);
+           }
+       }
+       else {
+           while ((first != last) && (first != --last)) {
+               std::iter_swap(first++, last);
+           }
        }
    }
-
-.SH Complexity
-
-   Exactly (last - first)/2 swaps.
 
 .SH Example
 
@@ -73,8 +93,8 @@ std::reverse \- std::reverse
 
  int main()
  {
-     std::vector<int> v{1,2,3};
-     std::reverse(std::begin(v), std::end(v));
+     std::vector<int> v{1, 2, 3};
+     std::reverse(v.begin(), v.end());
      for(auto e : v) std::cout << e;
      std::cout << '\\n';
 
@@ -90,5 +110,7 @@ std::reverse \- std::reverse
 
 .SH See also
 
-   reverse_copy creates a copy of a range that is reversed
-                \fI(function template)\fP
+   reverse_copy    creates a copy of a range that is reversed
+                   \fI(function template)\fP
+   ranges::reverse reverses the order of elements in a range
+   (C++20)         (niebloid)

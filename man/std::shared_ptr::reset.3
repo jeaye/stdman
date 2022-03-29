@@ -1,4 +1,4 @@
-.TH std::shared_ptr::reset 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::shared_ptr::reset 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::shared_ptr::reset \- std::shared_ptr::reset
 
@@ -36,7 +36,7 @@ std::shared_ptr::reset \- std::shared_ptr::reset
    destructor must not throw exceptions. Equivalent to shared_ptr<T>(ptr,
    d).swap(*this);.
    4) Same as \fB(3)\fP, but additionally uses a copy of alloc for allocation of data for
-   internal use. Alloc must be a Allocator. The copy constructor and destructor must
+   internal use. Alloc must be an Allocator. The copy constructor and destructor must
    not throw exceptions. Equivalent to shared_ptr<T>(ptr, d, alloc).swap(*this);.
 
 .SH Parameters
@@ -68,10 +68,10 @@ std::shared_ptr::reset \- std::shared_ptr::reset
 
  struct Foo {
      Foo(int n = 0) noexcept : bar(n) {
-         std::cout << "Foo: constructor, bar = " << bar << '\\n';
+         std::cout << "Foo::Foo(), bar = " << bar << " @ " << this << '\\n';
      }
      ~Foo() {
-          std::cout << "Foo: destructor, bar = " << bar << '\\n';
+         std::cout << "Foo::~Foo(), bar = " << bar << " @ " << this << "\\n";
      }
      int getBar() const noexcept { return bar; }
  private:
@@ -80,23 +80,93 @@ std::shared_ptr::reset \- std::shared_ptr::reset
 
  int main()
  {
-     std::shared_ptr<Foo> sptr = std::make_shared<Foo>(1);
-     std::cout << "The first Foo's bar is " << sptr->getBar() << "\\n";
+     std::cout << "1) unique ownership\\n";
+     {
+         std::shared_ptr<Foo> sptr = std::make_shared<Foo>(100);
 
-     // reset the shared_ptr, hand it a fresh instance of Foo
-     // (the old instance will be destroyed after this call)
-     sptr.reset(new Foo);
-     std::cout << "The second Foo's bar is " << sptr->getBar() << "\\n";
+         std::cout << "Foo::bar = " << sptr->getBar() << ", use_count() = "
+                   << sptr.use_count() << '\\n';
+
+         // Reset the shared_ptr without handing it a fresh instance of Foo.
+         // The old instance will be destroyed after this call.
+         std::cout << "call sptr.reset()...\\n";
+         sptr.reset(); // calls Foo's destructor here
+         std::cout << "After reset(): use_count() = " << sptr.use_count()
+                   << ", sptr = " << sptr << '\\n';
+     }   // No call to Foo's destructor, it was done earlier in reset().
+
+     std::cout << "\\n2) unique ownership\\n";
+     {
+         std::shared_ptr<Foo> sptr = std::make_shared<Foo>(200);
+
+         std::cout << "Foo::bar = " << sptr->getBar() << ", use_count() = "
+                   << sptr.use_count() << '\\n';
+
+         // Reset the shared_ptr, hand it a fresh instance of Foo.
+         // The old instance will be destroyed after this call.
+         std::cout << "call sptr.reset()...\\n";
+         sptr.reset(new Foo{222});
+         std::cout << "After reset(): use_count() = " << sptr.use_count()
+                   << ", sptr = " << sptr << "\\nLeaving the scope...\\n";
+     }   // Calls Foo's destructor.
+
+     std::cout << "\\n3) multiple ownership\\n";
+     {
+         std::shared_ptr<Foo> sptr1 = std::make_shared<Foo>(300);
+         std::shared_ptr<Foo> sptr2 = sptr1;
+         std::shared_ptr<Foo> sptr3 = sptr2;
+
+         std::cout << "Foo::bar = " << sptr1->getBar() << ", use_count() = "
+                   << sptr1.use_count() << '\\n';
+
+         // Reset the shared_ptr sptr1, hand it a fresh instance of Foo.
+         // The old instance will stay shared between sptr2 and sptr3.
+         std::cout << "call sptr1.reset()...\\n";
+         sptr1.reset(new Foo{333});
+
+         std::cout << "After reset():\\n"
+                   << "sptr1.use_count() = " << sptr1.use_count()
+                   << ", sptr1 @ " << sptr1 << '\\n'
+                   << "sptr2.use_count() = " << sptr2.use_count()
+                   << ", sptr2 @ " << sptr2 << '\\n'
+                   << "sptr3.use_count() = " << sptr3.use_count()
+                   << ", sptr3 @ " << sptr3 << '\\n'
+                   << "Leaving the scope...\\n";
+     }   // Calls two destructors of: 1) Foo owned by sptr1,
+         // 2) Foo shared between sptr2/sptr3.
  }
 
-.SH Output:
+.SH Possible output:
 
- Foo: constructor, bar = 1
- The first Foo's bar is 1
- Foo: constructor, bar = 0
- Foo: destructor, bar = 1
- The second Foo's bar is 0
- Foo: destructor, bar = 0
+ 1) unique ownership
+ Foo::Foo(), bar = 100 @ 0x23c5040
+ Foo::bar = 100, use_count() = 1
+ call sptr.reset()...
+ Foo::~Foo(), bar = 100 @ 0x23c5040
+ After reset(): use_count() = 0, sptr = 0
+
+ 2) unique ownership
+ Foo::Foo(), bar = 200 @ 0x23c5040
+ Foo::bar = 200, use_count() = 1
+ call sptr.reset()...
+ Foo::Foo(), bar = 222 @ 0x23c5050
+ Foo::~Foo(), bar = 200 @ 0x23c5040
+ After reset(): use_count() = 1, sptr = 0x23c5050
+ Leaving the scope...
+ Foo::~Foo(), bar = 222 @ 0x23c5050
+
+ 3) multiple ownership
+ Foo::Foo(), bar = 300 @ 0x23c5080
+ Foo::bar = 300, use_count() = 3
+ call sptr1.reset()...
+ Foo::Foo(), bar = 333 @ 0x23c5050
+ After reset():
+ sptr1.use_count() = 1, sptr1 @ 0x23c5050
+ sptr2.use_count() = 2, sptr2 @ 0x23c5080
+ sptr3.use_count() = 2, sptr3 @ 0x23c5080
+ Leaving the scope...
+ Foo::~Foo(), bar = 300 @ 0x23c5080
+ Foo::~Foo(), bar = 333 @ 0x23c5050
 
 .SH See also
 

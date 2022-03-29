@@ -1,4 +1,4 @@
-.TH std::mblen 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::mblen 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::mblen \- std::mblen
 
@@ -12,7 +12,7 @@ std::mblen \- std::mblen
    If s is a null pointer, resets the global conversion state and determines whether
    shift sequences are used.
 
-   This function is equivalent to the call std::mbtowc((wchar_t*)0, s, n), except that
+   This function is equivalent to the call std::mbtowc(nullptr, s, n), except that
    conversion state of std::mbtowc is unaffected.
 
 .SH Notes
@@ -45,19 +45,20 @@ std::mblen \- std::mblen
 // Run this code
 
  #include <clocale>
- #include <string>
- #include <iostream>
  #include <cstdlib>
+ #include <iomanip>
+ #include <iostream>
  #include <stdexcept>
+ #include <string_view>
 
  // the number of characters in a multibyte string is the sum of mblen()'s
- // note: the simpler approach is std::mbstowcs(NULL, s.c_str(), s.size())
- std::size_t strlen_mb(const std::string& s)
+ // note: the simpler approach is std::mbstowcs(nullptr, s.c_str(), s.size())
+ std::size_t strlen_mb(const std::string_view s)
  {
      std::size_t result = 0;
      const char* ptr = s.data();
      const char* end = ptr + s.size();
-     std::mblen(NULL, 0); // reset the conversion state
+     std::mblen(nullptr, 0); // reset the conversion state
      while (ptr < end) {
          int next = std::mblen(ptr, end-ptr);
          if (next == -1) {
@@ -69,19 +70,28 @@ std::mblen \- std::mblen
      return result;
  }
 
+ void dump_bytes(const std::string_view str)
+ {
+     std::cout << std::hex << std::uppercase << std::setfill('0');
+     for (unsigned char c : str)
+         std::cout << std::setw(2) << static_cast<int>(c) << ' ';
+     std::cout << std::dec << '\\n';
+ }
+
  int main()
  {
      // allow mblen() to work with UTF-8 multibyte encoding
      std::setlocale(LC_ALL, "en_US.utf8");
      // UTF-8 narrow multibyte encoding
-     std::string str = u8"z\\u00df\\u6c34\\U0001f34c"; // or u8"zß水🍌"
-     std::cout << str << " is " << str.size() << " bytes, but only "
-               << strlen_mb(str) << " characters\\n";
+     const std::string_view str = "z\\u00df\\u6c34\\U0001f34c"; // or u8"zß水🍌"
+     std::cout << std::quoted(str) << " is " << strlen_mb(str)
+               << " characters, but as much as " << str.size() << " bytes: ";
+     dump_bytes(str);
  }
 
-.SH Output:
+.SH Possible output:
 
- zß水🍌 is 10 bytes, but only 4 characters
+ "zß水🍌" is 4 characters, but as much as 10 bytes: 7A C3 9F E6 B0 B4 F0 9F 8D 8C
 
 .SH See also
 
@@ -89,5 +99,3 @@ std::mblen \- std::mblen
           \fI(function)\fP
    mbrlen returns the number of bytes in the next multibyte character, given state
           \fI(function)\fP
-   C documentation for
-   mblen

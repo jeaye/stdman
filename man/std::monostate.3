@@ -1,4 +1,4 @@
-.TH std::monostate 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::monostate 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::monostate \- std::monostate
 
@@ -21,6 +21,8 @@ std::monostate \- std::monostate
 
 .SH Non-member functions
 
+std::operator==, !=, <, <=, >, >=, <=>(std::monostate)
+
    constexpr bool operator==(monostate, monostate) noexcept { return      \fI(since C++17)\fP
    true; }
    constexpr bool operator!=(monostate, monostate) noexcept { return
@@ -41,6 +43,9 @@ std::monostate \- std::monostate
 
    All instances of std::monostate compare equal.
 
+   The <, <=, >, >=, and != operators are synthesized from operator<=>    \fI(since C++20)\fP
+   and operator== respectively.
+
 .SH Helper classes
 
 std::hash<std::monostate>
@@ -56,6 +61,7 @@ std::hash<std::monostate>
 
  #include <variant>
  #include <iostream>
+ #include <cassert>
 
  struct S
  {
@@ -69,17 +75,23 @@ std::hash<std::monostate>
      // This is because S is not default-constructible.
 
      std::variant<std::monostate, S> var;
+     assert(var.index() == 0);
 
-     // var.index() is now 0 - the first element
-     // std::get<S> will throw! We need to assign a value
+     try {
+         std::get<S>(var); // throws! We need to assign a value
+     }
+     catch(const std::bad_variant_access& e) {
+         std::cout << e.what() << '\\n';
+     }
 
      var = 12;
 
      std::cout << std::get<S>(var).i << '\\n';
  }
 
-.SH Output:
+.SH Possible output:
 
+ std::get: wrong index for variant
  12
 
 .SH See also

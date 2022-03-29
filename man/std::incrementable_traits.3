@@ -1,79 +1,64 @@
-.TH std::incrementable_traits 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::incrementable_traits 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::incrementable_traits \- std::incrementable_traits
 
 .SH Synopsis
    Defined in header <iterator>
-   template< class I >                                                \fB(1)\fP \fI(since C++20)\fP
-   struct incrementable_traits { };
-   template< class T >
+   template< class I, class S >
 
-       requires std::is_object_v<T>                                   \fB(2)\fP \fI(since C++20)\fP
+   struct incrementable_traits<std::common_iterator<I, S>> {  \fI(since C++20)\fP
+   using difference_type = std::iter_difference_t<I>;
 
-   struct incrementable_traits<T*>;
-   template< class T >
-   struct incrementable_traits<const T> : incrementable_traits<T> {   \fB(3)\fP \fI(since C++20)\fP
    };
-   template< class T >
 
-     requires requires { typename T::difference_type; }               \fB(4)\fP \fI(since C++20)\fP
-
-   struct incrementable_traits<T>;
-   template< class T >
-
-     requires (!requires { typename T::difference_type; }) &&
-              requires(const T& a, const T& b) { { a - b } ->         \fB(5)\fP \fI(since C++20)\fP
-   std::integral; }
-
-   struct incrementable_traits<T>;
-
-   Computes the associated difference type of the type I, if any. Users may specialize
-   incrementable_traits for a program-defined type.
-
-   1) Primary template is an empty struct.
-   2) Specialization for pointers. Provides a member type difference_type equal to
-   std::ptrdiff_t.
-   3) Specialization for const-qualified types.
-   4) Specialization for types that define a public and accessible member type
-   difference_type. Provides a member type difference_type equal to T::difference_type.
-   5) Specialization for types that do not define a public and accessible member type
-   difference_type but do support subtraction. Provides a member type difference_type
-   equal to std::make_signed_t<decltype(std::declval<T>() - std::declval<T>())>. The
-   implicit expression variations rule (see below) applies to the expression a - b.
-
-   Implicit expression variations
-
-   A requires-expression that uses an expression that is non-modifying for some
-   constant lvalue operand also implicitly requires additional variations of that
-   expression that accept a non-constant lvalue or (possibly constant) rvalue for the
-   given operand unless such an expression variation is explicitly required with
-   differing semantics. These implicit expression variations must meet the same
-   semantic requirements of the declared expression. The extent to which an
-   implementation validates the syntax of the variations is unspecified.
+   Provides the uniform interface to the associated difference type of the
+   std::common_iterator type.
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <list>
+ #include <string>
+ #include <cstddef>
+ #include <iterator>
+ #include <type_traits>
+
+ int main()
+ {
+     using CI = std::common_iterator<
+                     std::counted_iterator<int*>,
+                     std::default_sentinel_t
+                     >;
+     using CL = std::common_iterator<
+                     std::counted_iterator<std::list<std::string>::iterator>,
+                     std::default_sentinel_t
+                     >;
+     CL cl { std::default_sentinel };
+     static_assert(
+         std::same_as<std::incrementable_traits<CI>::difference_type, std::ptrdiff_t> &&
+         std::same_as<std::incrementable_traits<CL>::difference_type, std::ptrdiff_t> &&
+         std::same_as<std::incrementable_traits<decltype(cl)>::difference_type, std::ptrdiff_t>
+     );
+ }
 
 .SH See also
 
-   weakly_incrementable    specifies that a semiregular type can be incremented with
-   (C++20)                 pre- and post-increment operators
-                           (concept)
+   incrementable_traits                       computes the difference type of a
+   (C++20)                                    weakly_incrementable type
+                                              \fI(class template)\fP
    iter_value_t
    iter_reference_t
    iter_difference_t
-   iter_rvalue_reference_t
-   iter_common_reference_t computes the associate types of an iterator
-   (C++20)                 (alias template)
+   iter_rvalue_reference_t                    computes the associated types of an
+   iter_common_reference_t                    iterator
+   (C++20)                                    (alias template)
    (C++20)
    (C++20)
    (C++20)
    (C++20)
-   iterator_traits         provides uniform interface to the properties of an iterator
-                           \fI(class template)\fP
-
-.SH Category:
-
-     * Todo no example
+                                              provides uniform interface to the
+   std::iterator_traits<std::common_iterator> properties of the std::common_iterator
+   (C++20)                                    type
+                                              \fI(class template specialization)\fP

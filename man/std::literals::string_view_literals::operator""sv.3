@@ -1,19 +1,19 @@
-.TH std::literals::string_view_literals::operator""sv 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::literals::string_view_literals::operator""sv 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::literals::string_view_literals::operator""sv \- std::literals::string_view_literals::operator""sv
 
 .SH Synopsis
    Defined in header <string_view>
-   constexpr std::string_view                                         \fB(1)\fP \fI(since C++17)\fP
-       operator "" sv(const char* str, std::size_t len) noexcept;
-   constexpr std::u8string_view                                       \fB(2)\fP \fI(since C++20)\fP
-       operator "" sv(const char8_t* str, std::size_t len) noexcept;
-   constexpr std::u16string_view                                      \fB(3)\fP \fI(since C++17)\fP
-       operator "" sv(const char16_t* str, std::size_t len) noexcept;
-   constexpr std::u32string_view                                      \fB(4)\fP \fI(since C++17)\fP
-       operator "" sv(const char32_t* str, std::size_t len) noexcept;
-   constexpr std::wstring_view                                        \fB(5)\fP \fI(since C++17)\fP
-       operator "" sv(const wchar_t* str, std::size_t len) noexcept;
+   constexpr std::string_view                                       \fB(1)\fP \fI(since C++17)\fP
+   operator "" sv( const char* str, std::size_t len ) noexcept;
+   constexpr std::u8string_view                                     \fB(2)\fP \fI(since C++20)\fP
+   operator "" sv( const char8_t* str, std::size_t len ) noexcept;
+   constexpr std::u16string_view                                    \fB(3)\fP \fI(since C++17)\fP
+   operator "" sv( const char16_t* str, std::size_t len ) noexcept;
+   constexpr std::u32string_view                                    \fB(4)\fP \fI(since C++17)\fP
+   operator "" sv( const char32_t* str, std::size_t len ) noexcept;
+   constexpr std::wstring_view                                      \fB(5)\fP \fI(since C++17)\fP
+   operator "" sv( const wchar_t* str, std::size_t len ) noexcept;
 
    Forms a string view of a character literal.
 
@@ -46,6 +46,13 @@ std::literals::string_view_literals::operator""sv \- std::literals::string_view_
 
  #include <string_view>
  #include <iostream>
+ #include <typeinfo>
+
+ void print_all(const std::string_view sw) {
+     for (char c : sw)
+         std::cout << (c == '\\0' ? '?' : c);
+     std::cout << '\\n';
+ }
 
  int main()
  {
@@ -53,26 +60,41 @@ std::literals::string_view_literals::operator""sv \- std::literals::string_view_
 
      std::string_view s1 = "abc\\0\\0def";
      std::string_view s2 = "abc\\0\\0def"sv;
-     std::cout << "s1: " << s1.size() << " \\"" << s1 << "\\"\\n";
-     std::cout << "s2: " << s2.size() << " \\"" << s2 << "\\"\\n";
+     std::cout << "s1.size(): " << s1.size() << "; s1: ";
+     print_all(s1);
+     std::cout << "s2.size(): " << s2.size() << "; s2: ";
+     print_all(s2);
+     std::cout << "abcdef"sv.substr(1,4) << '\\n';
 
-     std::cout
-         << sizeof(decltype( "char A"sv      )::value_type) << ' '
-         << sizeof(decltype( L"wchar_t ∀"sv  )::value_type) << ' '
-         << sizeof(decltype( u8"char8_t ∆"sv )::value_type) << ' '
-         << sizeof(decltype( u"char16_t ∇"sv )::value_type) << ' '
-         << sizeof(decltype( U"char32_t ∃"sv )::value_type) << ' '
-         << sizeof(decltype( LR"(raw ⊞)"sv   )::value_type) << ' '
-         << '\\n';
+     auto value_type_info = []<typename T>(T) {
+         using V = typename T::value_type;
+         std::cout << "sizeof " << typeid(V).name()
+                   << ": " << sizeof(V) << '\\n';
+     };
+
+     value_type_info( "char A"sv      );
+     value_type_info( L"wchar_t ∀"sv  );
+     value_type_info( u8"char8_t ∆"sv );
+     value_type_info( u"char16_t ∇"sv );
+     value_type_info( U"char32_t ∃"sv );
+     value_type_info( LR"(raw ⊞)"sv  );
  }
 
 .SH Possible output:
 
- s1: 3 "abc"
- s2: 8 "abc^@^@def"
- 1 4 1 2 4 4
+ s1.size(): 3; s1: abc
+ s2.size(): 8; s2: abc??def
+ bcde
+ sizeof char: 1
+ sizeof wchar_t: 4
+ sizeof char8_t: 1
+ sizeof char16_t: 2
+ sizeof char32_t: 4
+ sizeof wchar_t: 4
 
 .SH See also
 
    constructor   constructs a basic_string_view
-                 \fI(public member function)\fP
+   \fI(C++17)\fP       \fI(public member function)\fP
+   operator""s   Converts a character array literal to basic_string
+   \fI(C++14)\fP       \fI(function)\fP

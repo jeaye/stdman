@@ -1,17 +1,23 @@
-.TH std::move_iterator::operator*,-> 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::move_iterator::operator*,-> 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::move_iterator::operator*,-> \- std::move_iterator::operator*,->
 
 .SH Synopsis
-   reference operator* () const;                   \fI(until C++17)\fP
+   reference operator* () const;                   \fI(since C++11)\fP
+                                                   \fI(until C++17)\fP
    constexpr reference operator* () const;         \fI(since C++17)\fP
-   pointer operator->() const;             \fB(1)\fP                   \fI(until C++17)\fP
-   constexpr pointer operator->() const;       \fB(2)\fP               \fI(since C++17)\fP
+   pointer operator->() const;             \fB(1)\fP                   \fI(since C++11)\fP
+                                               \fB(2)\fP               \fI(until C++17)\fP
+   constexpr pointer operator->() const;                         \fI(since C++17)\fP
                                                                  (deprecated in C++20)
 
    Returns a rvalue-reference or pointer to the current element.
 
-   1) Equivalent to static_cast<reference>(*base()).
+   1) Equivalent to
+   static_cast<reference>(*base())
+   \fI(until C++20)\fP
+   ranges::iter_move(base())
+   \fI(since C++20)\fP.
    2) Equivalent to base().
 
 .SH Parameters
@@ -32,10 +38,44 @@ std::move_iterator::operator*,-> \- std::move_iterator::operator*,->
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
 
-   Defect reports
+// Run this code
+
+ #include <iomanip>
+ #include <iostream>
+ #include <iterator>
+ #include <string>
+ #include <vector>
+
+ void print(auto rem, auto const& v) {
+     for (std::cout << rem; auto const& e : v)
+         std::cout << quoted(e) << ' ';
+     std::cout << '\\n';
+ }
+
+ int main()
+ {
+     std::vector<std::string> p{"alpha", "beta", "gamma", "delta"}, q;
+     print("1) p: ", p);
+     for (std::move_iterator it{p.begin()}, end{p.end()}; it != end; ++it) {
+         it->push_back('!'); // calls -> string::push_back(char)
+         q.emplace_back( *it );
+     }
+     print("2) p: ", p);
+     print("3) q: ", q);
+
+     std::vector v{1,2,3};
+     std::move_iterator it{v.begin()};
+     // *it = 13; // error: using rvalue as lvalue
+ }
+
+.SH Output:
+
+ 1) p: "alpha" "beta" "gamma" "delta"
+ 2) p: "" "" "" ""
+ 3) q: "alpha!" "beta!" "gamma!" "delta!"
+
+  Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
@@ -49,8 +89,4 @@ std::move_iterator::operator*,-> \- std::move_iterator::operator*,->
 .SH See also
 
    operator[] accesses an element by index
-              \fI(public member function)\fP
-
-.SH Category:
-
-     * Todo no example
+   \fI(C++11)\fP    \fI(public member function)\fP

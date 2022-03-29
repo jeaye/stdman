@@ -1,4 +1,4 @@
-.TH std::atomic_ref::atomic_ref 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::atomic_ref::atomic_ref 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::atomic_ref::atomic_ref \- std::atomic_ref::atomic_ref
 
@@ -16,3 +16,54 @@ std::atomic_ref::atomic_ref \- std::atomic_ref::atomic_ref
 
    obj - object to reference
    ref - another atomic_ref object to copy from
+
+.SH Example
+
+   The program increments the values in a container using several threads. Then the
+   final sum is printed. Non-atomic access may "loss" the results of some operations
+   due to data-races.
+
+
+// Run this code
+
+ #include <atomic>
+ #include <thread>
+ #include <vector>
+ #include <numeric>
+ #include <iostream>
+
+ int main()
+ {
+     using Data = std::vector<char>;
+
+     auto inc_atomically = [](Data& data) {
+         for (Data::value_type& x : data) {
+             auto xx = std::atomic_ref<Data::value_type>(x);
+             ++xx;  // atomic read-modify-write
+         }
+     };
+
+     auto inc_directly = [](Data& data) {
+         for (Data::value_type& x : data)
+             ++x;
+     };
+
+     auto test_run = [](const auto Fun) {
+         Data data(10'000'000);
+         {
+             std::jthread j1 {Fun, std::ref(data)};
+             std::jthread j2 {Fun, std::ref(data)};
+             std::jthread j3 {Fun, std::ref(data)};
+             std::jthread j4 {Fun, std::ref(data)};
+         }
+         std::cout << "sum = " << std::accumulate(cbegin(data), cend(data), 0) << '\\n';
+     };
+
+     test_run(inc_atomically);
+     test_run(inc_directly);
+ }
+
+.SH Possible output:
+
+ sum = 40000000
+ sum = 39994973

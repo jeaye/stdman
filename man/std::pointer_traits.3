@@ -1,4 +1,4 @@
-.TH std::pointer_traits 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::pointer_traits 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::pointer_traits \- std::pointer_traits
 
@@ -32,11 +32,15 @@ std::pointer_traits \- std::pointer_traits
 
 .SH Member functions
 
-   pointer_to obtains a dereferenceable pointer to its argument
-   \fB[static]\fP   \fI(public static member function)\fP
+   pointer_to                 obtains a dereferenceable pointer to its argument
+   \fB[static]\fP                   \fI(public static member function)\fP
+         Optional member functions of program-defined specializations
+   to_address                 obtains a raw pointer from a fancy pointer (inverse of
+   \fB[static]\fP (C++20)(optional) pointer_to)
+                              \fI(public static member function)\fP
 
    2) A specialization is provided for pointer types, T*, which declares the following
-   types
+   types:
 
 .SH Member types
 
@@ -55,14 +59,6 @@ std::pointer_traits \- std::pointer_traits
    pointer_to obtains a dereferenceable pointer to its argument
    \fB[static]\fP   \fI(public static member function)\fP
 
-   3) A specialization for user-defined fancy pointer types may define an additional
-   static member function
-
-   Optional Member functions
-
-   to_address       obtains a raw pointer from a fancy pointer (inverse of pointer_to)
-   \fB[static]\fP (C++20) \fI(public static member function)\fP
-
 .SH Notes
 
    The rebind member template alias makes it possible, given a pointer-like type that
@@ -70,6 +66,10 @@ std::pointer_traits \- std::pointer_traits
 
  using another_pointer = std::pointer_traits<std::shared_ptr<int>>::rebind<double>;
  static_assert(std::is_same<another_pointer, std::shared_ptr<double>>::value);
+
+   A specialization for user-defined fancy pointer types may provide an
+   additional static member function to_address to customize the behavior \fI(since C++20)\fP
+   of std::to_address.
 
 .SH Example
 
@@ -92,8 +92,8 @@ std::pointer_traits \- std::pointer_traits
 
     struct block
     {
-       std::size_t size;
-       block_ptr_t next_block;
+       std::size_t size{};
+       block_ptr_t next_block{};
     };
 
     block_ptr_t free_blocks;
@@ -101,11 +101,13 @@ std::pointer_traits \- std::pointer_traits
 
  int main()
  {
+     [[maybe_unused]]
      BlockList<int*> bl1;
-     // The type of bl1.free_blocks is block*
+     // The type of bl1.free_blocks is BlockList<int*>:: block*
 
      BlockList<std::shared_ptr<char>> bl2;
-     // The type of bl2.free_blocks is std::shared_ptr<block>
+     // The type of bl2.free_blocks is
+     // std::shared_ptr< BlockList<std::shared_ptr<char> >::block>
      std::cout << bl2.free_blocks.use_count() << '\\n';
  }
 

@@ -1,4 +1,4 @@
-.TH std::function::function 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::function::function 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::function::function \- std::function::function
 
@@ -10,7 +10,7 @@ std::function::function \- std::function::function
                                                                      \fI(until C++20)\fP
    function( function&& other ) noexcept;                            \fI(since C++20)\fP
    template< class F >                                 \fB(5)\fP           \fI(since C++11)\fP
-   function( F f );
+   function( F&& f );
    template< class Alloc >                                           \fI(since C++11)\fP
    function( std::allocator_arg_t, const Alloc&        \fB(6)\fP           (removed in C++17)
    alloc ) noexcept;
@@ -19,19 +19,19 @@ std::function::function \- std::function::function
    function( std::allocator_arg_t, const Alloc&        \fB(7)\fP           \fI(since C++11)\fP
    alloc,                                                            (removed in C++17)
 
-             std::nullptr_t ) noexcept;
+   std::nullptr_t ) noexcept;
    template< class Alloc >                         \fB(4)\fP
 
    function( std::allocator_arg_t, const Alloc&        \fB(8)\fP           \fI(since C++11)\fP
    alloc,                                                            (removed in C++17)
 
-             const function& other );
+   const function& other );
    template< class Alloc >
 
    function( std::allocator_arg_t, const Alloc&        \fB(9)\fP           \fI(since C++11)\fP
    alloc,                                                            (removed in C++17)
 
-             function&& other );
+   function&& other );
    template< class F, class Alloc >                                  \fI(since C++11)\fP
    function( std::allocator_arg_t, const Alloc&        \fB(10)\fP          (removed in C++17)
    alloc, F f );
@@ -42,10 +42,13 @@ std::function::function \- std::function::function
    3-4) Copies \fB(3)\fP or moves \fB(4)\fP the target of other to the target of *this. If other is
    empty, *this will be empty after the call too. For \fB(4)\fP, other is in a valid but
    unspecified state after the call.
-   5) Initializes the target with std::move(f). If f is a null pointer to function or
-   null pointer to member, *this will be empty after the call. This constructor does
-   not participate in overload resolution unless f is Callable for argument types
-   Args... and return type R.
+   5) Initializes the target with std::forward<F>(f). The target is of type
+   std::decay<F>::type. If f is a null pointer to function, a null pointer to member,
+   or an empty value of some std::function specialization, *this will be empty after
+   the call. This constructor does not participate in overload resolution unless the
+   target type is not same as function, and its lvalue is Callable for argument types
+   Args... and return type R. The program is ill-formed if the target type is not
+   copy-constructible or initialization of the target is ill-formed.
    6-10) Same as (1-5) except that alloc is used to allocate memory for any internal
    data structures that the function might use.
 
@@ -57,12 +60,12 @@ std::function::function \- std::function::function
 
 .SH Parameters
 
-   other    -   the function object used to initialize *this
-   f        -   a callable used to initialize *this
-   alloc    -   an Allocator used for internal memory allocation
+   other          -         the function object used to initialize *this
+   f              -         a callable object used to initialize *this
+   alloc          -         an Allocator used for internal memory allocation
 .SH Type requirements
    -
-   F must meet the requirements of Callable and CopyConstructible.
+   std::decay<F>::type must meet the requirements of Callable and CopyConstructible.
    -
    Alloc must meet the requirements of Allocator.
 
@@ -94,7 +97,7 @@ std::function::function \- std::function::function
     This section is incomplete
     Reason: no example
 
-   Defect reports
+  Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
@@ -102,7 +105,11 @@ std::function::function \- std::function::function
       DR    Applied to              Behavior as published              Correct behavior
    LWG 2132 C++11      constructor taking a Callable object might be   constrained
                        ambiguous
+   LWG 2774 C++11      constructor taking a Callable performed an      eliminated
+                       additional move
 
-.SH Category:
+.SH See also
 
-     * Todo no example
+   constructor   constructs a new std::move_only_function object
+   (C++23)       \fI(public member function of std::move_only_function<R(Args...) cv ref\fP
+                 noexcept(noex)>)

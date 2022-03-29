@@ -1,15 +1,14 @@
-.TH std::ranges::transform_view::iterator::base 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::transform_view::iterator::base 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::transform_view::iterator::base \- std::ranges::transform_view::iterator::base
 
 .SH Synopsis
-   constexpr ranges::iterator_t<Base> base() const &   \fB(1)\fP \fI(since C++20)\fP
-     requires std::copyable<ranges::iterator_t<Base>>;
-   constexpr ranges::iterator_t<Base> base() &&;       \fB(2)\fP \fI(since C++20)\fP
+   constexpr const ranges::iterator_t<Base>& base() const & noexcept; \fB(1)\fP \fI(since C++20)\fP
+   constexpr ranges::iterator_t<Base> base() &&;                      \fB(2)\fP \fI(since C++20)\fP
 
-   Returns a copy of the underlying iterator.
+   Returns the underlying iterator.
 
-   1) Copy constructs the result from the underlying iterator.
+   1) Returns a reference to the underlying iterator.
    2) Move constructs the result from the underlying iterator.
 
 .SH Parameters
@@ -18,13 +17,44 @@ std::ranges::transform_view::iterator::base \- std::ranges::transform_view::iter
 
 .SH Return value
 
-   A copy of the underlying iterator.
+   1) A reference to the underlying iterator.
+   2) An iterator move constructed from the underlying iterator.
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
 
-.SH Category:
+// Run this code
 
-     * Todo no example
+ #include <algorithm>
+ #include <iostream>
+ #include <iterator>
+ #include <ranges>
+
+ int main()
+ {
+     const auto v = { 0, 1, 2, 3, 4 };
+     auto x2 = [](int x) { return x << 1; };
+     std::ranges::transform_view tv{ v, x2 };
+     std::ostream_iterator<int> ostr{ std::cout, " " };
+
+     std::ranges::copy(v, ostr), std::cout << '\\n';
+     std::ranges::copy(tv.base(), ostr), std::cout << '\\n';
+     std::ranges::copy(tv, ostr), std::cout << '\\n';
+ }
+
+.SH Output:
+
+ 0 1 2 3 4
+ 0 1 2 3 4
+ 0 2 4 6 8
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to            Behavior as published              Correct behavior
+   LWG 3533 C++20      the const& overload of base returns a copy   returns a reference
+                       of the underlying iterator
+   LWG 3593 C++20      the const& overload of base might not be     made noexcept
+                       noexcept

@@ -1,39 +1,61 @@
-.TH deductionguidesforstd::priority_queue 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH deductionguidesforstd::priority_queue 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 deductionguidesforstd::priority_queue \- deductionguidesforstd::priority_queue
 
 .SH Synopsis
    Defined in header <queue>
-   template <class Compare, class Container>
+   template <class Comp, class Container>
 
-   priority_queue(Compare, Container)                                 \fB(1)\fP \fI(since C++17)\fP
+   priority_queue(Comp, Container)                                    \fB(1)\fP \fI(since C++17)\fP
 
-    -> priority_queue<typename Container::value_type, Container,
-   Compare>;
+   -> priority_queue<typename Container::value_type, Container,
+   Comp>;
    template<class InputIt,
 
-            class Comp = std::less<typename
-   std::iterator_traits<InputIt>::value_type>,
-            class Container = std::vector<typename
-   iterator_traits<InputIt>::value_type>>                             \fB(2)\fP \fI(since C++17)\fP
+   class Comp = std::less</*iter-value-type*/<InputIt>>,
+   class Container = std::vector</*iter-value-type*/<InputIt>>        \fB(2)\fP \fI(since C++17)\fP
    priority_queue(InputIt, InputIt, Comp = Comp(), Container =
    Container())
 
-     -> priority_queue<typename
-   std::iterator_traits<InputIt>::value_type, Container, Comp>;
+   -> priority_queue</*iter-value-type*/<InputIt>, Container, Comp>;
    template<class Comp, class Container, class Alloc>
 
    priority_queue(Comp, Container, Alloc)                             \fB(3)\fP \fI(since C++17)\fP
 
-     -> priority_queue<typename Container::value_type, Container,
+   -> priority_queue<typename Container::value_type, Container,
+   Comp>;
+   template<class InputIt, class Alloc>
+
+   priority_queue(InputIt, InputIt, Alloc)
+   -> priority_queue</*iter-value-type*/<InputIt>,                    \fB(4)\fP \fI(since C++17)\fP
+   std::vector</*iter-value-type*/<InputIt>, Alloc>,
+
+   std::less</*iter-value-type*/<InputIt>>>;
+   template<class InputIt, class Comp, class Alloc>
+
+   priority_queue(InputIt, InputIt, Comp, Alloc)                      \fB(5)\fP \fI(since C++17)\fP
+   -> priority_queue</*iter-value-type*/<InputIt>,
+
+   std::vector</*iter-value-type*/<InputIt>, Alloc>, Comp>;
+   template<class InputIt, class Comp, class Container, class Alloc>
+
+   priority_queue(InputIt, InputIt, Comp, Container, Alloc)           \fB(6)\fP \fI(since C++17)\fP
+
+   -> priority_queue<typename Container::value_type, Container,
    Comp>;
 
    These deduction guides are provided for std::priority_queue to allow deduction from
-   underlying container type (overloads (1,3)) and from an iterator range (overload
-   \fB(2)\fP) This overload only participates in overload resolution if InputIt satisfies
-   LegacyInputIterator, Alloc satisfies Allocator, Comp does not satisfy Allocator,
-   Container does not satisfy Allocator and, for overload \fB(3)\fP, if
-   std::uses_allocator_v<Container, Alloc> is true
+   underlying container type and from an iterator range. /*iter-value-type*/<It>
+   denotes typename std::iterator_traits<It>::value_type for any type It.
+
+   These overloads participate in overload resolution only if
+
+     * InputIt satisfies LegacyInputIterator,
+     * Comp does not satisfy Allocator,
+     * Container does not satisfy Allocator,
+     * for overloads \fB(4)\fP and \fB(5)\fP,
+       (since C++23) Alloc satisfies Allocator, and
+     * for overloads \fB(3)\fP and \fB(6)\fP, std::uses_allocator_v<Container, Alloc> is true.
 
    Note: the extent to which the library determines that a type does not satisfy
    LegacyInputIterator is unspecified, except that as a minimum integral types do not
@@ -48,13 +70,37 @@ deductionguidesforstd::priority_queue \- deductionguidesforstd::priority_queue
 
 // Run this code
 
- #include <functional>
- #include <vector>
  #include <queue>
+ #include <vector>
+ #include <iostream>
+ #include <functional>
+
  int main() {
-    std::vector<int> v = {1,2,3,4};
-    std::priority_queue pq1{std::greater<int>{}, v}; // deduces std::priority_queue<
-                                                     //   int, std::vector<int>,
-                                                     //   std::greater<int>>
-    std::priority_queue pq2{v.begin(), v.end()}; // deduces std::priority_queue<int>
+     const std::vector<int> v = {1,2,3,4};
+     std::priority_queue pq1{std::greater<int>{}, v}; // deduces std::priority_queue<
+                                                      //   int, std::vector<int>,
+                                                      //   std::greater<int>>
+     for (; !pq1.empty(); pq1.pop())
+         std::cout << pq1.top() << ' ';
+     std::cout << '\\n';
+
+     std::priority_queue pq2{v.begin(), v.end()}; // deduces std::priority_queue<int>
+
+     for (; !pq2.empty(); pq2.pop())
+         std::cout << pq2.top() << ' ';
+     std::cout << '\\n';
  }
+
+.SH Output:
+
+ 1 2 3 4
+ 4 3 2 1
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 3506 C++17      deduction guides from iterator and allocator    added
+                       were missing

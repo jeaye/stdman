@@ -1,4 +1,4 @@
-.TH std::ungetc 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ungetc 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ungetc \- std::ungetc
 
@@ -46,16 +46,16 @@ std::ungetc \- std::ungetc
 .SH Notes
 
    The size of the pushback buffer varies in practice from 4k (Linux, MacOS) to as
-   little as 4 (Solaris) or the guaranteed minimum 1 (HPUX, AIX)
+   little as 4 (Solaris) or the guaranteed minimum 1 (HPUX, AIX).
 
    The apparent size of the pushback buffer may be larger if the character that is
    pushed back equals the character existing at that location in the external character
    sequence (the implementation may simply decrement the read file position indicator
-   and avoid maintaining a pushback buffer)
+   and avoid maintaining a pushback buffer).
 
 .SH Example
 
-   demonstrates the use of ungetc in its original purpose: implementing scanf
+   demonstrates the use of std::ungetc in its original purpose: implementing std::scanf
 
 
 // Run this code
@@ -63,35 +63,43 @@ std::ungetc \- std::ungetc
  #include <cctype>
  #include <cstdio>
 
- void demo_scanf(const char* fmt, std::FILE* s) {
-     if(*fmt == '%') {
-         switch(*++fmt) {
-             case 'u': {
-                 int c;
-                 while(std::isspace(c=std::getc(s))) {} // skip leading white space
-                 unsigned int num = 0;
-                 while(std::isdigit(c)) {
-                     num = num*10 + c-'0';
-                     c = std::getc(s);
+ void demo_scanf(const char* fmt, std::FILE* s)
+ {
+     while (*fmt != '\\0') {
+         if (*fmt == '%') {
+             switch (*++fmt) {
+                 case 'u': {
+                     int c{};
+                     while (std::isspace(c=std::getc(s))) {}
+                     unsigned int num{};
+                     while (std::isdigit(c)) {
+                         num = num*10 + c-'0';
+                         c = std::getc(s);
+                     }
+                     std::printf("%%u scanned %u\\n", num);
+                     std::ungetc(c, s);
+                     break;
                  }
-                 std::printf("%%u scanned %u\\n", num);
-                 std::ungetc(c, s); // reprocess the non-digit
+                 case 'c': {
+                     int c = std::getc(s);
+                     std::printf("%%c scanned '%c'\\n", c);
+                     break;
+                 }
              }
-             case 'c': {
-                 int c = std::getc(s);
-                 std::printf("%%c scanned '%c'\\n", c);
-             }
+         } else {
+             ++fmt;
          }
      }
  }
 
  int main()
  {
-     std::FILE* f = std::fopen("input.txt", "w+");
-     std::fputs("123x", f);
-     std::rewind(f);
-     demo_scanf("%u%c", f);
-     std::fclose(f);
+     if (std::FILE* f = std::fopen("input.txt", "w+")) {
+         std::fputs("123x", f);
+         std::rewind(f);
+         demo_scanf("%u%c", f);
+         std::fclose(f);
+     }
  }
 
 .SH Output:
@@ -103,5 +111,3 @@ std::ungetc \- std::ungetc
 
    fgetc gets a character from a file stream
    getc  \fI(function)\fP
-   C documentation for
-   ungetc

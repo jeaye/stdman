@@ -1,10 +1,71 @@
-.TH std::hash 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::hash 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::hash \- std::hash
 
 .SH Synopsis
-   Defined in header <system_error>
-   template<> struct hash<std::error_condition>;  \fI(since C++17)\fP
+   Defined in header <variant>
+   template <class... Types>             \fI(since C++17)\fP
+   struct hash<std::variant<Types...>>;
 
-   The template specialization of std::hash for std::error_condition allows users to
-   obtain hashes of objects of type std::error_condition.
+   The template specialization of std::hash for the std::variant template allows users
+   to obtain hashes of variant objects.
+
+   The specialization std::hash<std::variant<Types...>> is enabled (see std::hash) if
+   every specialization in std::hash<std::remove_const_t<Types>>... is enabled, and is
+   disabled otherwise.
+
+   The member functions of this specialization are not guaranteed to be noexcept.
+
+.SH Template parameters
+
+   Types - the types of the alternatives supported by the variant object
+
+.SH Notes
+
+   Unlike std::hash<std::optional>, hash of a variant does not typically equal the hash
+   of the contained value; this makes it possible to distinguish std::variant<int, int>
+   holding the same value as different alternatives.
+
+.SH Example
+
+
+// Run this code
+
+ #include <variant>
+ #include <iostream>
+ #include <string>
+
+ using Var = std::variant<int, int, int, std::string>;
+
+ template<unsigned I>
+ void print(Var const& var) {
+     std::cout << "get<" << var.index() << "> = "
+               << std::get<I>(var)
+               << "\\t" "# = "
+               << std::hash<Var>{}(var) << '\\n';
+ }
+
+ int main()
+ {
+     Var var;
+     std::get<0>(var) = 2020;
+     print<0>(var);
+     var.emplace<1>(2023);
+     print<1>(var);
+     var.emplace<2>(2026);
+     print<2>(var);
+     var = "C++";
+     print<3>(var);
+ }
+
+.SH Possible output:
+
+ get<0> = 2020     # = 2020
+ get<1> = 2023     # = 2024
+ get<2> = 2026     # = 2028
+ get<3> = C++      # = 15518724754199266859
+
+.SH See also
+
+   hash    hash function object
+   \fI(C++11)\fP \fI(class template)\fP

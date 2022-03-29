@@ -1,4 +1,4 @@
-.TH std::ranges::iter_swap 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::iter_swap 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::iter_swap \- std::ranges::iter_swap
 
@@ -6,17 +6,17 @@ std::ranges::iter_swap \- std::ranges::iter_swap
    Defined in header <iterator>
    inline namespace /*unspecified*/ {
 
-       inline constexpr /*unspecified*/ iter_swap =        \fI(since C++20)\fP
+   inline constexpr /*unspecified*/ iter_swap =            \fI(since C++20)\fP
    /*unspecified*/;                                        (customization point object)
 
    }
    Call signature
    template< class I1, class I2 >
 
-       requires /* see below */
+   requires /* see below */                                \fI(since C++20)\fP
 
-   constexpr void iter_swap(I1&& i1, I2&& i2) noexcept(/*
-   see below */);
+   constexpr void iter_swap( I1&& i1, I2&& i2 )
+   noexcept(/* see below */);
 
    Swaps values denoted by two iterators.
 
@@ -30,15 +30,16 @@ std::ranges::iter_swap \- std::ranges::iter_swap
           * void iter_swap(auto, auto) = delete;
           * any declarations of iter_swap found by argument-dependent lookup.
 
-       If the selected overload does not exchange the value denoted by i1 and i2, the
-       program is ill-formed, no diagnostic required.
+                    If the selected overload does not exchange the value denoted by i1
+                    and i2, the program is ill-formed, no diagnostic required.
+
     2. otherwise, ranges::swap(*std::forward<I1>(i1), *std::forward<I2>(i2)) if both I1
        and I2 model indirectly_readable and if std::iter_reference_t<I1> and
        std::iter_reference_t<I2> model swappable_with.
     3. otherwise, (void)(*std::forward<I1>(i1) =
        /*iter_exchange_move*/(std::forward<I2>(i2), std::forward<I1>(i1))), if I1 and
-       I2 model std::indirectly_move_storable<I1, I2> and
-       std::indirectly_move_storable<I2, I1>, where iter_exchange_move is an
+       I2 model std::indirectly_movable_storable<I1, I2> and
+       std::indirectly_movable_storable<I2, I1>, where iter_exchange_move is an
        expositon-only function template described below.
 
    In all other cases, a call to ranges::iter_swap is ill-formed, which can result in
@@ -49,7 +50,7 @@ std::ranges::iter_swap \- std::ranges::iter_swap
 
  template<class X, class Y>
  constexpr std::iter_value_t<X> /*iter_exchange_move*/(X&& x, Y&& y)
-     noexcept(noexcept(std::iter_value_t<X>(std::move(x)) &&
+     noexcept(noexcept(std::iter_value_t<X>(std::ranges::iter_move(x)) &&
               noexcept(*x = std::ranges::iter_move(y))))
  {
      std::iter_value_t<X> old(std::ranges::iter_move(x));
@@ -57,30 +58,38 @@ std::ranges::iter_swap \- std::ranges::iter_swap
      return old;
  }
 
-   Expression-equivalent
+  Expression-equivalent
 
    Expression e is expression-equivalent to expression f, if e and f have the same
    effects, either are both potentially-throwing or are both not potentially-throwing
    (i.e. noexcept(e) == noexcept(f)), and either are both constant subexpressions or
    are both not constant subexpressions.
 
-   Customization point objects
+  Customization point objects
 
    The name ranges::iter_swap denotes a customization point object, which is a const
-   function object of a literal semiregular class type (denoted, for exposition
-   purposes, as iter_swap_ftor). All instances of iter_swap_ftor are equal. Thus,
-   ranges::iter_swap can be copied freely and its copies can be used interchangeably.
+   function object of a literal semiregular class type. For exposition purposes, the
+   cv-unqualified version of its type is denoted as __iter_swap_fn.
+
+   All instances of __iter_swap_fn are equal. The effects of invoking different
+   instances of type __iter_swap_fn on the same arguments are equivalent, regardless of
+   whether the expression denoting the instance is an lvalue or rvalue, and is
+   const-qualified or not (however, a volatile-qualified instance is not required to be
+   invocable). Thus, ranges::iter_swap can be copied freely and its copies can be used
+   interchangeably.
 
    Given a set of types Args..., if std::declval<Args>()... meet the requirements for
-   arguments to ranges::iter_swap above, iter_swap_ftor will satisfy
-   std::invocable<const iter_swap_ftor&, Args...>. Otherwise, no function call operator
-   of iter_swap_ftor participates in overload resolution.
+   arguments to ranges::iter_swap above, __iter_swap_fn models
+   std::invocable<__iter_swap_fn, Args...>, std::invocable<const __iter_swap_fn,
+   Args...>, std::invocable<__iter_swap_fn&, Args...>, and std::invocable<const
+   __iter_swap_fn&, Args...>. Otherwise, no function call operator of __iter_swap_fn
+   participates in overload resolution.
 
 .SH See also
 
-   iter_swap swap the objects pointed to by two adjusted underlying iterators
+   iter_swap swaps the objects pointed to by two adjusted underlying iterators
    (C++20)   \fI(function template)\fP
-   iter_swap swap the objects pointed to by two underlying iterators
+   iter_swap swaps the objects pointed to by two underlying iterators
    (C++20)   \fI(function template)\fP
    iter_swap swaps the elements pointed to by two iterators
              \fI(function template)\fP

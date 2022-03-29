@@ -1,13 +1,17 @@
-.TH std::variant::operator= 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::variant::operator= 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::variant::operator= \- std::variant::operator=
 
 .SH Synopsis
-   constexpr variant& operator=( const variant& rhs );                \fB(1)\fP \fI(since C++17)\fP
-   constexpr variant& operator=( variant&& rhs ) noexcept(/* see      \fB(2)\fP \fI(since C++17)\fP
-   below */);
-   template< class T >                                                \fB(3)\fP \fI(since C++17)\fP
-   variant& operator=( T&& t ) noexcept(/* see below */);
+   constexpr variant& operator=( const variant& rhs );  \fB(1)\fP \fI(since C++17)\fP
+   constexpr variant& operator=( variant&& rhs )        \fB(2)\fP \fI(since C++17)\fP
+   noexcept(/* see below */);
+   template< class T >                                                    \fI(since C++17)\fP
+   variant& operator=( T&& t ) noexcept(/* see below                      \fI(until C++20)\fP
+   */);                                                 \fB(3)\fP
+   template< class T >
+   constexpr variant& operator=( T&& t ) noexcept(/*                      \fI(since C++20)\fP
+   see below */);
 
    Assigns a new value to an existing variant object.
 
@@ -24,8 +28,9 @@ std::variant::operator= \- std::variant::operator=
        or not nothrow move constructible (as determined by
        std::is_nothrow_copy_constructible and std::is_nothrow_move_constructible,
        respectively), equivalent to this->emplace<rhs.index()>(get<rhs.index()>(rhs)).
-     * Otherwise, equivalent to this->operator=(variant(rhs)). Note that *this may
-       become valueless_by_exception as described in \fB(2)\fP.
+       *this may become valueless_by_exception if an exception is thrown on the
+       copy-construction inside emplace.
+     * Otherwise, equivalent to this->operator=(variant(rhs)).
 
    This overload is defined as deleted unless std::is_copy_constructible_v<T_i> and
    std::is_copy_assignable_v<T_i> are both true for all T_i in Types.... This overload
@@ -45,7 +50,7 @@ std::variant::operator= \- std::variant::operator=
        this->emplace<rhs.index()>(get<rhs.index()>(std::move(rhs))). If an exception is
        thrown by T_i's move constructor, *this becomes valueless_by_exception.
 
-   This overload only participates in overload resolution if
+   This overload participates in overload resolution only if
    std::is_move_constructible_v<T_i> and std::is_move_assignable_v<T_i> are both true
    for all T_i in Types.... This overload is trivial if
    std::is_trivially_move_constructible_v<T_i>,
@@ -58,20 +63,19 @@ std::variant::operator= \- std::variant::operator=
        imaginary function F(T_i) for every T_i from Types... in scope at the same time,
        except that:
 
-     * An overload F(T_i) is only considered if the declaration T_i x[] = {
-       std::forward<T>(t) }; is valid for some invented variable x;
-     * If T_i is (possibly cv-qualified) bool, F(T_i) is only considered if
-       std:remove_cvref_t<T> is also bool.
+              * An overload F(T_i) is only considered if the declaration T_i x[] = {
+                std::forward<T>(t) }; is valid for some invented variable x;
 
      * If *this already holds a T_j, assigns std::forward<T>(t) to the value contained
        in *this. If an exception is thrown, *this does not become valueless: the value
        depends on the exception safety guarantee of the assignment called.
      * Otherwise, if std::is_nothrow_constructible_v<T_j, T> ||
        !std::is_nothrow_move_constructible_v<T_j> is true, equivalent to
-       this->emplace<j>(std::forward<T>(t));
-     * Otherwise, equivalent to this->operator=(variant(std::forward<T>(t))).
+       this->emplace<j>(std::forward<T>(t)). *this may become valueless_by_exception if
+       an exception is thrown on the initialization inside emplace.
+     * Otherwise, equivalent to this->emplace<j>(T_j(std::forward<T>(t))).
 
-   This overload only participates in overload resolution if
+   This overload participates in overload resolution only if
    std::decay_t<T>
    \fI(until C++20)\fP
    std::remove_cvref_t<T>
@@ -80,7 +84,7 @@ std::variant::operator= \- std::variant::operator=
    F(std::forward<T>(t)) (with F being the above-mentioned set of imaginary functions)
    is well formed.
 
- std::variant<string> v1;
+ std::variant<std::string> v1;
  v1 = "abc"; // OK
  std::variant<std::string, std::string> v2;
  v2 = "abc"; // Error
@@ -101,7 +105,7 @@ std::variant::operator= \- std::variant::operator=
 .SH Exceptions
 
    1) May throw any exception thrown by assignment and copy/move initialization of any
-   alternative
+   alternative.
    2)
    noexcept specification:
    noexcept(((std::is_nothrow_move_constructible_v<Types> &&
@@ -182,27 +186,32 @@ std::variant::operator= \- std::variant::operator=
  a: { "CppNow" };
  s: ""
 
-   Defect reports
+  Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
       DR    Applied to         Behavior as published              Correct behavior
                        copy assignment operator doesn't
-   LWG 3024 C++17      participate in overload resolution if defined as deleted instead
-                       any member type is not copyable
-                       copy/move assignment may not be       required to propagate
-   P0602R4  C++17      trivial even if underlying operations triviality
-                       are trivial
+   LWG 3024 C++17      participate in overload resolution    defined as deleted instead
+                       if any member type is not copyable
+                       copy/move assignment may not be
+   P0602R4  C++17      trivial                               required to propagate
+                       even if underlying operations are     triviality
+                       trivial
                        converting assignment blindly         narrowing and boolean
-   P0608R3  C++17      assembles an overload set, leading to conversions not considered
-                       unintended conversions
+   P0608R3  C++17      assembles an overload set,            conversions
+                       leading to unintended conversions     not considered
+                       converting assignment was not
+   P2231R1  C++20      constexpr                             made constexpr
+                       while the required operations can be
+                       in C++20
+                       converting assignment was sometimes
+   LWG 3585 C++17      unexpectedly ill-formed               made well-formed
+                       because there was no available move
+                       assignment
 
 .SH See also
 
    emplace constructs a value in the variant, in place
            \fI(public member function)\fP
-
-.SH Category:
-
-     * conditionally noexcept

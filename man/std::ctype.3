@@ -1,85 +1,77 @@
-.TH std::ctype 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ctype 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ctype \- std::ctype
 
 .SH Synopsis
    Defined in header <locale>
-   template< class CharT >
-   class ctype;
+   template<>
+   class ctype<char>;
 
-   Class ctype encapsulates character classification features. All stream input
-   operations performed through std::basic_istream<charT> use the std::ctype<charT> of
-   the locale imbued in the stream to identify whitespace characters for input
-   tokenization. Stream output operations apply std::ctype<charT>::widen() to
-   narrow-character arguments prior to output.
+   This specialization of std::ctype encapsulates character classification features for
+   type char. Unlike general-purpose std::ctype, which uses virtual functions, this
+   specialization uses table lookup to classify characters (which is generally faster).
 
-   std-ctype-inheritance.svg
-   About this image
+   The base class std::ctype<char> implements character classification equivalent to
+   the minimal "C" locale. The classification rules can be extended or modified if
+   constructed with a non-default classification table argument, if constructed as
+   std::ctype_byname<char> or as a user-defined derived facet. All std::istream
+   formatted input functions are required to use std::ctype<char> for character
+   classing during input parsing.
+
+   std-ctype char-inheritance.svg
 
                                    Inheritance diagram
-
-   Two standalone (locale-independent) specializations are provided by the standard
-   library:
-
-   Defined in header <locale>
-                       provides narrow character equivalents of the minimal "C" locale
-   std::ctype<char>    classification. This specialization uses table lookup for
-                       character classification
-   std::ctype<wchar_t> provides wide character classification appropriate to the native
-                       character set
-
-   In addition, every locale object constructed in a C++ program implements its own
-   (locale-specific) versions of these specializations.
 
 .SH Member types
 
    Member type Definition
-   char_type   CharT
+   char_type   char
 
 .SH Member functions
 
-   constructor   constructs a new ctype facet
+   constructor   constructs a new std::ctype<char> facet
                  \fI(public member function)\fP
-   destructor    destructs a ctype facet
+   destructor    destructs a std::ctype<char> facet
                  \fI(protected member function)\fP
-   is            invokes do_is
+   table         obtains the character classification table
                  \fI(public member function)\fP
-   scan_is       invokes do_scan_is
+   classic_table obtains the "C" locale character classification table
+   \fB[static]\fP      \fI(public static member function)\fP
+                 classifies a character or a character sequence, using the
+   is            classification table
                  \fI(public member function)\fP
-   scan_not      invokes do_scan_not
+                 locates the first character in a sequence that conforms to given
+   scan_is       classification, using the classification table
+                 \fI(public member function)\fP
+                 locates the first character in a sequence that fails given
+   scan_not      classification, using the classification table
                  \fI(public member function)\fP
    toupper       invokes do_toupper
-                 \fI(public member function)\fP
+                 \fI(public member function of std::ctype<CharT>)\fP
    tolower       invokes do_tolower
-                 \fI(public member function)\fP
+                 \fI(public member function of std::ctype<CharT>)\fP
    widen         invokes do_widen
-                 \fI(public member function)\fP
+                 \fI(public member function of std::ctype<CharT>)\fP
    narrow        invokes do_narrow
-                 \fI(public member function)\fP
-
-.SH Member objects
-
-   static std::locale::id id id of the locale
-                             \fI(public member object)\fP
+                 \fI(public member function of std::ctype<CharT>)\fP
 
 .SH Protected member functions
 
-   do_is       classifies a character or a character sequence
-   \fB[virtual]\fP   \fI(virtual protected member function)\fP
-   do_scan_is  locates the first character in a sequence that conforms to given
-   \fB[virtual]\fP   classification
-               \fI(virtual protected member function)\fP
-   do_scan_not locates the first character in a sequence that fails given
-   \fB[virtual]\fP   classification
-               \fI(virtual protected member function)\fP
-   do_toupper  converts a character or characters to uppercase
-   \fB[virtual]\fP   \fI(virtual protected member function)\fP
-   do_tolower  converts a character or characters to lowercase
-   \fB[virtual]\fP   \fI(virtual protected member function)\fP
-   do_widen    converts a character or characters from char to charT
-   \fB[virtual]\fP   \fI(virtual protected member function)\fP
-   do_narrow   converts a character or characters from charT to char
-   \fB[virtual]\fP   \fI(virtual protected member function)\fP
+   do_toupper converts a character or characters to uppercase
+   \fB[virtual]\fP  \fI(virtual protected member function of std::ctype<CharT>)\fP
+   do_tolower converts a character or characters to lowercase
+   \fB[virtual]\fP  \fI(virtual protected member function of std::ctype<CharT>)\fP
+   do_widen   converts a character or characters from char to charT
+   \fB[virtual]\fP  \fI(virtual protected member function of std::ctype<CharT>)\fP
+   do_narrow  converts a character or characters from charT to char
+   \fB[virtual]\fP  \fI(virtual protected member function of std::ctype<CharT>)\fP
+
+.SH Member objects
+
+   static std::locale::id id           id of the locale
+   \fB[static]\fP                            \fI(public static member constant)\fP
+   static const std::size_t table_size size of the classification table, at least 256
+   \fB[static]\fP                            \fI(public static member constant)\fP
 
 Inherited from std::ctype_base
 
@@ -118,48 +110,45 @@ Inherited from std::ctype_base
 
 .SH Example
 
-   The following example demonstrates modification of a ctype other than ctype<char> to
-   tokenize a CSV file
+   The following example demonstrates modification of ctype<char> to tokenize
+   comma-separated values
 
 
 // Run this code
 
  #include <iostream>
+ #include <vector>
  #include <locale>
  #include <sstream>
 
- struct csv_whitespace : std::ctype<wchar_t>
- {
-     bool do_is(mask m, char_type c) const
+ // This ctype facet classifies commas and endlines as whitespace
+ struct csv_whitespace : std::ctype<char> {
+     static const mask* make_table()
      {
-         if ((m & space) && c == L' ') {
-             return false; // space will NOT be classified as whitespace
-         }
-         if ((m & space) && c == L',') {
-             return true; // comma will be classified as whitespace
-         }
-         return ctype::do_is(m, c); // leave the rest to the parent class
+         // make a copy of the "C" locale table
+         static std::vector<mask> v(classic_table(), classic_table() + table_size);
+         v[','] |=  space;  // comma will be classified as whitespace
+         v[' '] &= ~space;      // space will not be classified as whitespace
+         return &v[0];
      }
+     csv_whitespace(std::size_t refs = 0) : ctype(make_table(), false, refs) {}
  };
 
  int main()
  {
-     std::wstring in = L"Column 1,Column 2,Column 3\\n123,456,789";
-     std::wstring token;
+     std::string in = "Column 1,Column 2,Column 3\\n123,456,789";
+     std::string token;
 
-     std::wcout << "default locale:\\n";
-     std::wistringstream s1(in);
-     while (s1 >> token) {
-         std::wcout << "  " << token << '\\n';
-     }
+     std::cout << "default locale:\\n";
+     std::istringstream s1(in);
+     while(s1 >> token)
+             std::cout << "  " << token << '\\n';
 
-     std::wcout << "locale with modified ctype:\\n";
-     std::wistringstream s2(in);
-     csv_whitespace* my_ws = new csv_whitespace;
-     s2.imbue(std::locale(s2.getloc(), my_ws));
-     while (s2 >> token) {
-         std::wcout << "  " << token<< '\\n';
-     }
+     std::cout << "locale with modified ctype:\\n";
+     std::istringstream s2(in);
+     s2.imbue(std::locale(s2.getloc(), new csv_whitespace));
+     while(s2 >> token)
+             std::cout << "  " << token<< '\\n';
  }
 
 .SH Output:
@@ -180,8 +169,8 @@ Inherited from std::ctype_base
 
 .SH See also
 
-   ctype<char>  specialization of std::ctype for type char
-                \fI(class template specialization)\fP
+   ctype        defines character classification tables
+                \fI(class template)\fP
    ctype_base   defines character classification categories
                 \fI(class template)\fP
    ctype_byname creates a ctype facet for the named locale

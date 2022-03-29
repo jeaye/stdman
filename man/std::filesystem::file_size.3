@@ -1,4 +1,4 @@
-.TH std::filesystem::file_size 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::file_size 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::file_size \- std::filesystem::file_size
 
@@ -8,12 +8,12 @@ std::filesystem::file_size \- std::filesystem::file_size
 
    std::uintmax_t file_size( const std::filesystem::path& p,   \fB(1)\fP \fI(since C++17)\fP
 
-                             std::error_code& ec ) noexcept;
+   std::error_code& ec ) noexcept;
 
    If p does not exist, reports an error.
 
    For a regular file p, returns the size determined as if by reading the st_size
-   member of the structure obtained by POSIX stat (symlinks are followed)
+   member of the structure obtained by POSIX stat (symlinks are followed).
 
    The result of attempting to determine the size of a directory (as well as any other
    file that is not a regular file or a symlink) is implementation-defined.
@@ -31,40 +31,75 @@ std::filesystem::file_size \- std::filesystem::file_size
 
 .SH Exceptions
 
-   The overload that does not take a std::error_code& parameter throws filesystem_error
-   on underlying OS API errors, constructed with p as the first path argument and the
-   OS error code as the error code argument. The overload taking a std::error_code&
-   parameter sets it to the OS API error code if an OS API call fails, and executes
-   ec.clear() if no errors occur. Any overload not marked noexcept may throw
-   std::bad_alloc if memory allocation fails.
+   The overload that does not take a std::error_code& parameter throws
+   filesystem::filesystem_error on underlying OS API errors, constructed with p as the
+   first path argument and the OS error code as the error code argument. The overload
+   taking a std::error_code& parameter sets it to the OS API error code if an OS API
+   call fails, and executes ec.clear() if no errors occur. Any overload not marked
+   noexcept may throw std::bad_alloc if memory allocation fails.
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
- #include <fstream>
+ #include <cmath>
  #include <filesystem>
+ #include <fstream>
+ #include <iostream>
  namespace fs = std::filesystem;
- int main()
+
+ struct HumanReadable {
+     std::uintmax_t size{};
+   private: friend
+     std::ostream& operator<<(std::ostream& os, HumanReadable hr) {
+         int i{};
+         double mantissa = hr.size;
+         for (; mantissa >= 1024.; mantissa /= 1024., ++i) { }
+         mantissa = std::ceil(mantissa * 10.) / 10.;
+         os << mantissa << "BKMGTPE"[i];
+         return i == 0 ? os : os << "B (" << hr.size << ')';
+     }
+ };
+
+ int main(int, char const* argv[])
  {
-     fs::path p = fs::current_path() / "example.bin";
+     fs::path example = "example.bin";
+     fs::path p = fs::current_path() / example;
      std::ofstream(p).put('a'); // create file of size 1
-     std::cout << "File size = " << fs::file_size(p) << '\\n';
+     std::cout << example << " size = " << fs::file_size(p) << '\\n';
      fs::remove(p);
 
+     p = argv[0];
+     std::cout << p << " size = " << HumanReadable{fs::file_size(p)} << '\\n';
+
      try {
-         fs::file_size("/dev"); // attempt to get size of a directory
+         std::cout << "Attempt to get size of a directory:\\n";
+         fs::file_size("/dev");
      } catch(fs::filesystem_error& e) {
          std::cout << e.what() << '\\n';
+     }
+
+     std::error_code ec;
+     for (fs::path bin: {"cat", "mouse"}) {
+         bin = "/bin"/bin;
+         std::uintmax_t size = fs::file_size(bin, ec);
+         if (ec) {
+             std::cout << bin << " : " << ec.message() << '\\n';
+         } else {
+             std::cout << bin << " size = " << HumanReadable{size} << '\\n';
+         }
      }
  }
 
 .SH Possible output:
 
- File size = 1
+ "example.bin" size = 1
+ "./a.out" size = 22KB (22512)
+ Attempt to get size of a directory:
  filesystem error: cannot get file size: Is a directory [/dev]
+ "/bin/cat" size = 50.9KB (52080)
+ "/bin/mouse" : No such file or directory
 
 .SH See also
 

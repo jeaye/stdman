@@ -1,4 +1,4 @@
-.TH std::ranges::range 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::range 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::range \- std::ranges::range
 
@@ -6,9 +6,9 @@ std::ranges::range \- std::ranges::range
    Defined in header <ranges>
    template< class T >
 
-   concept range = requires(T& t) {
-     ranges::begin(t); // equality-preserving for forward iterators
-     ranges::end  (t);
+   concept range = requires( T& t ) {
+   ranges::begin(t); // equality-preserving for forward iterators  \fI(since C++20)\fP
+   ranges::end (t);
 
    };
 
@@ -16,13 +16,14 @@ std::ranges::range \- std::ranges::range
    elements by providing an iterator and sentinel that denote the elements of the
    range.
 
-   Semantic requirements
+  Semantic requirements
 
    Given an expression E such that decltype((E)) is T, T models range only if
 
      * [ranges::begin(E), ranges::end(E)) denotes a range, and
-     * both ranges::begin(E) and ranges::end(E) are amortized constant time and
-       non-modifying, and
+     * both ranges::begin(E) and ranges::end(E) are amortized constant time and do not
+       alter the value of E in a manner observable to equality-preserving expressions,
+       and
      * if the type of ranges::begin(E) models forward_iterator, ranges::begin(E) is
        equality-preserving (in other words, forward iterators support multi-pass
        algorithms)
@@ -30,3 +31,36 @@ std::ranges::range \- std::ranges::range
    Note: In the definition above, the required expressions
    ranges::begin(std::forward<T>(t)) and ranges::end(std::forward<T>(t)) do not require
    implicit expression variations.
+
+.SH Example
+
+
+// Run this code
+
+ #include <ranges>
+ #include <vector>
+ #include <iostream>
+
+ template <typename T>
+ struct range_t : private T {
+     using T::begin, T::end; /*...*/
+ };
+ static_assert(std::ranges::range< range_t<std::vector<int>> >);
+
+ template <typename T> struct scalar_t { T t{}; /* no begin/end */ };
+ static_assert(not std::ranges::range< scalar_t<int> >);
+
+ int main() {
+     if constexpr (range_t<std::vector<int>> r; std::ranges::range<decltype(r)>) {
+         std::cout << "r is a range\\n";
+     }
+
+     if constexpr (scalar_t<int> s; not std::ranges::range<decltype(s)>) {
+         std::cout << "s is not a range\\n";
+     }
+ }
+
+.SH Output:
+
+ r is a range
+ s is not a range

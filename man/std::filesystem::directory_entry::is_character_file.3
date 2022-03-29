@@ -1,4 +1,4 @@
-.TH std::filesystem::directory_entry::is_character_file 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::directory_entry::is_character_file 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::directory_entry::is_character_file \- std::filesystem::directory_entry::is_character_file
 
@@ -8,7 +8,7 @@ std::filesystem::directory_entry::is_character_file \- std::filesystem::director
 
    Checks whether the pointed-to object is a character device. Effectively returns
    std::filesystem::is_character_file(status()) or
-   std::filesystem::is_character_file(status(ec)), respectively
+   std::filesystem::is_character_file(status(ec)), respectively.
 
 .SH Parameters
 
@@ -20,23 +20,107 @@ std::filesystem::directory_entry::is_character_file \- std::filesystem::director
 
 .SH Exceptions
 
-   The overload that does not take a std::error_code& parameter throws filesystem_error
-   on underlying OS API errors, constructed with p as the first path argument and the
-   OS error code as the error code argument. The overload taking a std::error_code&
-   parameter sets it to the OS API error code if an OS API call fails, and executes
-   ec.clear() if no errors occur. Any overload not marked noexcept may throw
-   std::bad_alloc if memory allocation fails.
+   The overload that does not take a std::error_code& parameter throws
+   filesystem::filesystem_error on underlying OS API errors, constructed with p as the
+   first path argument and the OS error code as the error code argument. The overload
+   taking a std::error_code& parameter sets it to the OS API error code if an OS API
+   call fails, and executes ec.clear() if no errors occur. Any overload not marked
+   noexcept may throw std::bad_alloc if memory allocation fails.
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <cstdio>
+ #include <cstring>
+ #include <filesystem>
+ #include <fstream>
+ #include <functional>
+ #include <iostream>
+ #include <memory>
+ #include <sys/socket.h>
+ #include <sys/stat.h>
+ #include <sys/un.h>
+ #include <unistd.h>
+
+ namespace fs = std::filesystem;
+
+ void print_entry_type(std::filesystem::directory_entry const& entry) {
+     std::cout << entry.path() << ": ";
+     if (!entry.exists()) std::cout << "does not exist ";
+     if (entry.is_block_file()) std::cout << "is a block device ";
+     if (entry.is_character_file()) std::cout << "is a character device ";
+     if (entry.is_directory()) std::cout << "is a directory ";
+     if (entry.is_fifo()) std::cout << "is a named IPC pipe ";
+     if (entry.is_regular_file()) std::cout << "is a regular file ";
+     if (entry.is_socket()) std::cout << "is a named IPC socket ";
+     if (entry.is_symlink()) std::cout << "(a symlink) ";
+     if (entry.is_other()) std::cout << "(an `other` file) ";
+     std::cout <<'\\n';
+ }
+
+ template <typename Type, typename Fun>
+ class scoped_cleanup {
+     std::unique_ptr<Type, std::function<void(const Type*)>> u;
+   public:
+     scoped_cleanup(Type* ptr, Fun fun) : u{ptr, std::move(fun)} {}
+ };
+
+ int main()
+ {
+     // create files of different kinds
+     std::filesystem::current_path(fs::temp_directory_path());
+     const std::filesystem::path sandbox{"sandbox"};
+     scoped_cleanup remove_all_at_exit{&sandbox, [](const fs::path* p) {
+         std::cout << "cleanup: remove_all(" << *p << ")\\n";
+         fs::remove_all(*p);
+     } };
+     std::filesystem::create_directory(sandbox);
+     std::ofstream{sandbox/"file"}; // creates a regular file
+     std::filesystem::create_directory(sandbox/"dir");
+
+     mkfifo((sandbox/"pipe").string().data(), 0644);
+     struct sockaddr_un addr; addr.sun_family = AF_UNIX;
+
+     std::strcpy(addr.sun_path, (sandbox/"sock").string().data());
+     int fd {socket(PF_UNIX, SOCK_STREAM, 0)};
+     scoped_cleanup close_socket_at_exit{&fd, [](const int* f) {
+         std::cout << "cleanup: close socket #" << *f << '\\n';
+         close(*f);
+     } };
+     bind(fd, reinterpret_cast<sockaddr*>(std::addressof(addr)), sizeof addr);
+
+     fs::create_symlink("file", sandbox/"symlink");
+
+     for (std::filesystem::directory_entry entry: fs::directory_iterator(sandbox)) {
+         print_entry_type(entry);
+     }
+
+     // direct calls to status:
+     for (const char* str: {"/dev/null", "/dev/cpu", "/usr/include/c++",
+                            "/usr/include/asm", "/usr/include/time.h"}) {
+         print_entry_type(fs::directory_entry{str});
+     }
+
+ }   // cleanup via `scoped_cleanup` objects
+
+.SH Possible output:
+
+ "sandbox/symlink": is a regular file (a symlink)
+ "sandbox/sock": is a named IPC socket (an `other` file)
+ "sandbox/pipe": is a named IPC pipe (an `other` file)
+ "sandbox/dir": is a directory
+ "sandbox/file": is a regular file
+ "/dev/null": is a character device (an `other` file)
+ "/dev/cpu": does not exist
+ "/usr/include/c++": is a directory
+ "/usr/include/asm": is a directory (a symlink)
+ "/usr/include/time.h": is a regular file
+ cleanup: close socket #3
+ cleanup: remove_all("sandbox")
 
 .SH See also
 
    is_character_file checks whether the given path refers to a character device
    \fI(C++17)\fP           \fI(function)\fP
-
-.SH Category:
-
-     * Todo no example

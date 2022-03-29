@@ -1,4 +1,4 @@
-.TH std::ignore 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ignore 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ignore \- std::ignore
 
@@ -12,9 +12,25 @@ std::ignore \- std::ignore
    effect. Intended for use with std::tie when unpacking a std::tuple, as a placeholder
    for the arguments that are not used.
 
+   It can also be used to avoid warnings from unused return values of [[nodiscard]]
+   functions.
+
+.SH Possible implementation
+
+   namespace detail {
+   struct ignore_t {
+       template <typename T>
+       constexpr // required since C++14
+       void operator=(T&&) const noexcept {}
+   };
+   }
+   inline constexpr detail::ignore_t ignore; // 'const' only until C++17
+
 .SH Example
 
-   unpack a pair returned by set.insert(), but only save the boolean.
+    1. Demonstrates the use of std::ignore together with a [[nodiscard]] function.
+    2. Unpacks a std::pair<iterator, bool> returned by set.insert(), but only saves the
+       boolean.
 
 
 // Run this code
@@ -24,8 +40,15 @@ std::ignore \- std::ignore
  #include <set>
  #include <tuple>
 
+ [[nodiscard]] int dontIgnoreMe()
+ {
+     return 42;
+ }
+
  int main()
  {
+     std::ignore = dontIgnoreMe();
+
      std::set<std::string> set_of_str;
      bool inserted = false;
      std::tie(std::ignore, inserted) = set_of_str.insert("Test");
@@ -40,5 +63,6 @@ std::ignore \- std::ignore
 
 .SH See also
 
-   tie creates a tuple of lvalue references or unpacks a tuple into individual objects
-       \fI(function template)\fP
+   tie     creates a tuple of lvalue references or unpacks a tuple into individual
+   \fI(C++11)\fP objects
+           \fI(function template)\fP

@@ -1,4 +1,4 @@
-.TH std::filesystem::path::string,std::filesystem::path::wstring, 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::path::string,std::filesystem::path::wstring, 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::path::string,std::filesystem::path::wstring, \- std::filesystem::path::string,std::filesystem::path::wstring,
 
@@ -8,10 +8,10 @@ std::filesystem::path::string,std::filesystem::path::wstring, \- std::filesystem
    template< class CharT, class Traits =
    std::char_traits<CharT>,
                                                                    (since
-             class Alloc = std::allocator<CharT> >             \fB(1)\fP C++17)
+   class Alloc = std::allocator<CharT> >                       \fB(1)\fP C++17)
    std::basic_string<CharT,Traits,Alloc>
 
-       string( const Alloc& a = Alloc() ) const;
+   string( const Alloc& a = Alloc() ) const;
    std::string string() const;
    std::wstring wstring() const;
    std::u16string u16string() const;
@@ -60,54 +60,38 @@ std::filesystem::path::string,std::filesystem::path::wstring, \- std::filesystem
 // Run this code
 
  #include <cstdio>
- #ifdef _MSC_VER
- #include <io.h>
- #include <fcntl.h>
- #else
- #include <locale>
  #include <clocale>
- #endif
+ #include <filesystem>
  #include <fstream>
  #include <iostream>
- #include <filesystem>
- namespace fs = std::filesystem;
+ #include <locale>
 
  int main()
  {
- #ifdef _MSC_VER
-     _setmode(_fileno(stderr), _O_WTEXT);
- #else
-     std::setlocale(LC_ALL, "");
-     std::locale::global(std::locale(""));
-     std::cout.imbue(std::locale());
-     std::wcerr.imbue(std::locale());
- #endif
+     const char* const localeName = "ja_JP.utf-8";
+     std::setlocale(LC_ALL, localeName);
+     std::locale::global(std::locale(localeName));
 
-     fs::path p = fs::u8path(u8"要らない.txt");
-     std::ofstream(p) << "File contents"; // Prior to LWG2676 uses operator string_type()
-                                          // on MSVC, where string_type is wstring, only
-                                          // works due to non-standard extension.
-                                          // Post-LWG2676 uses new fstream constructors
+     const std::filesystem::path p(u8"要らない.txt");
+     std::ofstream(p) << "File contents";
 
      // native string representation can be used with OS APIs
-     if (std::FILE* f =
- #ifdef _MSC_VER
-                 _wfopen(p.c_str(), L"r")
- #else
-                 std::fopen(p.c_str(), "r")
- #endif
-         )
+     if (std::FILE* const f = std::fopen(p.string().c_str(), "r"))
      {
          int ch;
-         while((ch=fgetc(f))!= EOF) putchar(ch);
+         while ((ch = fgetc(f)) != EOF)
+             putchar(ch);
+
          std::fclose(f);
      }
 
      // multibyte and wide representation can be used for output
      std::cout << "\\nFile name in narrow multibyte encoding: " << p.string() << '\\n';
-     std::wcerr << "File name in wide encoding: " << p.wstring() << '\\n';
 
-     fs::remove(p);
+     // wstring() will throw in stdlibc++, see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102839
+     std::wcout << "File name in wide encoding: " << p.wstring() << '\\n';
+
+     std::filesystem::remove(p);
  }
 
 .SH Possible output:
@@ -123,7 +107,3 @@ std::filesystem::path::string,std::filesystem::path::wstring, \- std::filesystem
    generic_u8string  \fI(public member function)\fP
    generic_u16string
    generic_u32string
-
-.SH Category:
-
-     * Uses of dcl rev begin with nonempty note

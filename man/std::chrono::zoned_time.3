@@ -1,4 +1,4 @@
-.TH std::chrono::zoned_time 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::chrono::zoned_time 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::chrono::zoned_time \- std::chrono::zoned_time
 
@@ -6,10 +6,11 @@ std::chrono::zoned_time \- std::chrono::zoned_time
    Defined in header <chrono>
    template <
 
-       class Duration,                                    \fI(since C++20)\fP
-       class TimeZonePtr = const std::chrono::time_zone*
+   class Duration,                                                       \fI(since C++20)\fP
+   class TimeZonePtr = const std::chrono::time_zone*
 
    > class zoned_time;
+   using zoned_seconds = std::chrono::zoned_time<std::chrono::seconds>;  \fI(since C++20)\fP
 
    The class zoned_time represents a logical pairing of a time zone and a
    std::chrono::time_point whose resolution is Duration.
@@ -52,18 +53,78 @@ std::chrono::zoned_time \- std::chrono::zoned_time
    get_info            obtain information about the time zone at the stored time point
                        \fI(public member function)\fP
 
-   Nonmember functions
+.SH Non-member functions
 
-   operator== compares two zoned_time objects
-              \fI(function template)\fP
+   operator== compares two zoned_time values
+   (C++20)    \fI(function template)\fP
    operator<< outputs a zoned_time into a stream
-              \fI(function template)\fP
+   (C++20)    \fI(function template)\fP
 
 .SH Helper classes
 
                                            specialization of std::formatter that
    std::formatter<std::chrono::zoned_time> formats a zoned_time according to the
-                                           provided format
+   (C++20)                                 provided format
                                            \fI(class template specialization)\fP
 
-   Deduction guides
+  Deduction guides
+
+.SH Example
+
+
+// Run this code
+
+ #include <chrono>
+ #include <iomanip>
+ #include <iostream>
+ #include <algorithm>
+ #include <stdexcept>
+ #include <string_view>
+
+ int main()
+ {
+     constexpr std::string_view locations[] = {
+         "Africa/Casablanca",   "America/Argentina/Buenos_Aires",
+         "America/Barbados",    "America/Indiana/Petersburg",
+         "America/Tarasco_Bar", "Antarctica/Casey",
+         "Antarctica/Vostok",   "Asia/Magadan",
+         "Asia/Manila",         "Asia/Shanghai",
+         "Asia/Tokyo",          "Atlantic/Bermuda",
+         "Australia/Darwin",    "Europe/Isle_of_Man",
+         "Europe/Laputa",       "Indian/Christmas",
+         "Indian/Cocos",        "Pacific/Galapagos",
+     };
+     constexpr auto width = std::ranges::max_element(locations, {},
+         [](const auto& s) { return s.length(); })->length();
+
+     for (const auto location : locations) {
+         try {
+             // may throw if `location` is not in the time zone database
+             const std::chrono::zoned_time zt{location, std::chrono::system_clock::now()};
+             std::cout << std::setw(width) << location << " - Zoned Time: " << zt << '\\n';
+         } catch (std::chrono::nonexistent_local_time& ex) {
+             std::cout << "Error: " << ex.what() << '\\n';
+         }
+     }
+ }
+
+.SH Possible output:
+
+              Africa/Casablanca - Zoned Time: 2021-09-16 10:26:54.837665555 +01
+ America/Argentina/Buenos_Aires - Zoned Time: 2021-09-16 06:26:55.090150136 -03
+               America/Barbados - Zoned Time: 2021-09-16 05:26:55.090419331 AST
+     America/Indiana/Petersburg - Zoned Time: 2021-09-16 05:26:55.090465623 EDT
+ Error: America/Tarasco_Bar not found in timezone database
+               Antarctica/Casey - Zoned Time: 2021-09-16 20:26:55.123070973 +11
+              Antarctica/Vostok - Zoned Time: 2021-09-16 15:26:55.123151218 +06
+                   Asia/Magadan - Zoned Time: 2021-09-16 20:26:55.123208852 +11
+                    Asia/Manila - Zoned Time: 2021-09-16 17:26:55.123434512 PST
+                  Asia/Shanghai - Zoned Time: 2021-09-16 17:26:55.123520538 CST
+                     Asia/Tokyo - Zoned Time: 2021-09-16 18:26:55.123626199 JST
+               Atlantic/Bermuda - Zoned Time: 2021-09-16 06:26:55.123713854 ADT
+               Australia/Darwin - Zoned Time: 2021-09-16 18:56:55.155857464 ACST
+             Europe/Isle_of_Man - Zoned Time: 2021-09-16 10:26:55.155909304 BST
+ Error: Europe/Laputa not found in timezone database
+               Indian/Christmas - Zoned Time: 2021-09-16 16:26:55.215065303 +07
+                   Indian/Cocos - Zoned Time: 2021-09-16 15:56:55.215137548 +0630
+              Pacific/Galapagos - Zoned Time: 2021-09-16 03:26:55.215201447 -06

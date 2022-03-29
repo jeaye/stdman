@@ -1,4 +1,4 @@
-.TH std::barrier 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::barrier 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::barrier \- std::barrier
 
@@ -36,8 +36,8 @@ std::barrier \- std::barrier
             during the completion step.
 
     3. When the completion step finishes, the expected count is reset to the value
-       specified in construction, possibly adjusted by calls to arrive_and_drop, and
-       the next phase starts.
+       specified at construction less the number of calls to arrive_and_drop since, and
+       the next barrier phase begins.
 
    Concurrent invocations of the member functions of barrier, except for the
    destructor, do not introduce data races.
@@ -86,16 +86,66 @@ std::barrier \- std::barrier
    max             the maximum value of expected count supported by the implementation
    \fB[static]\fP        \fI(public static member function)\fP
 
+.SH Notes
+
+   Feature testing macro: __cpp_lib_barrier
+
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <barrier>
+ #include <iostream>
+ #include <string>
+ #include <thread>
+ #include <vector>
+
+ int main() {
+   const auto workers = { "anil", "busara", "carl" };
+
+   auto on_completion = []() noexcept {
+     // locking not needed here
+     static auto phase = "... done\\n" "Cleaning up...\\n";
+     std::cout << phase;
+     phase = "... done\\n";
+   };
+   std::barrier sync_point(std::ssize(workers), on_completion);
+
+   auto work = [&](std::string name) {
+     std::string product = "  " + name + " worked\\n";
+     std::cout << product;  // ok, op<< call is atomic
+     sync_point.arrive_and_wait();
+
+     product = "  " + name + " cleaned\\n";
+     std::cout << product;
+     sync_point.arrive_and_wait();
+   };
+
+   std::cout << "Starting...\\n";
+   std::vector<std::thread> threads;
+   for (auto const& worker : workers) {
+     threads.emplace_back(work, worker);
+   }
+   for (auto& thread : threads) {
+     thread.join();
+   }
+ }
+
+.SH Possible output:
+
+ Starting...
+   anil worked
+   carl worked
+   busara worked
+ ... done
+ Cleaning up...
+   busara cleaned
+   carl cleaned
+   anil cleaned
+ ... done
 
 .SH See also
 
    latch   single-use thread barrier
    (C++20) \fI(class)\fP
-
-.SH Category:
-
-     * Todo no example

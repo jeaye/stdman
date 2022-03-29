@@ -1,9 +1,17 @@
-.TH std::ranges::views::counted 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::views::counted 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::views::counted \- std::ranges::views::counted
 
 .SH Synopsis
-   inline constexpr /*unspecified*/ counted = /*unspecified*/;  \fI(since C++20)\fP
+   Defined in header <ranges>
+   inline constexpr /*unspecified*/ counted = /*unspecified*/;            \fI(since C++20)\fP
+   Call signature
+   template< class Iterator, class DifferenceType >
+
+   requires /* see below */                                               \fI(since C++20)\fP
+
+   constexpr /*span-or-subrange*/ counted( Iterator&& it,
+   DifferenceType&& count );
 
    A counted view presents a view of the elements of the counted range [i, n) for some
    iterator i and non-negative integer n.
@@ -16,24 +24,48 @@ std::ranges::views::counted \- std::ranges::views::counted
    only valid if n is positive, i is dereferenceable, and [++i, --n) is a valid counted
    range.
 
-   Formally, if E and F are expressions, and T is the type std::decay_t<decltype((E))>,
-   then
+   Formally, if it and count are expressions, T is std::decay_t<decltype((it))>, and D
+   is std::iter_difference_t<T>, then
 
-   if T models input_or_output_iterator and decltype((F)) models
-   std::convertible_to<std::iter_difference_t<T>>,
+           if T models input_or_output_iterator and decltype((count)) models
+           std::convertible_to<D>,
 
-   if T models random_access_iterator, views::counted(E, F) is expression-equivalent to
-   ranges::subrange{E, E + static_cast<std::iter_difference_t<T>>(F)}
-   otherwise views::counted(E, F) is expression-equivalent to
-   ranges::subrange{std::counted_iterator{E, F}, std::default_sentinel}
-   otherwise, views::counted(E, F) is ill-formed.
+              * if T models contiguous_iterator, then views::counted(it, count) is
+                expression-equivalent to std::span(std::to_address(it),
+                static_cast<std::size_t>(static_cast<D>(count))),
+              * otherwise, if T models random_access_iterator, then views::counted(it,
+                count) is expression-equivalent to ranges::subrange(it, it +
+                static_cast<D>(count)),
+              * otherwise, views::counted(it, count) is expression-equivalent to
+                ranges::subrange(std::counted_iterator(it, count),
+                std::default_sentinel).
 
-   Expression-equivalent
+           Otherwise, views::counted(it, count) is ill-formed.
+
+  Expression-equivalent
 
    Expression e is expression-equivalent to expression f, if e and f have the same
    effects, either are both potentially-throwing or are both not potentially-throwing
    (i.e. noexcept(e) == noexcept(f)), and either are both constant subexpressions or
    are both not constant subexpressions.
+
+  Customization point objects
+
+   The name views::counted denotes a customization point object, which is a const
+   function object of a literal semiregular class type. For exposition purposes, the
+   cv-unqualified version of its type is denoted as __counted_fn.
+
+   All instances of __counted_fn are equal. The effects of invoking different instances
+   of type __counted_fn on the same arguments are equivalent, regardless of whether the
+   expression denoting the instance is an lvalue or rvalue, and is const-qualified or
+   not (however, a volatile-qualified instance is not required to be invocable). Thus,
+   views::counted can be copied freely and its copies can be used interchangeably.
+
+   Given a set of types Args..., if std::declval<Args>()... meet the requirements for
+   arguments to views::counted above, __counted_fn models std::invocable<__counted_fn,
+   Args...>, std::invocable<const __counted_fn, Args...>, std::invocable<__counted_fn&,
+   Args...>, and std::invocable<const __counted_fn&, Args...>. Otherwise, no function
+   call operator of __counted_fn participates in overload resolution.
 
 .SH Example
 
@@ -45,7 +77,7 @@ std::ranges::views::counted \- std::ranges::views::counted
 
  int main()
  {
-     int a[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+     const int a[] = {1, 2, 3, 4, 5, 6, 7};
      for(int i : std::views::counted(a, 3))
          std::cout << i << ' ';
      std::cout << '\\n';
@@ -61,9 +93,22 @@ std::ranges::views::counted \- std::ranges::views::counted
  1 2 3
  2 3 4
 
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to              Behavior as published               Correct behavior
+   P2393R1 C++20      implicit conversion from an integer-class type   made explicit
+                      to size_t might be invalid
+
 .SH See also
 
-   subrange         combines an iterator-sentinel pair into a view
-                    \fI(class template)\fP
+   ranges::subrange combines an iterator-sentinel pair into a view
+   (C++20)          \fI(class template)\fP
    counted_iterator iterator adaptor that tracks the distance to the end of the range
    (C++20)          \fI(class template)\fP
+   ranges::count
+   ranges::count_if returns the number of elements satisfying specific criteria
+   (C++20)          (niebloid)
+   (C++20)

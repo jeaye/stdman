@@ -1,4 +1,4 @@
-.TH std::ranges::clamp 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::clamp 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::clamp \- std::ranges::clamp
 
@@ -7,8 +7,8 @@ std::ranges::clamp \- std::ranges::clamp
    Call signature
    template< class T, class Proj = std::identity,
 
-             std::indirect_strict_weak_order<std::projected<const T*, Proj>>    (since
-   Comp = ranges::less >                                                        C++20)
+   std::indirect_strict_weak_order<std::projected<const T*, Proj>> Comp =       (since
+   ranges::less >                                                               C++20)
 
    constexpr const T& clamp( const T& v, const T& lo, const T& hi, Comp comp =
    {}, Proj proj = {} );
@@ -53,16 +53,16 @@ struct clamp_fn {
   constexpr const T& operator()(const T& v, const T& lo, const T& hi,
                                 Comp comp = {}, Proj proj = {}) const
   {
-      assert(!std::invoke(comp, std::invoke(proj, hi), std::invoke(proj, lo)));
-      return std::invoke(comp, std::invoke(proj, v), std::invoke(proj, lo)) ? lo
-           : std::invoke(comp, std::invoke(proj, hi), std::invoke(proj, v)) ? hi : v;
+      auto&& pv = std::invoke(proj, v);
+
+      return std::invoke(comp, std::forward<decltype(pv)>(pv), std::invoke(proj, lo)) ? lo
+           : std::invoke(comp, std::invoke(proj, hi), std::forward<decltype(pv)>(pv)) ? hi : v;
   }
 };
 
 inline constexpr clamp_fn clamp;
 
 .SH Notes
-
 
    Capturing the result of std::ranges::clamp by reference produces a dangling
    reference if one of the parameters is a temporary and that parameter is returned:
@@ -82,29 +82,53 @@ inline constexpr clamp_fn clamp;
  #include <cstdint>
  #include <iostream>
  #include <iomanip>
- #include <random>
+ #include <string>
+
+ using namespace std::literals;
 
  int main()
  {
-     std::mt19937 g(std::random_device{}());
-     std::uniform_int_distribution<> d(-300, 300);
      std::cout << " raw   clamped to int8_t   clamped to uint8_t\\n";
-     for(int n = 0; n < 5; ++n) {
-         int v = d(g);
-         std::cout << std::setw(4) << v
+     for(int const v: {-129, -128, -1, 0, 42, 127, 128, 255, 256}) {
+         std::cout << std::setw(04) << v
                    << std::setw(20) << std::ranges::clamp(v, INT8_MIN, INT8_MAX)
                    << std::setw(21) << std::ranges::clamp(v, 0, UINT8_MAX) << '\\n';
      }
+     std::cout << '\\n';
+
+     // Projection function
+     const auto stoi = [](std::string s) { return std::stoi(s); };
+
+     // Same as above, but with strings
+     for(std::string const v: {"-129", "-128", "-1", "0", "42", "127", "128", "255", "256"}) {
+         std::cout << std::setw(04) << v
+                   << std::setw(20) << std::ranges::clamp(v, "-128"s, "127"s, {}, stoi)
+                   << std::setw(21) << std::ranges::clamp(v, "0"s, "255"s, {}, stoi) << '\\n';
+     }
  }
 
-.SH Possible output:
+.SH Output:
 
- .raw   clamped to int8_t   clamped to uint8_t
-  168                 127                  168
+  raw   clamped to int8_t   clamped to uint8_t
+ -129                -128                    0
+ -128                -128                    0
+   -1                  -1                    0
+    0                   0                    0
+   42                  42                   42
+  127                 127                  127
   128                 127                  128
- -137                -128                    0
-   40                  40                   40
-  -66                 -66                    0
+  255                 127                  255
+  256                 127                  255
+
+ -129                -128                    0
+ -128                -128                    0
+   -1                  -1                    0
+    0                   0                    0
+   42                  42                   42
+  127                 127                  127
+  128                 127                  128
+  255                 127                  255
+  256                 127                  255
 
 .SH See also
 
@@ -112,5 +136,7 @@ inline constexpr clamp_fn clamp;
    (C++20)     (niebloid)
    ranges::max returns the greater of the given values
    (C++20)     (niebloid)
+   in_range    checks if an integer value is in the range of a given integer type
+   (C++20)     \fI(function template)\fP
    clamp       clamps a value between a pair of boundary values
    \fI(C++17)\fP     \fI(function template)\fP

@@ -1,4 +1,4 @@
-.TH std::queue::queue 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::queue::queue 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::queue::queue \- std::queue::queue
 
@@ -10,16 +10,21 @@ std::queue::queue \- std::queue::queue
    explicit queue( Container&& cont );                      \fB(3)\fP           \fI(since C++11)\fP
    queue( const queue& other );                             \fB(4)\fP
    queue( queue&& other );                                  \fB(5)\fP           \fI(since C++11)\fP
-   template< class Alloc >                                  \fB(6)\fP           \fI(since C++11)\fP
-   explicit queue( const Alloc& alloc );                \fB(2)\fP
+   template< class InputIt >                                \fB(6)\fP           (since C++23)
+   queue( InputIt first, InputIt last );
    template< class Alloc >                                  \fB(7)\fP           \fI(since C++11)\fP
+   explicit queue( const Alloc& alloc );
+   template< class Alloc >                              \fB(2)\fP \fB(8)\fP           \fI(since C++11)\fP
    queue( const Container& cont, const Alloc& alloc );
-   template< class Alloc >                                  \fB(8)\fP           \fI(since C++11)\fP
-   queue( Container&& cont, const Alloc& alloc );
    template< class Alloc >                                  \fB(9)\fP           \fI(since C++11)\fP
-   queue( const queue& other, const Alloc& alloc );
+   queue( Container&& cont, const Alloc& alloc );
    template< class Alloc >                                  \fB(10)\fP          \fI(since C++11)\fP
+   queue( const queue& other, const Alloc& alloc );
+   template< class Alloc >                                  \fB(11)\fP          \fI(since C++11)\fP
    queue( queue&& other, const Alloc& alloc );
+   template< class InputIt, class Alloc >
+   queue( InputIt first, InputIt last, const Alloc&         \fB(12)\fP          (since C++23)
+   alloc );
 
    Constructs new underlying container of the container adaptor from a variety of data
    sources.
@@ -30,38 +35,43 @@ std::queue::queue \- std::queue::queue
    \fI(until C++11)\fP
    3) Move-constructs the underlying container c with std::move(cont).
    4) Copy constructor. The adaptor is copy-constructed with the contents of other.c.
-   (implicitly declared)
-   5) Move constructor. The adaptor is constructed with std::move(other.c). (implicitly
-   declared)
-   6-10) The following constructors are only defined if
-   std::uses_allocator<container_type, Alloc>::value == true, that is, if the
-   underlying container is an allocator-aware container (true for all standard library
-   containers that can be used with queue).
-   6) Constructs the underlying container using alloc as allocator, as if by c(alloc).
-   7) Constructs the underlying container with the contents of cont and using alloc as
+   5) Move constructor. The adaptor is constructed with std::move(other.c).
+   6) Constructs the underlying container c with the contents of the range [first,
+   last). This overload participates in overload resolution only if InputIt satisfies
+   LegacyInputIterator.
+   7-12) These constructors participate in overload resolution only if
+   std::uses_allocator<Container, Alloc>::value is true, that is, if the underlying
+   container is an allocator-aware container (true for all standard library containers
+   that can be used with queue).
+   7) Constructs the underlying container using alloc as allocator, as if by c(alloc).
+   8) Constructs the underlying container with the contents of cont and using alloc as
    allocator, as if by c(cont, alloc).
-   8) Constructs the underlying container with the contents of cont using move
+   9) Constructs the underlying container with the contents of cont using move
    semantics while utilizing alloc as allocator, as if by c(std::move(cont), alloc).
-   9) Constructs the adaptor with the contents of other.c and using alloc as allocator,
-   as if by c(other.c, alloc).
-   10) Constructs the adaptor with the contents of other using move semantics while
+   10) Constructs the adaptor with the contents of other.c and using alloc as
+   allocator, as if by c(other.c, alloc).
+   11) Constructs the adaptor with the contents of other using move semantics while
    utilizing alloc as allocator, as if by c(std::move(other.c), alloc).
+   12) Constructs the underlying container with the contents of the range [first, last)
+   using alloc as allocator, as if by c(first, last, alloc). This overload participates
+   in overload resolution only if InputIt satisfies LegacyInputIterator.
 
 .SH Parameters
 
-   alloc                -          allocator to use for all memory allocations of the
-                                   underlying container
-   other                -          another container adaptor to be used as source to
-                                   initialize the underlying container
-   cont                 -          container to be used as source to initialize the
-                                   underlying container
-   first, last          -          range of elements to initialize with
+   alloc                 -           allocator to use for all memory allocations of the
+                                     underlying container
+   other                 -           another container adaptor to be used as source to
+                                     initialize the underlying container
+   cont                  -           container to be used as source to initialize the
+                                     underlying container
+   first, last           -           range of elements to initialize with
 .SH Type requirements
    -
    Alloc must meet the requirements of Allocator.
    -
-   Container must meet the requirements of Container. The constructors (5-10) are only
-   defined if Container meets the requirements of AllocatorAwareContainer
+   Container must meet the requirements of Container. The constructors taking an
+   allocator parameter participate in overload resolution only if Container meets the
+   requirements of AllocatorAwareContainer.
    -
    InputIt must meet the requirements of LegacyInputIterator.
 
@@ -69,13 +79,10 @@ std::queue::queue \- std::queue::queue
 
    Same as the corresponding operation on the wrapped container.
 
-   Defect reports
+.SH Notes
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
-
-     DR    Applied to      Behavior as published       Correct behavior
-   P0935R0 C++11      default constructor was explicit made implicit
+   Feature testing macro: __cpp_lib_adaptor_iterator_pair_constructor (for overloads
+   \fB(6)\fP and \fB(12)\fP)
 
 .SH Example
 
@@ -96,15 +103,30 @@ std::queue::queue \- std::queue::queue
      std::cout << c2.size() << '\\n';
 
      std::deque<int> deq {3, 1, 4, 1, 5};
-     std::queue<int> c3(deq);
+     std::queue<int> c3(deq); // overload (2)
      std::cout << c3.size() << '\\n';
+
+ #   ifdef __cpp_lib_adaptor_iterator_pair_constructor
+     const auto il = {2, 7, 1, 8, 2};
+     std::queue<int> c4 { il.begin(), il.end() }; // overload (6), C++23
+     std::cout << c4.size() << '\\n';
+ #   endif
  }
 
-.SH Output:
+.SH Possible output:
 
  1
  1
  5
+ 5
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to      Behavior as published       Correct behavior
+   P0935R0 C++11      default constructor was explicit made implicit
 
 .SH See also
 

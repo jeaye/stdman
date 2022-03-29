@@ -1,4 +1,4 @@
-.TH std::forward_list::unique 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::forward_list::unique 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::forward_list::unique \- std::forward_list::unique
 
@@ -12,19 +12,23 @@ std::forward_list::unique \- std::forward_list::unique
    size_type unique( BinaryPredicate p );
 
    Removes all consecutive duplicate elements from the container. Only the first
-   element in each group of equal elements is left. The first version uses operator==
-   to compare the elements, the second version uses the given binary predicate p.
+   element in each group of equal elements is left. The behavior is undefined if the
+   selected comparator does not establish an equivalence relation.
+
+   1) Uses operator== to compare the elements.
+   2) Uses the given binary predicate p to compare the elements.
 
 .SH Parameters
 
-       binary predicate which returns true if the elements should be treated as equal.
+       binary predicate which returns true if the elements should be treated as
+       equal.
 
        The signature of the predicate function should be equivalent to the following:
 
-        bool pred(const Type1 &a, const Type2 &b);
+       bool pred(const Type1 &a, const Type2 &b);
 
-       While the signature does not need to have const &, the function must not modify
-   p - the objects passed to it and must be able to accept all values of type (possibly
+   p - While the signature does not need to have const &, the function must not modify
+       the objects passed to it and must be able to accept all values of type (possibly
        const) Type1 and Type2 regardless of value category (thus, Type1 & is not
        allowed
        , nor is Type1 unless for Type1 a move is equivalent to a copy
@@ -40,7 +44,8 @@ std::forward_list::unique \- std::forward_list::unique
 
 .SH Complexity
 
-   Linear in the size of the container
+   Exactly std::distance(begin(), end()) - 1 comparisons of the elements, if the
+   container is not empty. Otherwise, no comparison is performed.
 
 .SH Example
 
@@ -50,28 +55,32 @@ std::forward_list::unique \- std::forward_list::unique
  #include <iostream>
  #include <forward_list>
 
+ auto print = [](auto remark, auto const& container) {
+   std::cout << remark;
+   for (auto const& val : container)
+     std::cout << ' ' << val;
+   std::cout << '\\n';
+ };
+
  int main()
  {
-   std::forward_list<int> x = {1, 2, 2, 3, 3, 2, 1, 1, 2};
+   std::forward_list<int> c = {1, 2, 2, 3, 3, 2, 1, 1, 2};
+   print("Before unique():", c);
+   c.unique();
+   print("After  unique():", c);
 
-   std::cout << "contents before:";
-   for (auto val : x)
-     std::cout << ' ' << val;
-   std::cout << '\\n';
-
-   x.unique();
-   std::cout << "contents after unique():";
-   for (auto val : x)
-     std::cout << ' ' << val;
-   std::cout << '\\n';
-
-   return 0;
+   c = {1, 2, 12, 23, 3, 2, 51, 1, 2};
+   print("Before unique(pred):", c);
+   c.unique([mod=10](int x, int y) { return (x % mod) == (y % mod); });
+   print("After  unique(pred):", c);
  }
 
 .SH Output:
 
- contents before: 1 2 2 3 3 2 1 1 2
- contents after unique(): 1 2 3 2 1 2
+ Before unique(): 1 2 2 3 3 2 1 1 2
+ After  unique(): 1 2 3 2 1 2
+ Before unique(pred): 1 2 12 23 3 2 51 1 2
+ After  unique(pred): 1 2 23 2 51 2
 
 .SH See also
 

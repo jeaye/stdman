@@ -1,4 +1,4 @@
-.TH std::shift_left,std::shift_right 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::shift_left,std::shift_right 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::shift_left,std::shift_right \- std::shift_left,std::shift_right
 
@@ -8,44 +8,42 @@ std::shift_left,std::shift_right \- std::shift_left,std::shift_right
 
    constexpr ForwardIt shift_left( ForwardIt first, ForwardIt last,   \fB(1)\fP \fI(since C++20)\fP
 
-                                   typename
-   std::iterator_traits<ForwardIt>::difference_type n );
+   typename std::iterator_traits<ForwardIt>::difference_type n );
    template< class ExecutionPolicy, class ForwardIt >
 
-   ForwardIt shift_left( ExecutionPolicy&& policy, ForwardIt first,
-   ForwardIt last,                                                    \fB(2)\fP \fI(since C++20)\fP
+   ForwardIt shift_left( ExecutionPolicy&& policy, ForwardIt first,   \fB(2)\fP \fI(since C++20)\fP
+   ForwardIt last,
 
-                         typename
-   std::iterator_traits<ForwardIt>::difference_type n );
+   typename std::iterator_traits<ForwardIt>::difference_type n );
    template< class ForwardIt >
 
    constexpr ForwardIt shift_right( ForwardIt first, ForwardIt last,  \fB(3)\fP \fI(since C++20)\fP
 
-                                    typename
-   std::iterator_traits<ForwardIt>::difference_type n );
+   typename std::iterator_traits<ForwardIt>::difference_type n );
    template< class ExecutionPolicy, class ForwardIt >
 
-   ForwardIt shift_right( ExecutionPolicy&& policy, ForwardIt first,
-   ForwardIt last,                                                    \fB(4)\fP \fI(since C++20)\fP
+   ForwardIt shift_right( ExecutionPolicy&& policy, ForwardIt first,  \fB(4)\fP \fI(since C++20)\fP
+   ForwardIt last,
 
-                          typename
-   std::iterator_traits<ForwardIt>::difference_type n );
+   typename std::iterator_traits<ForwardIt>::difference_type n );
 
    Shifts the elements in the range [first, last) by n positions.
 
-   1) Shifts the elements towards the beginning of the range. If n <= 0 || n >= last -
-   first, there are no effects. Otherwise, for every integer i in [0, last - first -
-   n), moves the element originally at position first + n + i to position first + i.
-   The moves are performed in increasing order of i starting from 0.
-   3) Shifts the elements towards the end of the range. If n <= 0 || n >= last - first,
-   there are no effects. Otherwise, for every integer i in [0, last - first - n), moves
-   the element originally at position first + i to position first + n + i. If ForwardIt
-   meets the LegacyBidirectionalIterator requirements, then the moves are performed in
-   decreasing order of i starting from last - first - n - 1.
+   1) Shifts the elements towards the beginning of the range. If n == 0 || n >= last -
+   first, there are no effects. If n < 0, the behavior is undefined. Otherwise, for
+   every integer i in [0, last - first - n), moves the element originally at position
+   first + n + i to position first + i. The moves are performed in increasing order of
+   i starting from 0.
+   3) Shifts the elements towards the end of the range. If n == 0 || n >= last - first,
+   there are no effects. If n < 0, the behavior is undefined. Otherwise, for every
+   integer i in [0, last - first - n), moves the element originally at position first +
+   i to position first + n + i. If ForwardIt meets the LegacyBidirectionalIterator
+   requirements, then the moves are performed in decreasing order of i starting from
+   last - first - n - 1.
    2,4) Same as \fB(1)\fP and \fB(3)\fP, respectively, but executed according to policy and the
-   moves may be performed in any order. This overload only participates in overload
-   resolution if std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is
-   true
+   moves may be performed in any order. This overload participates in overload
+   resolution only if std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
+   is true
 
    Elements that are in the original range but not the new range are left in a valid
    but unspecified state.
@@ -68,12 +66,10 @@ std::shift_left,std::shift_right \- std::shift_left,std::shift_right
 
 .SH Return value
 
-   1-2) The end of the resulting range. If n is positive and less than last - first,
-   returns first + (last - first - n). Otherwise if n is positive, returns first.
-   Otherwise, returns last.
-   3-4) The beginning of the resulting range. If n is positive and less than last -
-   first, returns first + n. Otherwise if n is positive, returns last. Otherwise,
-   returns first.
+   1-2) The end of the resulting range. If n is less than last - first, returns first +
+   (last - first - n). Otherwise, returns first.
+   3-4) The beginning of the resulting range. If n is less than last - first, returns
+   first + n. Otherwise, returns last.
 
 .SH Complexity
 
@@ -90,13 +86,19 @@ std::shift_left,std::shift_right \- std::shift_left,std::shift_right
        For any other ExecutionPolicy, the behavior is implementation-defined.
      * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
+.SH Notes
+
+   Feature testing macro: __cpp_lib_shift
+
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
  #include <algorithm>
+ #include <iostream>
+ #include <string>
+ #include <type_traits>
  #include <vector>
 
  struct S {
@@ -117,29 +119,55 @@ std::shift_left,std::shift_right \- std::shift_left,std::shift_right
      }
  };
 
- std::ostream& operator<< (std::ostream& os, std::vector<S> const& v) {
-     for (const auto& s : v)
-         s.specified_state ? os << s.value << ' ' : os << "? ";
-     return os << '\\n';
+ template <typename T>
+ std::ostream& operator<< (std::ostream& os, std::vector<T> const& v) {
+     for (const auto& s : v) {
+         if constexpr (std::is_same<std::remove_cv_t<T>, S>{})
+             s.specified_state ? os << s.value << ' ' : os << ". ";
+         else if constexpr (std::is_same<std::remove_cv_t<T>, std::string>{})
+             os << (s.empty() ? "." : s) << ' ';
+         else
+             os << s << ' ';
+     }
+     return os;
  }
 
  int main()
  {
-     std::vector<S> v{1,2,3,4,5,6,7};
-     std::cout << v;
+     std::cout << std::left;
 
-     std::shift_left(v.begin(), v.end(), 3);
-     std::cout << v;
+     std::vector<S>            a{1, 2, 3, 4, 5, 6, 7};
+     std::vector<int>          b{1, 2, 3, 4, 5, 6, 7};
+     std::vector<std::string>  c{"α", "β", "γ", "δ", "ε", "ζ", "η"};
 
-     std::shift_right(v.begin(), v.end(), 2);
-     std::cout << v;
+     std::cout << "vector<S> \\tvector<int> \\tvector<string>\\n";
+     std::cout << a << "  " << b << "  " << c << '\\n';
+
+     std::shift_left(begin(a), end(a), 3);
+     std::shift_left(begin(b), end(b), 3);
+     std::shift_left(begin(c), end(c), 3);
+     std::cout << a << "  " << b << "  " << c << '\\n';
+
+     std::shift_right(begin(a), end(a), 2);
+     std::shift_right(begin(b), end(b), 2);
+     std::shift_right(begin(c), end(c), 2);
+     std::cout << a << "  " << b << "  " << c << '\\n';
+
+     std::shift_left(begin(a), end(a), 8);  // has no effect: n >= last - first
+     std::shift_left(begin(b), end(b), 8);  // ditto
+     std::shift_left(begin(c), end(c), 8);  // ditto
+     std::cout << a << "  " << b << "  " << c << '\\n';
+
+ //  std::shift_left(begin(a), end(a),-3);  // UB, e.g. segfault.)
  }
 
-.SH Output:
+.SH Possible output:
 
- 1 2 3 4 5 6 7
- 4 5 6 7 ? ? ?
- ? ? 4 5 6 7 ?
+ vector<S>         vector<int>       vector<string>
+ 1 2 3 4 5 6 7   1 2 3 4 5 6 7   α β γ δ ε ζ η
+ 4 5 6 7 . . .   4 5 6 7 5 6 7   δ ε ζ η . . .
+ . . 4 5 6 7 .   4 5 4 5 6 7 5   . . δ ε ζ η .
+ . . 4 5 6 7 .   4 5 4 5 6 7 5   . . δ ε ζ η .
 
 .SH See also
 

@@ -1,4 +1,4 @@
-.TH std::future::wait_for 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::future::wait_for 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::future::wait_for \- std::future::wait_for
 
@@ -8,8 +8,11 @@ std::future::wait_for \- std::future::wait_for
    timeout_duration ) const;
 
    Waits for the result to become available. Blocks until specified timeout_duration
-   has elapsed or the result becomes available, whichever comes first. Returns value
+   has elapsed or the result becomes available, whichever comes first. The return value
    identifies the state of the result.
+
+   If the future is the result of a call to std::async that used lazy evaluation, this
+   function returns immediately without waiting.
 
    This function may block for longer than timeout_duration due to scheduling or
    resource contention delays.
@@ -18,7 +21,7 @@ std::future::wait_for \- std::future::wait_for
    implementation uses a system clock instead, the wait time may also be sensitive to
    clock adjustments.
 
-   The behavior is undefined if valid()== false before the call to this function.
+   The behavior is undefined if valid() is false before the call to this function.
 
 .SH Parameters
 
@@ -27,8 +30,9 @@ std::future::wait_for \- std::future::wait_for
 .SH Return value
 
    Constant                Explanation
-   future_status::deferred The function to calculate the result has not been started
-                           yet
+                           The shared state contains a deferred function using lazy
+   future_status::deferred evaluation, so the result will be computed only when
+                           explicitly requested
    future_status::ready    The result is ready
    future_status::timeout  The timeout has expired
 
@@ -40,7 +44,8 @@ std::future::wait_for \- std::future::wait_for
 .SH Notes
 
    The implementations are encouraged to detect the case when valid == false before the
-   call and throw a future_error with an error condition of future_errc::no_state.
+   call and throw a std::future_error with an error condition of
+   std::future_errc::no_state.
 
 .SH Example
 
@@ -51,24 +56,22 @@ std::future::wait_for \- std::future::wait_for
  #include <future>
  #include <thread>
  #include <chrono>
+ using namespace std::chrono_literals;
 
  int main()
  {
      std::future<int> future = std::async(std::launch::async, [](){
-         std::this_thread::sleep_for(std::chrono::seconds(3));
+         std::this_thread::sleep_for(3s);
          return 8;
      });
 
      std::cout << "waiting...\\n";
      std::future_status status;
      do {
-         status = future.wait_for(std::chrono::seconds(1));
-         if (status == std::future_status::deferred) {
-             std::cout << "deferred\\n";
-         } else if (status == std::future_status::timeout) {
-             std::cout << "timeout\\n";
-         } else if (status == std::future_status::ready) {
-             std::cout << "ready!\\n";
+         switch(status = future.wait_for(1s); status) {
+             case std::future_status::deferred: std::cout << "deferred\\n"; break;
+             case std::future_status::timeout: std::cout << "timeout\\n"; break;
+             case std::future_status::ready: std::cout << "ready!\\n"; break;
          }
      } while (status != std::future_status::ready);
 
@@ -78,6 +81,7 @@ std::future::wait_for \- std::future::wait_for
 .SH Possible output:
 
  waiting...
+ timeout
  timeout
  timeout
  ready!

@@ -1,4 +1,4 @@
-.TH std::bidirectional_iterator 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::bidirectional_iterator 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::bidirectional_iterator \- std::bidirectional_iterator
 
@@ -6,18 +6,89 @@ std::bidirectional_iterator \- std::bidirectional_iterator
    Defined in header <iterator>
    template<class I>
 
-     concept bidirectional_iterator =
-       std::forward_iterator<I> &&
-       std::derived_from</*ITER_CONCEPT*/<I>,
+   concept bidirectional_iterator =
+   std::forward_iterator<I> &&
+   std::derived_from</*ITER_CONCEPT*/<I>,
    std::bidirectional_iterator_tag> &&                                    \fI(since C++20)\fP
-       requires(I i) {
-         { --i } -> std::same_as<I&>;
-         { i-- } -> std::same_as<I>;
+   requires(I i) {
+   { --i } -> std::same_as<I&>;
+   { i-- } -> std::same_as<I>;
 
-       };
+   };
 
    The concept bidirectional_iterator refines forward_iterator by adding the ability to
    move an iterator backward.
+
+  Iterator concept determination
+
+   Definition of this concept is specified via an exposition-only alias template
+   /*ITER_CONCEPT*/.
+
+   In order to determine /*ITER_CONCEPT*/<I>, let ITER_TRAITS<I> denote I if the
+   specialization std::iterator_traits<I> is generated from the primary template, or
+   std::iterator_traits<I> otherwise:
+
+     * If ITER_TRAITS<I>::iterator_concept is valid and names a type,
+       /*ITER_CONCEPT*/<I> denotes the type.
+     * Otherwise, if ITER_TRAITS<I>::iterator_category is valid and names a type,
+       /*ITER_CONCEPT*/<I> denotes the type.
+     * Otherwise, if std::iterator_traits<I> is generated from the primary template,
+       /*ITER_CONCEPT*/<I> denotes std::random_access_iterator_tag.
+     * Otherwise, /*ITER_CONCEPT*/<I> does not denote a type and results in a
+       substitution failure.
+
+  Semantic requirements
+
+   A bidirectional iterator r is said to be decrementable if and only if there exists
+   some s such that ++s == r.
+
+   bidirectional_iterator<I> is modeled only if all the concepts it subsumes are
+   modeled, and given two objects a and b of type I:
+
+     * If a is decrementable, a is in the domain of the expressions --a and a--.
+     * Pre-decrement yields an lvalue that refers to the operand: std::addressof(--a)
+       == std::addressof(a);
+     * Post-decrement yields the previous value of the operand: if bool(a == b), then
+       bool(a-- == b).
+     * Post-decrement and pre-decrement perform the same modification on its operand:
+       If bool(a == b), then after evaluating both a-- and --b, bool(a == b) still
+       holds.
+     * Increment and decrement are inverses of each other:
+
+              * If a is incrementable and bool(a == b), then bool(--(++a) == b).
+              * If a is decrementable and bool(a == b), then bool(++(--a) == b).
+
+  Equality preservation
+
+   An expression is equality preserving if it results in equal outputs given equal
+   inputs.
+
+     * The inputs to an expression consist of its operands.
+     * The outputs of an expression consist of its result and all operands modified by
+       the expression (if any).
+
+   In specification of standard concepts, operands are defined as the largest
+   subexpressions that include only:
+
+     * an id-expression, and
+     * invocations of std::move, std::forward, and std::declval.
+
+   The cv-qualification and value category of each operand is determined by assuming
+   that each template type parameter denotes a cv-unqualified complete non-array object
+   type.
+
+   Every expression required to be equality preserving is further required to be
+   stable: two evaluations of such an expression with the same input objects must have
+   equal outputs absent any explicit intervening modification of those input objects.
+
+   Unless noted otherwise, every expression used in a requires-expression is required
+   to be equality preserving and stable, and the evaluation of the expression may only
+   modify its non-constant operands. Operands that are constant must not be modified.
+
+.SH Notes
+
+   Unlike the LegacyBidirectionalIterator requirements, the bidirectional_iterator
+   concept does not require dereference to return an lvalue.
 
 .SH See also
 

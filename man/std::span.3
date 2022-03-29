@@ -1,4 +1,4 @@
-.TH std::span 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::span 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::span \- std::span
 
@@ -6,8 +6,8 @@ std::span \- std::span
    Defined in header <span>
    template<
 
-       class T,                                  \fI(since C++20)\fP
-       std::size_t Extent = std::dynamic_extent
+   class T,                                  \fI(since C++20)\fP
+   std::size_t Extent = std::dynamic_extent
 
    > class span;
 
@@ -19,9 +19,12 @@ std::span \- std::span
    If a span has dynamic extent a typical implementation holds two members: a pointer
    to T and a size. A span with static extent may have only one member: a pointer to T.
 
+   Every specialization of std::span is a TriviallyCopyable type. (since C++23)
+
 .SH Template parameters
 
-   T      - element type; must be a complete type that is not an abstract class type
+   T      - element type; must be a complete object type that is not an abstract class
+            type
    Extent - the number of elements in the sequence, or std::dynamic_extent if dynamic
 
 .SH Member types
@@ -36,7 +39,7 @@ std::span \- std::span
    reference        T&
    const_reference  const T&
                     implementation-defined LegacyRandomAccessIterator,
-   iterator         ConstexprIterator, and LegacyContiguousIterator whose value_type is
+   iterator         ConstexprIterator, and contiguous_iterator whose value_type is
                     value_type
    reverse_iterator std::reverse_iterator<iterator>
 
@@ -45,7 +48,7 @@ std::span \- std::span
    All requirements on the iterator types of a Container apply to the iterator type of
    span as well.
 
-   Member constant
+  Member constant
 
    static constexpr std::size_t extent = Extent;
 
@@ -57,18 +60,18 @@ std::span \- std::span
                  \fI(public member function)\fP
 .SH Iterators
    begin         returns an iterator to the beginning
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
    end           returns an iterator to the end
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
    rbegin        returns a reverse iterator to the beginning
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
    rend          returns a reverse iterator to the end
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
 .SH Element access
    front         access the first element
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
    back          access the last element
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
    operator[]    accesses an element of the sequence
                  \fI(public member function)\fP
    data          returns a pointer to the beginning of the sequence of elements
@@ -92,31 +95,34 @@ std::span \- std::span
 
    as_bytes          converts a span into a view of its underlying bytes
    as_writable_bytes \fI(function template)\fP
+   (C++20)
 
-   Non-member constant
+  Non-member constant
 
    dynamic_extent a constant of type size_t signifying that the span has dynamic extent
    (C++20)        (constant)
 
-   Helper templates
+  Helper templates
 
    template<class T, std::size_t Extent>
    inline constexpr bool ranges::enable_borrowed_range<std::span<T, Extent>> = true;
 
-   This specialization of std::ranges::enable_borrowed_range makes span satisfy
+   This specialization of ranges::enable_borrowed_range makes span satisfy
    borrowed_range.
 
    template<class T, std::size_t Extent>
+   inline constexpr bool ranges::enable_view<std::span<T, Extent>> = true;
 
-   inline constexpr bool ranges::enable_view<std::span<T, Extent>> =
+   This specialization of ranges::enable_view makes span satisfy view.
 
-       Extent == 0 || Extent == dynamic_extent;
+  Deduction guides
 
-   This specialization of std::ranges::enable_view makes span of zero or dynamic extent
-   satisfy view. Spans of nonzero static extent are not default_initializable and
-   therefore not views.
+.SH Notes
 
-   Deduction guides
+   Specializations of std::span are already trivially copyable types in all existing
+   implementations, even before the formal requirement introduced in C++23.
+
+   Feature testing macro: __cpp_lib_span
 
 .SH Example
 
@@ -150,8 +156,8 @@ std::span \- std::span
 
  template<class T, std::size_t N, std::size_t M> [[nodiscard]]
  constexpr bool contains(std::span<T,N> span, std::span<T,M> sub) {
-     return std::search(span.begin(), span.end(), sub.begin(), sub.end())
-         != span.end();
+     return std::search(span.begin(), span.end(), sub.begin(), sub.end()) != span.end();
+ //  return std::ranges::search(span, sub).begin() != span.end();
  }
 
  void print(const auto& seq) {
@@ -172,14 +178,16 @@ std::span \- std::span
          print(s);
      }
 
-     static_assert(starts_with(std::span{a}, std::span{a,4})
-         && starts_with(std::span{a+1, 4}, std::span{a+1,3})
-         && !starts_with(std::span{a}, std::span{b})
-         && !starts_with(std::span{a,8}, std::span{a+1,3})
-         && ends_with(std::span{a}, std::span{a+6,3})
-         && !ends_with(std::span{a}, std::span{a+6,2})
-         && contains(std::span{a}, std::span{a+1,4})
-         && !contains(std::span{a,8}, std::span{a,9}));
+     static_assert(
+         starts_with( std::span{a}, std::span{a, 4} ) and
+         starts_with( std::span{a + 1, 4}, std::span{a + 1, 3} ) and
+       ! starts_with( std::span{a}, std::span{b} ) and
+       ! starts_with( std::span{a, 8}, std::span{a + 1, 3} ) and
+         ends_with( std::span{a}, std::span{a + 6, 3} ) and
+       ! ends_with( std::span{a}, std::span{a + 6, 2} ) and
+         contains( std::span{a}, std::span{a + 1, 4} ) and
+       ! contains( std::span{a, 8}, std::span{a, 9} )
+     );
  }
 
 .SH Output:
@@ -189,7 +197,21 @@ std::span \- std::span
  2 3 4 5 6 7
  3 4 5 6 7 8
 
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to  Behavior as published              Correct behavior
+   P2325R3 C++20      span of non-zero static they are as default_initializable is not
+                      extents were not view   required
+
 .SH See also
 
+   initializer_list  creates a temporary array in list-initialization and then
+   \fI(C++11)\fP           references it
+                     \fI(class template)\fP
    basic_string_view read-only string view
    \fI(C++17)\fP           \fI(class template)\fP
+   ranges::subrange  combines an iterator-sentinel pair into a view
+   (C++20)           \fI(class template)\fP

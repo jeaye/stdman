@@ -1,4 +1,4 @@
-.TH std::ranges::swap 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::swap 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::swap \- std::ranges::swap
 
@@ -6,42 +6,79 @@ std::ranges::swap \- std::ranges::swap
    Defined in header <concepts>
    inline namespace /* unspecified */ {
 
-       inline constexpr /* unspecified */ swap = /*        \fI(since C++20)\fP
+   inline constexpr /* unspecified */ swap = /*            \fI(since C++20)\fP
    unspecified */;                                         (customization point object)
 
    }
    Call signature
    template< class T, class U >
 
-       requires /* see below */
+   requires /* see below */
 
    constexpr void swap(T&& t, U&& u) noexcept(/* see
    below */);
 
    Exchanges the values referenced by t and u.
 
-   A call to ranges::swap is expression-equivalent to:
+   A call to ranges::swap:
 
-   1) (void)swap(std::forward<T>(t), std::forward<U>(u)), if that expression is valid,
-   where the overload resolution is performed with the following candidates:
+    1. is expression-equivalent to (void)swap(std::forward<T>(t), std::forward<U>(u)),
+       if that expression is valid, where the overload resolution is performed with the
+       following candidates:
 
-     * template<class T> void swap(T&, T&) = delete;
-     * template<class T, std::size_t N> void swap(T(&)[N], T(&)[N]) = delete;
-     * any declarations of swap found by argument-dependent lookup.
+          * template<class T> void swap(T&, T&) = delete;
+          * template<class T, std::size_t N> void swap(T(&)[N], T(&)[N]) = delete;
+          * any declarations of swap found by argument-dependent lookup.
 
-   If the function selected by overload resolution does not exchange the values
-   referenced by t and u, the program is ill-formed; no diagnostic required.
-   2) Otherwise, (void)ranges::swap_ranges(t, u), if T and U are lvalue references to
-   array types of equal extent (but possibly different element types) and
-   ranges::swap(*t, *u) is a valid expression;
-   3) Otherwise, if T and U are both V& for some type V that meets the syntactic
-   requirements of std::move_constructible<V> and std::assignable_from<V&, V>,
-   exchanges the referenced values as if by V v{std::move(t)}; t = std::move(u); u =
-   std::move(v);. If the semantic requirements of either concept are not satisfied, the
-   program is ill-formed; no diagnostic required.
-   4) In all other cases, a call to ranges::swap is ill-formed, which can result in
-   substitution failure when ranges::swap(t, u) appears in the immediate context of a
-   template instantiation.
+                    If the function selected by overload resolution does not exchange
+                    the values referenced by t and u, the program is ill-formed; no
+                    diagnostic required.
+
+    2. Otherwise, is expression-equivalent to (void)ranges::swap_ranges(t, u) except
+       that noexcept(ranges::swap(t, u)) is equal to noexcept(ranges::swap(*t, *u)), if
+       T and U are lvalue references to array types of equal extent (but possibly
+       different element types) and ranges::swap(*t, *u) is a valid expression;
+    3. Otherwise, exchanges the referenced values as if by V v(std::move(t)); t =
+       std::move(u); u = std::move(v);, if T and U are both lvalue references to V for
+       some type V that satisfies std::move_constructible<V> and
+       std::assignable_from<V&, V>.
+
+          * Whether the call is potentially throwing is specified by above operations.
+          * The call is a constant subexpression if both above operations and the
+            operations performed with u and v swapped are usable in constant
+            evaluation.
+
+                    If either concept is not modeled, the program is ill-formed; no
+                    diagnostic required.
+
+    4. In all other cases, a call to ranges::swap is ill-formed, which can result in
+       substitution failure when ranges::swap(t, u) appears in the immediate context of
+       a template instantiation.
+
+  Expression-equivalent
+
+   Expression e is expression-equivalent to expression f, if e and f have the same
+   effects, either are both potentially-throwing or are both not potentially-throwing
+   (i.e. noexcept(e) == noexcept(f)), and either are both constant subexpressions or
+   are both not constant subexpressions.
+
+  Customization point objects
+
+   The name ranges::swap denotes a customization point object, which is a const
+   function object of a literal semiregular class type. For exposition purposes, the
+   cv-unqualified version of its type is denoted as __swap_fn.
+
+   All instances of __swap_fn are equal. The effects of invoking different instances of
+   type __swap_fn on the same arguments are equivalent, regardless of whether the
+   expression denoting the instance is an lvalue or rvalue, and is const-qualified or
+   not (however, a volatile-qualified instance is not required to be invocable). Thus,
+   ranges::swap can be copied freely and its copies can be used interchangeably.
+
+   Given a set of types Args..., if std::declval<Args>()... meet the requirements for
+   arguments to ranges::swap above, __swap_fn models std::invocable<__swap_fn,
+   Args...>, std::invocable<const __swap_fn, Args...>, std::invocable<__swap_fn&,
+   Args...>, and std::invocable<const __swap_fn&, Args...>. Otherwise, no function call
+   operator of __swap_fn participates in overload resolution.
 
 .SH Example
 

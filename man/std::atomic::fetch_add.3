@@ -1,4 +1,4 @@
-.TH std::atomic::fetch_add 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::atomic::fetch_add 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::atomic::fetch_add \- std::atomic::fetch_add
 
@@ -6,22 +6,18 @@ std::atomic::fetch_add \- std::atomic::fetch_add
    member only of atomic<Integral>\fI(C++11)\fP and atomic<Floating>(C++20)
    template specializations
    T fetch_add( T arg,
-                std::memory_order order = std::memory_order_seq_cst )
-   noexcept;
+   std::memory_order order = std::memory_order_seq_cst ) noexcept;
    T fetch_add( T arg,
-                std::memory_order order = std::memory_order_seq_cst )
-   volatile noexcept;
+   std::memory_order order = std::memory_order_seq_cst ) volatile noexcept;
    member only of atomic<T*> template specialization                          \fB(1)\fP
    T* fetch_add( std::ptrdiff_t arg,
-                 std::memory_order order = std::memory_order_seq_cst )
-   noexcept;                                                                      \fB(2)\fP
+   std::memory_order order = std::memory_order_seq_cst ) noexcept;                \fB(2)\fP
    T* fetch_add( std::ptrdiff_t arg,
-                 std::memory_order order = std::memory_order_seq_cst )
-   volatile noexcept;
+   std::memory_order order = std::memory_order_seq_cst ) volatile noexcept;
 
    Atomically replaces the current value with the result of arithmetic addition of the
-   value and arg. The operation is read-modify-write operation. Memory is affected
-   according to the value of order.
+   value and arg. That is, it performs atomic post-increment. The operation is
+   read-modify-write operation. Memory is affected according to the value of order.
 
    For signed Integral types, arithmetic is defined to use two’s complement
    representation. There are no undefined results.
@@ -57,35 +53,44 @@ std::atomic::fetch_add \- std::atomic::fetch_add
  #include <iostream>
  #include <thread>
  #include <atomic>
+ #include <array>
 
- std::atomic<long long> data;
- void do_work()
+ std::atomic<long long> data{10};
+ std::array<long long, 5> return_values{};
+
+ void do_work(int thread_num)
  {
-     data.fetch_add(1, std::memory_order_relaxed);
+     long long val = data.fetch_add(1, std::memory_order_relaxed);
+     return_values[thread_num] = val;
  }
 
  int main()
  {
-     std::thread th1(do_work);
-     std::thread th2(do_work);
-     std::thread th3(do_work);
-     std::thread th4(do_work);
-     std::thread th5(do_work);
+     {
+         std::jthread th0{do_work, 0};
+         std::jthread th1{do_work, 1};
+         std::jthread th2{do_work, 2};
+         std::jthread th3{do_work, 3};
+         std::jthread th4{do_work, 4};
+     }
 
-     th1.join();
-     th2.join();
-     th3.join();
-     th4.join();
-     th5.join();
+     std::cout << "Result : " << data << '\\n';
 
-     std::cout << "Result:" << data << '\\n';
+     for (long long val : return_values) {
+         std::cout << "Seen return value : " << val << std::endl;
+     }
  }
 
-.SH Output:
+.SH Possible output:
 
- Result:5
+ Result : 15
+ Seen return value : 11
+ Seen return value : 10
+ Seen return value : 14
+ Seen return value : 12
+ Seen return value : 13
 
-   Defect reports
+  Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
@@ -100,3 +105,7 @@ std::atomic::fetch_add \- std::atomic::fetch_add
    atomic_fetch_add_explicit the previous value of the atomic
    \fI(C++11)\fP                   \fI(function template)\fP
    \fI(C++11)\fP
+   operator++
+   operator++(int)           increments or decrements the atomic value by one
+   operator--                \fI(public member function)\fP
+   operator--(int)

@@ -1,4 +1,4 @@
-.TH std::move 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::move 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::move \- std::move
 
@@ -53,20 +53,24 @@ std::move \- std::move
    std::forward is used instead.
 
    Unless otherwise specified, all standard library objects that have been moved from
-   are placed in a valid but unspecified state. That is, only the functions without
-   preconditions, such as the assignment operator, can be safely used on the object
-   after it was moved from:
+   are placed in a "valid but unspecified state", meaning the object's class invariants
+   hold (so functions without preconditions, such as the assignment operator, can be
+   safely used on the object after it was moved from):
 
  std::vector<std::string> v;
  std::string str = "example";
  v.push_back(std::move(str)); // str is now valid but unspecified
  str.back(); // undefined behavior if size() == 0: back() has a precondition !empty()
+ if (!str.empty())
+     str.back(); // OK, empty() has no precondition and back() precondition is met
+
  str.clear(); // OK, clear() has no preconditions
 
    Also, the standard library functions called with xvalue arguments may assume the
    argument is the only reference to the object; if it was constructed from an lvalue
-   with std::move, no aliasing checks are made. In particular, this means that standard
-   library move assignment operators do not have to perform self-assignment checks:
+   with std::move, no aliasing checks are made. However, self-move-assignment of
+   standard library types is guaranteed to place the object in a valid (but usually
+   unspecified) state:
 
  std::vector<int> v = {2, 3, 3};
  v = std::move(v); // the value of v is unspecified
@@ -76,6 +80,7 @@ std::move \- std::move
 
 // Run this code
 
+ #include <iomanip>
  #include <iostream>
  #include <utility>
  #include <vector>
@@ -83,30 +88,30 @@ std::move \- std::move
 
  int main()
  {
-     std::string str = "Hello";
+     std::string str = "Salut";
      std::vector<std::string> v;
 
      // uses the push_back(const T&) overload, which means
      // we'll incur the cost of copying str
      v.push_back(str);
-     std::cout << "After copy, str is \\"" << str << "\\"\\n";
+     std::cout << "After copy, str is " << std::quoted(str) << '\\n';
 
      // uses the rvalue reference push_back(T&&) overload,
      // which means no strings will be copied; instead, the contents
      // of str will be moved into the vector.  This is less
      // expensive, but also means str might now be empty.
      v.push_back(std::move(str));
-     std::cout << "After move, str is \\"" << str << "\\"\\n";
+     std::cout << "After move, str is " << std::quoted(str) << '\\n';
 
-     std::cout << "The contents of the vector are \\"" << v[0]
-                                          << "\\", \\"" << v[1] << "\\"\\n";
+     std::cout << "The contents of the vector are { " << std::quoted(v[0])
+                                              << ", " << std::quoted(v[1]) << " }\\n";
  }
 
 .SH Possible output:
 
- After copy, str is "Hello"
+ After copy, str is "Salut"
  After move, str is ""
- The contents of the vector are "Hello", "Hello"
+ The contents of the vector are { "Salut", "Salut" }
 
 .SH See also
 

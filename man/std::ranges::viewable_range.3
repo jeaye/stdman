@@ -1,4 +1,4 @@
-.TH std::ranges::viewable_range 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::viewable_range 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::viewable_range \- std::ranges::viewable_range
 
@@ -6,10 +6,29 @@ std::ranges::viewable_range \- std::ranges::viewable_range
    Defined in header <ranges>
    template<class T>
 
-     concept viewable_range =
+   concept viewable_range =
+   ranges::range<T> &&
+   ((ranges::view<std::remove_cvref_t<T>> &&
+   std::constructible_from<std::remove_cvref_t<T>, T>) ||                 \fI(since C++20)\fP
+   (!ranges::view<std::remove_cvref_t<T>> &&
+   (std::is_lvalue_reference_v<T> ||
 
-       ranges::range<T> && (ranges::borrowed_range<T> ||
-   ranges::view<std::remove_cvref_t<T>>);
+   (std::movable<std::remove_reference_t<T>> &&
+   !/*is-initializer-list*/<T>))));
 
    The viewable_range concept is a refinement of range that describes a range that can
    be safely converted into a view.
+
+   The constant /*is-initializer-list*/<T> is true if and only if
+   std::remove_cvref_t<T> is a specialization of std::initializer_list.
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to             Behavior as published              Correct behavior
+   LWG 3481 C++20      viewable_range accepted an lvalue of a        rejects
+                       move-only view
+   P2415R2  C++20      viewable_range only accepted non-view rvalues accepts more types
+                       that are borrowed_range

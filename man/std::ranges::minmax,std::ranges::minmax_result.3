@@ -1,4 +1,4 @@
-.TH std::ranges::minmax,std::ranges::minmax_result 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::minmax,std::ranges::minmax_result 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::minmax,std::ranges::minmax_result \- std::ranges::minmax,std::ranges::minmax_result
 
@@ -7,24 +7,23 @@ std::ranges::minmax,std::ranges::minmax_result \- std::ranges::minmax,std::range
    Call signature
    template< class T, class Proj = std::identity,
 
-             std::indirect_strict_weak_order<                                   (since
-                 std::projected<const T*, Proj>> Comp = ranges::less >      \fB(1)\fP C++20)
+   std::indirect_strict_weak_order<                                             (since
+   std::projected<const T*, Proj>> Comp = ranges::less >                    \fB(1)\fP C++20)
    constexpr ranges::minmax_result<const T&>
 
    minmax( const T& a, const T& b, Comp comp = {}, Proj proj = {} );
-   template< class T, class Proj = std::identity,
+   template< std::copyable T, class Proj = std::identity,
 
-             std::indirect_strict_weak_order<                                   (since
-                 std::projected<const T*, Proj>> Comp = ranges::less >      \fB(2)\fP C++20)
-   constexpr ranges::minmax_result<const T&>
+   std::indirect_strict_weak_order<                                             (since
+   std::projected<const T*, Proj>> Comp = ranges::less >                    \fB(2)\fP C++20)
+   constexpr ranges::minmax_result<T>
 
    minmax( std::initializer_list<T> r, Comp comp = {}, Proj proj = {} );
    template< ranges::input_range R, class Proj = std::identity,
 
-             std::indirect_strict_weak_order<
-                 std::projected<ranges::iterator_t<R>, Proj>> Comp =
-   ranges::less >                                                           \fB(3)\fP (since
-   requires std::indirectly_copyable_storable<ranges::iterator_t<R>,            C++20)
+   std::indirect_strict_weak_order<
+   std::projected<ranges::iterator_t<R>, Proj>> Comp = ranges::less >           (since
+   requires std::indirectly_copyable_storable<ranges::iterator_t<R>,        \fB(3)\fP C++20)
    ranges::range_value_t<R>*>
    constexpr ranges::minmax_result<ranges::range_value_t<R>>
 
@@ -54,7 +53,7 @@ std::ranges::minmax,std::ranges::minmax_result \- std::ranges::minmax,std::range
    a, b - the values to compare
    r    - a non-empty range of values to compare
    comp - comparison to apply to the projected elements
-   proj - projection to apply to the elements
+   proj - projection to apply to the elements.
 
 .SH Return value
 
@@ -88,14 +87,14 @@ std::ranges::minmax,std::ranges::minmax_result \- std::ranges::minmax,std::range
          return {a, b};
      }
 
-     template<class T, class Proj = std::identity,
+     template<std::copyable T, class Proj = std::identity,
               std::indirect_strict_weak_order<
                   std::projected<const T*, Proj>> Comp = ranges::less>
-     constexpr ranges::minmax_result<const T&> operator()(
+     constexpr ranges::minmax_result<T> operator()(
          std::initializer_list<T> r, Comp comp = {}, Proj proj = {}) const
      {
        auto result = ranges::minmax_element(r, std::ref(comp), std::ref(proj));
-       return {std::move(*result.min), std::move(*result.max)};
+       return {*result.min, *result.max};
      }
 
      template<ranges::input_range R, class Proj = std::identity,
@@ -115,14 +114,18 @@ std::ranges::minmax,std::ranges::minmax_result \- std::ranges::minmax,std::range
 
 .SH Notes
 
-   For overloads (1,2), if one of the parameters is a temporary, the reference returned
+   For overload \fB(1)\fP, if one of the parameters is a temporary, the reference returned
    becomes a dangling reference at the end of the full expression that contains the
    call to minmax:
 
  int n = 1;
- auto p = ranges::minmax(n, n+1);
- int m = p.first; // ok
- int x = p.second; // undefined behavior
+ auto p = std::ranges::minmax(n, n+1);
+ int m = p.min; // ok
+ int x = p.max; // undefined behavior
+
+ // Note that structured bindings have the same issue
+ auto [mm, xx] = std::ranges::minmax(n, n+1);
+ xx; // undefined behavior
 
 .SH Example
 
@@ -132,34 +135,39 @@ std::ranges::minmax,std::ranges::minmax_result \- std::ranges::minmax,std::range
  #include <algorithm>
  #include <iostream>
  #include <random>
- #include <vector>
+ #include <array>
 
  int main()
  {
-     std::vector<int> v{3, 1, 4, 9, 1, 5, 9, 2, 6};
-     std::mt19937_64 generator;
      namespace ranges = std::ranges;
-     std::uniform_int_distribution<> distribution(0, ranges::distance(v));
 
-     auto bounds = ranges::minmax(distribution(generator), distribution(generator));
+     constexpr std::array v{3, 1, 4, 1, 5, 9, 2, 6, 5};
+
+     std::random_device rd;
+     std::mt19937_64 generator(rd());
+     std::uniform_int_distribution<> distribution(0, ranges::distance(v)); // [0..9]
+
+     // auto bounds = ranges::minmax(distribution(generator), distribution(generator));
+     // UB: dangling references: bounds.min and bounds.max have the type `const int&`.
+
+     const int x1 = distribution(generator);
+     const int x2 = distribution(generator);
+     auto bounds = ranges::minmax(x1, x2); // OK: got references to lvalues x1 and x2
 
      std::cout << "v[" << bounds.min << ":" << bounds.max << "]: ";
      for (int i = bounds.min; i < bounds.max; ++i) {
          std::cout << v[i] << ' ';
      }
-
      std::cout << '\\n';
 
      auto [min, max] = ranges::minmax(v);
-     std::cout << "smallest: " << min << '\\n'
-               << "largest: " << max << '\\n';
+     std::cout << "smallest: " << min << ", " << "largest: " << max << '\\n';
  }
 
 .SH Possible output:
 
- v[2:7]: 4 9 1 5 9
- smallest: 1
- largest: 9
+ v[3:9]: 1 5 9 2 6 5
+ smallest: 1, largest: 9
 
 .SH See also
 

@@ -1,4 +1,4 @@
-.TH std::longjmp 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::longjmp 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::longjmp \- std::longjmp
 
@@ -21,7 +21,8 @@ std::longjmp \- std::longjmp
 .SH Parameters
 
    env    - variable referring to the execution state of the program saved by setjmp
-   status - the value to return from setjmp. If it is equal to 0, 1 is used instead
+   status - the value to return from setjmp. If it is equal to 0, 1 is used
+            instead
 
 .SH Return value
 
@@ -41,37 +42,32 @@ std::longjmp \- std::longjmp
  #include <iostream>
  #include <csetjmp>
 
- std::jmp_buf jump_buffer;
+ std::jmp_buf my_jump_buffer;
 
- [[noreturn]] void a(int count)
+ [[noreturn]] void foo(int count)
  {
-     std::cout << "a(" << count << ") called\\n";
-     std::longjmp(jump_buffer, count+1);  // setjmp() will return count+1
+     std::cout << "foo(" << count << ") called\\n";
+     std::longjmp(my_jump_buffer, count+1);  // setjmp() will return count+1
  }
 
  int main()
  {
-     volatile int count = 0; // local variables must be volatile for setjmp
-     if (setjmp(jump_buffer) != 9) {
-         a(count++);  // This will cause setjmp() to exit
+     volatile int count = 0; // modified locals in setjmp scope must be volatile
+     if (setjmp(my_jump_buffer) != 5) { // equality against constant expression in an if
+         count = count + 1; // ++count, count += 1, etc on 'volatile'-qualified
+                            // left operand are deprecated since C++20 (P1152)
+         foo(count); // This will cause setjmp() to exit
      }
  }
 
 .SH Output:
 
- a\fB(0)\fP called
- a\fB(1)\fP called
- a\fB(2)\fP called
- a\fB(3)\fP called
- a\fB(4)\fP called
- a\fB(5)\fP called
- a\fB(6)\fP called
- a\fB(7)\fP called
- a\fB(8)\fP called
+ foo\fB(1)\fP called
+ foo\fB(2)\fP called
+ foo\fB(3)\fP called
+ foo\fB(4)\fP called
 
 .SH See also
 
    setjmp saves the context
           \fI(function macro)\fP
-   C documentation for
-   longjmp

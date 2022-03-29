@@ -1,4 +1,4 @@
-.TH std::is_pointer 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_pointer 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_pointer \- std::is_pointer
 
@@ -8,8 +8,9 @@ std::is_pointer \- std::is_pointer
    struct is_pointer;
 
    Checks whether T is a pointer to object or a pointer to function (but not a pointer
-   to member/member function). Provides the member constant value which is equal to
-   true, if T is a object/function pointer type. Otherwise, value is equal to false.
+   to member/member function) or a cv-qualified version thereof. Provides the member
+   constant value which is equal to true, if T is a object/function pointer type.
+   Otherwise, value is equal to false.
 
    The behavior of a program that adds specializations for is_pointer
    or is_pointer_v
@@ -19,12 +20,10 @@ std::is_pointer \- std::is_pointer
 
    T - a type to check
 
-   Helper variable template
+  Helper variable template
 
    template< class T >                                         \fI(since C++17)\fP
    inline constexpr bool is_pointer_v = is_pointer<T>::value;
-
-
 
 Inherited from std::integral_constant
 
@@ -49,47 +48,48 @@ Inherited from std::integral_constant
 .SH Possible implementation
 
    template<class T>
-   struct is_pointer_helper : std::false_type {};
+   struct is_pointer : std::false_type {};
 
    template<class T>
-   struct is_pointer_helper<T*> : std::true_type {};
+   struct is_pointer<T*> : std::true_type {};
 
    template<class T>
-   struct is_pointer : is_pointer_helper< typename std::remove_cv<T>::type > {};
+   struct is_pointer<T* const> : std::true_type {};
+
+   template<class T>
+   struct is_pointer<T* volatile> : std::true_type {};
+
+   template<class T>
+   struct is_pointer<T* const volatile> : std::true_type {};
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
  #include <type_traits>
-
- class A {};
 
  int main()
  {
-     std::cout << std::boolalpha;
-     std::cout << std::is_pointer<A>::value << '\\n';
-     std::cout << std::is_pointer<A *>::value << '\\n';
-     std::cout << std::is_pointer<A &>::value << '\\n';
-     std::cout << std::is_pointer<int>::value << '\\n';
-     std::cout << std::is_pointer<int *>::value << '\\n';
-     std::cout << std::is_pointer<int **>::value << '\\n';
-     std::cout << std::is_pointer<int[10]>::value << '\\n';
-     std::cout << std::is_pointer<std::nullptr_t>::value << '\\n';
+     class A {};
+
+     static_assert(
+            not std::is_pointer<A>::value
+         && not std::is_pointer_v<A>   // same thing as above, but in C++17!
+         && not std::is_pointer<A>()   // same as above, using inherited operator bool
+         && not std::is_pointer<A>{}   // ditto
+         && not std::is_pointer<A>()() // same as above, using inherited operator()
+         && not std::is_pointer<A>{}() // ditto
+         &&     std::is_pointer<A *>::value
+         &&     std::is_pointer<A const * volatile>()
+         && not std::is_pointer<A &>::value
+         && not std::is_pointer<int>::value
+         &&     std::is_pointer<int *>::value
+         &&     std::is_pointer<int **>::value
+         && not std::is_pointer<int[10]>::value
+         && not std::is_pointer<std::nullptr_t>::value
+     );
  }
-
-.SH Output:
-
- false
- true
- false
- false
- true
- true
- false
- false
 
 .SH See also
 

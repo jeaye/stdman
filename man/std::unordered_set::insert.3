@@ -1,4 +1,4 @@
-.TH std::unordered_set::insert 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::unordered_set::insert 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unordered_set::insert \- std::unordered_set::insert
 
@@ -10,8 +10,8 @@ std::unordered_set::insert \- std::unordered_set::insert
    template< class InputIt >                                        \fB(5)\fP \fI(since C++11)\fP
    void insert( InputIt first, InputIt last );
    void insert( std::initializer_list<value_type> ilist );          \fB(6)\fP \fI(since C++11)\fP
-   insert_return_type insert(node_type&& nh);                       \fB(7)\fP \fI(since C++17)\fP
-   iterator insert(const_iterator hint, node_type&& nh);            \fB(8)\fP \fI(since C++17)\fP
+   insert_return_type insert( node_type&& nh );                     \fB(7)\fP \fI(since C++17)\fP
+   iterator insert( const_iterator hint, node_type&& nh );          \fB(8)\fP \fI(since C++17)\fP
 
    Inserts element(s) into the container, if the container doesn't already contain an
    element with an equivalent key.
@@ -65,11 +65,14 @@ std::unordered_set::insert \- std::unordered_set::insert
    3-4) Returns an iterator to the inserted element, or to the element that prevented
    the insertion.
    5-6) \fI(none)\fP
-   7) Returns an insert_return_type with the members initialized as follows: if nh is
-   empty, inserted is false, position is end(), and node is empty. Otherwise if the
-   insertion took place, inserted is true, position points to the inserted element, and
-   node is empty. If the insertion failed, inserted is false, node has the previous
-   value of nh, and position points to an element with a key equivalent to nh.key().
+   7) Returns an insert_return_type with the members initialized as follows:
+
+     * If nh is empty, inserted is false, position is end(), and node is empty.
+     * Otherwise if the insertion took place, inserted is true, position points to the
+       inserted element, and node is empty.
+     * If the insertion failed, inserted is false, node has the previous value of nh,
+       and position points to an element with a key equivalent to nh.key().
+
    8) End iterator if nh was empty, iterator pointing to the inserted element if
    insertion took place, and iterator pointing to an element with a key equivalent to
    nh.key() if it failed.
@@ -84,7 +87,7 @@ std::unordered_set::insert \- std::unordered_set::insert
 .SH Complexity
 
    1-4) Average case: O(1), worst case O(size())
-   5-6) Average case: O(N), where N is the number of elements to insert. Worse case:
+   5-6) Average case: O(N), where N is the number of elements to insert. Worst case:
    O(N*size()+N)
    7-8) Average case: O(1), worst case O(size())
 
@@ -96,13 +99,64 @@ std::unordered_set::insert \- std::unordered_set::insert
    std::inserter. One way to check success of a hinted insert is to compare size()
    before and after.
 
+.SH Example
+
+
+// Run this code
+
+ #include <unordered_set>
+ #include <iostream>
+ #include <array>
+
+ std::ostream& operator<< (std::ostream& os, std::unordered_set<int> const& s) {
+   for (os << "[" << s.size() << "] { "; int i : s)
+     os << i << ' ';
+   return os << "}\\n";
+ }
+
+ int main ()
+ {
+   std::unordered_set<int> nums = {2, 3, 4};
+
+   std::cout << "Initially: " << nums;
+   auto p = nums.insert (1); // insert element
+   std::cout << "'1' was inserted: " << std::boolalpha << p.second << '\\n';
+   std::cout << "After insertion: " << nums;
+
+   nums.insert (p.first, 0); // insert with hint
+   std::cout << "After insertion: " << nums;
+
+   std::array<int, 4> a  = {10, 11, 12, 13};
+   nums.insert (a.begin (), a.end ()); // insert range
+   std::cout << "After insertion: " << nums;
+
+   nums.insert ({20, 21, 22, 23}); // insert initializer_list
+   std::cout << "After insertion: " << nums;
+
+   std::unordered_set<int> other_nums = {42, 43};
+   auto node = other_nums.extract (other_nums.find (42));
+   nums.insert (std::move (node)); // insert node
+   std::cout << "After insertion: " << nums;
+
+   node = other_nums.extract (other_nums.find (43));
+   nums.insert (nums.begin (), std::move (node)); // insert node with hint
+   std::cout << "After insertion: " << nums;
+ }
+
+.SH Possible output:
+
+ Initially: [3] { 4 3 2 }
+ '1' was inserted: true
+ After insertion: [4] { 1 2 3 4 }
+ After insertion: [5] { 0 1 2 3 4 }
+ After insertion: [9] { 13 12 11 10 4 3 2 1 0 }
+ After insertion: [13] { 23 22 13 12 11 10 21 4 20 3 2 1 0 }
+ After insertion: [14] { 42 23 22 13 12 11 10 21 4 20 3 2 1 0 }
+ After insertion: [15] { 43 42 23 22 13 12 11 10 21 4 20 3 2 1 0 }
+
 .SH See also
 
    emplace      constructs element in-place
-                \fI(public member function)\fP
+   \fI(C++11)\fP      \fI(public member function)\fP
    emplace_hint constructs elements in-place using a hint
-                \fI(public member function)\fP
-
-.SH Category:
-
-     * Todo with reason
+   \fI(C++11)\fP      \fI(public member function)\fP
