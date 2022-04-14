@@ -1,4 +1,4 @@
-.TH std::filesystem::directory_iterator 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::directory_iterator 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::directory_iterator \- std::filesystem::directory_iterator
 
@@ -46,18 +46,46 @@ std::filesystem::directory_iterator \- std::filesystem::directory_iterator
 
    begin(std::filesystem::directory_iterator) range-based for loop support
    end(std::filesystem::directory_iterator)   \fI(function)\fP
+   \fI(C++17)\fP
 
-   Additionally, operator== and operator!= are provided, either as members or as
-   non-members, as required by LegacyInputIterator
+   Additionally,
+   operator== and operator!= are
+   \fI(until C++20)\fP
+   operator== is
+   \fI(since C++20)\fP provided as required by LegacyInputIterator.
+
+   It is unspecified
+   whether operator!= is provided because it can be synthesized from operator==, and
+   \fI(since C++20)\fP whether an equality operator is a member or non-member.
+
+  Helper templates
+
+   namespace std::ranges {
+
+   template<>                                                                   (since
+   inline constexpr bool                                                        C++20)
+   enable_borrowed_range<std::filesystem::directory_iterator> = true;
+
+   }
+   namespace std::ranges {
+
+   template<>                                                                   (since
+   inline constexpr bool enable_view<std::filesystem::directory_iterator> =     C++20)
+   true;
+
+   }
+
+   These specializations for directory_iterator make it a borrowed_range and a view.
 
 .SH Notes
 
    Many low-level OS APIs for directory traversal retrieve file attributes along with
    the next directory entry. The constructors and the non-const member functions of
-   directory_iterator store these attributes, if any, in the pointed-to directory_entry
-   without calling directory_entry::refresh, which makes it possible to examine the
-   attributes of the directory entries as they are being iterated over, without making
-   additional system calls.
+   std::filesystem::directory_iterator store these attributes, if any, in the
+   pointed-to std::filesystem::directory_entry without calling
+   directory_entry::refresh, which makes it possible to examine the attributes of the
+   directory entries as they are being iterated over, without making additional system
+   calls.
 
 .SH Example
 
@@ -67,23 +95,63 @@ std::filesystem::directory_iterator \- std::filesystem::directory_iterator
  #include <fstream>
  #include <iostream>
  #include <filesystem>
- namespace fs = std::filesystem;
 
  int main()
  {
-     fs::create_directories("sandbox/a/b");
-     std::ofstream("sandbox/file1.txt");
-     std::ofstream("sandbox/file2.txt");
-     for(auto& p: fs::directory_iterator("sandbox"))
-         std::cout << p.path() << '\\n';
-     fs::remove_all("sandbox");
+     const std::filesystem::path sandbox{"sandbox"};
+     std::filesystem::create_directories(sandbox/"dir1"/"dir2");
+     std::ofstream{sandbox/"file1.txt"};
+     std::ofstream{sandbox/"file2.txt"};
+
+     std::cout << "directory_iterator:\\n";
+     // Iterate over the `std::filesystem::directory_entry` elements
+     for (auto const& dir_entry : std::filesystem::directory_iterator{sandbox})
+     {
+         std::cout << dir_entry << '\\n';
+     }
+     std::cout << "\\nagain:\\n";
+     // Same, but spelling out the type of dir_entry
+     for (const std::filesystem::directory_entry& dir_entry :
+         std::filesystem::directory_iterator{sandbox})
+     {
+         std::cout << dir_entry << '\\n';
+     }
+     std::cout << "\\nrecursive_directory_iterator:\\n";
+     for (auto const& dir_entry : std::filesystem::recursive_directory_iterator{sandbox})
+     {
+         std::cout << dir_entry << '\\n';
+     }
+
+     // delete the sandbox dir and all contents within it, including subdirs
+     std::filesystem::remove_all(sandbox);
  }
 
 .SH Possible output:
 
- "sandbox/a"
- "sandbox/file1.txt"
+ directory_iterator:
  "sandbox/file2.txt"
+ "sandbox/file1.txt"
+ "sandbox/dir1"
+
+ again:
+ "sandbox/file2.txt"
+ "sandbox/file1.txt"
+ "sandbox/dir1"
+
+ recursive_directory_iterator:
+ "sandbox/file2.txt"
+ "sandbox/file1.txt"
+ "sandbox/dir1"
+ "sandbox/dir1/dir2"
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 3480 C++20      directory_iterator was neither a borrowed_range it is both
+                       nor a view
 
 .SH See also
 

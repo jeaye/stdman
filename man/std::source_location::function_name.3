@@ -1,4 +1,4 @@
-.TH std::source_location::function_name 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::source_location::function_name 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::source_location::function_name \- std::source_location::function_name
 
@@ -22,55 +22,62 @@ std::source_location::function_name \- std::source_location::function_name
 
 .SH Example
 
-   The following example shows how it is possible to use the
-   std::source_location::function_name() to print a name of a function, constructor,
-   destructor, or overloaded operator().
+   std::source_location::function_name may help to obtain the names of functions
+   (including the special functions) alongside with their signatures.
 
 
 // Run this code
 
- #include <iostream>
- #include <string_view>
+ #include <cstdio>
+ #include <utility>
  #include <source_location>
 
- inline void function_name(
-     const std::string_view signature = "()",
+ inline void print_function_name(
      const std::source_location& location = std::source_location::current())
  {
-     std::cout
-         << location.function_name() // <- name of the caller!
-         << signature
-         << '\\n';
+     std::puts(location.function_name()); // prints the name of the caller
  }
 
- void foo() { function_name(); }
+ void foo(double &&) { print_function_name(); }
+
+ namespace bar { void baz() { print_function_name(); } }
+
+ template <typename T> auto pub(T) { print_function_name(); return 42; }
 
  struct S {
-     S() { function_name(); }
-     S(int) { function_name("(int)"); }
-     S& operator=(S const&) { function_name("(const S&)"); return *this; }
-     S& operator=(S&&) { function_name("(S&&)"); return *this; }
-     ~S() { function_name(); }
+     S() { print_function_name(); }
+     S(int) { print_function_name(); }
+     ~S() { print_function_name(); }
+     S& operator=(S const&) { print_function_name(); return *this; }
+     S& operator=(S&&) { print_function_name(); return *this; }
  };
 
- auto main() -> int
+ int main(int, char const* const[])
  {
-     foo();
+     print_function_name();
+     foo(3.14);
+     bar::baz();
+     pub(0xFULL);
      S p;
      S q{42};
      p = q;
      p = std::move(q);
+     [] { print_function_name(); }();
  }
 
-.SH Output:
+.SH Possible output:
 
- foo()
- S()
- S(int)
- operator=(const S&)
- operator=(S&&)
- ~S()
- ~S()
+ int main(int, const char* const*)
+ void foo(double&&)
+ void bar::baz()
+ auto pub(T) [with T = long long unsigned int]
+ S::S()
+ S::S(int)
+ S& S::operator=(const S&)
+ S& S::operator=(S&&)
+ main(int, const char* const*)::<lambda()>
+ S::~S()
+ S::~S()
 
 .SH See also
 
@@ -80,5 +87,3 @@ std::source_location::function_name \- std::source_location::function_name
              \fI(public member function)\fP
    file_name return the file name represented by this object
              \fI(public member function)\fP
-   C++ documentation for
-   Filename and line information

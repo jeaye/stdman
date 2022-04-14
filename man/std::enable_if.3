@@ -1,4 +1,4 @@
-.TH std::enable_if 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::enable_if 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::enable_if \- std::enable_if
 
@@ -10,12 +10,16 @@ std::enable_if \- std::enable_if
    If B is true, std::enable_if has a public member typedef type, equal to T;
    otherwise, there is no member typedef.
 
-   This metafunction is a convenient way to leverage SFINAE to conditionally remove
-   functions from overload resolution based on type traits and to provide separate
-   function overloads and specializations for different type traits. std::enable_if can
-   be used as an additional function argument (not applicable to operator overloads),
-   as a return type (not applicable to constructors and destructors), or as a class
-   template or function template parameter.
+   This metafunction is a convenient way to leverage SFINAE prior to C++20's concepts,
+   in particular for conditionally removing functions from the candidate set based on
+   type traits, allowing separate function overloads or specializations based on those
+   different type traits.
+
+   std::enable_if can be used in many forms, including:
+
+     * as an additional function argument (not applicable to operator overloads)
+     * as a return type (not applicable to constructors and destructors)
+     * as a class template or function template parameter
 
    The behavior of a program that adds specializations for enable_if is undefined.
 
@@ -47,31 +51,31 @@ std::enable_if \- std::enable_if
  /* WRONG */
 
  struct T {
-     enum { int_t,float_t } m_type;
+     enum { int_t, float_t } type;
      template <typename Integer,
                typename = std::enable_if_t<std::is_integral<Integer>::value>
      >
-     T(Integer) : m_type(int_t) {}
+     T(Integer) : type(int_t) {}
 
      template <typename Floating,
                typename = std::enable_if_t<std::is_floating_point<Floating>::value>
      >
-     T(Floating) : m_type(float_t) {} // error: treated as redefinition
+     T(Floating) : type(float_t) {} // error: treated as redefinition
  };
 
  /* RIGHT */
 
  struct T {
-     enum { int_t,float_t } m_type;
+     enum { int_t, float_t } type;
      template <typename Integer,
-               std::enable_if_t<std::is_integral<Integer>::value, int> = 0
+               std::enable_if_t<std::is_integral<Integer>::value, bool> = true
      >
-     T(Integer) : m_type(int_t) {}
+     T(Integer) : type(int_t) {}
 
      template <typename Floating,
-               std::enable_if_t<std::is_floating_point<Floating>::value, int> = 0
+               std::enable_if_t<std::is_floating_point<Floating>::value, bool> = true
      >
-     T(Floating) : m_type(float_t) {} // OK
+     T(Floating) : type(float_t) {} // OK
  };
 
    Care should be taken when using enable_if in the type of a template non-type
@@ -167,7 +171,7 @@ std::enable_if \- std::enable_if
           typename std::enable_if<
               !std::is_trivially_destructible<T>{} &&
               (std::is_class<T>{} || std::is_union<T>{}),
-             int>::type = 0>
+             bool>::type = true>
  void destroy(T* t)
  {
      std::cout << "destroying non-trivially destructible T\\n";
@@ -225,3 +229,4 @@ std::enable_if \- std::enable_if
 
      * static_assert
      * SFINAE
+     * Constraints and Concepts

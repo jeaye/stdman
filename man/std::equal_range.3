@@ -1,4 +1,4 @@
-.TH std::equal_range 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::equal_range 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::equal_range \- std::equal_range
 
@@ -6,35 +6,30 @@ std::equal_range \- std::equal_range
    Defined in header <algorithm>
    template< class ForwardIt, class T >
 
-   std::pair<ForwardIt,ForwardIt>
-       equal_range( ForwardIt first, ForwardIt              \fI(until C++20)\fP
-   last,
+   std::pair<ForwardIt,ForwardIt>                           \fI(until C++20)\fP
+   equal_range( ForwardIt first, ForwardIt last,
 
-                    const T& value );
+   const T& value );
    template< class ForwardIt, class T >
 
-   constexpr std::pair<ForwardIt,ForwardIt>
-                 equal_range( ForwardIt first,              \fI(since C++20)\fP
-   ForwardIt last,
+   constexpr std::pair<ForwardIt,ForwardIt>                 \fI(since C++20)\fP
+   equal_range( ForwardIt first, ForwardIt last,
 
-                              const T& value );
-   template< class ForwardIt, class T, class
-   Compare >                                        \fB(1)\fP
-
-   std::pair<ForwardIt,ForwardIt>                                         \fI(until C++20)\fP
-       equal_range( ForwardIt first, ForwardIt
-   last,
-
-                    const T& value, Compare comp );
-   template< class ForwardIt, class T, class            \fB(2)\fP
+   const T& value );
+   template< class ForwardIt, class T, class        \fB(1)\fP
    Compare >
 
-   constexpr std::pair<ForwardIt,ForwardIt>
-                 equal_range( ForwardIt first,                            \fI(since C++20)\fP
-   ForwardIt last,
+   std::pair<ForwardIt,ForwardIt>                                         \fI(until C++20)\fP
+   equal_range( ForwardIt first, ForwardIt last,
 
-                              const T& value,
-   Compare comp );
+   const T& value, Compare comp );                      \fB(2)\fP
+   template< class ForwardIt, class T, class
+   Compare >
+
+   constexpr std::pair<ForwardIt,ForwardIt>                               \fI(since C++20)\fP
+   equal_range( ForwardIt first, ForwardIt last,
+
+   const T& value, Compare comp );
 
    Returns a range containing all elements equivalent to value in the range [first,
    last).
@@ -63,13 +58,13 @@ std::equal_range \- std::equal_range
 
    first, last - the range of elements to examine
    value       - value to compare the elements to
-                 binary predicate which returns true if the first argument is less than
-                 (i.e. is ordered before) the second.
+                 binary predicate which returns true if the first argument is less
+                 than (i.e. is ordered before) the second.
 
                  The signature of the predicate function should be equivalent to the
                  following:
 
-                  bool pred(const Type1 &a, const Type2 &b);
+                 bool pred(const Type1 &a, const Type2 &b);
 
    comp        - While the signature does not need to have const &, the function must
                  not modify the objects passed to it and must be able to accept all
@@ -103,7 +98,9 @@ std::equal_range \- std::equal_range
    The number of comparisons performed is logarithmic in the distance between first and
    last (At most 2 * log
    2(last - first) + O(1) comparisons). However, for non-LegacyRandomAccessIterators,
-   the number of iterator increments is linear.
+   the number of iterator increments is linear. Notably, std::set and std::multiset
+   iterators are not random access, and so their member functions std::set::equal_range
+   (resp. std::multiset::equal_range) should be preferred.
 
 .SH Possible implementation
 
@@ -146,24 +143,25 @@ std::equal_range \- std::equal_range
  int main()
  {
      // note: not ordered, only partitioned w.r.t. S defined below
-     std::vector<S> vec = { {1,'A'}, {2,'B'}, {2,'C'}, {2,'D'}, {4,'G'}, {3,'F'} };
+     const std::vector<S> vec = { {1,'A'}, {2,'B'}, {2,'C'}, {2,'D'}, {4,'G'}, {3,'F'} };
 
-     S value = {2, '?'};
+     const S value = {2, '?'};
 
-     auto p = std::equal_range(vec.begin(), vec.end(), value);
+     std::cout << "Compare using S::operator<(): ";
+     const auto p = std::equal_range(vec.begin(), vec.end(), value);
 
      for ( auto i = p.first; i != p.second; ++i )
          std::cout << i->name << ' ';
 
 
-     // heterogeneous comparison:
+     std::cout << "\\n" "Using heterogeneous comparison: ";
      struct Comp
      {
          bool operator() ( const S& s, int i ) const { return s.number < i; }
          bool operator() ( int i, const S& s ) const { return i < s.number; }
      };
 
-     auto p2 = std::equal_range(vec.begin(),vec.end(), 2, Comp{});
+     const auto p2 = std::equal_range(vec.begin(),vec.end(), 2, Comp{});
 
      for ( auto i = p2.first; i != p2.second; ++i )
          std::cout << i->name << ' ';
@@ -171,9 +169,10 @@ std::equal_range \- std::equal_range
 
 .SH Output:
 
- B C D B C D
+ Compare using S::operator<(): B C D
+ Using heterogeneous comparison: B C D
 
-   Defect reports
+  Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
@@ -184,11 +183,21 @@ std::equal_range \- std::equal_range
 
 .SH See also
 
-   lower_bound   returns an iterator to the first element not less than the given value
-                 \fI(function template)\fP
-   upper_bound   returns an iterator to the first element greater than a certain value
-                 \fI(function template)\fP
-   binary_search determines if an element exists in a certain range
-                 \fI(function template)\fP
-   partition     divides a range of elements into two groups
-                 \fI(function template)\fP
+                       returns an iterator to the first element not less than the given
+   lower_bound         value
+                       \fI(function template)\fP
+                       returns an iterator to the first element greater than a certain
+   upper_bound         value
+                       \fI(function template)\fP
+   binary_search       determines if an element exists in a certain range
+                       \fI(function template)\fP
+   partition           divides a range of elements into two groups
+                       \fI(function template)\fP
+   equal               determines if two sets of elements are the same
+                       \fI(function template)\fP
+   equal_range         returns range of elements matching a specific key
+                       \fI(public member function of std::set<Key,Compare,Allocator>)\fP
+   equal_range         returns range of elements matching a specific key
+                       \fI(public member function of std::multiset<Key,Compare,Allocator>)\fP
+   ranges::equal_range returns range of elements matching a specific key
+   (C++20)             (niebloid)

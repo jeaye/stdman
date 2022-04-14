@@ -1,4 +1,4 @@
-.TH std::remove,std::remove_if 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::remove,std::remove_if 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::remove,std::remove_if \- std::remove,std::remove_if
 
@@ -12,22 +12,26 @@ std::remove,std::remove_if \- std::remove,std::remove_if
    ForwardIt last, const T& value );
    template< class ExecutionPolicy, class
    ForwardIt, class T >
+
    ForwardIt remove( ExecutionPolicy&& policy,          \fB(2)\fP \fI(since C++17)\fP
-   ForwardIt first, ForwardIt last, const T& value
-   );
+   ForwardIt first, ForwardIt last,
+
+   const T& value );
    template< class ForwardIt, class UnaryPredicate  \fB(1)\fP
    >                                                                      \fI(until C++20)\fP
    ForwardIt remove_if( ForwardIt first, ForwardIt
    last, UnaryPredicate p );
    template< class ForwardIt, class UnaryPredicate
    >                                                                      \fI(since C++20)\fP
-   constexpr ForwardIt remove_if( ForwardIt first,      \fB(3)\fP
-   ForwardIt last, UnaryPredicate p );
+   constexpr ForwardIt remove_if( ForwardIt first,
+   ForwardIt last, UnaryPredicate p );                  \fB(3)\fP
    template< class ExecutionPolicy, class
    ForwardIt, class UnaryPredicate >
+
    ForwardIt remove_if( ExecutionPolicy&& policy,           \fB(4)\fP           \fI(since C++17)\fP
-   ForwardIt first, ForwardIt last, UnaryPredicate
-   p );
+   ForwardIt first, ForwardIt last,
+
+   UnaryPredicate p );
 
    Removes all elements satisfying specific criteria from the range [first, last) and
    returns a past-the-end iterator for the new end of the range.
@@ -41,22 +45,24 @@ std::remove,std::remove_if \- std::remove,std::remove_if
    std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
    \fI(since C++20)\fP is true.
 
-   Removing is done by shifting (by means of move assignment) the elements in the range
-   in such a way that the elements that are not to be removed appear in the beginning
-   of the range. Relative order of the elements that remain is preserved and the
-   physical size of the container is unchanged. Iterators pointing to an element
-   between the new logical end and the physical end of the range are still
-   dereferenceable, but the elements themselves have unspecified values (as per
-   MoveAssignable post-condition). A call to remove is typically followed by a call to
-   a container's erase method, which erases the unspecified values and reduces the
-   physical size of the container to match its new logical size.
+   Removing is done by shifting (by means of
+   copy assignment
+   \fI(until C++11)\fP
+   move assignment
+   \fI(since C++11)\fP) the elements in the range in such a way that the elements that are
+   not to be removed appear in the beginning of the range. Relative order of the
+   elements that remain is preserved and the physical size of the container is
+   unchanged. Iterators pointing to an element between the new logical end and the
+   physical end of the range are still dereferenceable, but the elements themselves
+   have unspecified values (as per MoveAssignable post-condition).
 
 .SH Parameters
 
    first, last - the range of elements to process
    value       - the value of elements to remove
    policy      - the execution policy to use. See execution policy for details.
-                 unary predicate which returns true if the element should be removed.
+                 unary predicate which returns true if the element should be
+                 removed.
 
                  The expression p(v) must be convertible to bool for every argument v
    p           - of type (possibly const) VT, where VT is the value type of ForwardIt,
@@ -76,7 +82,7 @@ std::remove,std::remove_if \- std::remove,std::remove_if
 
    Past-the-end iterator for the new range of values (if this is not end, then it
    points to an unspecified value, and so do iterators to any values between this
-   iterator and end)
+   iterator and end).
 
 .SH Complexity
 
@@ -94,15 +100,24 @@ std::remove,std::remove_if \- std::remove,std::remove_if
 
 .SH Notes
 
+   A call to remove is typically followed by a call to a container's erase method,
+   which erases the unspecified values and reduces the physical size of the container
+   to match its new logical size. These two invocations together constitute a so-called
+   Erase–remove idiom
+   , which can be achieved by the free function std::erase that has overloads for all
+   standard sequence containers, or std::erase_if that has overloads for all standard
+   containers
+   \fI(since C++20)\fP.
+
    The similarly-named container member functions list::remove, list::remove_if,
    forward_list::remove, and forward_list::remove_if erase the removed elements.
 
    These algorithms cannot be used with associative containers such as std::set and
-   std::map because ForwardIt does not dereference to a MoveAssignable type (the keys
-   in these containers are not modifiable)
+   std::map because their iterator types do not dereference to MoveAssignable types
+   (the keys in these containers are not modifiable).
 
-   The standard library also defines an overload of std::remove taking const char*,
-   used to delete files: std::remove.
+   The standard library also defines an overload of std::remove in <cstdio>, which
+   takes a const char* and is used to delete files.
 
    Because std::remove takes value by reference, it can have unexpected behavior if it
    is a reference to an element of the range [first, last).
@@ -143,15 +158,25 @@ std::remove,std::remove_if \- std::remove,std::remove_if
 
  #include <algorithm>
  #include <string>
+ #include <string_view>
  #include <iostream>
  #include <cctype>
 
  int main()
  {
      std::string str1 = "Text with some   spaces";
-     str1.erase(std::remove(str1.begin(), str1.end(), ' '),
-                str1.end());
-     std::cout << str1 << '\\n';
+
+     auto noSpaceEnd = std::remove(str1.begin(), str1.end(), ' ');
+
+     // The spaces are removed from the string only logically.
+     // Note, we use view, the original string is still not shrunk:
+     std::cout << std::string_view(str1.begin(), noSpaceEnd)
+               << " size: " << str1.size() << '\\n';
+
+     str1.erase(noSpaceEnd, str1.end());
+
+     // The spaces are removed from the string physically.
+     std::cout << str1 << " size: " << str1.size() << '\\n';
 
      std::string str2 = "Text\\n with\\tsome \\t  whitespaces\\n\\n";
      str2.erase(std::remove_if(str2.begin(),
@@ -163,13 +188,18 @@ std::remove,std::remove_if \- std::remove,std::remove_if
 
 .SH Output:
 
- Textwithsomespaces
+ Textwithsomespaces size: 23
+ Textwithsomespaces size: 18
  Textwithsomewhitespaces
 
 .SH See also
 
-   remove_copy    copies a range of elements omitting those that satisfy specific
-   remove_copy_if criteria
-                  \fI(function template)\fP
-   unique         removes consecutive duplicate elements in a range
-                  \fI(function template)\fP
+   remove_copy       copies a range of elements omitting those that satisfy specific
+   remove_copy_if    criteria
+                     \fI(function template)\fP
+   unique            removes consecutive duplicate elements in a range
+                     \fI(function template)\fP
+   ranges::remove
+   ranges::remove_if removes elements satisfying specific criteria
+   (C++20)           (niebloid)
+   (C++20)

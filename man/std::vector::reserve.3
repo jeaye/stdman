@@ -1,4 +1,4 @@
-.TH std::vector::reserve 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::vector::reserve 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::vector::reserve \- std::vector::reserve
 
@@ -8,7 +8,7 @@ std::vector::reserve \- std::vector::reserve
 
    Increase the capacity of the vector to a value that's greater or equal to new_cap.
    If new_cap is greater than the current capacity(), new storage is allocated,
-   otherwise the method does nothing.
+   otherwise the function does nothing.
 
    reserve() does not change the size of the vector.
 
@@ -65,9 +65,9 @@ std::vector::reserve \- std::vector::reserve
 // Run this code
 
  #include <cstddef>
+ #include <iostream>
  #include <new>
  #include <vector>
- #include <iostream>
 
  // minimal C++11 allocator with debug output
  template <class Tp>
@@ -79,13 +79,14 @@ std::vector::reserve \- std::vector::reserve
      Tp* allocate(std::size_t n)
      {
          n *= sizeof(Tp);
-         std::cout << "allocating " << n << " bytes\\n";
-         return static_cast<Tp*>(::operator new(n));
+         Tp* p = static_cast<Tp*>(::operator new(n));
+         std::cout << "allocating " << n << " bytes @ " << p << '\\n';
+         return p;
      }
 
      void deallocate(Tp* p, std::size_t n)
      {
-         std::cout << "deallocating " << n*sizeof*p << " bytes\\n";
+         std::cout << "deallocating " << n*sizeof*p << " bytes @ " << p << "\\n\\n";
          ::operator delete(p);
      }
  };
@@ -96,44 +97,61 @@ std::vector::reserve \- std::vector::reserve
 
  int main()
  {
-     int sz = 100;
+     constexpr int max_elements = 32;
+
      std::cout << "using reserve: \\n";
      {
          std::vector<int, NAlloc<int>> v1;
-         v1.reserve(sz);
-         for(int n = 0; n < sz; ++n)
+         v1.reserve( max_elements ); // reserves at least max_elements * sizeof(int) bytes
+
+         for(int n = 0; n < max_elements; ++n)
              v1.push_back(n);
      }
+
      std::cout << "not using reserve: \\n";
      {
          std::vector<int, NAlloc<int>> v1;
-         for(int n = 0; n < sz; ++n)
+
+         for(int n = 0; n < max_elements; ++n) {
+             if(v1.size() == v1.capacity()) {
+                 std::cout << "size() == capacity() == " << v1.size() << '\\n';
+             }
              v1.push_back(n);
+         }
      }
  }
 
 .SH Possible output:
 
  using reserve:
- allocating 400 bytes
- deallocating 400 bytes
+ allocating 128 bytes @ 0xa6f840
+ deallocating 128 bytes @ 0xa6f840
+
  not using reserve:
- allocating 4 bytes
- allocating 8 bytes
- deallocating 4 bytes
- allocating 16 bytes
- deallocating 8 bytes
- allocating 32 bytes
- deallocating 16 bytes
- allocating 64 bytes
- deallocating 32 bytes
- allocating 128 bytes
- deallocating 64 bytes
- allocating 256 bytes
- deallocating 128 bytes
- allocating 512 bytes
- deallocating 256 bytes
- deallocating 512 bytes
+ size() == capacity() == 0
+ allocating 4 bytes @ 0xa6f840
+
+ size() == capacity() == 1
+ allocating 8 bytes @ 0xa6f860
+ deallocating 4 bytes @ 0xa6f840
+
+ size() == capacity() == 2
+ allocating 16 bytes @ 0xa6f840
+ deallocating 8 bytes @ 0xa6f860
+
+ size() == capacity() == 4
+ allocating 32 bytes @ 0xa6f880
+ deallocating 16 bytes @ 0xa6f840
+
+ size() == capacity() == 8
+ allocating 64 bytes @ 0xa6f8b0
+ deallocating 32 bytes @ 0xa6f880
+
+ size() == capacity() == 16
+ allocating 128 bytes @ 0xa6f900
+ deallocating 64 bytes @ 0xa6f8b0
+
+ deallocating 128 bytes @ 0xa6f900
 
 .SH See also
 

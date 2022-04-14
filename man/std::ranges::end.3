@@ -1,4 +1,4 @@
-.TH std::ranges::end 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::end 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::end \- std::ranges::end
 
@@ -6,16 +6,16 @@ std::ranges::end \- std::ranges::end
    Defined in header <ranges>
    inline namespace /*unspecified*/ {
                                                                    \fI(since C++20)\fP
-       inline constexpr /*unspecified*/ end = /*unspecified*/;     (customization point
+   inline constexpr /*unspecified*/ end = /*unspecified*/;         (customization point
                                                                    object)
    }
    Call signature
    template< class T >
 
-       requires /* see below */
+   requires /* see below */                                        \fI(since C++20)\fP
 
-   constexpr std::sentinel_for<ranges::iterator_t<T>> auto
-   end(T&& t);
+   constexpr std::sentinel_for<ranges::iterator_t<T>> auto end(
+   T&& t );
 
    Returns a sentinel indicating the end of a range.
 
@@ -25,24 +25,52 @@ std::ranges::end \- std::ranges::end
    ranges::enable_borrowed_range<std::remove_cv_t<T>> is true, then a call to
    ranges::end is expression-equivalent to:
 
-    1. t + std::extent_v<T> if T is an array type of known bound.
+    1. t + std::extent_v<T> if t has an array type of known bound.
 
-       If std::remove_all_extents_t<T> is incomplete, then
-       ranges::end(std::forward<T>(t)) is ill-formed, no diagnostic required.
-    2. Otherwise, std::forward<T>(t).end(), if that expression is valid, and its return
-       type models std::sentinel_for<ranges::iterator_t<T>>.
-    3. Otherwise, end(std::forward<T>(t)), if T is a class or enumeration type, the
-       aforementioned unqualified call is valid, and its return type models
-       std::sentinel_for<ranges::iterator_t<T>>, where the overload resolution is
-       performed with the following candidates:
+                    If std::remove_all_extents_t<std::remove_reference_t<T>> is
+                    incomplete, then the call to ranges::end is ill-formed, no
+                    diagnostic required.
 
+    2. Otherwise, t.end() converted to its decayed type, if that expression with
+       conversion is valid, and its converted type models
+       std::sentinel_for<ranges::iterator_t<T>>.
+    3. Otherwise, end(t) converted to its decayed type, if t has a class or enumeration
+       type, the aforementioned unqualified call with conversion is valid, and its
+       converted type models std::sentinel_for<ranges::iterator_t<T>>, where the
+       overload resolution is performed with the following candidates:
+
+          * any declarations of end found by argument-dependent lookup.
           * void end(auto&) = delete;
           * void end(const auto&) = delete;
-          * any declarations of end found by argument-dependent lookup.
 
    In all other cases, a call to ranges::end is ill-formed, which can result in
-   substitution failure when ranges::end(t) appears in the immediate context of a
-   template instantiation.
+   substitution failure when the call to ranges::end appears in the immediate context
+   of a template instantiation.
+
+  Expression-equivalent
+
+   Expression e is expression-equivalent to expression f, if e and f have the same
+   effects, either are both potentially-throwing or are both not potentially-throwing
+   (i.e. noexcept(e) == noexcept(f)), and either are both constant subexpressions or
+   are both not constant subexpressions.
+
+  Customization point objects
+
+   The name ranges::end denotes a customization point object, which is a const function
+   object of a literal semiregular class type. For exposition purposes, the
+   cv-unqualified version of its type is denoted as __end_fn.
+
+   All instances of __end_fn are equal. The effects of invoking different instances of
+   type __end_fn on the same arguments are equivalent, regardless of whether the
+   expression denoting the instance is an lvalue or rvalue, and is const-qualified or
+   not (however, a volatile-qualified instance is not required to be invocable). Thus,
+   ranges::end can be copied freely and its copies can be used interchangeably.
+
+   Given a set of types Args..., if std::declval<Args>()... meet the requirements for
+   arguments to ranges::end above, __end_fn models std::invocable<__end_fn, Args...>,
+   std::invocable<const __end_fn, Args...>, std::invocable<__end_fn&, Args...>, and
+   std::invocable<const __end_fn&, Args...>. Otherwise, no function call operator of
+   __end_fn participates in overload resolution.
 
 .SH Notes
 
@@ -54,7 +82,12 @@ std::ranges::end \- std::ranges::end
    If ranges::end(std::forward<T>(t)) is valid, then
    decltype(ranges::end(std::forward<T>(t))) and
    decltype(ranges::begin(std::forward<T>(t))) model std::sentinel_for in all cases,
-   while T modeling std::ranges::range.
+   while T models std::ranges::range.
+
+   The C++20 standard requires that if the underlying end function call returns a
+   prvalue, the return value is move-constructed from the materialized temporary
+   object. All implementations directly return the prvalue instead. The requirement is
+   corrected by the post-C++20 proposal P0849R8 to match the implementations.
 
 .SH Example
 

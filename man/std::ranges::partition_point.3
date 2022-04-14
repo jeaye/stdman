@@ -1,23 +1,23 @@
-.TH std::ranges::partition_point 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::partition_point 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::partition_point \- std::ranges::partition_point
 
 .SH Synopsis
    Defined in header <algorithm>
    Call signature
-   template< std::forward_iterator I, std::sentinel_for<I> S, class Proj =
-   std::identity,
-                                                                                (since
-             std::indirect_unary_predicate<std::projected<I, Proj>> Pred >  \fB(1)\fP C++20)
+   template< std::forward_iterator I, std::sentinel_for<I> S,
 
-   constexpr I partition_point( I first, S last, Pred pred, Proj proj = {}
-   );
-   template< ranges::forward_range R, class Proj = std::identity,
+   class Proj = std::identity,
+   std::indirect_unary_predicate<std::projected<I, Proj>> Pred >  \fB(1)\fP \fI(since C++20)\fP
+   constexpr I
 
+   partition_point( I first, S last, Pred pred, Proj proj = {} );
+   template< ranges::forward_range R,
 
-   std::indirect_unary_predicate<std::projected<ranges::iterator_t<R>,      \fB(2)\fP (since
-   Proj>> Pred >                                                                C++20)
-     constexpr ranges::borrowed_iterator_t<R>
+   class Proj = std::identity,
+   std::indirect_unary_predicate<                                 \fB(2)\fP \fI(since C++20)\fP
+   std::projected<ranges::iterator_t<R>, Proj>> Pred >
+   constexpr ranges::borrowed_iterator_t<R>
 
    partition_point( R&& r, Pred pred, Proj proj = {} );
 
@@ -71,28 +71,34 @@ std::ranges::partition_point \- std::ranges::partition_point
  #include <iostream>
  #include <iterator>
 
+ auto print_seq = [](auto rem, auto first, auto last) {
+     for (std::cout << rem; first != last; std::cout << *first++ << ' ') {}
+     std::cout << '\\n';
+ };
+
  int main()
  {
      std::array v = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
-     namespace ranges = std::ranges;
      auto is_even = [](int i){ return i % 2 == 0; };
-     ranges::partition(v, is_even);
 
-     auto p = ranges::partition_point(v.begin(), v.end(), is_even);
+     std::ranges::partition(v, is_even);
+     print_seq("After partitioning, v: ", v.cbegin(), v.cend());
 
-     std::cout << "Before partition:\\n    ";
-     ranges::copy(v.begin(), p, std::ostream_iterator<int>(std::cout, " "));
-     std::cout << "\\nAfter partition:\\n    ";
-     ranges::copy(p, v.end(), std::ostream_iterator<int>(std::cout, " "));
+     const auto pp = std::ranges::partition_point(v, is_even);
+     const auto i = std::ranges::distance(v.cbegin(), pp);
+     std::cout << "Partition point is at " << i << "; v[" << i << "] = " << *pp << '\\n';
+
+     print_seq("First partition (all even elements): ", v.cbegin(), pp);
+     print_seq("Second partition (all odd elements): ", pp, v.cend());
  }
 
-.SH Output:
+.SH Possible output:
 
- Before partition:
-     8 2 6 4
- After partition:
-     5 3 7 1 9
+ After partitioning, v: 2 4 6 8 5 3 7 1 9
+ Partition point is at 4; v[4] = 5
+ First partition (all even elements): 2 4 6 8
+ Second partition (all odd elements): 5 3 7 1 9
 
 .SH See also
 

@@ -1,24 +1,77 @@
-.TH std::ranges::view,std::ranges::enable_view,std::ranges::view_base 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::view,std::ranges::enable_view,std::ranges::view_base 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::view,std::ranges::enable_view,std::ranges::view_base \- std::ranges::view,std::ranges::enable_view,std::ranges::view_base
 
 .SH Synopsis
    Defined in header <ranges>
    template<class T>
-   concept view = ranges::range<T> && std::semiregular<T> &&                       \fB(1)\fP
+   concept view = ranges::range<T> && std::movable<T> &&              \fB(1)\fP \fI(since C++20)\fP
    ranges::enable_view<T>;
-   template<class T>                                                               \fB(2)\fP
-   inline constexpr bool enable_view = std::derived_from<T, view_base>;
-   struct view_base { };                                                           \fB(3)\fP
+   template<class T>
 
-   1) The view concept specifies the requirements of a range type that has constant
-   time copy, move, and assignment operations (e.g. a pair of iterators, or a generator
-   Range that creates its elements on-demand. Notably, the standard library containers
-   are ranges, but not views)
-   2) The enable_view variable template is used to indicate that whether a range is a
-   view. By default, a type is considered a view if it is publicly and unambiguously
-   derived from view_base.
+   inline constexpr bool enable_view =                                \fB(2)\fP \fI(since C++20)\fP
+
+   std::derived_from<T, view_base> ||
+   /*is-derived-from-view-interface*/<T>;
+   struct view_base { };                                              \fB(3)\fP \fI(since C++20)\fP
+
+   1) The view concept specifies the requirements of a range type that has suitable
+   semantic properties for use in constructing range adaptor pipelines.
+   2) The enable_view variable template is used to indicate whether a range is a view.
+   /*is-derived-from-view-interface*/<T> is true if and only if T has exactly one
+   public base class ranges::view_interface<U> for some type U, and T has no base
+   classes of type ranges::view_interface<V> for any other type V.
    Users may specialize enable_view to true for cv-unqualified program-defined types
    which model view, and false for types which do not. Such specializations must be
    usable in constant expressions and have type const bool.
    3) Deriving from view_base enables range types to model view.
+
+  Semantic requirements
+
+   1) T models view only if:
+
+     * move construction of T has constant time complexity, and
+     * if \\(\\scriptsize N\\)N copies and/or moves are made from a T object holding
+       \\(\\scriptsize M\\)M elements, then these \\(\\scriptsize N\\)N objects have
+       \\(\\scriptsize \\mathcal{O}{(N+M)}\\)𝓞(N+M) destruction (which implies that a
+       moved-from view object has \\(\\scriptsize \\mathcal{O}{\fB(1)\fP}\\)𝓞(1) destruction),
+       and
+     * either std::copy_constructible<T> is false, or copy construction of T has
+       constant time complexity, and
+     * either std::copyable<T> is false, or copy assignment of T has no more time
+       complexity than destruction followed by copy construction.
+
+.SH Notes
+
+   Examples of view types are:
+
+     * A range type that wraps a pair of iterators, e.g., std::ranges::subrange<I>.
+     * A range type that holds its elements by std::shared_ptr and shares ownership
+       with all its copies.
+     * A range type that generates its elements on demand, e.g.,
+       std::ranges::iota_view.
+
+   A copyable container such as std::vector<std::string> generally does not meet the
+   semantic requirements of view since copying the container copies all of the
+   elements, which cannot be done in constant time.
+
+   While views were originally described as cheaply copyable and non-owning ranges, a
+   type is not required to be copyable or non-owning for it to model view. However, it
+   must still be cheap to copy (if it is copyable), move, assign, and destroy, so that
+   range adaptors will not have unexpected complexity.
+
+   By default, a type modeling movable and range is considered a view if it is publicly
+   and unambiguously derived from view_base, or exactly one specialization of
+   std::ranges::view_interface.
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   P2325R3  C++20      view required default_initializable             does not require
+   LWG 3549 C++20      enable_view did not detect inheritance from     detects
+                       view_interface
+   P2415R2  C++20      the restriction on the time complexity of       relaxed
+                       destruction was too strict

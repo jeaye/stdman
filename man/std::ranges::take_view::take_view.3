@@ -1,16 +1,17 @@
-.TH std::ranges::take_view::take_view 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::take_view::take_view 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::take_view::take_view \- std::ranges::take_view::take_view
 
 .SH Synopsis
-   take_view() = default;                                             \fB(1)\fP \fI(since C++20)\fP
+   take_view() requires std::default_initializable<V> = default;      \fB(1)\fP \fI(since C++20)\fP
    constexpr take_view( V base, ranges::range_difference_t<V> count   \fB(2)\fP \fI(since C++20)\fP
    );
 
    Constructs a take_view.
 
    1) Default constructor. Value-initializes the underlying view and initializes the
-   count to 0. After construction, base() returns a copy of V() and size() returns 0.
+   count to 0. After construction, base() returns a copy of V() and size() returns
+   0.
    2) Initializes the underlying view with std::move(base) and the count with count.
    After construction, base() returns a copy of base and size() returns the smaller of
    count and ranges::size(base).
@@ -22,9 +23,76 @@ std::ranges::take_view::take_view \- std::ranges::take_view::take_view
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+   Prints first n prime numbers that are begin generated using Sieve of Eratosthenes
+   method.
 
-.SH Category:
 
-     * Todo no example
+// Run this code
+
+ #include <bit>
+ #include <bitset>
+ #include <iomanip>
+ #include <iostream>
+ #include <limits>
+ #include <ranges>
+
+ constexpr unsigned clog2(auto x) // ~ ⌈ log₂(x) ⌉
+ {
+     return std::numeric_limits<decltype(x)>::digits - std::countl_zero(x);
+ }
+
+ template <unsigned Primes> struct Sieve
+ {
+     bool operator()(int n) {
+         if (n < 2) return false;
+         if (n == 2) return true;
+         if (n % 2 == 0 || bits.test(n / 2))
+             return false;
+         for (int i{n}, j{3}, k{}; (k = i * j) < size; j += 2)
+             bits.set(k / 2);
+         return true;
+     }
+
+     static constexpr int prime_numbers = Primes;
+
+     // a(n) ~= n*(log(n) + log(log(n)));
+     static constexpr int size = Primes*(clog2(Primes) + clog2(clog2(Primes)));
+
+     // Keep only odd numbers; 0 means it is a prime
+     private: std::bitset<size / 2 + 1> bits;
+ };
+
+ int main()
+ {
+     Sieve<100> sieve{};
+     auto primes_gen = std::views::iota(1)
+                     | std::views::filter(sieve);
+
+     auto primes = std::ranges::take_view{ primes_gen, sieve.prime_numbers };
+
+     for (int n{1}; auto prime : primes) {
+         std::cout << prime << (n++ % 10 ? ' ' : '\\n');
+     }
+
+     std::cout
+         << "\\n" "sieve.prime_numbers: " << sieve.prime_numbers
+         << "\\n" "sieve.size: " << sieve.size
+         << "\\n" "sizeof(sieve): " << sizeof sieve << " bytes\\n";
+ }
+
+.SH Output:
+
+ 2 3 5 7 11 13 17 19 23 29
+ 31 37 41 43 47 53 59 61 67 71
+ 73 79 83 89 97 101 103 107 109 113
+ 127 131 137 139 149 151 157 163 167 173
+ 179 181 191 193 197 199 211 223 227 229
+ 233 239 241 251 257 263 269 271 277 281
+ 283 293 307 311 313 317 331 337 347 349
+ 353 359 367 373 379 383 389 397 401 409
+ 419 421 431 433 439 443 449 457 461 463
+ 467 479 487 491 499 503 509 521 523 541
+
+ sieve.prime_numbers: 100
+ sieve.size: 1000
+ sizeof(sieve): 64 bytes

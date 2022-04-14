@@ -1,4 +1,4 @@
-.TH std::cmp_equal,cmp_not_equal,cmp_less,cmp_greater,cmp_less_equal,cmp_greater_equal 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::cmp_equal,cmp_not_equal,cmp_less,cmp_greater,cmp_less_equal,cmp_greater_equal 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::cmp_equal,cmp_not_equal,cmp_less,cmp_greater,cmp_less_equal,cmp_greater_equal \- std::cmp_equal,cmp_not_equal,cmp_less,cmp_greater,cmp_less_equal,cmp_greater_equal
 
@@ -95,14 +95,76 @@ std::cmp_equal,cmp_not_equal,cmp_less,cmp_greater,cmp_less_equal,cmp_greater_equ
 
 .SH Notes
 
-   These functions cannot be used to compare std::byte, char, char8_t, char16_t,
-   char32_t, wchar_t and bool.
+   These functions cannot be used to compare enums (including std::byte), char,
+   char8_t, char16_t, char32_t, wchar_t and bool.
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+   The example below might produce different signedness comparison warning if compiled
+   without an appropriate warning suppression flag, e.g. -Wno-sign-compare (gcc/clang
+   with -Wall -Wextra, see also SO: disabling a specific warning).
 
-.SH Category:
 
-     * Todo no example
+// Run this code
+
+ #include <utility>
+
+ // Uncommenting the next line will disable "signed/unsigned comparison" warnings:
+ // #pragma GCC diagnostic ignored "-Wsign-compare"
+
+ int main()
+ {
+     static_assert( sizeof(int) == 4 ); // precondition
+
+     // Quite surprisingly
+     static_assert( -1 > 1U ); //< warning: sign-unsign comparison
+     // because after implicit conversion of -1 to the RHS type (`unsigned int`)
+     // the expression is equivalent to:
+     static_assert( 0xFFFFFFFFU > 1U );
+     static_assert( 0xFFFFFFFFU == static_cast<unsigned>(-1) );
+
+     // In contrast, the cmp_* family compares integers as most expected -
+     // negative signed integers always compare less than unsigned integers:
+     static_assert( std::cmp_less( -1, 1U ) );
+     static_assert( std::cmp_less_equal( -1, 1U ) );
+     static_assert( ! std::cmp_greater( -1, 1U ) );
+     static_assert( ! std::cmp_greater_equal( -1, 1U ) );
+
+     static_assert( -1 == 0xFFFFFFFFU ); //< warning: sign-unsign comparison
+     static_assert( std::cmp_not_equal( -1, 0xFFFFFFFFU ) );
+ }
+
+.SH See also
+
+   equal_to              function object implementing x == y
+                         \fI(class template)\fP
+   not_equal_to          function object implementing x != y
+                         \fI(class template)\fP
+   less                  function object implementing x < y
+                         \fI(class template)\fP
+   greater               function object implementing x > y
+                         \fI(class template)\fP
+   less_equal            function object implementing x <= y
+                         \fI(class template)\fP
+   greater_equal         function object implementing x >= y
+                         \fI(class template)\fP
+   ranges::equal_to      function object implementing x == y
+   (C++20)               \fI(class)\fP
+   ranges::not_equal_to  function object implementing x != y
+   (C++20)               \fI(class)\fP
+   ranges::less          function object implementing x < y
+   (C++20)               \fI(class)\fP
+   ranges::greater       function object implementing x > y
+   (C++20)               \fI(class)\fP
+   ranges::less_equal    function object implementing x <= y
+   (C++20)               \fI(class)\fP
+   ranges::greater_equal function object implementing x >= y
+   (C++20)               \fI(class)\fP
+   compare_three_way     function object implementing x <=> y
+   (C++20)               \fI(class)\fP
+   in_range              checks if an integer value is in the range of a given integer
+   (C++20)               type
+                         \fI(function template)\fP
+                         provides an interface to query properties of all fundamental
+   numeric_limits        numeric types.
+                         \fI(class template)\fP

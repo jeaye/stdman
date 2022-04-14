@@ -1,4 +1,4 @@
-.TH std::align 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::align 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::align \- std::align
 
@@ -6,10 +6,10 @@ std::align \- std::align
    Defined in header <memory>
    void* align( std::size_t alignment,
 
-                std::size_t size,       \fI(since C++11)\fP
-                void*& ptr,
+   std::size_t size,                    \fI(since C++11)\fP
+   void*& ptr,
 
-                std::size_t& space );
+   std::size_t& space );
 
    Given a pointer ptr to a buffer of size space, returns a pointer aligned by the
    specified alignment for size number of bytes and decreases space argument by the
@@ -25,7 +25,7 @@ std::align \- std::align
 
    alignment - the desired alignment
    size      - the size of the storage to be aligned
-   ptr       - pointer to contiguous storage of at least space bytes
+   ptr       - pointer to contiguous storage (a buffer) of at least space bytes
    space     - the size of the buffer in which to operate
 
 .SH Return value
@@ -66,33 +66,36 @@ std::align \- std::align
  int main()
  {
      MyAllocator<64> a;
+     std::cout << "allocated a.data at " << (void*)a.data
+               << " (" << sizeof a.data << " bytes)\\n";
 
      // allocate a char
-     char* p1 = a.aligned_alloc<char>();
-     if (p1)
-         *p1 = 'a';
-     std::cout << "allocated a char at " << (void*)p1 << '\\n';
+     if (char* p = a.aligned_alloc<char>()) {
+         *p = 'a';
+         std::cout << "allocated a char at " << (void*)p << '\\n';
+     }
 
      // allocate an int
-     int* p2 = a.aligned_alloc<int>();
-     if (p2)
-         *p2 = 1;
-     std::cout << "allocated an int at " << (void*)p2 << '\\n';
+     if (int* p = a.aligned_alloc<int>()) {
+         *p = 1;
+         std::cout << "allocated an int at " << (void*)p << '\\n';
+     }
 
      // allocate an int, aligned at 32-byte boundary
-     int* p3 = a.aligned_alloc<int>(32);
-     if (p3)
-         *p3 = 2;
-     std::cout << "allocated an int at " << (void*)p3 << " (32 byte alignment)\\n";
+     if (int* p = a.aligned_alloc<int>(32)) {
+         *p = 2;
+         std::cout << "allocated an int at " << (void*)p << " (32 byte alignment)\\n";
+     }
  }
 
 .SH Possible output:
 
- allocated a char at 0x2ff21a08
- allocated an int at 0x2ff21a0c
- allocated an int at 0x2ff21a20 (32 byte alignment)
+ allocated a.data at 0x7ffd0b331f80 (64 bytes)
+ allocated a char at 0x7ffd0b331f80
+ allocated an int at 0x7ffd0b331f84
+ allocated an int at 0x7ffd0b331fa0 (32 byte alignment)
 
-   Defect reports
+  Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.

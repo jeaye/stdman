@@ -1,4 +1,4 @@
-.TH std::is_scalar 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_scalar 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_scalar \- std::is_scalar
 
@@ -19,12 +19,10 @@ std::is_scalar \- std::is_scalar
 
    T - a type to check
 
-   Helper variable template
+  Helper variable template
 
    template< class T >                                       \fI(since C++17)\fP
    inline constexpr bool is_scalar_v = is_scalar<T>::value;
-
-
 
 Inherited from std::integral_constant
 
@@ -71,21 +69,36 @@ Inherited from std::integral_constant
 
  #include <iostream>
  #include <type_traits>
+ #include <typeinfo>
+ #include <utility>
 
- int main() {
-     class cls {};
-     std::cout << (std::is_scalar<int>::value
-                      ? "T is a scalar"
-                      : "T is not a scalar") << '\\n';
-     std::cout << (std::is_scalar<cls>::value
-                      ? "T is a scalar"
-                      : "T is not a scalar") << '\\n';
+ template <typename Head, typename... Tail>
+ void are_scalars(Head&& head, Tail&&... tail) {
+     using T = std::decay_t<decltype(head)>;
+     std::cout << typeid(T).name() << " is "
+               << ( std::is_scalar_v<T> ? "" : "not " )
+               << "a scalar\\n";
+     if constexpr (sizeof... (Tail)) {
+         are_scalars(std::forward<decltype(tail)>(tail)...);
+     }
  }
 
-.SH Output:
+ int main() {
+     struct S { int m; } s;
+     int S::* mp = &S::m;
+     enum class E { e };
+     are_scalars(42, 3.14, E::e, "str", mp, nullptr, s);
+ }
 
- T is a scalar
- T is not a scalar
+.SH Possible output:
+
+ int is a scalar
+ double is a scalar
+ main::E is a scalar
+ char const* is a scalar
+ int main::S::* is a scalar
+ nullptr is a scalar
+ main::S is not a scalar
 
 .SH See also
 

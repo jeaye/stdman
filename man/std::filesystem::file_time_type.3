@@ -1,4 +1,4 @@
-.TH std::filesystem::file_time_type 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::file_time_type 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::file_time_type \- std::filesystem::file_time_type
 
@@ -25,32 +25,33 @@ std::filesystem::file_time_type \- std::filesystem::file_time_type
  #include <iomanip>
  #include <fstream>
  #include <filesystem>
- namespace fs = std::filesystem;
+
  using namespace std::chrono_literals;
  int main()
  {
-     fs::path p = fs::current_path() / "example.bin";
+     auto p = std::filesystem::temp_directory_path() / "example.bin";
      std::ofstream(p.c_str()).put('a'); // create file
-     auto ftime = fs::last_write_time(p);
 
-     // assuming system_clock for this demo
-     // note: not true on MSVC or GCC 9; C++20 will allow portable output
-     std::time_t cftime = decltype(ftime)::clock::to_time_t(ftime);
-     std::cout << "File write time is " << std::asctime(std::localtime(&cftime)) << '\\n';
+     auto print_last_write_time = [](std::filesystem::file_time_type const& ftime) {
+         std::time_t cftime = std::chrono::system_clock::to_time_t(
+             std::chrono::file_clock::to_sys(ftime));
+         std::cout << "File write time is " << std::asctime(std::localtime(&cftime));
+     };
 
-     fs::last_write_time(p, ftime + 1h); // move file write time 1 hour to the future
-     ftime = fs::last_write_time(p); // read back from the filesystem
+     auto ftime = std::filesystem::last_write_time(p);
+     print_last_write_time(ftime);
 
-     cftime = decltype(ftime)::clock::to_time_t(ftime);
-     std::cout << "File write time is " << std::asctime(std::localtime(&cftime)) << '\\n';
-     fs::remove(p);
+     std::filesystem::last_write_time(p, ftime + 1h); // move file write time 1 hour to the future
+     ftime = std::filesystem::last_write_time(p); // read back from the filesystem
+     print_last_write_time(ftime);
+
+     std::filesystem::remove(p);
  }
 
 .SH Possible output:
 
- File write time is Tue Mar 31 19:47:04 2015
-
- File write time is Tue Mar 31 20:47:04 2015
+ File write time is Sun May  9 23:29:58 2021
+ File write time is Mon May 10 00:29:58 2021
 
 .SH See also
 

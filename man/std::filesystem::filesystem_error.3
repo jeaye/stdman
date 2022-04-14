@@ -1,4 +1,4 @@
-.TH std::filesystem::filesystem_error 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::filesystem_error 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::filesystem_error \- std::filesystem::filesystem_error
 
@@ -11,7 +11,6 @@ std::filesystem::filesystem_error \- std::filesystem::filesystem_error
    library.
 
    std-filesystem-filesystem error-inheritance.svg
-   About this image
 
                                    Inheritance diagram
 
@@ -33,7 +32,7 @@ Inherited from std::system_error
 
    code      returns error code
              \fI(public member function of std::system_error)\fP
-   what      returns explanatory string
+   what      returns an explanatory string
    \fB[virtual]\fP \fI(virtual public member function of std::system_error)\fP
 
 Inherited from std::runtime_error
@@ -60,9 +59,42 @@ Inherited from std::exception
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
 
-.SH Category:
+// Run this code
 
-     * Todo no example
+ #include <system_error>
+ #include <filesystem>
+ #include <iostream>
+
+ int main()
+ {
+     const std::filesystem::path from{"/nonexistent1/a"}, to{"/nonexistent2/b"};
+     try {
+         std::filesystem::copy_file(from, to); // throws: files do not exist
+     }
+     catch(std::filesystem::filesystem_error const& ex) {
+         std::cout
+             << "what():  " << ex.what() << '\\n'
+             << "path1(): " << ex.path1() << '\\n'
+             << "path2(): " << ex.path2() << '\\n'
+             << "code().value():    " << ex.code().value() << '\\n'
+             << "code().message():  " << ex.code().message() << '\\n'
+             << "code().category(): " << ex.code().category().name() << '\\n';
+     }
+
+     // All functions have non-throwing equivalents
+     std::error_code ec;
+     std::filesystem::copy_file(from, to, ec); // does not throw
+     std::cout << "\\nnon-throwing form sets error_code: " << ec.message() << '\\n';
+ }
+
+.SH Possible output:
+
+ what():  filesystem error: cannot copy file: No such file or directory [/nonexistent1/a] [/nonexistent2/b]
+ path1(): "/nonexistent1/a"
+ path2(): "/nonexistent2/b"
+ code().value():    2
+ code().message():  No such file or directory
+ code().category(): generic
+
+ non-throwing form sets error_code: No such file or directory

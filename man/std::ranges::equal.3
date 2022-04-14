@@ -1,4 +1,4 @@
-.TH std::ranges::equal 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::equal 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::equal \- std::ranges::equal
 
@@ -7,24 +7,23 @@ std::ranges::equal \- std::ranges::equal
    Call signature
    template< std::input_iterator I1, std::sentinel_for<I1> S1,
 
-             std::input_iterator I2, std::sentinel_for<I2> S2,
-             class Pred = ranges::equal_to,
-             class Proj1 = std::identity, class Proj2 = std::identity >     \fB(1)\fP (since
-     requires std::indirectly_comparable<I1, I2, Pred, Proj1, Proj2>            C++20)
+   std::input_iterator I2, std::sentinel_for<I2> S2,
+   class Pred = ranges::equal_to,                                               (since
+   class Proj1 = std::identity, class Proj2 = std::identity >               \fB(1)\fP C++20)
+   requires std::indirectly_comparable<I1, I2, Pred, Proj1, Proj2>
    constexpr bool equal( I1 first1, S1 last1, I2 first2, S2 last2,
 
-                         Pred pred = {}, Proj1 proj1 = {}, Proj2 proj2 = {}
-   );
+   Pred pred = {}, Proj1 proj1 = {}, Proj2 proj2 = {} );
    template< ranges::input_range R1, ranges::input_range R2,
 
-             class Pred = ranges::equal_to,
-             class Proj1 = std::identity, class Proj2 = std::identity >
-     requires std::indirectly_comparable<ranges::iterator_t<R1>,            \fB(2)\fP (since
+   class Pred = ranges::equal_to,
+   class Proj1 = std::identity, class Proj2 = std::identity >
+   requires std::indirectly_comparable<ranges::iterator_t<R1>,              \fB(2)\fP (since
    ranges::iterator_t<R2>,                                                      C++20)
-                                         Pred, Proj1, Proj2>
+   Pred, Proj1, Proj2>
    constexpr bool equal( R1&& r1, R2&& r2, Pred pred = {},
 
-                         Proj1 proj1 = {}, Proj2 proj2 = {} );
+   Proj1 proj1 = {}, Proj2 proj2 = {} );
 
    1) Returns true if the projected values of the range [first1, last1) are equal to
    the projected values of the range [first2, last2), and false otherwise.
@@ -98,8 +97,10 @@ struct equal_fn {
   operator()(I1 first1, S1 last1, I2 first2, S2 last2,
              Pred pred = {}, Proj1 proj1 = {}, Proj2 proj2 = {}) const
   {
-      if (ranges::distance(first1, last1) != ranges::distance(first2, last2)) {
-        return false;
+      if constexpr (std::sized_sentinel_for<S1, I1> and std::sized_sentinel_for<S2, I2>) {
+          if (std::ranges::distance(first1, last1) != std::ranges::distance(first2, last2)) {
+              return false;
+          }
       }
 
       for (; first1 != last1; ++first1, (void)++first2) {
@@ -128,7 +129,7 @@ inline constexpr equal_fn equal;
 
 .SH Example
 
-   The following code uses equal() to test if a string is a palindrome.
+   The following code uses ranges::equal to test if a string is a palindrome.
 
 
 // Run this code
@@ -138,7 +139,7 @@ inline constexpr equal_fn equal;
  #include <string_view>
  #include <ranges>
 
- bool is_palindrome(const std::string_view s)
+ constexpr bool is_palindrome(const std::string_view s)
  {
      namespace views = std::views;
      auto forward = s | views::take(s.size() / 2);
@@ -179,5 +180,9 @@ inline constexpr equal_fn equal;
    (C++20)                         (niebloid)
    ranges::search                  searches for a range of elements
    (C++20)                         (niebloid)
+   ranges::equal_range             returns range of elements matching a specific key
+   (C++20)                         (niebloid)
+   equal_to                        function object implementing x == y
+                                   \fI(class template)\fP
    equal                           determines if two sets of elements are the same
                                    \fI(function template)\fP

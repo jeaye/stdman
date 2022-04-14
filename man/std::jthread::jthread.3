@@ -1,4 +1,4 @@
-.TH std::jthread::jthread 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::jthread::jthread 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::jthread::jthread \- std::jthread::jthread
 
@@ -15,34 +15,29 @@ std::jthread::jthread \- std::jthread::jthread
    2) Move constructor. Constructs the jthread object to represent the thread of
    execution that was represented by other. After this call other no longer represents
    a thread of execution.
-   3) Creates new std::jthread object and associates it with a thread of execution. The
-   new thread of execution starts executing
+   3) Creates new jthread object and associates it with a thread of execution. The new
+   thread of execution starts executing
 
- std::invoke(decay_copy(std::forward<Function>(f)),
-             get_stop_token(),
-             decay_copy(std::forward<Args>(args))...);
+     * std::invoke(std::move(f_copy), get_stop_token(), std::move(args_copy)...), if
+       the expression is valid; otherwise, it starts executing
+     * std::invoke(std::move(f_copy), std::move(args_copy)...).
 
-   if the function f accepts a std::stop_token for its first argument; otherwise it
-   starts executing
+   In either case,
 
- std::invoke(decay_copy(std::forward<Function>(f)),
-             decay_copy(std::forward<Args>(args))...);
+     * f_copy is an object of type std::decay_t<Function> and constructed from
+       std::forward<Function>(f), and
+     * args_copy... are objects of types std::decay_t<Args>... and constructed from
+       std::forward<Args>(args)....
 
-   .
-
-   In either case, decay_copy is defined as
-
- template <class T>
- std::decay_t<T> decay_copy(T&& v) { return std::forward<T>(v); }
-
-   Except that the calls to decay_copy are evaluated in the context of the caller, so
-   that any exceptions thrown during evaluation and copying/moving of the arguments are
-   thrown in the current thread, without starting the new thread.
+   Constructions of these objects are executed in the context of the caller, so that
+   any exceptions thrown during evaluation and copying/moving of the arguments are
+   thrown in the current thread, without starting the new thread. The program is
+   ill-formed if any construction or the std::invoke call is invalid.
+   This constructor does not participate in overload resolution if
+   std::remove_cvref_t<Function> is the same type as jthread.
    The completion of the invocation of the constructor synchronizes-with (as defined in
    std::memory_order) the beginning of the invocation of the copy of f on the new
    thread of execution.
-   This constructor does not participate in overload resolution if
-   std::remove_cvref_t<Function> is the same type as std::jthread.
    4) The copy constructor is deleted; threads are not copyable. No two std::jthread
    objects may represent the same thread of execution.
 
@@ -54,11 +49,11 @@ std::jthread::jthread \- std::jthread::jthread
 
 .SH Postconditions
 
-   1) get_id() equal to std::jthread::id() (i.e. joinable is false) and
-   get_stop_source().stop_possible() is false
+   1) get_id() equal to std::jthread::id() (i.e. joinable() returns false) and
+   get_stop_source().stop_possible() is false.
    2) other.get_id() equal to std::jthread::id() and get_id() returns the value of
-   other.get_id() prior to the start of construction
-   3) get_id() not equal to std::jthread::id() (i.e. joinable is true), and
+   other.get_id() prior to the start of construction.
+   3) get_id() not equal to std::jthread::id() (i.e. joinable() returns true), and
    get_stop_source().stop_possible() is true.
 
 .SH Exceptions
@@ -86,13 +81,14 @@ std::jthread::jthread \- std::jthread::jthread
  #include <utility>
  #include <thread>
  #include <chrono>
+ using namespace std::literals;
 
  void f1(int n)
  {
      for (int i = 0; i < 5; ++i) {
          std::cout << "Thread 1 executing\\n";
          ++n;
-         std::this_thread::sleep_for(std::chrono::milliseconds(10));
+         std::this_thread::sleep_for(10ms);
      }
  }
 
@@ -101,7 +97,7 @@ std::jthread::jthread \- std::jthread::jthread
      for (int i = 0; i < 5; ++i) {
          std::cout << "Thread 2 executing\\n";
          ++n;
-         std::this_thread::sleep_for(std::chrono::milliseconds(10));
+         std::this_thread::sleep_for(10ms);
      }
  }
 
@@ -113,7 +109,7 @@ std::jthread::jthread \- std::jthread::jthread
          for (int i = 0; i < 5; ++i) {
              std::cout << "Thread 3 executing\\n";
              ++n;
-             std::this_thread::sleep_for(std::chrono::milliseconds(10));
+             std::this_thread::sleep_for(10ms);
          }
      }
      int n = 0;
@@ -127,7 +123,7 @@ std::jthread::jthread \- std::jthread::jthread
          for (int i = 0; i < 5; ++i) {
              std::cout << "Thread 4 executing\\n";
              ++n;
-             std::this_thread::sleep_for(std::chrono::milliseconds(10));
+             std::this_thread::sleep_for(10ms);
          }
      }
      int n = 0;
@@ -143,41 +139,43 @@ std::jthread::jthread \- std::jthread::jthread
      std::jthread t2a(f2, std::ref(n)); // pass by reference
      std::jthread t2b(std::move(t2a)); // t2b is now running f2(). t2a is no longer a thread
      std::jthread t3(&foo::bar, &f); // t3 runs foo::bar() on object f
-     std::jthread t4(b); // t4 runs baz::operator() on object b
+     std::jthread t4(b); // t4 runs baz::operator() on a copy of object b
      t1.join();
      t2b.join();
      t3.join();
      std::cout << "Final value of n is " << n << '\\n';
-     std::cout << "Final value of foo::n is " << f.n << '\\n';
+     std::cout << "Final value of f.n (foo::n) is " << f.n << '\\n';
+     std::cout << "Final value of b.n (baz::n) is " << b.n << '\\n';
      // t4 joins on destruction
  }
 
 .SH Possible output:
 
- Thread 1 executing
  Thread 2 executing
- Thread 3 executing
- Thread 4 executing
- Thread 3 executing
- Thread 1 executing
- Thread 2 executing
- Thread 4 executing
- Thread 2 executing
- Thread 3 executing
  Thread 1 executing
  Thread 4 executing
  Thread 3 executing
+ Thread 3 executing
+ Thread 4 executing
  Thread 2 executing
  Thread 1 executing
  Thread 3 executing
  Thread 1 executing
+ Thread 4 executing
+ Thread 2 executing
+ Thread 3 executing
+ Thread 1 executing
+ Thread 4 executing
+ Thread 2 executing
+ Thread 3 executing
+ Thread 1 executing
+ Thread 4 executing
  Thread 2 executing
  Final value of n is 5
- Thread 4 executing
- Final value of foo::n is 5
- Thread 4 executing
+ Final value of f.n (foo::n) is 5
+ Final value of b.n (bar::n) is 0
 
 .SH See also
 
-   C documentation for
-   thrd_create
+   constructor   constructs new thread object
+                 \fI(public member function of std::thread)\fP

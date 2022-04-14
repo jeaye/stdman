@@ -1,4 +1,4 @@
-.TH std::rotate_copy 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::rotate_copy 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::rotate_copy \- std::rotate_copy
 
@@ -8,25 +8,26 @@ std::rotate_copy \- std::rotate_copy
 
    OutputIt rotate_copy( ForwardIt first, ForwardIt n_first,              \fI(until C++20)\fP
 
-                         ForwardIt last, OutputIt d_first );
+   ForwardIt last, OutputIt d_first );
    template< class ForwardIt, class OutputIt >
 
-   constexpr OutputIt rotate_copy( ForwardIt first, ForwardIt
-   n_first,                                                               \fI(since C++20)\fP
-                                                                  \fB(1)\fP
-                                   ForwardIt last, OutputIt
-   d_first );
+   constexpr OutputIt rotate_copy( ForwardIt first, ForwardIt             \fI(since C++20)\fP
+   n_first,                                                       \fB(1)\fP
+
+   ForwardIt last, OutputIt d_first );
    template< class ExecutionPolicy, class ForwardIt1, class
    ForwardIt2 >
 
-   ForwardIt2 rotate_copy( ExecutionPolicy&& policy, ForwardIt1       \fB(2)\fP \fI(since C++17)\fP
-   first, ForwardIt1 n_first,
+   ForwardIt2 rotate_copy( ExecutionPolicy&& policy,                  \fB(2)\fP \fI(since C++17)\fP
+   ForwardIt1 first, ForwardIt1 n_first,
 
-                         ForwardIt1 last, ForwardIt2 d_first );
+   ForwardIt1 last, ForwardIt2 d_first );
 
    1) Copies the elements from the range [first, last), to another range beginning at
-   d_first in such a way, that the element n_first becomes the first element of the new
-   range and n_first - 1 becomes the last element.
+   d_first in such a way, that the element *(n_first) becomes the first element of the
+   new range and *(n_first - 1) becomes the last element.
+   The behavior is undefined if either [first, n_first) or [n_first, last) is not a
+   valid range, or the source and destination ranges overlap.
    2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
    in overload resolution unless
    std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
@@ -52,6 +53,10 @@ std::rotate_copy \- std::rotate_copy
 
    Output iterator to the element past the last element copied.
 
+.SH Complexity
+
+   linear in the distance between first and last.
+
 .SH Exceptions
 
    The overload with a template parameter named ExecutionPolicy reports errors as
@@ -64,9 +69,10 @@ std::rotate_copy \- std::rotate_copy
 
 .SH Possible implementation
 
-   See also the implementations in libstdc++ and libc++.
+   See also the implementations in libstdc++, libc++, and MSVC STL.
 
    template<class ForwardIt, class OutputIt>
+   constexpr // since C++20
    OutputIt rotate_copy(ForwardIt first, ForwardIt n_first,
                               ForwardIt last, OutputIt d_first)
    {
@@ -82,30 +88,35 @@ std::rotate_copy \- std::rotate_copy
  #include <algorithm>
  #include <vector>
  #include <iostream>
+ #include <iterator>
 
  int main()
  {
      std::vector<int> src = {1, 2, 3, 4, 5};
-     auto pivot = std::find(src.begin(), src.end(), 3);
      std::vector<int> dest(src.size());
+     auto pivot = std::find(src.begin(), src.end(), 3);
 
      std::rotate_copy(src.begin(), pivot, src.end(), dest.begin());
-
-     for (const auto &i : dest) {
+     for (int i : dest) {
          std::cout << i << ' ';
      }
+     std::cout << '\\n';
+
+     // copy the rotation result directly to the std::cout
+     pivot = std::find(dest.begin(), dest.end(), 1);
+     std::rotate_copy(dest.begin(), pivot, dest.end(),
+                      std::ostream_iterator<int>(std::cout, " "));
      std::cout << '\\n';
  }
 
 .SH Output:
 
  3 4 5 1 2
-
-.SH Complexity
-
-   linear in the distance between first and last
+ 1 2 3 4 5
 
 .SH See also
 
-   rotate rotates the order of elements in a range
-          \fI(function template)\fP
+   rotate              rotates the order of elements in a range
+                       \fI(function template)\fP
+   ranges::rotate_copy copies and rotate a range of elements
+   (C++20)             (niebloid)

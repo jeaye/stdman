@@ -1,4 +1,4 @@
-.TH std::student_t_distribution 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::student_t_distribution 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::student_t_distribution \- std::student_t_distribution
 
@@ -10,42 +10,42 @@ std::student_t_distribution \- std::student_t_distribution
    Produces random floating-point values x, distributed according to probability
    density function:
 
-   \\(p(x|n) = \\frac{1}{\\sqrt{n\\pi} } \\cdot
-   \\frac{\\Gamma(\\frac{n+1}{2})}{\\Gamma(\\frac{n}{2})} \\cdot
-   (1+\\frac{x^2}{n})^{-\\frac{n+1}{2} } \\)p(x|n) =
+           \\(p(x|n) = \\frac{1}{\\sqrt{n\\pi} } \\cdot
+           \\frac{\\Gamma(\\frac{n+1}{2})}{\\Gamma(\\frac{n}{2})} \\cdot
+           (1+\\frac{x^2}{n})^{-\\frac{n+1}{2} } \\)p(x|n) =
 
-   1
-   √
-   nπ
+           1
+           √
+           nπ
 
-   ·
+           ·
 
-   Γ(
+           Γ(
 
-   n+1
-   2
+           n+1
+           2
 
-   )
-   Γ(
+           )
+           Γ(
 
-   n
-   2
+           n
+           2
 
-   )
+           )
 
-   · ⎛
-   ⎜
-   ⎝1+
+           · ⎛
+           ⎜
+           ⎝1+
 
-   x2
-   n
+           x2
+           n
 
-   ⎞
-   ⎟
-   ⎠ -
+           ⎞
+           ⎟
+           � -
 
-   n+1
-   2
+           n+1
+           2
 
    where n is known as the number of degrees of freedom. This distribution is used when
    estimating the mean of an unknown normally distributed value given n+1 independent
@@ -62,46 +62,117 @@ std::student_t_distribution \- std::student_t_distribution
 
 .SH Member types
 
-   Member type Definition
-   result_type RealType
-   param_type  the type of the parameter set, see RandomNumberDistribution.
+   Member type       Definition
+   result_type       RealType
+   param_type\fI(C++11)\fP the type of the parameter set, see RandomNumberDistribution.
 
 .SH Member functions
 
    constructor   constructs new distribution
-                 \fI(public member function)\fP
+   \fI(C++11)\fP       \fI(public member function)\fP
    reset         resets the internal state of the distribution
-                 \fI(public member function)\fP
+   \fI(C++11)\fP       \fI(public member function)\fP
 .SH Generation
    operator()    generates the next random number in the distribution
-                 \fI(public member function)\fP
+   \fI(C++11)\fP       \fI(public member function)\fP
 .SH Characteristics
    n             returns the n distribution parameter (degrees of freedom)
                  \fI(public member function)\fP
    param         gets or sets the distribution parameter object
-                 \fI(public member function)\fP
+   \fI(C++11)\fP       \fI(public member function)\fP
    min           returns the minimum potentially generated value
-                 \fI(public member function)\fP
+   \fI(C++11)\fP       \fI(public member function)\fP
    max           returns the maximum potentially generated value
-                 \fI(public member function)\fP
+   \fI(C++11)\fP       \fI(public member function)\fP
 
 .SH Non-member functions
 
-   operator== compares two distribution objects
-   operator!= \fI(function)\fP
-   operator<< performs stream input and output on pseudo-random number distribution
-   operator>> \fI(function template)\fP
+   operator==
+   operator!=                compares two distribution objects
+   \fI(C++11)\fP                   \fI(function)\fP
+   \fI(C++11)\fP(removed in C++20)
+   operator<<                performs stream input and output on pseudo-random number
+   operator>>                distribution
+   \fI(C++11)\fP                   \fI(function template)\fP
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <algorithm>
+ #include <cmath>
+ #include <iomanip>
+ #include <iostream>
+ #include <map>
+ #include <random>
+ #include <vector>
+
+ template <int Height = 5, int BarWidth = 1, int Padding = 1, int Offset = 0,
+           bool DrawMinMax = true, class Sample>
+ void draw_vbars(Sample const& s) {
+     static_assert((Height > 0) && (BarWidth > 0) && (Padding >= 0) && (Offset >= 0));
+     auto cout_n = [](auto const& v, int n) { while (n-- > 0) { std::cout << v; } };
+     const auto [min, max] = std::minmax_element(std::cbegin(s), std::cend(s));
+     std::vector<std::div_t> qr;
+     for (float e : s) {
+         qr.push_back(std::div(std::lerp(0.f, Height*8, (e - *min)/(*max - *min)), 8));
+     }
+     for (auto h{Height}; h-- > 0 ;) {
+         cout_n(' ', Offset);
+         for (auto [q, r] : qr) {
+             char d[] = "█"; // == { 0xe2, 0x96, 0x88, 0 }
+             q < h ? d[0] = ' ', d[1] = '\\0' : q == h ? d[2] -= (7 - r) : 0;
+             cout_n(d, BarWidth);
+             cout_n(' ', Padding);
+         }
+         if (DrawMinMax && Height > 1)
+             h == Height - 1 ? std::cout << "┬ " << *max:
+                      h != 0 ? std::cout << "│"
+                             : std::cout << "┴ " << *min;
+         cout_n('\\n', 1);
+     }
+ }
+
+ int main() {
+     std::random_device rd{};
+     std::mt19937 gen{rd()};
+
+     std::student_t_distribution<> d{10.0f};
+
+     const int norm = 10'000;
+     const float cutoff = 0.000'3f;
+
+     std::map<int, int> hist{};
+     for(int n=0; n<norm; ++n) { ++hist[std::round(d(gen))]; }
+
+     std::vector<float> bars;
+     std::vector<int> indices;
+     for (const auto [n, p] : hist) {
+         if (float x = p * (1.0f / norm); cutoff < x) {
+             bars.push_back(x);
+             indices.push_back(n);
+         }
+     }
+
+     draw_vbars<8,5>(bars);
+     for (int n : indices) { std::cout << " " << std::setw(2) << n << "   "; }
+     std::cout << '\\n';
+ }
+
+.SH Possible output:
+
+                         █████                               ┬ 0.3753
+                         █████                               │
+                   ▁▁▁▁▁ █████                               │
+                   █████ █████ ▆▆▆▆▆                         │
+                   █████ █████ █████                         │
+                   █████ █████ █████                         │
+             ▄▄▄▄▄ █████ █████ █████ ▄▄▄▄▄                   │
+ ▁▁▁▁▁ ▃▃▃▃▃ █████ █████ █████ █████ █████ ▃▃▃▃▃ ▁▁▁▁▁ ▁▁▁▁▁ ┴ 0.0049
+  -4    -3    -2    -1     0     1     2     3     4     5
 
 .SH External links
 
    Weisstein, Eric W. "Student's t-Distribution." From MathWorld--A Wolfram Web
    Resource.
-
-.SH Category:
-
-     * Todo no example

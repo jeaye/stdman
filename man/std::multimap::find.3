@@ -1,4 +1,4 @@
-.TH std::multimap::find 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::multimap::find 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::multimap::find \- std::multimap::find
 
@@ -11,9 +11,9 @@ std::multimap::find \- std::multimap::find
    1,2) Finds an element with key equivalent to key. If there are several elements with
    key in the container, any of them may be returned.
    3,4) Finds an element with key that compares equivalent to the value x. This
-   overload only participates in overload resolution if the qualified-id
+   overload participates in overload resolution only if the qualified-id
    Compare::is_transparent is valid and denotes a type. It allows calling this function
-   without constructing an instance of Key
+   without constructing an instance of Key.
 
 .SH Parameters
 
@@ -36,11 +36,16 @@ std::multimap::find \- std::multimap::find
 
  #include <iostream>
  #include <map>
+
  struct FatKey   { int x; int data[1000]; };
  struct LightKey { int x; };
+ // Note: as detailed above, the container must use std::less<> (or other
+ //   transparent Comparator) to access these overloads.
+ // This includes standard overloads, such as between std::string and std::string_view.
  bool operator<(const FatKey& fk, const LightKey& lk) { return fk.x < lk.x; }
  bool operator<(const LightKey& lk, const FatKey& fk) { return lk.x < fk.x; }
  bool operator<(const FatKey& fk1, const FatKey& fk2) { return fk1.x < fk2.x; }
+
  int main()
  {
  // simple comparison demo
@@ -63,10 +68,23 @@ std::multimap::find \- std::multimap::find
      } else {
          std::cout << "Not found\\n";
      }
+ // Obtaining const iterators.
+ // Compiler decides whether to return iterator of (non) const type by way of accessing
+ // map; to prevent modification on purpose, one of easiest choices is to access map by
+ // const reference.
+     const auto& example2ref = example2;
+     auto search3 = example2ref.find(lk);
+     if (search3 != example2.end()) {
+         std::cout << "Found " << search3->first.x << ' ' << search3->second << '\\n';
+     //  search3->second = 'c'; // error: assignment of member
+                                // 'std::pair<const FatKey, char>::second'
+                                // in read-only object
+     }
  }
 
 .SH Output:
 
+ Found 2 b
  Found 2 b
  Found 2 b
 

@@ -1,13 +1,16 @@
-.TH std::exchange 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::exchange 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::exchange \- std::exchange
 
 .SH Synopsis
    Defined in header <utility>
-   template< class T, class U = T >                \fI(since C++14)\fP
-   T exchange( T& obj, U&& new_value );            \fI(until C++20)\fP
-   template< class T, class U = T >                \fI(since C++20)\fP
-   constexpr T exchange( T& obj, U&& new_value );
+   template< class T, class U = T >                                       \fI(since C++14)\fP
+   T exchange( T& obj, U&& new_value );                                   \fI(until C++20)\fP
+   template< class T, class U = T >                                       \fI(since C++20)\fP
+   constexpr T exchange( T& obj, U&& new_value );                         (until C++23)
+   template< class T, class U = T >
+   constexpr T exchange( T& obj, U&& new_value ) noexcept(/* see below    (since C++23)
+   */);
 
    Replaces the value of obj with new_value and returns the old value of obj.
 
@@ -26,13 +29,24 @@ std::exchange \- std::exchange
 
 .SH Exceptions
 
-   Throws when and what the required operations throw.
+   \fI(none)\fP                                     (until C++23)
+   noexcept specification:
+   noexcept(
+
+   std::is_nothrow_move_constructible_v<T> && (since C++23)
+   std::is_nothrow_assignable_v<T&, U>
+
+   )
 
 .SH Possible implementation
 
    template<class T, class U = T>
    constexpr // since C++20
    T exchange(T& obj, U&& new_value)
+       noexcept( // since C++23
+           std::is_nothrow_move_constructible<T>::value &&
+           std::is_nothrow_assignable<T&, U>::value
+       )
    {
        T old_value = std::move(obj);
        obj = std::forward<U>(new_value);
@@ -41,7 +55,7 @@ std::exchange \- std::exchange
 
 .SH Notes
 
-   This function can be used when implementing move assignment operators and move
+   The std::exchange can be used when implementing move assignment operators and move
    constructors:
 
  struct S
@@ -58,6 +72,8 @@ std::exchange \- std::exchange
      return *this;
    }
  };
+
+   Feature testing macro: __cpp_lib_exchange_function
 
 .SH Example
 
@@ -80,7 +96,7 @@ std::exchange \- std::exchange
      flags_type flags() const
      { return flags_; }
 
-     ///Replaces flags_ by newf, and returns the old value.
+     // Replaces flags_ by newf, and returns the old value.
      flags_type flags(flags_type newf)
      { return std::exchange(flags_, newf); }
 
@@ -101,9 +117,9 @@ std::exchange \- std::exchange
 
     std::vector<int> v;
 
-    //Since the second template parameter has a default value, it is possible
-    //to use a braced-init-list as second argument. The expression below
-    //is equivalent to std::exchange(v, std::vector<int>{1,2,3,4});
+    // Since the second template parameter has a default value, it is possible
+    // to use a braced-init-list as second argument. The expression below
+    // is equivalent to std::exchange(v, std::vector<int>{1,2,3,4});
 
     std::exchange(v, {1,2,3,4});
 
@@ -113,11 +129,16 @@ std::exchange \- std::exchange
 
     void (*fun)();
 
-    //the default value of template parameter also makes possible to use a
-    //normal function as second argument. The expression below is equivalent to
-    //std::exchange(fun, static_cast<void(*)()>(f))
+    // the default value of template parameter also makes possible to use a
+    // normal function as second argument. The expression below is equivalent to
+    // std::exchange(fun, static_cast<void(*)()>(f))
     std::exchange(fun,f);
     fun();
+
+    std::cout << "\\n\\nFibonacci sequence: ";
+    for (int a{0}, b{1}; a < 100; a = std::exchange(b, a + b))
+        std::cout << a << ", ";
+    std::cout << "...\\n";
  }
 
 .SH Output:
@@ -129,6 +150,8 @@ std::exchange \- std::exchange
  1, 2, 3, 4,
 
  f()
+
+ Fibonacci sequence: 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, ...
 
 .SH See also
 

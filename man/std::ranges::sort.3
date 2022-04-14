@@ -1,4 +1,4 @@
-.TH std::ranges::sort 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::sort 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::sort \- std::ranges::sort
 
@@ -7,18 +7,19 @@ std::ranges::sort \- std::ranges::sort
    Call signature
    template< std::random_access_iterator I, std::sentinel_for<I> S,
 
-             class Comp = ranges::less, class Proj = std::identity >
-   requires sortable<I, Comp, Proj>                                   \fB(1)\fP \fI(since C++20)\fP
+   class Comp = ranges::less, class Proj = std::identity >
+   requires std::sortable<I, Comp, Proj>                              \fB(1)\fP \fI(since C++20)\fP
+   constexpr I
 
-   constexpr I sort( I first, S last, Comp comp = {}, Proj proj = {}
-   );
-   template< std::random_access_range R, class Comp = ranges::less,
+   sort( I first, S last, Comp comp = {}, Proj proj = {} );
+   template< ranges::random_access_range R, class Comp =
+   ranges::less,
 
-             class Proj = std::identity >
-   requires sortable<ranges::iterator_t<R>, Comp, Proj>               \fB(2)\fP \fI(since C++20)\fP
+   class Proj = std::identity >                                       \fB(2)\fP \fI(since C++20)\fP
+   requires std::sortable<ranges::iterator_t<R>, Comp, Proj>
+   constexpr ranges::borrowed_iterator_t<R>
 
-   constexpr ranges::iterator_t<R> sort( R&& r, Comp comp = {}, Proj
-   proj = {} );
+   sort( R&& r, Comp comp = {}, Proj proj = {} );
 
    Sorts the elements in the range [first, last) in non-descending order. The order of
    equivalent elements is not guaranteed to be preserved.
@@ -55,12 +56,40 @@ std::ranges::sort \- std::ranges::sort
 
 .SH Complexity
 
-   O(N·log(N)) comparisons and projections, where N = ranges::distance(first, last).
+   \\(\\scriptsize \\mathcal{O}(N\\cdot\\log{(N)})\\)𝓞(N·log(N)) comparisons and
+   projections, where N = ranges::distance(first, last).
 
 .SH Possible implementation
 
-    This section is incomplete
-    Reason: Can we just use heap sort (make_heap and sort_heap) for short?
+   Note that typical implementations use introsort. See also the implementation in MSVC
+   STL and libstdc++.
+
+struct sort_fn {
+    template< std::random_access_iterator I, std::sentinel_for<I> S,
+              class Comp = ranges::less, class Proj = std::identity >
+    requires std::sortable<I, Comp, Proj>
+    constexpr I
+    operator()( I first, S last, Comp comp = {}, Proj proj = {} ) const {
+        if (first == last)
+            return first;
+
+        I last_iter = ranges::next(first, last);
+        ranges::make_heap(first, last_iter, std::ref(comp), std::ref(proj));
+        ranges::sort_heap(first, last_iter, std::ref(comp), std::ref(proj));
+
+        return last_iter;
+    }
+
+    template< ranges::random_access_range R, class Comp = ranges::less,
+              class Proj = std::identity >
+    requires std::sortable<ranges::iterator_t<R>, Comp, Proj>
+    constexpr ranges::borrowed_iterator_t<R>
+    operator()( R&& r, Comp comp = {}, Proj proj = {} ) const {
+        return (*this)(ranges::begin(r), ranges::end(r), std::move(comp), std::move(proj));
+    }
+};
+
+inline constexpr sort_fn sort{};
 
 .SH Example
 
@@ -73,10 +102,9 @@ std::ranges::sort \- std::ranges::sort
  #include <iomanip>
  #include <iostream>
 
- void print(auto const& seq) {
-     for (auto const& elem : seq) {
-         std::cout << elem << ' ';
-     }
+ void print(auto comment, auto const& seq, char term = ' ') {
+     for (std::cout << comment << '\\n'; auto const& elem : seq)
+         std::cout << elem << term;
      std::cout << '\\n';
  }
 
@@ -84,59 +112,53 @@ std::ranges::sort \- std::ranges::sort
      std::string name; double mass; // MeV
      template<class Os> friend
      Os& operator<< (Os& os, Particle const& p) {
-         return os << "\\n" << std::left
-                   << std::setw(8) << p.name
-                   << " : " << p.mass;
+         return os << std::left << std::setw(8) << p.name << " : " << p.mass << ' ';
      }
  };
 
  int main()
  {
-     std::array s = {5, 7, 4, 2, 8, 6, 1, 9, 0, 3};
+     std::array s {5, 7, 4, 2, 8, 6, 1, 9, 0, 3};
 
      namespace ranges = std::ranges;
 
-     // sort using the default operator<
      ranges::sort(s);
-     print(s);
+     print("Sort using the default operator<", s);
 
-     // sort using a standard library compare function object
      ranges::sort(s, ranges::greater());
-     print(s);
+     print("Sort using a standard library compare function object", s);
 
-     // sort using a custom function object
      struct {
-         bool operator()(int a, int b) const {
-             return a < b;
-         }
+         bool operator()(int a, int b) const { return a < b; }
      } customLess;
      ranges::sort(s.begin(), s.end(), customLess);
-     print(s);
+     print("Sort using a custom function object", s);
 
-     // sort using a lambda expression
-     ranges::sort(s, [](int a, int b) {
-         return a > b;
-     });
-     print(s);
+     ranges::sort(s, [](int a, int b) { return a > b; });
+     print("Sort using a lambda expression", s);
 
-     // sort with projection
      Particle particles[] {
          {"Electron", 0.511}, {"Muon", 105.66}, {"Tau", 1776.86},
          {"Positron", 0.511}, {"Proton", 938.27}, {"Neutron", 939.57},
      };
-     ranges::sort(particles, {}, &Particle::name); //< sort by name
-     print(particles);
-     ranges::sort(particles, {}, &Particle::mass); //< sort by mass
-     print(particles);
+     ranges::sort(particles, {}, &Particle::name);
+     print("\\nSort by name using a projection", particles, '\\n');
+     ranges::sort(particles, {}, &Particle::mass);
+     print("Sort by mass using a projection", particles, '\\n');
  }
 
 .SH Output:
 
+ Sort using the default operator<
  0 1 2 3 4 5 6 7 8 9
+ Sort using a standard library compare function object
  9 8 7 6 5 4 3 2 1 0
+ Sort using a custom function object
  0 1 2 3 4 5 6 7 8 9
+ Sort using a lambda expression
  9 8 7 6 5 4 3 2 1 0
 
+ Sort by name using a projection
  Electron : 0.511
  Muon     : 105.66
  Neutron  : 939.57
@@ -144,6 +166,7 @@ std::ranges::sort \- std::ranges::sort
  Proton   : 938.27
  Tau      : 1776.86
 
+ Sort by mass using a projection
  Electron : 0.511
  Positron : 0.511
  Muon     : 105.66
@@ -158,9 +181,7 @@ std::ranges::sort \- std::ranges::sort
    ranges::stable_sort  sorts a range of elements while preserving order between equal
    (C++20)              elements
                         (niebloid)
+   ranges::partition    divides a range of elements into two groups
+   (C++20)              (niebloid)
    sort                 sorts a range into ascending order
                         \fI(function template)\fP
-
-.SH Category:
-
-     * Todo with reason

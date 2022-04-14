@@ -1,4 +1,4 @@
-.TH std::chrono::year_month_day::ok 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::chrono::year_month_day::ok 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::chrono::year_month_day::ok \- std::chrono::year_month_day::ok
 
@@ -25,21 +25,32 @@ std::chrono::year_month_day::ok \- std::chrono::year_month_day::ok
 
 // Run this code
 
- #include <iostream>
  #include <chrono>
 
  int main()
  {
-     std::cout << std::boolalpha;
-
      constexpr auto ymd1 {std::chrono::day(1)/std::chrono::July/2020};
-     std::cout << (ymd1.ok()) << ' ';
+     static_assert(ymd1.ok());
+
      constexpr auto ymd2 {std::chrono::year(2020)/7/42};
-     std::cout << (ymd2.ok()) << ' ';
-     constexpr auto ymd3 {std::chrono::February/29/2020}; // leap year
-     std::cout << (ymd3.ok()) << '\\n';
+     static_assert(not ymd2.ok());
+
+     constexpr auto ymd3 {std::chrono::February/29/2020}; // ok, leap year
+     static_assert(ymd3.ok());
+
+     constexpr auto ymd4 = ymd3 + std::chrono::years{1}; // bad, not a leap year
+     static_assert(ymd4 == std::chrono::February/29/2021 and not ymd4.ok());
+
+     // to fix the bad date we may want to snap to the last day of the month:
+     if constexpr (!ymd4.ok()) {
+         constexpr auto ymd = ymd4.year()/ymd4.month()/std::chrono::last;
+         static_assert(ymd == std::chrono::February/28/2021 and ymd.ok());
+     }
+
+     // or we may want to overflow to the next month:
+     if constexpr (!ymd4.ok()) {
+         constexpr auto st = std::chrono::sys_time<std::chrono::days>{ymd4};
+         constexpr auto ymd = std::chrono::year_month_day{st};
+         static_assert(ymd == std::chrono::March/1/2021 and ymd.ok());
+     }
  }
-
-.SH Output:
-
- true false true

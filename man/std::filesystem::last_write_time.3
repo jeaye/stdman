@@ -1,4 +1,4 @@
-.TH std::filesystem::last_write_time 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::last_write_time 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::last_write_time \- std::filesystem::last_write_time
 
@@ -10,21 +10,20 @@ std::filesystem::last_write_time \- std::filesystem::last_write_time
    std::filesystem::file_time_type last_write_time(const              \fB(1)\fP \fI(since C++17)\fP
    std::filesystem::path& p,
 
-                                                   std::error_code&
-   ec) noexcept;
+   std::error_code& ec) noexcept;
    void last_write_time(const std::filesystem::path& p,
 
-                        std::filesystem::file_time_type new_time);
+   std::filesystem::file_time_type new_time);
    void last_write_time(const std::filesystem::path& p,               \fB(2)\fP \fI(since C++17)\fP
-                        std::filesystem::file_time_type new_time,
+   std::filesystem::file_time_type new_time,
 
-                        std::error_code& ec) noexcept;
+   std::error_code& ec) noexcept;
 
    1) Returns the time of the last modification of p, determined as if by accessing the
-   member st_mtime of the POSIX stat (symlinks are followed) The non-throwing overload
+   member st_mtime of the POSIX stat (symlinks are followed). The non-throwing overload
    returns file_time_type::min() on errors.
    2) Changes the time of the last modification of p, as if by POSIX futimens (symlinks
-   are followed)
+   are followed).
 
 .SH Parameters
 
@@ -39,18 +38,18 @@ std::filesystem::last_write_time \- std::filesystem::last_write_time
 
 .SH Exceptions
 
-   The overload that does not take a std::error_code& parameter throws filesystem_error
-   on underlying OS API errors, constructed with p as the first path argument and the
-   OS error code as the error code argument. The overload taking a std::error_code&
-   parameter sets it to the OS API error code if an OS API call fails, and executes
-   ec.clear() if no errors occur. Any overload not marked noexcept may throw
-   std::bad_alloc if memory allocation fails.
+   The overload that does not take a std::error_code& parameter throws
+   filesystem::filesystem_error on underlying OS API errors, constructed with p as the
+   first path argument and the OS error code as the error code argument. The overload
+   taking a std::error_code& parameter sets it to the OS API error code if an OS API
+   call fails, and executes ec.clear() if no errors occur. Any overload not marked
+   noexcept may throw std::bad_alloc if memory allocation fails.
 
 .SH Notes
 
    It is not guaranteed that immediately after setting the write time, the value
    returned by \fB(1)\fP is the same as what was passed as the argument to \fB(2)\fP because the
-   file system's time may be more granular than file_time_type.
+   file system's time may be more granular than filesystem::file_time_type.
 
 .SH Example
 
@@ -62,32 +61,33 @@ std::filesystem::last_write_time \- std::filesystem::last_write_time
  #include <iomanip>
  #include <fstream>
  #include <filesystem>
- namespace fs = std::filesystem;
+
  using namespace std::chrono_literals;
  int main()
  {
-     fs::path p = fs::current_path() / "example.bin";
+     auto p = std::filesystem::temp_directory_path() / "example.bin";
      std::ofstream(p.c_str()).put('a'); // create file
-     auto ftime = fs::last_write_time(p);
 
-     // assuming system_clock for this demo
-     // note: not true on MSVC or GCC 9; C++20 will allow portable output
-     std::time_t cftime = decltype(ftime)::clock::to_time_t(ftime);
-     std::cout << "File write time is " << std::asctime(std::localtime(&cftime)) << '\\n';
+     auto print_last_write_time = [](std::filesystem::file_time_type const& ftime) {
+         std::time_t cftime = std::chrono::system_clock::to_time_t(
+             std::chrono::file_clock::to_sys(ftime));
+         std::cout << "File write time is " << std::asctime(std::localtime(&cftime));
+     };
 
-     fs::last_write_time(p, ftime + 1h); // move file write time 1 hour to the future
-     ftime = fs::last_write_time(p); // read back from the filesystem
+     auto ftime = std::filesystem::last_write_time(p);
+     print_last_write_time(ftime);
 
-     cftime = decltype(ftime)::clock::to_time_t(ftime);
-     std::cout << "File write time is " << std::asctime(std::localtime(&cftime)) << '\\n';
-     fs::remove(p);
+     std::filesystem::last_write_time(p, ftime + 1h); // move file write time 1 hour to the future
+     ftime = std::filesystem::last_write_time(p); // read back from the filesystem
+     print_last_write_time(ftime);
+
+     std::filesystem::remove(p);
  }
 
 .SH Possible output:
 
- File write time is Tue Mar 31 19:47:04 2015
-
- File write time is Tue Mar 31 20:47:04 2015
+ File write time is Sun May  9 23:29:58 2021
+ File write time is Mon May 10 00:29:58 2021
 
 .SH See also
 

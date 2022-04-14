@@ -1,4 +1,4 @@
-.TH std::condition_variable_any::notify_one 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::condition_variable_any::notify_one 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::condition_variable_any::notify_one \- std::condition_variable_any::notify_one
 
@@ -21,7 +21,7 @@ std::condition_variable_any::notify_one \- std::condition_variable_any::notify_o
    The effects of notify_one()/notify_all() and each of the three atomic parts of
    wait()/wait_for()/wait_until() (unlock+wait, wakeup, and lock) take place in a
    single total order that can be viewed as modification order of an atomic variable:
-   the order is specific to this individual condition_variable. This makes it
+   the order is specific to this individual condition variable. This makes it
    impossible for notify_one() to, for example, be delayed and unblock a thread that
    started waiting just after the call to notify_one() was made.
 
@@ -35,9 +35,9 @@ std::condition_variable_any::notify_one \- std::condition_variable_any::notify_o
 
    Notifying while under the lock may nevertheless be necessary when precise scheduling
    of events is required, e.g. if the waiting thread would exit the program if the
-   condition is satisfied, causing destruction of the notifying thread's
-   condition_variable. A spurious wakeup after mutex unlock but before notify would
-   result in notify called on a destroyed object.
+   condition is satisfied, causing destruction of the notifying thread's condition
+   variable. A spurious wakeup after mutex unlock but before notify would result in
+   notify called on a destroyed object.
 
 .SH Example
 
@@ -48,6 +48,7 @@ std::condition_variable_any::notify_one \- std::condition_variable_any::notify_o
  #include <condition_variable>
  #include <thread>
  #include <chrono>
+ using namespace std::chrono_literals;
 
  std::condition_variable_any cv;
  std::mutex cv_m;
@@ -59,13 +60,13 @@ std::condition_variable_any::notify_one \- std::condition_variable_any::notify_o
      std::unique_lock<std::mutex> lk(cv_m);
      std::cout << "Waiting... \\n";
      cv.wait(lk, []{return i == 1;});
-     std::cout << "...finished waiting. i == 1\\n";
+     std::cout << "...finished waiting; i == " << i << '\\n';
      done = true;
  }
 
  void signals()
  {
-     std::this_thread::sleep_for(std::chrono::seconds(1));
+     std::this_thread::sleep_for(200ms);
      std::cout << "Notifying falsely...\\n";
      cv.notify_one(); // waiting thread is notified with i == 0.
                       // cv.wait wakes up, checks i, and goes back to waiting
@@ -77,7 +78,7 @@ std::condition_variable_any::notify_one \- std::condition_variable_any::notify_o
          std::cout << "Notifying true change...\\n";
          lk.unlock();
          cv.notify_one(); // waiting thread is notified with i == 1, cv.wait returns
-         std::this_thread::sleep_for(std::chrono::seconds(1));
+         std::this_thread::sleep_for(300ms);
          lk.lock();
      }
  }
@@ -94,15 +95,9 @@ std::condition_variable_any::notify_one \- std::condition_variable_any::notify_o
  Waiting...
  Notifying falsely...
  Notifying true change...
- ...finished waiting. i == 1
+ ...finished waiting; i == 1
 
 .SH See also
 
    notify_all notifies all waiting threads
               \fI(public member function)\fP
-   C documentation for
-   cnd_signal
-
-.SH Hidden category:
-
-     * Pages with unreviewed LWG DR marker

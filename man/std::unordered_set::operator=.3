@@ -1,4 +1,4 @@
-.TH std::unordered_set::operator= 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::unordered_set::operator= 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unordered_set::operator= \- std::unordered_set::operator=
 
@@ -18,21 +18,23 @@ std::unordered_set::operator= \- std::unordered_set::operator=
    other.
    If
    std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment::value
-   is true, the target allocator is replaced by a copy of the source allocator. If the
-   target and the source allocators do not compare equal, the target (*this) allocator
-   is used to deallocate the memory, then other's allocator is used to allocate it
-   before copying the elements.
-   \fI(since C++11)\fP.
+   is true, the allocator of *this is replaced by a copy of that of other. If the
+   allocator of *this after assignment would compare unequal to its old value, the old
+   allocator is used to deallocate the memory, then the new allocator is used to
+   allocate it before copying the elements. Otherwise, the memory owned by *this may be
+   reused when possible. In any case, the elements originally belong to *this may be
+   either destroyed or replaced by element-wise copy-assignment.
    2) Move assignment operator. Replaces the contents with those of other using move
    semantics (i.e. the data in other is moved from other into this container). other is
-   in a valid but unspecified state afterwards. If
+   in a valid but unspecified state afterwards.
+   If
    std::allocator_traits<allocator_type>::propagate_on_container_move_assignment::value
-   is true, the target allocator is replaced by a copy of the source allocator. If it
-   is false and the source and the target allocators do not compare equal, the target
-   cannot take ownership of the source memory and must move-assign each element
+   is true, the allocator of *this is replaced by a copy of that of other. If it is
+   false and the allocators of *this and other do not compare equal, *this cannot take
+   ownership of the memory owned by other and must move-assign each element
    individually, allocating additional memory using its own allocator as needed. In any
-   case, all elements originally present in *this are either destroyed or replaced by
-   elementwise move-assignment.
+   case, all elements originally belong to *this are either destroyed or replaced by
+   element-wise move-assignment.
    3) Replaces the contents with those identified by initializer list ilist.
 
 .SH Parameters
@@ -48,11 +50,13 @@ std::unordered_set::operator= \- std::unordered_set::operator=
 
    1) Linear in the size of *this and other.
    2) Linear in the size of *this unless the allocators do not compare equal and do not
-   propagate, in which case linear in the size of *this and other
+   propagate, in which case linear in the size of *this and other.
    3) Linear in the size of *this and ilist.
 
 .SH Exceptions
 
+   May throw implementation-defined exceptions.                      \fI(until C++17)\fP
+   1,3) May throw implementation-defined exceptions.
    2)
    noexcept specification:
    noexcept(std::allocator_traits<Allocator>::is_always_equal::value \fI(since C++17)\fP
@@ -63,16 +67,14 @@ std::unordered_set::operator= \- std::unordered_set::operator=
 
 .SH Notes
 
-   After container move assignment (overload \fB(2)\fP), unless elementwise move assignment
+   After container move assignment (overload \fB(2)\fP), unless element-wise move assignment
    is forced by incompatible allocators, references, pointers, and iterators (other
    than the end iterator) to other remain valid, but refer to elements that are now in
    *this. The current standard makes this guarantee via the blanket statement in
    [container.requirements.general]/12, and a more direct guarantee is under
-   consideration via LWG issue 2321.
+   consideration via LWG 2321.
 
 .SH Example
-
-
 
    The following code uses operator= to assign one std::unordered_set to another:
 
@@ -126,8 +128,4 @@ std::unordered_set::operator= \- std::unordered_set::operator=
 .SH See also
 
    constructor   constructs the unordered_set
-                 \fI(public member function)\fP
-
-.SH Category:
-
-     * conditionally noexcept
+   \fI(C++11)\fP       \fI(public member function)\fP

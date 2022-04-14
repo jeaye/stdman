@@ -1,15 +1,17 @@
-.TH std::map::erase 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::map::erase 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::map::erase \- std::map::erase
 
 .SH Synopsis
    void erase( iterator pos );                              \fI(until C++11)\fP
+   iterator erase( iterator pos );                          \fI(since C++11)\fP
    iterator erase( const_iterator pos );                    \fI(since C++11)\fP
-   iterator erase( iterator pos );                          \fI(since C++17)\fP
-   void erase( iterator first, iterator last );     \fB(1)\fP                   \fI(until C++11)\fP
-   iterator erase( const_iterator first,                \fB(2)\fP               \fI(since C++11)\fP
-   const_iterator last );
-   size_type erase( const key_type& key );                  \fB(3)\fP
+   void erase( iterator first, iterator last );                           \fI(until C++11)\fP
+   iterator erase( const_iterator first,            \fB(1)\fP                   \fI(since C++11)\fP
+   const_iterator last );                               \fB(2)\fP
+   size_type erase( const Key& key );                       \fB(3)\fP
+   template< class K >                                      \fB(4)\fP           (since C++23)
+   size_type erase( K&& x );
 
    Removes specified elements from the container.
 
@@ -17,6 +19,11 @@ std::map::erase \- std::map::erase
    2) Removes the elements in the range [first; last), which must be a valid range in
    *this.
    3) Removes the element (if one exists) with the key equivalent to key.
+   4) Removes the element (if one exists) with key that compares equivalent to the
+   value x. This overload participates in overload resolution only if the qualified-id
+   Compare::is_transparent is valid and denotes a type, and neither iterator nor
+   const_iterator is implicitly convertible from K. It allows calling this function
+   without constructing an instance of Key.
 
    References and iterators to the erased elements are invalidated. Other references
    and iterators are not affected.
@@ -29,16 +36,22 @@ std::map::erase \- std::map::erase
    pos         - iterator to the element to remove
    first, last - range of elements to remove
    key         - key value of the elements to remove
+   x           - a value of any type that can be transparently compared with a key
+                 denoting the elements to remove
 
 .SH Return value
 
-   1-2) Iterator following the last removed element.
-   3) Number of elements removed.
+   1-2)
+   \fI(none)\fP
+   \fI(until C++11)\fP
+   Iterator following the last removed element.
+   \fI(since C++11)\fP
+   3,4) Number of elements removed (0 or 1).
 
 .SH Exceptions
 
    1,2) Throws nothing.
-   3) Any exceptions thrown by the Compare object.
+   3,4) Any exceptions thrown by the Compare object.
 
 .SH Complexity
 
@@ -47,6 +60,7 @@ std::map::erase \- std::map::erase
    1) Amortized constant
    2) log(c.size()) + std::distance(first, last)
    3) log(c.size()) + c.count(key)
+   4) log(c.size()) + c.count(x)
 
 .SH Example
 
@@ -57,12 +71,14 @@ std::map::erase \- std::map::erase
  #include <iostream>
  int main()
  {
-     std::map<int, std::string> c = {{1, "one"}, {2, "two"}, {3, "three"},
-                                     {4, "four"}, {5, "five"}, {6, "six"}};
+     std::map<int, std::string> c = {
+         {1, "one" }, {2, "two" }, {3, "three"},
+         {4, "four"}, {5, "five"}, {6, "six"  }
+     };
 
      // erase all odd numbers from c
      for(auto it = c.begin(); it != c.end(); ) {
-         if(it->first % 2 == 1)
+         if(it->first % 2 != 0)
              it = c.erase(it);
          else
              ++it;
@@ -76,6 +92,15 @@ std::map::erase \- std::map::erase
 .SH Output:
 
  two four six
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to           Behavior as published              Correct behavior
+   LWG 2059 C++11      overload for one const_iterator introduced overload for iterator
+                       new ambiguity                              added
 
 .SH See also
 

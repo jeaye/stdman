@@ -1,4 +1,4 @@
-.TH std::latch 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::latch 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::latch \- std::latch
 
@@ -6,14 +6,14 @@ std::latch \- std::latch
    Defined in header <latch>
    class latch;               \fI(since C++20)\fP
 
-   The latch class is a downward counter of type ptrdiff_t which can be used to
+   The latch class is a downward counter of type std::ptrdiff_t which can be used to
    synchronize threads. The value of the counter is initialized on creation. Threads
    may block on the latch until the counter is decremented to zero. There is no
    possibility to increase or reset the counter, which makes the latch a single-use
    barrier.
 
-   Concurrent invocations of the member functions of latch, except for the destructor,
-   do not introduce data races.
+   Concurrent invocations of the member functions of std::latch, except for the
+   destructor, do not introduce data races.
 
    Unlike std::barrier, std::latch can be decremented by a participating thread more
    than once.
@@ -38,16 +38,71 @@ std::latch \- std::latch
    max             the maximum value of counter supported by the implementation
    \fB[static]\fP        \fI(public static member function)\fP
 
+.SH Notes
+
+   Feature testing macro: __cpp_lib_latch
+
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <functional>
+ #include <iostream>
+ #include <latch>
+ #include <string>
+ #include <thread>
+
+ int main() {
+   struct job {
+     const std::string name;
+     std::string product{"not worked"};
+     std::thread action{};
+   } jobs[] = {{"annika"}, {"buru"}, {"chuck"}};
+
+   std::latch work_done{std::size(jobs)};
+   std::latch start_clean_up{1};
+
+   auto work = [&](job& my_job) {
+     my_job.product = my_job.name + " worked";
+     work_done.count_down();
+     start_clean_up.wait();
+     my_job.product = my_job.name + " cleaned";
+   };
+
+   std::cout << "Work starting... ";
+   for (auto& job : jobs) {
+     job.action = std::thread{work, std::ref(job)};
+   }
+   work_done.wait();
+   std::cout << "done:\\n";
+   for (auto const& job : jobs) {
+     std::cout << "  " << job.product << '\\n';
+   }
+
+   std::cout << "Workers cleaning up... ";
+   start_clean_up.count_down();
+   for (auto& job : jobs) {
+     job.action.join();
+   }
+   std::cout << "done:\\n";
+   for (auto const& job : jobs) {
+     std::cout << "  " << job.product << '\\n';
+   }
+ }
+
+.SH Output:
+
+ Work starting... done:
+   annika worked
+   buru worked
+   chuck worked
+ Workers cleaning up... done:
+   annika cleaned
+   buru cleaned
+   chuck cleaned
 
 .SH See also
 
    barrier reusable thread barrier
    (C++20) \fI(class template)\fP
-
-.SH Category:
-
-     * Todo no example

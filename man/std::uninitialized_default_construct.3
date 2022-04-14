@@ -1,4 +1,4 @@
-.TH std::uninitialized_default_construct 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_default_construct 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_default_construct \- std::uninitialized_default_construct
 
@@ -16,8 +16,14 @@ std::uninitialized_default_construct \- std::uninitialized_default_construct
    default-initialization, as if by
 
  for (; first != last; ++first)
-   ::new (static_cast<void*>(std::addressof(*first)))
+   ::new (/*VOIDIFY*/(*first))
        typename std::iterator_traits<ForwardIt>::value_type;
+
+   where /*VOIDIFY*/(e) is:
+
+      static_cast<void*>(std::addressof(e))                               \fI(until C++20)\fP
+      const_cast<void*>(static_cast<const volatile                        \fI(since C++20)\fP
+      void*>(std::addressof(e)))
 
    If an exception is thrown during the initialization, the objects already constructed
    are destroyed in an unspecified order.
@@ -46,7 +52,7 @@ std::uninitialized_default_construct \- std::uninitialized_default_construct
 
 .SH Complexity
 
-   Linear in the distance between first and last
+   Linear in the distance between first and last.
 
 .SH Exceptions
 
@@ -67,7 +73,8 @@ std::uninitialized_default_construct \- std::uninitialized_default_construct
        ForwardIt current = first;
        try {
            for (; current != last; ++current) {
-               ::new (static_cast<void*>(std::addressof(*current))) Value;
+               ::new (const_cast<void*>(static_cast<const volatile void*>(
+                   std::addressof(*current)))) Value;
            }
        }  catch (...) {
            std::destroy(first, current);
@@ -77,19 +84,69 @@ std::uninitialized_default_construct \- std::uninitialized_default_construct
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <iostream>
+ #include <memory>
+ #include <string>
+ #include <cstring>
+
+ int main()
+ {
+     struct S { std::string m{ "Default value" }; };
+
+     constexpr int n {3};
+     alignas(alignof(S)) unsigned char mem[n * sizeof(S)];
+
+     try
+     {
+         auto first {reinterpret_cast<S*>(mem)};
+         auto last {first + n};
+
+         std::uninitialized_default_construct(first, last);
+
+         for (auto it {first}; it != last; ++it) {
+             std::cout << it->m << '\\n';
+         }
+
+         std::destroy(first, last);
+     }
+     catch(...)
+     {
+         std::cout << "Exception!\\n";
+     }
+
+     // Notice that for "trivial types" the uninitialized_default_construct
+     // generally does not zero-fill the given uninitialized memory area.
+     int v[] { 1, 2, 3, 4 };
+     const int original[] { 1, 2, 3, 4 };
+     std::uninitialized_default_construct(std::begin(v), std::end(v));
+     // for (const int i : v) { std::cout << i << ' '; }
+     // Maybe undefined behavior, pending CWG 1997.
+     std::cout <<
+         (std::memcmp(v, original, sizeof(v)) == 0 ? "Unmodified\\n" : "Modified\\n");
+     // The result is unspecified.
+ }
+
+.SH Possible output:
+
+ Default value
+ Default value
+ Default value
+ Unmodified
 
 .SH See also
 
-                                     constructs objects by default-initialization in an
-   uninitialized_default_construct_n uninitialized area of memory, defined by a start
-   \fI(C++17)\fP                           and a count
-                                     \fI(function template)\fP
-   uninitialized_value_construct     constructs objects by value-initialization in an
-   \fI(C++17)\fP                           uninitialized area of memory, defined by a range
-                                     \fI(function template)\fP
-
-.SH Category:
-
-     * Todo no example
+                                           constructs objects by default-initialization
+   uninitialized_default_construct_n       in an uninitialized area of memory, defined
+   \fI(C++17)\fP                                 by a start and a count
+                                           \fI(function template)\fP
+                                           constructs objects by value-initialization
+   uninitialized_value_construct           in an uninitialized area of memory, defined
+   \fI(C++17)\fP                                 by a range
+                                           \fI(function template)\fP
+                                           constructs objects by default-initialization
+   ranges::uninitialized_default_construct in an uninitialized area of memory, defined
+   (C++20)                                 by a range
+                                           (niebloid)

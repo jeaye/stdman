@@ -1,4 +1,4 @@
-.TH std::jmp_buf 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::jmp_buf 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::jmp_buf \- std::jmp_buf
 
@@ -12,11 +12,42 @@ std::jmp_buf \- std::jmp_buf
    floating-point status flags, or open files, or any other data is not stored in an
    object of type jmp_buf.
 
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <csetjmp>
+
+ std::jmp_buf my_jump_buffer;
+
+ [[noreturn]] void foo(int count)
+ {
+     std::cout << "foo(" << count << ") called\\n";
+     std::longjmp(my_jump_buffer, count+1);  // setjmp() will return count+1
+ }
+
+ int main()
+ {
+     volatile int count = 0; // modified locals in setjmp scope must be volatile
+     if (setjmp(my_jump_buffer) != 5) { // equality against constant expression in an if
+         count = count + 1; // ++count, count += 1, etc on 'volatile'-qualified
+                            // left operand are deprecated since C++20 (P1152)
+         foo(count); // This will cause setjmp() to exit
+     }
+ }
+
+.SH Output:
+
+ foo\fB(1)\fP called
+ foo\fB(2)\fP called
+ foo\fB(3)\fP called
+ foo\fB(4)\fP called
+
 .SH See also
 
    setjmp  saves the context
            \fI(function macro)\fP
    longjmp jumps to specified location
            \fI(function)\fP
-   C documentation for
-   jmp_buf

@@ -1,4 +1,4 @@
-.TH std::uninitialized_fill 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_fill 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_fill \- std::uninitialized_fill
 
@@ -15,8 +15,16 @@ std::uninitialized_fill \- std::uninitialized_fill
    [first, last) as if by
 
  for (; first != last; ++first)
-   ::new (static_cast<void*>(std::addressof(*first)))
-       typename std::iterator_traits<ForwardIt>::value_type(value);
+     ::new (/*VOIDIFY*/(*first))
+         typename std::iterator_traits<ForwardIt>::value_type(value);
+
+   where /*VOIDIFY*/(e) is:
+
+      static_cast<void*>(&e)                                              \fI(until C++11)\fP
+      static_cast<void*>(std::addressof(e))                               \fI(since C++11)\fP
+                                                                          \fI(until C++20)\fP
+      const_cast<void*>(static_cast<const volatile                        \fI(since C++20)\fP
+      void*>(std::addressof(e)))
 
    If an exception is thrown during the initialization, the objects already constructed
    are destroyed in an unspecified order.
@@ -39,6 +47,8 @@ std::uninitialized_fill \- std::uninitialized_fill
    -
    No increment, assignment, comparison, or indirection through valid instances of
    ForwardIt may throw exceptions.
+   Applying &* to a ForwardIt value must yield a pointer to its value type.
+   \fI(until C++11)\fP
 
 .SH Return value
 
@@ -46,7 +56,7 @@ std::uninitialized_fill \- std::uninitialized_fill
 
 .SH Complexity
 
-   Linear in the distance between first and last
+   Linear in the distance between first and last.
 
 .SH Exceptions
 
@@ -63,15 +73,16 @@ std::uninitialized_fill \- std::uninitialized_fill
    template<class ForwardIt, class T>
    void uninitialized_fill(ForwardIt first, ForwardIt last, const T& value)
    {
-       typedef typename std::iterator_traits<ForwardIt>::value_type Value;
+       using V = typename std::iterator_traits<ForwardIt>::value_type;
        ForwardIt current = first;
        try {
            for (; current != last; ++current) {
-               ::new (static_cast<void*>(std::addressof(*current))) Value(value);
+               ::new (const_cast<void*>(static_cast<const volatile void*>(
+                   std::addressof(*current)))) V(value);
            }
        }  catch (...) {
            for (; first != current; ++first) {
-               first->~Value();
+               first->~V();
            }
            throw;
        }
@@ -112,6 +123,9 @@ std::uninitialized_fill \- std::uninitialized_fill
 
 .SH See also
 
-                        copies an object to an uninitialized area of memory, defined by
-   uninitialized_fill_n a start and a count
-                        \fI(function template)\fP
+                              copies an object to an uninitialized area of memory,
+   uninitialized_fill_n       defined by a start and a count
+                              \fI(function template)\fP
+   ranges::uninitialized_fill copies an object to an uninitialized area of memory,
+   (C++20)                    defined by a range
+                              (niebloid)

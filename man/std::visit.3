@@ -1,4 +1,4 @@
-.TH std::visit 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::visit 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::visit \- std::visit
 
@@ -11,14 +11,23 @@ std::visit \- std::visit
    constexpr R visit( Visitor&& vis, Variants&&... vars );
 
    Applies the visitor vis (Callable that can be called with any combination of types
-   from variants) to the variants vars
+   from variants) to the variants vars.
+
+   These overloads participate in overload resolution only if every type in
+   std::remove_reference_t<Variants>... is a (possibly const-qualified) specialization
+   of std::variant, or a (possibly const-qualified) class C such that there is exactly
+   one std::variant specialization that is a base class of C and it is a public and
+   unambiguous base class.
 
    Effectively returns
 
    std::invoke(std::forward<Visitor>(vis),
-   std::get<is>(std::forward<Variants>(vars))...)
+   std::get<is>(std::forward<VariantBases>(vars))...)
 
-   , where is... is vars.index()....
+   , where every type in VariantBases... is the unique std::variant specialization
+   determined above, except that const, &, or && is added to it if the corresponding
+   argument is of a const-qualified type, is an lvalue, or is an rvalue, respectively,
+   and is... is std::forward<VariantBases>(vars).index()....
 
    1) The return type is deduced from the returned expression as if by decltype. The
    call is ill-formed if the invocation above is not a valid expression of the same
@@ -40,6 +49,8 @@ std::visit \- std::visit
 .SH Exceptions
 
    Throws std::bad_variant_access if any variant in vars is valueless_by_exception.
+   Whether any variant is valueless by exception is determined as if by
+   (std::forward<VariantBases>(vars).valueless_by_exception() || ...).
 
 .SH Complexity
 
@@ -48,6 +59,21 @@ std::visit \- std::visit
 
    If the number of variants is larger than 1, the invocation of the callable object
    has no complexity requirements.
+
+.SH Notes
+
+   Let n be (1 * ... * std::variant_size_v<std::remove_reference_t<VariantBases>>),
+   implementations usually generate a table equivalent to an (possibly
+   multidimensional) array of n function pointers for every specialization of
+   std::visit, which is similar to the implementation of virtual functions.
+
+   Implementations may also generate a switch statement with n branches for std::visit
+   (e.g. the MSVC STL implementation uses a switch statement when n is not greater than
+   256).
+
+   On typical implementations, the time complexity of the invocation of vis can be
+   considered equal to that of access to an element in an (possibly multidimensional)
+   array or execution of a switch statement.
 
 .SH Example
 
@@ -101,10 +127,15 @@ std::visit \- std::visit
 
      for (auto& v: vec) {
          // 4. another type-matching visitor: a class with 3 overloaded operator()'s
+         // Note: The `(auto arg)` template operator() will bind to `int` and `long`
+         //       in this case, but in its absence the `(double arg)` operator()
+         //       *will also* bind to `int` and `long` because both are implicitly
+         //       convertible to double. When using this form, care has to be taken
+         //       that implicit conversions are handled correctly.
          std::visit(overloaded {
              [](auto arg) { std::cout << arg << ' '; },
              [](double arg) { std::cout << std::fixed << arg << ' '; },
-             [](const std::string& arg) { std::cout << std::quoted(arg) << ' '; },
+             [](const std::string& arg) { std::cout << std::quoted(arg) << ' '; }
          }, v);
      }
  }
@@ -116,6 +147,15 @@ std::visit \- std::visit
  1.5. After doubling, variant holds double with value 3
  hello. After doubling, variant holds std::string with value "hellohello"
  10 15 1.500000 "hello"
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 3052 C++17      the effects were unspecified if any type in     specified
+                       Variants is not a std::variant
 
 .SH See also
 

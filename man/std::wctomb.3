@@ -1,4 +1,4 @@
-.TH std::wctomb 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::wctomb 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::wctomb \- std::wctomb
 
@@ -8,7 +8,8 @@ std::wctomb \- std::wctomb
 
    Converts a wide character wc to multibyte encoding and stores it (including any
    shift sequences) in the char array whose first element is pointed to by s. No more
-   than MB_CUR_MAX characters are stored.
+   than MB_CUR_MAX characters are stored. The conversion is affected by the current
+   locale's LC_CTYPE category.
 
    If wc is the null character, the null byte is written to s, preceded by any shift
    sequences necessary to restore the initial shift state.
@@ -44,6 +45,7 @@ std::wctomb \- std::wctomb
 // Run this code
 
  #include <iostream>
+ #include <iomanip>
  #include <clocale>
  #include <string>
  #include <cstdlib>
@@ -51,11 +53,19 @@ std::wctomb \- std::wctomb
  void print_wide(const std::wstring& wstr)
  {
      bool shifts = std::wctomb(nullptr, 0); // reset the conversion state
-     std::cout << "shift sequences " << (shifts ? "are" : "not" ) << " used\\n";
-     for (wchar_t wc : wstr) {
+     std::cout << "shift sequences are " << (shifts ? "" : "not" )
+               << " used\\n" << std::uppercase << std::setfill('0');
+     for (const wchar_t wc : wstr) {
          std::string mb(MB_CUR_MAX, '\\0');
-         int ret = std::wctomb(&mb[0], wc);
-         std::cout << "multibyte char " << mb << " is " << ret << " bytes\\n";
+         const int ret = std::wctomb(&mb[0], wc);
+         const char* s = ret > 1 ? "s" : "";
+         std::cout << "multibyte char '" << mb << "' is " << ret
+                   << " byte" << s << ": [" << std::hex;
+         for (int i{0}; i != ret; ++i) {
+             const int c = 0xFF & mb[i];
+             std::cout << (i ? " " : "") << std::setw(2) << c;
+         }
+         std::cout << "]\\n" << std::dec;
      }
  }
 
@@ -69,11 +79,11 @@ std::wctomb \- std::wctomb
 
 .SH Output:
 
- shift sequences not used
- multibyte char z is 1 bytes
- multibyte char ß is 2 bytes
- multibyte char 水 is 3 bytes
- multibyte char 𝄋 is 4 bytes
+ shift sequences are not used
+ multibyte char 'z' is 1 byte: [7A]
+ multibyte char 'ß' is 2 bytes: [C3 9F]
+ multibyte char '水' is 3 bytes: [E6 B0 B4]
+ multibyte char '𝄋' is 4 bytes: [F0 9D 84 8B]
 
 .SH See also
 
@@ -83,6 +93,3 @@ std::wctomb \- std::wctomb
              \fI(function)\fP
    do_out    converts a string from internT to externT, such as when writing to file
    \fB[virtual]\fP \fI(virtual protected member function of std::codecvt<InternT,ExternT,State>)\fP
-
-   C documentation for
-   wctomb

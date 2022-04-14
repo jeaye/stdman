@@ -1,4 +1,4 @@
-.TH std::setvbuf 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::setvbuf 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::setvbuf \- std::setvbuf
 
@@ -11,10 +11,10 @@ std::setvbuf \- std::setvbuf
 
      * If buffer is a null pointer, resizes the internal buffer to size.
      * If buffer is not a null pointer, instructs the stream to use the user-provided
-       buffer of size size beginning at buffer. The stream must be closed (with fclose)
-       before the lifetime of the array pointed to by buffer ends. The contents of the
-       array after a successful call to setvbuf are indeterminate and any attempt to
-       use it is undefined behavior.
+       buffer of size size beginning at buffer. The stream must be closed (with
+       std::fclose) before the lifetime of the array pointed to by buffer ends. The
+       contents of the array after a successful call to std::setvbuf are indeterminate
+       and any attempt to use it is undefined behavior.
 
 .SH Parameters
 
@@ -64,32 +64,34 @@ std::setvbuf \- std::setvbuf
 
  #include <iostream>
  #include <cstdio>
- #include <stdlib.h>
+ #include <cstdlib>
  #include <sys/stat.h>
 
  int main()
  {
-     std::FILE* fp = std::fopen("test.txt", "r");
+     std::FILE* fp = std::fopen("/tmp/test.txt", "w+");
      if(!fp) {
-        std::perror("fopen"); return 1;
+        std::perror("fopen"); return EXIT_FAILURE;
      }
 
      struct stat stats;
      if(fstat(fileno(fp), &stats) == -1) { // POSIX only
-         std::perror("fstat"); return 1;
+         std::perror("fstat"); return EXIT_FAILURE;
      }
 
      std::cout << "BUFSIZ is " << BUFSIZ << ", but optimal block size is "
                << stats.st_blksize << '\\n';
-     if(std::setvbuf(fp, NULL, _IOFBF, stats.st_blksize) != 0) {
-        perror("setvbuf failed"); // POSIX version sets errno
-        return 1;
+     if(std::setvbuf(fp, nullptr, _IOFBF, stats.st_blksize) != 0) {
+        std::perror("setvbuf failed"); // POSIX version sets errno
+        return EXIT_FAILURE;
      }
 
-     int ch;
-     while((ch=std::fgetc(fp)) != EOF); // read entire file: use truss/strace to
-                                        // observe the read(2) syscalls used
+     // read entire file: use truss/strace
+     // to observe the read(2) syscalls used
+     for (int ch; (ch = std::fgetc(fp)) != EOF; ) {}
+
      std::fclose(fp);
+     return EXIT_SUCCESS;
  }
 
 .SH Possible output:
@@ -102,6 +104,3 @@ std::setvbuf \- std::setvbuf
              \fI(function)\fP
    setbuf    provides user-supplied buffer or turns this filebuf unbuffered
    \fB[virtual]\fP \fI(virtual protected member function of std::basic_filebuf<CharT,Traits>)\fP
-
-   C documentation for
-   setvbuf

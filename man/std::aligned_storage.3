@@ -1,4 +1,4 @@
-.TH std::aligned_storage 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::aligned_storage 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::aligned_storage \- std::aligned_storage
 
@@ -26,7 +26,8 @@ std::aligned_storage \- std::aligned_storage
 .SH Member types
 
    Name Definition
-   type the POD type of at least size Len with alignment requirement Align
+   type a trivial and standard-layout type of at least size Len with alignment
+        requirement Align
 
 .SH Helper types
 
@@ -63,6 +64,7 @@ std::aligned_storage \- std::aligned_storage
 
 // Run this code
 
+ #include <new>
  #include <iostream>
  #include <type_traits>
  #include <string>
@@ -71,7 +73,7 @@ std::aligned_storage \- std::aligned_storage
  class static_vector
  {
      // properly aligned uninitialized storage for N T's
-     typename std::aligned_storage<sizeof(T), alignof(T)>::type data[N];
+     std::aligned_storage_t<sizeof(T), alignof(T)> data[N];
      std::size_t m_size = 0;
 
  public:
@@ -83,23 +85,23 @@ std::aligned_storage \- std::aligned_storage
 
          // construct value in memory of aligned storage
          // using inplace operator new
-         new(&data[m_size]) T(std::forward<Args>(args)...);
+         ::new(&data[m_size]) T(std::forward<Args>(args)...);
          ++m_size;
      }
 
      // Access an object in aligned storage
      const T& operator[](std::size_t pos) const
      {
-         // note: needs std::launder as of C++17
-         return *reinterpret_cast<const T*>(&data[pos]);
+         // Note: std::launder is needed after the change of object model in P0137R1
+         return *std::launder(reinterpret_cast<const T*>(&data[pos]));
      }
 
-     // Delete objects from aligned storage
+     // Destroy objects from aligned storage
      ~static_vector()
      {
          for(std::size_t pos = 0; pos < m_size; ++pos) {
-             // note: needs std::launder as of C++17
-             reinterpret_cast<T*>(&data[pos])->~T();
+             // Note: std::launder is needed after the change of object model in P0137R1
+             std::destroy_at(std::launder(reinterpret_cast<T*>(&data[pos])));
          }
      }
  };

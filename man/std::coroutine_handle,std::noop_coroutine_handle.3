@@ -1,4 +1,4 @@
-.TH std::coroutine_handle,std::noop_coroutine_handle 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::coroutine_handle,std::noop_coroutine_handle 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::noop_coroutine_handle
 
@@ -8,7 +8,7 @@ std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::n
    template<> struct coroutine_handle<void>;                        \fB(2)\fP \fI(since C++20)\fP
    template<> struct coroutine_handle<std::noop_coroutine_promise>; \fB(3)\fP \fI(since C++20)\fP
    using noop_coroutine_handle =                                    \fB(4)\fP \fI(since C++20)\fP
-       std::coroutine_handle<std::noop_coroutine_promise>;
+   std::coroutine_handle<std::noop_coroutine_promise>;
 
    The class template coroutine_handle can be used to refer to a suspended or executing
    coroutine. Every specialization of coroutine_handle is a LiteralType.
@@ -28,32 +28,36 @@ std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::n
 
 .SH Member functions
 
-   constructor      constructs a coroutine_handle object
-   (C++20)          \fI(public member function)\fP
-   operator=        assigns the coroutine_handle object
-   (C++20)          \fI(public member function)\fP
-   from_promise     creates a coroutine_handle from the promise object of a coroutine
-   \fB[static]\fP (C++20) \fI(public static member function)\fP
+   constructor                 constructs a coroutine_handle object
+   (C++20)                     \fI(public member function)\fP
+   operator=                   assigns the coroutine_handle object
+   (C++20)                     \fI(public member function)\fP
+   from_promise                creates a coroutine_handle from the promise object of a
+   \fB[static]\fP (C++20)            coroutine
+                               \fI(public static member function)\fP
+         Conversion
+   operator coroutine_handle<> obtains a type-erased coroutine_handle
+   (C++20)                     \fI(public member function)\fP
 .SH Observers
-   done             check if the coroutine has completed
-   (C++20)          \fI(public member function)\fP
-   operator bool    check if the handle represents a coroutine
-   (C++20)          \fI(public member function)\fP
+   done                        checks if the coroutine has completed
+   (C++20)                     \fI(public member function)\fP
+   operator bool               checks if the handle represents a coroutine
+   (C++20)                     \fI(public member function)\fP
          Control
-   operator()       resumes execution of the coroutine
-   resume           \fI(public member function)\fP
+   operator()                  resumes execution of the coroutine
+   resume                      \fI(public member function)\fP
    (C++20)
-   destroy          destroys a coroutine
-   (C++20)          \fI(public member function)\fP
+   destroy                     destroys a coroutine
+   (C++20)                     \fI(public member function)\fP
          Promise Access
-   promise          access the promise of a coroutine
-   (C++20)          \fI(public member function)\fP
+   promise                     access the promise of a coroutine
+   (C++20)                     \fI(public member function)\fP
          Export/Import
-   address          exports the underlying address, i.e. the pointer backing the
-   (C++20)          coroutine
-                    \fI(public member function)\fP
-   from_address     import a coroutine from a pointer
-   \fB[static]\fP (C++20) \fI(public static member function)\fP
+   address                     exports the underlying address, i.e. the pointer backing
+   (C++20)                     the coroutine
+                               \fI(public member function)\fP
+   from_address                imports a coroutine from a pointer
+   \fB[static]\fP (C++20)            \fI(public static member function)\fP
 
 .SH Non-member functions
 
@@ -79,7 +83,6 @@ std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::n
  #include <coroutine>
  #include <iostream>
  #include <optional>
- #include <iterator>
 
  template<std::movable T>
  class Generator {
@@ -100,6 +103,7 @@ std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::n
          }
          // Disallow co_await in generator coroutines.
          void await_transform() = delete;
+         [[noreturn]]
          static void unhandled_exception() {
              throw;
          }
@@ -109,7 +113,7 @@ std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::n
 
      using Handle = std::coroutine_handle<promise_type>;
 
-     explicit Generator(Handle coroutine) :
+     explicit Generator(const Handle coroutine) :
          m_coroutine{coroutine}
      {}
 
@@ -128,7 +132,6 @@ std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::n
      {
          other.m_coroutine = {};
      }
-
      Generator& operator=(Generator&& other) noexcept {
          if (this != &other) {
              if (m_coroutine) {
@@ -153,7 +156,7 @@ std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::n
              return !m_coroutine || m_coroutine.done();
          }
 
-         explicit Iter(Handle coroutine) :
+         explicit Iter(const Handle coroutine) :
              m_coroutine{coroutine}
          {}
 
@@ -176,14 +179,14 @@ std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::n
  };
 
  template<std::integral T>
- Generator<T> range(T first, T last) {
+ Generator<T> range(T first, const T last) {
      while (first < last) {
          co_yield first++;
      }
  }
 
  int main() {
-     for (int i : range(-4, 8)) {
+     for (const char i : range(65, 91)) {
          std::cout << i << ' ';
      }
      std::cout << '\\n';
@@ -191,4 +194,13 @@ std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::n
 
 .SH Output:
 
- -4 -3 -2 -1 0 1 2 3 4 5 6 7
+ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to            Behavior as published              Correct behavior
+   LWG 3460 C++20      the public base class of coroutine_handle    inheritance removed
+                       could leave it in an undesired state

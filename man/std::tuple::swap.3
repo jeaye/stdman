@@ -1,15 +1,27 @@
-.TH std::tuple::swap 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::tuple::swap 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::tuple::swap \- std::tuple::swap
 
 .SH Synopsis
    Defined in header <tuple>
-   void swap( tuple& other ) noexcept(/* see below */);            \fI(since C++11)\fP
-                                                                   \fI(until C++20)\fP
-   constexpr void swap( tuple& other ) noexcept(/* see below */);  \fI(since C++20)\fP
+   void swap( tuple& other ) noexcept(/* see below */);                   \fI(since C++11)\fP
+                                                                          \fI(until C++20)\fP
+   constexpr void swap( tuple& other ) noexcept(/* see below */); \fB(1)\fP     \fI(since C++20)\fP
+   constexpr void swap( const tuple& other ) noexcept(/* see          \fB(2)\fP (since C++23)
+   below */) const;
 
    Calls swap (which might be std::swap, or might be found via ADL) for each element in
    *this and its corresponding element in other.
+
+   If any selected swap function call is ill-formed, or does not swap the (until C++23)
+   corresponding elements of both tuples, the behavior is undefined.
+   If any selected swap function call does not swap the corresponding
+   elements of both tuples, the behavior is undefined.
+
+   1) The program is ill-formed if (std::is_swappable_v<Types> && ...) is (since C++23)
+   not true.
+   2) The program is ill-formed if (std::is_swappable_v<const Types> &&
+   ...) is not true.
 
 .SH Parameters
 
@@ -24,24 +36,21 @@ std::tuple::swap \- std::tuple::swap
    noexcept specification:
    noexcept(
 
-       noexcept(swap(std::declval<T0&>>(), std::declval<T0&>())) &&
-       noexcept(swap(std::declval<T1&>>(), std::declval<T1&>())) &&
-       noexcept(swap(std::declval<T2&>>(), std::declval<T2&>())) &&       \fI(until C++17)\fP
-       ...
+   noexcept(swap(std::declval<T0&>>(), std::declval<T0&>())) &&
+   noexcept(swap(std::declval<T1&>>(), std::declval<T1&>())) &&
+   noexcept(swap(std::declval<T2&>>(), std::declval<T2&>())) &&           \fI(until C++17)\fP
+   ...
 
    )
 
    In the expression above, the identifier swap is looked up in the same
    manner as the one used by the C++17 std::is_nothrow_swappable trait.
+   1)
    noexcept specification:
-   noexcept(
-
-       std::is_nothrow_swappable_v<T0> &&
-       std::is_nothrow_swappable_v<T1> &&                                 \fI(since C++17)\fP
-       std::is_nothrow_swappable_v<T2> &&
-       ...
-
-   )
+   noexcept((std::is_nothrow_swappable_v<Types> && ...))                  \fI(since C++17)\fP
+   2)
+   noexcept specification:
+   noexcept((std::is_nothrow_swappable_v<const Types> && ...))
 
 .SH Example
 
@@ -49,24 +58,40 @@ std::tuple::swap \- std::tuple::swap
 // Run this code
 
  #include <iostream>
- #include <tuple>
  #include <string>
+ #include <tuple>
 
  int main()
  {
-     std::tuple<int, std::string, float> p1, p2;
-     p1 = std::make_tuple(10, "test", 3.14);
-     p2.swap(p1);
-     std::cout << "("  << std::get<0>(p2)
-               << ", " << std::get<1>(p2)
-               << ", " << std::get<2>(p2) << ")\\n";
+     std::tuple<int, std::string, float>
+                       p1{42, "ABCD", 2.71},
+                       p2;
+     p2 = std::make_tuple(10, "1234", 3.14);
+
+     auto print_p1_p2 = [&](auto rem) {
+         std::cout << rem
+                   << "p1 = {" << std::get<0>(p1)
+                   << ", "     << std::get<1>(p1)
+                   << ", "     << std::get<2>(p1) << "}, "
+                   << "p2 = {" << std::get<0>(p2)
+                   << ", "     << std::get<1>(p2)
+                   << ", "     << std::get<2>(p2) << "}\\n";
+     };
+
+     print_p1_p2("Before p1.swap(p2): ");
+     p1.swap(p2);
+     print_p1_p2("After  p1.swap(p2): ");
+     swap(p1, p2);
+     print_p1_p2("After swap(p1, p2): ");
  }
 
 .SH Output:
 
- (10, test, 3.14)
+ Before p1.swap(p2): p1 = {42, ABCD, 2.71}, p2 = {10, 1234, 3.14}
+ After  p1.swap(p2): p1 = {10, 1234, 3.14}, p2 = {42, ABCD, 2.71}
+ After swap(p1, p2): p1 = {42, ABCD, 2.71}, p2 = {10, 1234, 3.14}
 
-   Defect reports
+  Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
@@ -76,7 +101,7 @@ std::tuple::swap \- std::tuple::swap
 
 .SH See also
 
-
-.SH Category:
-
-     * conditionally noexcept
+   std::swap(std::tuple) specializes the std::swap algorithm
+   \fI(C++11)\fP               \fI(function template)\fP
+   swap                  swaps the contents
+   \fI(C++11)\fP               \fI(public member function of std::pair<T1,T2>)\fP

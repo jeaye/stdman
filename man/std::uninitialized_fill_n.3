@@ -1,4 +1,4 @@
-.TH std::uninitialized_fill_n 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_fill_n 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_fill_n \- std::uninitialized_fill_n
 
@@ -19,8 +19,16 @@ std::uninitialized_fill_n \- std::uninitialized_fill_n
    memory area beginning at first as if by
 
  for (; n--; ++first)
-   ::new (static_cast<void*>(std::addressof(*first)))
-      typename std::iterator_traits<ForwardIt>::value_type(x);
+     ::new (/*VOIDIFY*/(*first))
+         typename std::iterator_traits<ForwardIt>::value_type(value);
+
+   where /*VOIDIFY*/(e) is:
+
+      static_cast<void*>(&e)                                              \fI(until C++11)\fP
+      static_cast<void*>(std::addressof(e))                               \fI(since C++11)\fP
+                                                                          \fI(until C++20)\fP
+      const_cast<void*>(static_cast<const volatile                        \fI(since C++20)\fP
+      void*>(std::addressof(e)))
 
    If an exception is thrown during the initialization, the objects already constructed
    are destroyed in an unspecified order.
@@ -36,13 +44,15 @@ std::uninitialized_fill_n \- std::uninitialized_fill_n
    first            -           the beginning of the range of the elements to
                                 initialize
    count            -           number of elements to construct
-   value            -           the value to construct the elements with
+   value            -           the value to construct the elements with.
 .SH Type requirements
    -
    ForwardIt must meet the requirements of LegacyForwardIterator.
    -
    No increment, assignment, comparison, or indirection through valid instances of
    ForwardIt may throw exceptions.
+   Applying &* to a ForwardIt value must yield a pointer to its value type.
+   \fI(until C++11)\fP
 
 .SH Return value
 
@@ -68,16 +78,17 @@ std::uninitialized_fill_n \- std::uninitialized_fill_n
    template< class ForwardIt, class Size, class T >
    ForwardIt uninitialized_fill_n(ForwardIt first, Size count, const T& value)
    {
-       typedef typename std::iterator_traits<ForwardIt>::value_type Value;
+       using V = typename std::iterator_traits<ForwardIt>::value_type;
        ForwardIt current = first;
        try {
            for (; count > 0; ++current, (void) --count) {
-               ::new (static_cast<void*>(std::addressof(*current))) Value(value);
+               ::new (const_cast<void*>(static_cast<const volatile void*>(
+                   std::addressof(*current)))) V(value);
            }
            return current;
        } catch (...) {
            for (; first != current; ++first) {
-               first->~Value();
+               first->~V();
            }
            throw;
        }
@@ -117,6 +128,9 @@ std::uninitialized_fill_n \- std::uninitialized_fill_n
 
 .SH See also
 
-                      copies an object to an uninitialized area of memory, defined by a
-   uninitialized_fill range
-                      \fI(function template)\fP
+                                copies an object to an uninitialized area of memory,
+   uninitialized_fill           defined by a range
+                                \fI(function template)\fP
+   ranges::uninitialized_fill_n copies an object to an uninitialized area of memory,
+   (C++20)                      defined by a start and a count
+                                (niebloid)

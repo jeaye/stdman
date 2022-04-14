@@ -1,4 +1,4 @@
-.TH std::compare_weak_order_fallback 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::compare_weak_order_fallback 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::compare_weak_order_fallback \- std::compare_weak_order_fallback
 
@@ -6,39 +6,69 @@ std::compare_weak_order_fallback \- std::compare_weak_order_fallback
    Defined in header <compare>
    inline namespace /* unspecified */ {
 
-       inline constexpr /* unspecified */                                 \fI(since C++20)\fP
-           compare_weak_order_fallback = /* unspecified */;
+   inline constexpr /* unspecified */                                    \fI(since C++20)\fP
+   compare_weak_order_fallback = /* unspecified */;
 
    }
    Call signature
    template< class T, class U >
 
-       requires /* see below */
+   requires /* see below */
    constexpr std::weak_ordering
 
-       compare_weak_order_fallback(T&& t, U&& u) noexcept(/* see below
-   */);
+   compare_weak_order_fallback(T&& t, U&& u) noexcept(/* see below */);
 
-   Performs three-way comparison on t an u and produces a result of type
+   Performs three-way comparison on t and u and produces a result of type
    std::weak_ordering, even if the operator <=> is unavailable.
 
    Let t and u be expressions and T and U denote decltype((t)) and decltype((u))
    respectively, std::compare_weak_order_fallback(t, u) is expression-equivalent to:
 
-     * If std::is_same_v<std::decay_t<T>, std::decay_t<U>> == true:
+     * If std::is_same_v<std::decay_t<T>, std::decay_t<U>> is true:
 
-          * the expression is expression-equivalent to std::weak_order(t, u), if it is
-            a well-formed expression;
-          * Otherwise, if t == u and t < u are both well-formed and convertible to
-            bool, the expression is expression-equivalent to
+          * std::weak_order(t, u), if it is a well-formed expression;
+          * otherwise,
 
- t == u ? std::weak_ordering::equal :
+ t == u ? std::weak_ordering::equivalent :
  t < u  ? std::weak_ordering::less :
           std::weak_ordering::greater
 
-   except that t and u are evaluated only once.
+                        if t == u and t < u are both well-formed and convertible to
+                        bool, except that t and u are evaluated only once.
 
-     * In all other cases, std::compare_weak_order_fallback(t, u) is ill-formed.
+     * In all other cases, std::compare_weak_order_fallback(t, u) is ill-formed, which
+       can result in substitution failure when it appears in the immediate context of a
+       template instantiation.
+
+  Expression-equivalent
+
+   Expression e is expression-equivalent to expression f, if e and f have the same
+   effects, either are both potentially-throwing or are both not potentially-throwing
+   (i.e. noexcept(e) == noexcept(f)), and either are both constant subexpressions or
+   are both not constant subexpressions.
+
+  Customization point objects
+
+   The name std::compare_weak_order_fallback denotes a customization point object,
+   which is a const function object of a literal semiregular class type. For exposition
+   purposes, the cv-unqualified version of its type is denoted as
+   __compare_weak_order_fallback_fn.
+
+   All instances of __compare_weak_order_fallback_fn are equal. The effects of invoking
+   different instances of type __compare_weak_order_fallback_fn on the same arguments
+   are equivalent, regardless of whether the expression denoting the instance is an
+   lvalue or rvalue, and is const-qualified or not (however, a volatile-qualified
+   instance is not required to be invocable). Thus, std::compare_weak_order_fallback
+   can be copied freely and its copies can be used interchangeably.
+
+   Given a set of types Args..., if std::declval<Args>()... meet the requirements for
+   arguments to std::compare_weak_order_fallback above,
+   __compare_weak_order_fallback_fn models
+   std::invocable<__compare_weak_order_fallback_fn, Args...>, std::invocable<const
+   __compare_weak_order_fallback_fn, Args...>,
+   std::invocable<__compare_weak_order_fallback_fn&, Args...>, and std::invocable<const
+   __compare_weak_order_fallback_fn&, Args...>. Otherwise, no function call operator of
+   __compare_weak_order_fallback_fn participates in overload resolution.
 
 .SH Example
 
@@ -68,6 +98,8 @@ std::compare_weak_order_fallback \- std::compare_weak_order_fallback
  struct Rational_2 {
      int num;
      int den; // > 0
+
+     bool operator==(Rational_2 const&) const = default;
  };
 
  inline constexpr std::weak_ordering operator<=>(Rational_2 lhs, Rational_2 rhs)

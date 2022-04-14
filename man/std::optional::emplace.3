@@ -1,12 +1,18 @@
-.TH std::optional::emplace 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::optional::emplace 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::optional::emplace \- std::optional::emplace
 
 .SH Synopsis
-   template< class... Args >                                     \fB(1)\fP \fI(since C++17)\fP
-   T& emplace( Args&&... args );
-   template< class U, class... Args >                            \fB(2)\fP \fI(since C++17)\fP
-   T& emplace( std::initializer_list<U> ilist, Args&&... args );
+   template< class... Args >                                \fI(since C++17)\fP
+   T& emplace( Args&&... args );                            \fI(until C++20)\fP
+   template< class... Args >                                \fI(since C++20)\fP
+   constexpr T& emplace( Args&&... args );
+   template< class U, class... Args >               \fB(1)\fP                   \fI(since C++17)\fP
+   T& emplace( std::initializer_list<U> ilist,                            \fI(until C++20)\fP
+   Args&&... args );                                    \fB(2)\fP
+   template< class U, class... Args >
+   constexpr T& emplace( std::initializer_list<U>                         \fI(since C++20)\fP
+   ilist, Args&&... args );
 
    Constructs the contained value in-place. If *this already contains a value before
    the call, the contained value is destroyed by calling its destructor.
@@ -14,8 +20,8 @@ std::optional::emplace \- std::optional::emplace
    1) Initializes the contained value by direct-initializing (but not
    direct-list-initializing) with std::forward<Args>(args)... as parameters.
    2) Initializes the contained value by calling its constructor with ilist,
-   std::forward<Args>(args)... as parameters. This overload only participates in
-   overload resolution if std::is_constructible<T, std::initializer_list<U>&,
+   std::forward<Args>(args)... as parameters. This overload participates in overload
+   resolution only if std::is_constructible<T, std::initializer_list<U>&,
    Args&&...>::value is true.
 
 .SH Parameters
@@ -48,20 +54,23 @@ std::optional::emplace \- std::optional::emplace
 
  struct A {
      std::string s;
-     A(std::string str) : s(std::move(str))  { std::cout << " constructed\\n"; }
-     ~A() { std::cout << " destructed\\n"; }
-     A(const A& o) : s(o.s) { std::cout << " copy constructed\\n"; }
-     A(A&& o) : s(std::move(o.s)) { std::cout << " move constructed\\n"; }
+     A(std::string str) : s(std::move(str)), id{n++} { note("+ constructed"); }
+     ~A() { note("~ destructed"); }
+     A(const A& o) : s(o.s), id{n++} { note("+ copy constructed"); }
+     A(A&& o) : s(std::move(o.s)), id{n++} { note("+ move constructed"); }
      A& operator=(const A& other) {
          s = other.s;
-         std::cout << " copy assigned\\n";
+         note("= copy assigned");
          return *this;
      }
      A& operator=(A&& other) {
          s = std::move(other.s);
-         std::cout << " move assigned\\n";
+         note("= move assigned");
          return *this;
      }
+     inline static int n{};
+     int id{};
+     void note(auto s) { std::cout << "  " << s << " #" << id << '\\n'; }
  };
 
  int main()
@@ -73,7 +82,7 @@ std::optional::emplace \- std::optional::emplace
 
      std::cout << "Emplace:\\n";
      // As opt contains a value it will also destroy that value
-     opt.emplace("Lorem ipsum dolor sit amet, consectetur efficitur. ");
+     opt.emplace("Lorem ipsum dolor sit amet, consectetur efficitur.");
 
      std::cout << "End example\\n";
  }
@@ -81,14 +90,23 @@ std::optional::emplace \- std::optional::emplace
 .SH Output:
 
  Assign:
-  constructed
-  move constructed
-  destructed
+   + constructed #0
+   + move constructed #1
+   ~ destructed #0
  Emplace:
-  destructed
-  constructed
+   ~ destructed #1
+   + constructed #2
  End example
-  destructed
+   ~ destructed #2
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to              Behavior as published               Correct behavior
+   P2231R1 C++20      emplace was not constexpr while the required     made constexpr
+                      operations can be constexpr in C++20
 
 .SH See also
 

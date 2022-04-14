@@ -1,22 +1,34 @@
-.TH std::uninitialized_move 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_move 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_move \- std::uninitialized_move
 
 .SH Synopsis
    Defined in header <memory>
-   template< class InputIt, class ForwardIt >
-   ForwardIt uninitialized_move( InputIt first, InputIt last,         \fB(1)\fP \fI(since C++17)\fP
-   ForwardIt d_first );
-   template< class ExecutionPolicy, class InputIt, class ForwardIt >
-   ForwardIt uninitialized_move( ExecutionPolicy&& policy, InputIt    \fB(2)\fP \fI(since C++17)\fP
-   first, InputIt last, ForwardIt d_first );
+   template< class InputIt, class NoThrowForwardIt >
+
+   NoThrowForwardIt uninitialized_move( InputIt first, InputIt last,  \fB(1)\fP \fI(since C++17)\fP
+
+   NoThrowForwardIt d_first );
+   template< class ExecutionPolicy, class ForwardIt, class
+   NoThrowForwardIt >
+
+   NoThrowForwardIt uninitialized_move( ExecutionPolicy&& policy,     \fB(2)\fP \fI(since C++17)\fP
+   ForwardIt first, ForwardIt last,
+
+   NoThrowForwardIt d_first );
 
    1) Moves elements from the range [first, last) to an uninitialized memory area
    beginning at d_first as if by
 
  for (; first != last; ++d_first, (void) ++first)
-    ::new (static_cast<void*>(std::addressof(*d_first)))
-       typename std::iterator_traits<ForwardIt>::value_type(std::move(*first));
+    ::new (/*VOIDIFY*/(*d_first))
+       typename std::iterator_traits<NoThrowForwardIt>::value_type(std::move(*first));
+
+   where /*VOIDIFY*/(e) is:
+
+      static_cast<void*>(std::addressof(e))                               \fI(until C++20)\fP
+      const_cast<void*>(static_cast<const volatile                        \fI(since C++20)\fP
+      void*>(std::addressof(e)))
 
    If an exception is thrown during the initialization, some objects in [first, last)
    are left in a valid but unspecified state, and the objects already constructed are
@@ -40,8 +52,10 @@ std::uninitialized_move \- std::uninitialized_move
    -
    ForwardIt must meet the requirements of LegacyForwardIterator.
    -
+   NoThrowForwardIt must meet the requirements of LegacyForwardIterator.
+   -
    No increment, assignment, comparison, or indirection through valid instances of
-   ForwardIt may throw exceptions.
+   NoThrowForwardIt may throw exceptions.
 
 .SH Return value
 
@@ -49,7 +63,7 @@ std::uninitialized_move \- std::uninitialized_move
 
 .SH Complexity
 
-   Linear in the distance between first and last
+   Linear in the distance between first and last.
 
 .SH Exceptions
 
@@ -63,36 +77,79 @@ std::uninitialized_move \- std::uninitialized_move
 
 .SH Possible implementation
 
-template<class InputIt, class ForwardIt>
-ForwardIt uninitialized_move(InputIt first, InputIt last, ForwardIt d_first)
+template<class InputIt, class NoThrowForwardIt>
+NoThrowForwardIt uninitialized_move(InputIt first, InputIt last, NoThrowForwardIt d_first)
 {
-    typedef typename std::iterator_traits<ForwardIt>::value_type Value;
-    ForwardIt current = d_first;
+    using Value = typename std::iterator_traits<NoThrowForwardIt>::value_type;
+    NoThrowForwardIt current = d_first;
     try {
         for (; first != last; ++first, (void) ++current) {
-            ::new (static_cast<void*>(std::addressof(*current))) Value(std::move(*first));
+            ::new (const_cast<void*>(static_cast<const volatile void*>(
+                std::addressof(*current)))) Value(std::move(*first));
         }
         return current;
     } catch (...) {
-        for (; d_first != current; ++d_first) {
-            d_first->~Value();
-        }
+        std::destroy(d_first, current);
         throw;
     }
 }
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <cstdlib>
+ #include <iomanip>
+ #include <iostream>
+ #include <memory>
+ #include <string>
+
+ void print(auto rem, auto first, auto last) {
+     for (std::cout << rem; first != last; ++first)
+         std::cout << std::quoted(*first) << ' ';
+     std::cout << '\\n';
+ }
+
+ int main() {
+     std::string in[] { "Home", "Work!" };
+     print("initially, in: ", std::begin(in), std::end(in));
+
+     if (
+         constexpr auto sz = std::size(in);
+         void* out = std::aligned_alloc(alignof(std::string), sizeof(std::string) * sz)
+     ) {
+         try {
+             auto first {static_cast<std::string*>(out)};
+             auto last {first + sz};
+             std::uninitialized_move(std::begin(in), std::end(in), first);
+
+             print("after move, in: ", std::begin(in), std::end(in));
+             print("after move, out: ", first, last);
+
+             std::destroy(first, last);
+         }
+         catch (...) {
+             std::cout << "Exception!\\n";
+         }
+         std::free(out);
+     }
+ }
+
+.SH Possible output:
+
+ initially, in: "Home" "Work!"
+ after move, in: "" ""
+ after move, out: "Home" "Work!"
 
 .SH See also
 
-   uninitialized_copy   copies a range of objects to an uninitialized area of memory
-                        \fI(function template)\fP
-   uninitialized_move_n moves a number of objects to an uninitialized area of memory
-   \fI(C++17)\fP              \fI(function template)\fP
-
-.SH Category:
-
-     * Todo no example
+                              copies a range of objects to an uninitialized area of
+   uninitialized_copy         memory
+                              \fI(function template)\fP
+   uninitialized_move_n       moves a number of objects to an uninitialized area of
+   \fI(C++17)\fP                    memory
+                              \fI(function template)\fP
+   ranges::uninitialized_move moves a range of objects to an uninitialized area of
+   (C++20)                    memory
+                              (niebloid)

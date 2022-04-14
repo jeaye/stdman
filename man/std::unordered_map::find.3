@@ -1,4 +1,4 @@
-.TH std::unordered_map::find 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::unordered_map::find 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unordered_map::find \- std::unordered_map::find
 
@@ -10,7 +10,7 @@ std::unordered_map::find \- std::unordered_map::find
 
    1,2) Finds an element with key equivalent to key.
    3,4) Finds an element with key that compares equivalent to the value x. This
-   overload only participates in overload resolution if Hash::is_transparent and
+   overload participates in overload resolution only if Hash::is_transparent and
    KeyEqual::is_transparent are valid and each denotes a type. This assumes that such
    Hash is callable with both K and Key type, and that the KeyEqual is transparent,
    which, together, allows calling this function without constructing an instance of
@@ -35,12 +35,29 @@ std::unordered_map::find \- std::unordered_map::find
 
 // Run this code
 
+ #include <cstddef>
  #include <iostream>
+ #include <functional>
+ #include <string>
+ #include <string_view>
  #include <unordered_map>
+
+ using namespace std::literals;
+ using std::size_t;
+
+ struct string_hash
+ {
+     using hash_type = std::hash<std::string_view>;
+     using is_transparent = void;
+
+     size_t operator()(const char* str) const        { return hash_type{}(str); }
+     size_t operator()(std::string_view str) const   { return hash_type{}(str); }
+     size_t operator()(std::string const& str) const { return hash_type{}(str); }
+ };
 
  int main()
  {
- // simple comparison demo
+     // simple comparison demo
      std::unordered_map<int,char> example = {{1,'a'},{2,'b'}};
 
      auto search = example.find(2);
@@ -50,16 +67,24 @@ std::unordered_map::find \- std::unordered_map::find
          std::cout << "Not found\\n";
      }
 
-
+     // C++20 demo: Heterogeneous lookup for unordered containers (transparent hashing)
+     std::unordered_map<std::string, size_t, string_hash, std::equal_to<>> map{ {"one"s, 1} };
+     std::cout << std::boolalpha
+         << (map.find("one")   != map.end()) << '\\n'
+         << (map.find("one"s)  != map.end()) << '\\n'
+         << (map.find("one"sv) != map.end()) << '\\n';
  }
 
 .SH Output:
 
  Found 2 b
+ true
+ true
+ true
 
 .SH See also
 
    count       returns the number of elements matching specific key
-               \fI(public member function)\fP
+   \fI(C++11)\fP     \fI(public member function)\fP
    equal_range returns range of elements matching a specific key
-               \fI(public member function)\fP
+   \fI(C++11)\fP     \fI(public member function)\fP

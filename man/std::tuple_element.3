@@ -1,100 +1,110 @@
-.TH std::tuple_element 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::tuple_element 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::tuple_element \- std::tuple_element
 
 .SH Synopsis
-   Defined in header <tuple>
-   template< std::size_t I, class T >                         \fB(1)\fP \fI(since C++11)\fP
-   class tuple_element; /* undefined */
-   template< std::size_t I, class... Types >                  \fB(2)\fP \fI(since C++11)\fP
-   class tuple_element< I, tuple<Types...> >;
-   Defined in header <tuple>
-   Defined in header <array>                                      \fI(since C++17)\fP
-   Defined in header <utility>                                    \fI(since C++17)\fP
-   Defined in header <ranges>                                     \fI(since C++20)\fP
-   template< std::size_t I, class T >
+   Defined in header <utility>
+   template< std::size_t I, class T1, class T2 >  \fI(since C++11)\fP
+   struct tuple_element<I, std::pair<T1, T2>>;
 
-   class tuple_element< I, const T > {
-     typedef typename                                         \fB(3)\fP \fI(since C++11)\fP
-         std::add_const<typename std::tuple_element<I,
-   T>::type>::type type;
-
-   };
-   template< std::size_t I, class T >
-
-   class tuple_element< I, volatile T > {
-     typedef typename                                         \fB(4)\fP \fI(since C++11)\fP
-         std::add_volatile<typename std::tuple_element<I,         (deprecated in C++20)
-   T>::type>::type type;
-
-   };
-   template< std::size_t I, class T >
-
-   class tuple_element< I, const volatile T > {
-     typedef typename                                         \fB(5)\fP \fI(since C++11)\fP
-         std::add_cv<typename std::tuple_element<I,               (deprecated in C++20)
-   T>::type>::type type;
-
-   };
-
-   Provides compile-time indexed access to the types of the elements of the tuple.
+   The partial specializations of std::tuple_element for pairs provide compile-time
+   access to the types of the pair's elements, using tuple-like syntax. The program is
+   ill-formed if I >= 2
 
 .SH Member types
 
    Member type Definition
-   type        the type of Ith element of the tuple, where I is in [0,
-               sizeof...(Types))
-
-.SH Helper types
-
-   template <std::size_t I, class T>                            \fI(since C++14)\fP
-   using tuple_element_t = typename tuple_element<I, T>::type;
+   type        T1 if I == 0
+               T2 if I == 1
 
 .SH Possible implementation
 
-   template< std::size_t I, class T >
-   struct tuple_element;
+   template<std::size_t I, typename T>
+     struct tuple_element;
 
-   // recursive case
-   template< std::size_t I, class Head, class... Tail >
-   struct tuple_element<I, std::tuple<Head, Tail...>>
-       : std::tuple_element<I-1, std::tuple<Tail...>> { };
+   template<std::size_t I, typename T1, typename T2>
+     struct tuple_element<I, std::pair<T1,T2> >
+     {
+        static_assert(I < 2, "std::pair has only 2 elements!");
+     };
 
-   // base case
-   template< class Head, class... Tail >
-   struct tuple_element<0, std::tuple<Head, Tail...>> {
-      typedef Head type;
-   };
+   template<typename T1, typename T2>
+     struct tuple_element<0, std::pair<T1,T2> >
+     {
+        using type = T1;
+     };
+
+   template<typename T1, typename T2>
+     struct tuple_element<1, std::pair<T1,T2> >
+     {
+        using type = T2;
+     };
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
  #include <tuple>
+ #include <iostream>
+ #include <string>
 
- template <class... Args>
- struct type_list
+ namespace detail {
+
+ template <std::size_t>
+ struct index_tag { explicit constexpr index_tag() = default; };
+
+ template <class T, class U>
+ constexpr T get_val_dispatch(std::pair<T, U> const& pair, index_tag<0>)
  {
-    template <std::size_t N>
-    using type = typename std::tuple_element<N, std::tuple<Args...>>::type;
- };
+     return pair.first;
+ }
+
+ template <class T, class U>
+ constexpr U get_val_dispatch(std::pair<T, U> const& pair, index_tag<1>)
+ {
+     return pair.second;
+ }
+
+ } // namespace detail
+
+ template <std::size_t N, class T, class U>
+ auto constexpr get_val(std::pair<T, U> const& pair)
+     -> typename std::tuple_element<N, std::pair<T, U>>::type
+ {
+     return detail::get_val_dispatch(pair, detail::index_tag<N>{});
+ }
 
  int main()
  {
-    std::cout << std::boolalpha;
-    type_list<int, char, bool>::type<2> x = true;
-    std::cout << x << '\\n';
+     auto var = std::make_pair(1, std::string{"one"});
+
+     std::cout << get_val<0>(var) << " = " << get_val<1>(var);
  }
 
 .SH Output:
 
- true
+ 1 = one
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to           Behavior as published              Correct behavior
+   LWG 2974 C++11      out-of-bounds index referred the undefined made ill-formed (hard
+                       primary template                           error)
 
 .SH See also
 
-   std::tuple_element<std::array> obtains the type of the elements of array
-                                  \fI(class template specialization)\fP
-   std::tuple_element<std::pair>  obtains the type of the elements of pair
-   \fI(C++11)\fP                        \fI(class template specialization)\fP
+   Structured binding \fI(C++17)\fP                binds the specified names to sub-objects
+                                             or tuple elements of the initializer
+   std::tuple_element<std::tuple>            obtains the type of the specified element
+   \fI(C++11)\fP                                   \fI(class template specialization)\fP
+   std::tuple_element<std::array>            obtains the type of the elements of array
+   \fI(C++11)\fP                                   \fI(class template specialization)\fP
+   std::tuple_element<std::ranges::subrange> obtains the type of the iterator or the
+   (C++20)                                   sentinel of a std::ranges::subrange
+                                             \fI(class template specialization)\fP
+   std::tuple_size<std::pair>                obtains the size of a pair
+   \fI(C++11)\fP                                   \fI(class template specialization)\fP

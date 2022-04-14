@@ -1,4 +1,4 @@
-.TH std::atomic::operator++,++(int),--,--(int) 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::atomic::operator++,++(int),--,--(int) 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::atomic::operator++,++(int),--,--(int) \- std::atomic::operator++,++(int),--,--(int)
 
@@ -64,7 +64,74 @@ std::atomic::operator++,++(int),--,--(int) \- std::atomic::operator++,++(int),--
    pre-decrement operators for atomic types do not return a reference to the modified
    object. They return a copy of the stored value instead.
 
-   Defect reports
+.SH Example
+
+
+// Run this code
+
+ #include <atomic>
+ #include <chrono>
+ #include <iomanip>
+ #include <iostream>
+ #include <mutex>
+ #include <random>
+ #include <thread>
+
+ std::atomic<int> atomic_count{0};
+ std::atomic<int> atomic_writes{0};
+
+ constexpr int global_max_count{72};
+ constexpr int writes_per_line{8};
+ constexpr int max_delay{100};
+
+ template<int Max> int random_value()
+ {
+     static std::uniform_int_distribution<int> distr{1, Max};
+     static std::random_device engine;
+     static std::mt19937 noise{engine()};
+     static std::mutex rand_mutex;
+     std::lock_guard μ{rand_mutex};
+     return distr(noise);
+ }
+
+ int main()
+ {
+     auto work = [](const char id)
+     {
+         for (int count{}; (count = ++atomic_count) <= global_max_count;) {
+             std::this_thread::sleep_for(
+                 std::chrono::milliseconds(random_value<max_delay>()));
+
+             bool new_line{false};
+             if (++atomic_writes % writes_per_line == 0) {
+                 new_line = true;
+             }
+             // print thread `id` and `count` value
+             {
+                 static std::mutex cout_mutex;
+                 std::lock_guard m{cout_mutex};
+                 std::cout << "[" << id << "] " << std::setw(3) << count << " │ "
+                           << (new_line ? "\\n" : "") << std::flush;
+             }
+         }
+     };
+
+     std::jthread j1(work, 'A'), j2(work, 'B'), j3(work, 'C'), j4(work, 'D');
+ }
+
+.SH Possible output:
+
+ [B]   3 │ [D]   1 │ [C]   2 │ [D]   6 │ [A]   4 │ [B]   5 │ [B]  10 │ [D]   8 │
+ [C]   7 │ [A]   9 │ [A]  14 │ [B]  11 │ [D]  12 │ [C]  13 │ [A]  15 │ [C]  18 │
+ [D]  17 │ [B]  16 │ [C]  20 │ [C]  23 │ [D]  21 │ [A]  19 │ [C]  24 │ [B]  22 │
+ [A]  26 │ [C]  27 │ [D]  25 │ [C]  30 │ [B]  28 │ [D]  31 │ [A]  29 │ [C]  32 │
+ [B]  33 │ [D]  34 │ [B]  37 │ [B]  39 │ [B]  40 │ [A]  35 │ [C]  36 │ [C]  43 │
+ [D]  38 │ [A]  42 │ [B]  41 │ [A]  46 │ [B]  47 │ [C]  44 │ [A]  48 │ [D]  45 │
+ [C]  50 │ [D]  52 │ [B]  49 │ [D]  54 │ [C]  53 │ [A]  51 │ [B]  55 │ [D]  56 │
+ [D]  60 │ [A]  58 │ [C]  57 │ [D]  61 │ [C]  63 │ [B]  59 │ [D]  64 │ [C]  65 │
+ [A]  62 │ [D]  67 │ [B]  66 │ [C]  68 │ [D]  70 │ [C]  72 │ [B]  71 │ [A]  69 │
+
+  Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.

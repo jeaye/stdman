@@ -1,4 +1,4 @@
-.TH std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relative, 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relative, 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relative, \- std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relative,
 
@@ -11,24 +11,29 @@ std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relativ
    1) Returns *this converted to normal form in its generic format
    2) Returns *this made relative to base.
 
-     * First, if root_name() != base.root_name() is true or is_absolute() !=
-       base.is_absolute() is true or (!has_root_directory() &&
-       base.has_root_directory()) is true or any filename in relative_path() or
-       base.relative_path() can be interpreted as a root-name, returns a
-       default-constructed path.
-     * Otherwise, first determines the first mismatched element of *this and base as if
-       by auto [a, b] = mismatch(begin(), end(), base.begin(), base.end()), then
+              * First, if root_name() != base.root_name() is true or is_absolute() !=
+                base.is_absolute() is true or (!has_root_directory() &&
+                base.has_root_directory()) is true or any filename in relative_path()
+                or base.relative_path() can be interpreted as a root-name, returns a
+                default-constructed path.
+              * Otherwise, first determines the first mismatched element of *this and
+                base as if by auto [a, b] = mismatch(begin(), end(), base.begin(),
+                base.end()), then
 
-     * if a == end() and b == base.end(), returns path(".");
-     * otherwise, define N as the number of nonempty filename elements that are neither
-       dot nor dot-dot in [b, base.end()), minus the number of dot-dot filename
-       elements, If N < 0, returns a default-constructed path.
-     * otherwise, if N = 0 and a == end() || a->empty(), returns path(".").
-     * otherwise returns an object composed from
+                           * if a == end() and b == base.end(), returns path(".");
+                           * otherwise, define N as the number of nonempty filename
+                             elements that are neither dot nor dot-dot in [b,
+                             base.end()), minus the number of dot-dot filename
+                             elements, If N < 0, returns a default-constructed path.
+                           * otherwise, if N = 0 and a == end() || a->empty(), returns
+                             path(".").
+                           * otherwise returns an object composed from
 
-     * a default-constructed path() followed by
-     * N applications of operator/=(path("..")), followed by
-     * one application of operator/= for each element in the half-open range [a, end())
+                                        * a default-constructed path() followed by
+                                        * N applications of operator/=(path("..")),
+                                          followed by
+                                        * one application of operator/= for each
+                                          element in the half-open range [a, end())
 
    3) If the value of lexically_relative(base) is not an empty path, return it.
    Otherwise return *this.
@@ -70,18 +75,19 @@ std::filesystem::path::lexically_normal,std::filesystem::path::lexically_relativ
 
  int main()
  {
-     assert(fs::path("foo/./bar/..").lexically_normal() == "foo/");
-     assert(fs::path("foo/.///bar/../").lexically_normal() == "foo/");
-
+     assert(fs::path("a/./b/..").lexically_normal() == "a/");
+     assert(fs::path("a/.///b/../").lexically_normal() == "a/");
      assert(fs::path("/a/d").lexically_relative("/a/b/c") == "../../d");
      assert(fs::path("/a/b/c").lexically_relative("/a/d") == "../b/c");
      assert(fs::path("a/b/c").lexically_relative("a") == "b/c");
      assert(fs::path("a/b/c").lexically_relative("a/b/c/x/y") == "../..");
      assert(fs::path("a/b/c").lexically_relative("a/b/c") == ".");
      assert(fs::path("a/b").lexically_relative("c/d") == "../../a/b");
+     assert(fs::path("a/b").lexically_relative("/a/b") == "");
+     assert(fs::path("a/b").lexically_proximate("/a/b") == "a/b");
  }
 
-   Defect reports
+  Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.

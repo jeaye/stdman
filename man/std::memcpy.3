@@ -1,4 +1,4 @@
-.TH std::memcpy 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::memcpy 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::memcpy \- std::memcpy
 
@@ -29,6 +29,8 @@ std::memcpy \- std::memcpy
 
 .SH Notes
 
+   std::memcpy may be used to implicitly create objects in the destination buffer.
+
    std::memcpy is meant to be the fastest library routine for memory-to-memory copy. It
    is usually more efficient than std::strcpy, which must scan the data it copies or
    std::memmove, which must take precautions to handle overlapping inputs.
@@ -52,8 +54,10 @@ std::memcpy \- std::memcpy
      // simple usage
      char source[] = "once upon a midnight dreary...", dest[4];
      std::memcpy(dest, source, sizeof dest);
+     std::cout << "dest[4] = { ";
      for (char c : dest)
-         std::cout << c << '\\n';
+         std::cout << "'" << c << "', ";
+     std::cout << "};\\n";
 
      // reinterpreting
      double d = 0.1;
@@ -62,16 +66,24 @@ std::memcpy \- std::memcpy
      std::memcpy(&n, &d, sizeof d); // OK
 
      std::cout << std::hexfloat << d << " is " << std::hex << n
-               << " as an std::int64_t\\n";
+               << " as an std::int64_t\\n" << std::dec;
+
+     // object creation in destination buffer
+     struct S {
+         int x{42};
+         void print() const { std::cout << "{" << x << "}\\n"; }
+     } s;
+     alignas(S) char buf[sizeof(S)];
+     S* ps = new (buf) S; // placement new
+     std::memcpy(ps, &s, sizeof s);
+     ps->print();
  }
 
 .SH Output:
 
- o
- n
- c
- e
+ dest[4] = { 'o', 'n', 'c', 'e', };
  0x1.999999999999ap-4 is 3fb999999999999a as an std::int64_t
+ {42}
 
 .SH See also
 
@@ -82,6 +94,9 @@ std::memcpy \- std::memcpy
                          copies a certain amount of wide characters between two
    wmemcpy               non-overlapping arrays
                          \fI(function)\fP
+                         copies characters
+   copy                  \fI\fI(public member\fP function of\fP
+                         std::basic_string<CharT,Traits,Allocator>)
    copy                  copies a range of elements to a new location
    copy_if               \fI(function template)\fP
    \fI(C++11)\fP
@@ -89,5 +104,3 @@ std::memcpy \- std::memcpy
                          \fI(function template)\fP
    is_trivially_copyable checks if a type is trivially copyable
    \fI(C++11)\fP               \fI(class template)\fP
-   C documentation for
-   memcpy

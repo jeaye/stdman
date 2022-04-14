@@ -1,52 +1,82 @@
-.TH std::ranges::size 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::size 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::size \- std::ranges::size
 
 .SH Synopsis
    Defined in header <ranges>
    inline namespace /*unspecified*/ {
-                                                      \fI(since C++20)\fP
-       inline constexpr auto size = /*unspecified*/;  (customization point object)
+                                                  \fI(since C++20)\fP
+   inline constexpr auto size = /*unspecified*/;  (customization point object)
 
    }
    Call signature
    template< class T >
 
-       requires /* see below */
+   requires /* see below */                       \fI(since C++20)\fP
 
-   constexpr auto size(T&& t);
+   constexpr auto size( T&& t );
 
    Calculates the number of elements in t in constant time.
 
    Let t be an object of type T. A call to ranges::size is expression-equivalent to:
 
     1. std::extent_v<T>, if T is an array type with a known bound.
-    2. Otherwise, std::forward<T>(t).size(), if not
-       ranges::disable_sized_range<std::remove_cv_t<T>>, and std::forward<T>(t).size()
-       is valid and returns a type that is /*integer-like*/.
+    2. Otherwise, t.size() converted to its decayed type, if
+       ranges::disable_sized_range<std::remove_cv_t<T>> is false, and the converted
+       expression is valid and has an integer-like type.
+    3. Otherwise, size(t) converted to its decayed type, if
+       ranges::disable_sized_range<std::remove_cv_t<T>> is false, and the converted
+       expression is valid and has an integer-like type, where the overload resolution
+       is performed with the following candidates:
 
-       where /*integer-like*/ is a type that models std::integral or is a class that
-       behaves like an integer type, including all operators, implicit conversions, and
-       std::numeric_limits specializations.
-    3. Otherwise, size(std::forward<T>(t)), if not
-       ranges::disable_sized_range<std::remove_cv_t<T>>, and size(std::forward<T>(t))
-       is valid and returns a type that is /*integer-like*/, where the overload
-       resolution is performed with the following candidates:
-
-          * void begin(auto&) = delete;
-          * void begin(const auto&) = delete;
+          * void size(auto&) = delete;
+          * void size(const auto&) = delete;
 
     4. Otherwise, /*to-unsigned-like*/(ranges::end(t) - ranges::begin(t)), if T models
        ranges::forward_range and ranges::sentinel_t<T> models
-       std::sized_sentinel_for<ranges::iterator_t<T>>.
+       std::sized_sentinel_for<ranges::iterator_t<T>>,
 
-       where /*to-unsigned-like*/ denotes an explicit conversion to an /*integer-like*/
-       type that behaves like an unsigned integer type, including all operators,
-       implicit conversions, and std::numeric_limits specializations.
+                    where /*to-unsigned-like*/ denotes an explicit conversion to an
+                    unsigned-integer-like type.
 
    In all other cases, a call to ranges::size is ill-formed, which can result in
    substitution failure when ranges::size(t) appears in the immediate context of a
    template instantiation.
+
+  Expression-equivalent
+
+   Expression e is expression-equivalent to expression f, if e and f have the same
+   effects, either are both potentially-throwing or are both not potentially-throwing
+   (i.e. noexcept(e) == noexcept(f)), and either are both constant subexpressions or
+   are both not constant subexpressions.
+
+  Customization point objects
+
+   The name ranges::size denotes a customization point object, which is a const
+   function object of a literal semiregular class type. For exposition purposes, the
+   cv-unqualified version of its type is denoted as __size_fn.
+
+   All instances of __size_fn are equal. The effects of invoking different instances of
+   type __size_fn on the same arguments are equivalent, regardless of whether the
+   expression denoting the instance is an lvalue or rvalue, and is const-qualified or
+   not (however, a volatile-qualified instance is not required to be invocable). Thus,
+   ranges::size can be copied freely and its copies can be used interchangeably.
+
+   Given a set of types Args..., if std::declval<Args>()... meet the requirements for
+   arguments to ranges::size above, __size_fn models std::invocable<__size_fn,
+   Args...>, std::invocable<const __size_fn, Args...>, std::invocable<__size_fn&,
+   Args...>, and std::invocable<const __size_fn&, Args...>. Otherwise, no function call
+   operator of __size_fn participates in overload resolution.
+
+.SH Notes
+
+   Whenever ranges::size(e) is valid for an expression e, the return type is
+   integer-like.
+
+   The C++20 standard requires that if the underlying size function call returns a
+   prvalue, the return value is move-constructed from the materialized temporary
+   object. All implementations directly return the prvalue instead. The requirement is
+   corrected by the post-C++20 proposal P0849R8 to match the implementations.
 
 .SH Example
 
@@ -82,9 +112,8 @@ std::ranges::size \- std::ranges::size
 
 .SH See also
 
-   ranges::ssize obtains the size of a range whose size can be calculated in constant
-   (C++20)       time and converts it to signed integral
-                 (customization point object)
+   ranges::ssize returns a signed integer equal to the size of a range
+   (C++20)       (customization point object)
    size
    ssize         returns the size of a container or array
    \fI(C++17)\fP       \fI(function template)\fP

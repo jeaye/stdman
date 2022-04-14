@@ -1,4 +1,4 @@
-.TH std::tuple::operator= 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::tuple::operator= 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::tuple::operator= \- std::tuple::operator=
 
@@ -9,6 +9,9 @@ std::tuple::operator= \- std::tuple::operator=
                                         C++20)
    constexpr tuple& operator=(          (since
    const tuple& other );                C++20)
+   constexpr const tuple&               (since
+   operator=( const tuple&          \fB(2)\fP C++23)
+   other ) const;
    tuple& operator=( tuple&&                    (since
    other ) noexcept(/* see                      C++11)
    below */);                                   (until
@@ -16,6 +19,9 @@ std::tuple::operator= \- std::tuple::operator=
    constexpr tuple& operator=(                  (since
    tuple&& other ) noexcept(/*                  C++20)
    see below */);
+   constexpr const tuple&                       (since
+   operator=( tuple&& other )           \fB(4)\fP     C++23)
+   const;
    template< class... UTypes >                          (since
    tuple& operator=( const                              C++11)
    tuple<UTypes...>& other );                           (until
@@ -24,69 +30,129 @@ std::tuple::operator= \- std::tuple::operator=
    constexpr tuple& operator=(                          (since
    const tuple<UTypes...>&                              C++20)
    other );
-   template< class... UTypes >  \fB(1)\fP                             (since
+   template< class... UTypes >
+   constexpr const tuple&                               (since
+   operator=( const                             \fB(6)\fP     C++23)
+   tuple<UTypes...>& other )
+   const;
+   template< class... UTypes >                                  (since
    tuple& operator=(                                            C++11)
    tuple<UTypes...>&& other );                                  (until
-                                    \fB(2)\fP                         C++20)
+                                \fB(1)\fP                             C++20)
    template< class... UTypes >                                  (since
    constexpr tuple& operator=(                                  C++20)
    tuple<UTypes...>&& other );
-   template< class U1, class U2         \fB(3)\fP                             (since
-   >                                                                    C++11)
+   template< class... UTypes >      \fB(3)\fP
+   constexpr const tuple&                               \fB(8)\fP     (since
+   operator=( const                                             C++23)
+   <UTypes...>&& other ) const;
+   template< class U1, class U2                                         (since
+   >                                    \fB(5)\fP                             C++11)
    tuple& operator=( const                                              (until
-   std::pair<U1,U2>& p );                                               C++20)
-   template< class U1, class U2                 \fB(4)\fP
+   std::pair<U1, U2>& p );                                              C++20)
+   template< class U1, class U2
    >                                                                    (since
    constexpr tuple& operator=(                                          C++20)
-   const std::pair<U1,U2>& p );                         \fB(5)\fP
+   const std::pair<U1, U2>& p
+   );                                           \fB(7)\fP
+   template< class U1, class U2
+   >
+   constexpr const tuple&                                       \fB(10)\fP    (since
+   operator=( const                                                     C++23)
+   std::pair<U1, U2>& p )                               \fB(9)\fP
+   const;
    template< class U1, class U2                                                 (since
    >                                                                            C++11)
    tuple& operator=(                                                            (until
-   std::pair<U1,U2>&& p );                                      \fB(6)\fP             C++20)
+   std::pair<U1, U2>&& p );                                                     C++20)
    template< class U1, class U2
    >                                                                            (since
-   constexpr tuple& operator=(                                                  C++20)
-   std::pair<U1,U2>&& p );
+   constexpr tuple& operator=(                                  \fB(11)\fP            C++20)
+   std::pair<U1, U2>&& p );
+   template< class U1, class U2
+   >                                                                            (since
+   constexpr const tuple&                                               \fB(12)\fP    C++23)
+   operator=( std::pair<U1,
+   U2>&& p ) const;
 
    Replaces the contents of the tuple with the contents of another tuple or a pair.
 
    1) Copy assignment operator. Assigns each element of other to the corresponding
    element of *this.
 
-     * This overload is defined as deleted if unless
-       std::is_copy_assignable<T_i>::value is true for all T_i in Types.
+     * This overload is defined as deleted unless std::is_copy_assignable<T_i>::value
+       is true for all T_i in Types.
 
-   2) Move assignment operator. For all i, assigns std::forward<Ti>(get<i>(other)) to
-   get<i>(*this).
+   2) Copy assignment operator for const-qualified operand. Assigns each element of
+   other to the corresponding element of *this.
 
-     * This overload only participates in overload resolution if
+     * This overload participates in overload resolution only if
+       std::is_copy_assignable_v<const T_i> is true for all T_i in Types.
+
+   3) Move assignment operator. For all i, assigns std::forward<Ti>(std::get<i>(other))
+   to std::get<i>(*this).
+
+     * This overload participates in overload resolution only if
        std::is_move_assignable<T_i>::value is true for all T_i in Types.
 
-   3) For all i, assigns std::get<i>(other) to std::get<i>(*this).
+   4) Move assignment operator const-qualified operand. For all i, assigns
+   std::forward<Ti>(std::get<i>(other)) to std::get<i>(*this).
 
-     * This overload only participates in overload resolution if sizeof...(UTypes) ==
+     * This overload participates in overload resolution only if
+       std::is_assignable_v<const T_i&, T_i> is true for all T_i in Types.
+
+   5) For all i, assigns std::get<i>(other) to std::get<i>(*this).
+
+     * This overload participates in overload resolution only if sizeof...(UTypes) ==
        sizeof...(Types) and std::is_assignable<T_i&, const U_i&>::value is true for all
        corresponding pairs of types T_i in Types and U_i in UTypes.
 
-   4) For all i, assigns std::forward<Ui>(std::get<i>(other)) to std::get<i>(*this).
+   6) For all i, assigns std::get<i>(other) to std::get<i>(*this).
 
-     * This overload only participates in overload resolution if sizeof...(UTypes) ==
+     * This overload participates in overload resolution only if sizeof...(UTypes) ==
+       sizeof...(Types) and std::is_assignable_v<const T_i&, const U_i&> is true for
+       all corresponding pairs of types T_i in Types and U_i in UTypes.
+
+   7) For all i, assigns std::forward<Ui>(std::get<i>(other)) to std::get<i>(*this).
+
+     * This overload participates in overload resolution only if sizeof...(UTypes) ==
        sizeof...(Types) and std::is_assignable<T_i&, U_i>::value is true for all
        corresponding pairs of types T_i in Types and U_i in UTypes.
 
-   5) Assigns p.first to the first element of *this and p.second to the second element
+   8) For all i, assigns std::forward<Ui>(std::get<i>(other)) to std::get<i>(*this).
+
+     * This overload participates in overload resolution only if sizeof...(UTypes) ==
+       sizeof...(Types) and std::is_assignable_v<const T_i&, U_i> is true for all
+       corresponding pairs of types T_i in Types and U_i in UTypes.
+
+   9) Assigns p.first to the first element of *this and p.second to the second element
    of *this.
 
-     * This overload only participates in overload resolution if sizeof...(Types) == 2,
+     * This overload participates in overload resolution only if sizeof...(Types) == 2,
        std::is_assignable<T_0&, const U1&>::value and std::is_assignable<T_1&, const
        U2&>::value are both true, where T_0 and T_1 are the two types constituting
 .SH Types.
 
-   6) Assigns std::forward<U1>(p.first) to the first element of *this and
+   10) Assigns p.first to the first element of *this and p.second to the second element
+   of *this.
+
+     * This overload participates in overload resolution only if sizeof...(Types) == 2,
+       std::is_assignable_v<const T_0&, const U1&> and std::is_assignable_v<const T_1&,
+       const U2&> are both true, where T_0 and T_1 are the two types constituting
+.SH Types.
+
+   11) Assigns std::forward<U1>(p.first) to the first element of *this and
    std::forward<U2>(p.second) to the second element of *this.
 
-     * This overload only participates in overload resolution if
+     * This overload participates in overload resolution only if
        std::is_assignable<T_0&, U1>::value and std::is_assignable<T_1&, U2>::value are
+       both true, where T_0 and T_1 are the two types constituting Types.
+
+   12) Assigns std::forward<U1>(p.first) to the first element of *this and
+   std::forward<U2>(p.second) to the second element of *this.
+
+     * This overload participates in overload resolution only if
+       std::is_assignable<const T_0&, U1> and std::is_assignable_v<const T_1&, U2> are
        both true, where T_0 and T_1 are the two types constituting Types.
 
 .SH Parameters
@@ -100,18 +166,18 @@ std::tuple::operator= \- std::tuple::operator=
 
 .SH Exceptions
 
-   1) May throw implementation-defined exceptions.
-   2)
+   1,2) May throw implementation-defined exceptions.
+   3)
    noexcept specification:
    noexcept(
 
-       std::is_nothrow_move_assignable<T0>::value &&
-       std::is_nothrow_move_assignable<T1>::value &&
-       std::is_nothrow_move_assignable<T2>::value &&
-       ...
+   std::is_nothrow_move_assignable<T0>::value &&
+   std::is_nothrow_move_assignable<T1>::value &&
+   std::is_nothrow_move_assignable<T2>::value &&
+   ...
 
    )
-   3-6) May throw implementation-defined exceptions.
+   4-12) May throw implementation-defined exceptions.
 
 .SH Example
 
@@ -168,25 +234,25 @@ std::tuple::operator= \- std::tuple::operator=
      t1 = t2; // (1) operator=( const tuple& other );
      std::cout << "t1 = t2;\\n" "t1 = " << t1 << ", t2 = " << t2 << '\\n' << line{};
 
-     t1 = std::move(t2); // (2) operator=( tuple&& other );
+     t1 = std::move(t2); // (3) operator=( tuple&& other );
      std::cout << "t1 = std::move(t2);\\n" "t1 = " << t1 << ", t2 = " << t2 << '\\n' << line{};
 
      std::tuple<short, const char*, std::vector<int>> t3{3, "gamma", {6,7,8} };
-     t1 = t3; // (3) operator=( const tuple<UTypes...>& other );
+     t1 = t3; // (5) operator=( const tuple<UTypes...>& other );
      std::cout << "t1 = t3; \\n" "t1 = " << t1 << ", t3 = " << t3 << '\\n' << line{};
 
-     t1 = std::move(t3); // (4) operator=( tuple<UTypes...>&& other );
+     t1 = std::move(t3); // (7) operator=( tuple<UTypes...>&& other );
      std::cout << "t1 = std::move(t3);\\n" "t1 = " << t1 << ", t3 = " << t3 << '\\n' << line{};
 
      std::tuple<std::string, std::vector<int>> t4{"delta", {10,11,12} };
      std::pair<const char*, std::vector<int>> p1{"epsilon", {14,15,16} };
      std::cout << "t4 = " << t4 << ", "
                << "p1 = { " << p1.first << ", " << p1.second << " };\\n";
-     t4 = p1; // (5) operator=( const std::pair<U1,U2>& p );
+     t4 = p1; // (9) operator=( const std::pair<U1,U2>& p );
      std::cout << "t4 = p1;\\n" "t4 = " << t4
                << ", p1 = { " << p1.first << ", " << p1.second << " };\\n" << line{};
 
-     t4 = std::move(p1); // (6) operator=( std::pair<U1,U2>&& p );
+     t4 = std::move(p1); // (11) operator=( std::pair<U1,U2>&& p );
      std::cout << "t4 = std::move(p1);\\n" "t4 = " << t4
                << ", p1 = { " << p1.first << ", " << p1.second << " };\\n";
  }
@@ -213,7 +279,7 @@ std::tuple::operator= \- std::tuple::operator=
  t4 = std::move(p1);
  t4 = { epsilon, {14,15,16} }, p1 = { epsilon, {} };
 
-   Defect reports
+  Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
@@ -224,7 +290,7 @@ std::tuple::operator= \- std::tuple::operator=
 
 .SH See also
 
-
-.SH Category:
-
-     * conditionally noexcept
+   constructor   constructs a new tuple
+   \fI(C++11)\fP       \fI(public member function)\fP
+   operator=     assigns the contents
+                 \fI(public member function of std::pair<T1,T2>)\fP

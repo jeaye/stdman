@@ -1,4 +1,4 @@
-.TH std::basic_string::resize 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_string::resize 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_string::resize \- std::basic_string::resize
 
@@ -11,13 +11,13 @@ std::basic_string::resize \- std::basic_string::resize
 
    Resizes the string to contain count characters.
 
-   If the current size is less than count, additional characters are appended.
+   If the current size is less than count, additional characters are appended:
+
+   1) Initializes appended characters to CharT().
+   2) Initializes appended characters to ch.
 
    If the current size is greater than count, the string is reduced to its first count
    elements.
-
-   The first version initializes new characters to CharT(), the second version
-   initializes new characters to ch.
 
 .SH Parameters
 
@@ -43,26 +43,40 @@ std::basic_string::resize \- std::basic_string::resize
 // Run this code
 
  #include <iostream>
+ #include <iomanip>
  #include <stdexcept>
 
  int main()
  {
-     std::cout << "Basic functionality:\\n";
-     const unsigned  desired_length(8);
+     const unsigned  desired_length{ 8 };
      std::string     long_string( "Where is the end?" );
-     std::string     short_string( "Ha" );
+     std::string     short_string( "H" );
 
-     // Shorten
-     std::cout << "Before: \\"" << long_string << "\\"\\n";
+
+     std::cout << "Basic functionality:\\n"
+               << "Shorten:\\n"
+               << "1. Before: " << quoted( long_string ) << '\\n';
      long_string.resize( desired_length );
-     std::cout << "After: \\"" << long_string <<  "\\"\\n";
+     std::cout << "2. After:  " << quoted( long_string ) << '\\n';
 
-     // Lengthen
-     std::cout << "Before: \\"" << short_string <<  "\\"\\n";
+
+     std::cout << "Lengthen with a given value 'a':\\n"
+               << "3. Before: " << quoted( short_string ) << '\\n';
      short_string.resize( desired_length, 'a' );
-     std::cout << "After: \\"" << short_string <<  "\\"\\n";
+     std::cout << "4. After:  " << quoted( short_string ) << '\\n';
 
-     std::cout  << "\\nErrors:\\n";
+
+     std::cout << "Lengthen with char() == " << static_cast<int>(char()) << '\\n'
+               << "5. Before: " << quoted( short_string ) << '\\n';
+     short_string.resize( desired_length + 3 );
+     std::cout << "6. After:  \\"";
+     for (char c : short_string) {
+         std::cout << (c == char() ? '@' : c);
+     }
+     std::cout << "\\"\\n\\n";
+
+
+     std::cout << "Errors:\\n";
      {
          std::string s;
 
@@ -70,43 +84,44 @@ std::basic_string::resize \- std::basic_string::resize
              // size is OK, no length_error
              // (may throw bad_alloc)
              s.resize(s.max_size() - 1, 'x');
-         } catch (const std::bad_alloc&) {
-             std::cout << "1. bad alloc\\n";
+         } catch (const std::bad_alloc& ex) {
+             std::cout << "1. Exception: " << ex.what() << '\\n';
          }
 
          try {
              // size is OK, no length_error
              // (may throw bad_alloc)
              s.resize(s.max_size(), 'x');
-         } catch (const std::bad_alloc& exc) {
-             std::cout << "2. bad alloc\\n";
+         } catch (const std::bad_alloc& ex) {
+             std::cout << "2. Exception: " << ex.what() << '\\n';
          }
 
          try {
              // size is BAD, throw length_error
              s.resize(s.max_size() + 1, 'x');
-         } catch (const std::length_error&) {
-             std::cout << "3. length error\\n";
+         } catch (const std::length_error& ex) {
+             std::cout << "3. Length error: " << ex.what() << '\\n';
          }
-      }
+     }
  }
 
 .SH Possible output:
 
  Basic functionality:
- Before: "Where is the end?"
- After: "Where is"
- Before: "Ha"
- After: "Haaaaaaa"
+ Shorten:
+ 1. Before: "Where is the end?"
+ 2. After:  "Where is"
+ Lengthen with a given value 'a':
+ 3. Before: "H"
+ 4. After:  "Haaaaaaa"
+ Lengthen with char() == 0
+ 5. Before: "Haaaaaaa"
+ 6. After:  "Haaaaaaa@@@"
 
  Errors:
- 1. bad alloc
- 2. bad alloc
- 3. length error
-
-.SH Complexity
-
-   Linear in the size of the string.
+ 1. Exception: std::bad_alloc
+ 2. Exception: std::bad_alloc
+ 3. Length error: basic_string::_M_replace_aux
 
 .SH See also
 

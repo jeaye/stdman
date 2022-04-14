@@ -1,4 +1,4 @@
-.TH std::mem_fn 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::mem_fn 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::mem_fn \- std::mem_fn
 
@@ -47,13 +47,13 @@ std::mem_fn return type
 
    /* see below */ operator()(Args&&... args) /* cvref-qualifiers */      \fI(until C++20)\fP
 
-       noexcept(/* see below */);
+   noexcept(/* see below */);
    template<class... Args>
 
    constexpr /* see below */ operator()(Args&&... args) /*                \fI(since C++20)\fP
    cvref-qualifiers */
 
-       noexcept(/* see below */);
+   noexcept(/* see below */);
 
    Let fn be the call wrapper returned by a call to std::mem_fn with a pointer to
    member pm. Then the expression fn(t, a2, ..., aN) is equivalent to INVOKE(pm, t, a2,
@@ -75,6 +75,7 @@ std::mem_fn return type
 
  #include <functional>
  #include <iostream>
+ #include <memory>
 
  struct Foo {
      void display_greeting() {
@@ -83,11 +84,21 @@ std::mem_fn return type
      void display_number(int i) {
          std::cout << "number: " << i << '\\n';
      }
+     int add_xy(int x, int y) {
+         return data + x + y;
+     }
+     template <typename... Args> int add_many(Args... args) {
+         return data + (args + ...);
+     }
+     auto add_them(auto... args) {
+         return data + (args + ...);
+     }
+
      int data = 7;
  };
 
  int main() {
-     Foo f;
+     auto f = Foo{};
 
      auto greet = std::mem_fn(&Foo::display_greeting);
      greet(f);
@@ -97,6 +108,20 @@ std::mem_fn return type
 
      auto access_data = std::mem_fn(&Foo::data);
      std::cout << "data: " << access_data(f) << '\\n';
+
+     auto add_xy = std::mem_fn(&Foo::add_xy);
+     std::cout << "add_xy: " << add_xy(f, 1, 2) << '\\n';
+
+     // Working with smart pointer
+     auto u = std::make_unique<Foo>();
+     std::cout << "access_data(u): " << access_data(u) << '\\n';
+     std::cout << "add_xy(u, 1, 2): " << add_xy(u, 1, 2) << '\\n';
+
+     // Working with member function template with parameter pack
+     auto add_many = std::mem_fn(&Foo::add_many<short, int, long>);
+     std::cout << "add_many(u, ...): " << add_many(u, 1, 2, 3) << '\\n';
+     auto add_them = std::mem_fn(&Foo::add_them<short, int, float, double>);
+     std::cout << "add_them(u, ...): " << add_them(u, 5, 7, 10.0f, 13.0) << '\\n';
  }
 
 .SH Output:
@@ -104,8 +129,13 @@ std::mem_fn return type
  Hello, world.
  number: 42
  data: 7
+ add_xy: 10
+ access_data(u): 7
+ add_xy(u, 1, 2): 10
+ add_many(u, ...): 13
+ add_them(u, ...): 42
 
-   Defect reports
+  Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
@@ -116,7 +146,11 @@ std::mem_fn return type
 
 .SH See also
 
-   function wraps callable object of any type with specified function call signature
-   \fI(C++11)\fP  \fI(class template)\fP
-   bind     binds one or more arguments to a function object
-   \fI(C++11)\fP  \fI(function template)\fP
+   function           wraps callable object of any copy constructible type with
+   \fI(C++11)\fP            specified function call signature
+                      \fI(class template)\fP
+   move_only_function wraps callable object of any type with specified function call
+   (C++23)            signature
+                      \fI(class template)\fP
+   bind               binds one or more arguments to a function object
+   \fI(C++11)\fP            \fI(function template)\fP

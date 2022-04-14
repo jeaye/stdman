@@ -1,4 +1,4 @@
-.TH std::ranges::distance 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::distance 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::distance \- std::ranges::distance
 
@@ -6,15 +6,20 @@ std::ranges::distance \- std::ranges::distance
    Defined in header <iterator>
    Call signature
    template< std::input_or_output_iterator I, std::sentinel_for<I> S
-   >                                                                  \fB(1)\fP \fI(since C++20)\fP
-   constexpr std::iter_difference_t<I> distance( I first, S last );
-   template< ranges::range R>                                         \fB(2)\fP \fI(since C++20)\fP
-   constexpr ranges::range_difference_t<R> distance(R&& r);
+   >
+                                                                      \fB(1)\fP \fI(since C++20)\fP
+   requires (!std::sized_sentinel_for<S, I>)
 
-   1) Returns the number of hops from first to last.
-   2) Same as \fB(1)\fP, but uses r as the source range, using ranges::size(r) if R models
-   ranges::sized_range; otherwise as if using ranges::begin(r) as first and
-   ranges::end(r) as last.
+   constexpr std::iter_difference_t<I> distance( I first, S last );
+   template< std::input_or_output_iterator I,
+   std::sized_sentinel_for<I> S >                                     \fB(2)\fP \fI(since C++20)\fP
+   constexpr std::iter_difference_t<I> distance( const I& first,
+   const S& last );
+   template< ranges::range R >                                        \fB(3)\fP \fI(since C++20)\fP
+   constexpr ranges::range_difference_t<R> distance( R&& r );
+
+   1,2) Returns the number of hops from first to last.
+   3) Returns the size of r as a signed integer.
 
    The function-like entities described on this page are niebloids, that is:
 
@@ -34,33 +39,38 @@ std::ranges::distance \- std::ranges::distance
 
 .SH Return value
 
-   The number of increments needed to go from first to last. The value may be negative
-   if I and S model std::same_as<S, I> && std::sized_sentinel_for<S, I> are used and
-   first is reachable from last.
+   1) The number of increments needed to go from first to last.
+   2) last - first.
+   3) If R models ranges::sized_range, returns ranges::size(r); otherwise
+   ranges::distance(ranges::begin(r), ranges::end(r)).
 
 .SH Complexity
 
-   1) If S models std::sized_sentinel_for<S, I>, complexity is constant; otherwise
-   linear.
-   2) If R models ranges::sized_range, complexity is constant; otherwise same as \fB(1)\fP.
+   1) Linear.
+   2) Constant.
+   2) If R models ranges::sized_range or if
+   std::sized_sentinel_for<ranges::sentinel_t<R>, ranges::iterator_t<R>> is modeled,
+   complexity is constant; otherwise linear.
 
 .SH Possible implementation
 
    struct distance_fn {
      template<std::input_or_output_iterator I, std::sentinel_for<I> S>
+       requires (!std::sized_sentinel_for<S, I>)
      constexpr std::iter_difference_t<I> operator()(I first, S last) const
      {
-       if constexpr (std::sized_sentinel_for<S, I>) {
-           return last - first;
+       std::iter_difference_t<I> result = 0;
+       while (first != last) {
+           ++first;
+           ++result;
        }
-       else {
-           std::iter_difference_t<I> result = 0;
-           while (first != last) {
-               ++first;
-               ++result;
-           }
-           return result;
-       }
+       return result;
+     }
+
+     template<std::input_or_output_iterator I, std::sized_sentinel_for<I> S>
+     constexpr std::iter_difference_t<I> operator()(const I& first, const S& last) const
+     {
+       return last - first;
      }
 
      template<ranges::range R>
@@ -102,6 +112,16 @@ std::ranges::distance \- std::ranges::distance
  distance(first, last) = 3
  distance(last, first) = -3
  distance(v) = 3
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to           Behavior as published              Correct behavior
+                       distance takes iterator by value, thus     by reference overload
+   LWG 3392 C++20      rejecting move-only iterator lvalue with a added
+                       sized sentinel
 
 .SH See also
 

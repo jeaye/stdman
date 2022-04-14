@@ -1,4 +1,4 @@
-.TH std::ranges::ssize 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::ssize 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::ssize \- std::ranges::ssize
 
@@ -6,32 +6,63 @@ std::ranges::ssize \- std::ranges::ssize
    Defined in header <ranges>
    inline namespace /*unspecified*/ {
 
-       inline constexpr /*unspecified*/ ssize =            \fI(since C++20)\fP
+   inline constexpr /*unspecified*/ ssize =                \fI(since C++20)\fP
    /*unspecified*/;                                        (customization point object)
 
    }
    Call signature
    template< class T >
 
-       requires /* see below */
+   requires /* see below */                                \fI(since C++20)\fP
 
-   constexpr /*signed-integral-like*/ ssize(T&& t);
+   constexpr /*signed-integer-like*/ ssize( T&& t );
 
    Returns the size of a range converted to a signed type.
 
-   A call to ranges::ssize is expression-equivalent to:
+   If ranges::size(std::forward<T>(t)) is well-formed, a call to ranges::ssize is
+   expression-equivalent to static_cast<MadeSigned>(ranges::size(std::forward<T>(t))),
+   where MadeSigned denotes
 
-    1. static_cast<std::ptrdiff_t>(ranges::size(std::forward<T>(t))) if
-       std::numeric_limits<ranges::range_difference_t<T>>::digits is less than
-       std::numeric_limits<std::ptrdiff_t>::digits,
-    2. static_cast<ranges::range_difference_t>(ranges::size(std::forward<T>(t)))
-       otherwise.
+     * the corresponding signed version of decltype(ranges::size(std::forward<T>(t))),
+       if it is wider than std::ptrdiff_t, or
+     * std::ptrdiff_t otherwise.
+
+   If ranges::size(std::forward<T>(t)) is ill-formed, a call to ranges::ssize is also
+   ill-formed, which can result in substitution failure when ranges::ssize(t) appears
+   in the immediate context of a template instantiation.
+
+  Expression-equivalent
+
+   Expression e is expression-equivalent to expression f, if e and f have the same
+   effects, either are both potentially-throwing or are both not potentially-throwing
+   (i.e. noexcept(e) == noexcept(f)), and either are both constant subexpressions or
+   are both not constant subexpressions.
+
+  Customization point objects
+
+   The name ranges::ssize denotes a customization point object, which is a const
+   function object of a literal semiregular class type. For exposition purposes, the
+   cv-unqualified version of its type is denoted as __ssize_fn.
+
+   All instances of __ssize_fn are equal. The effects of invoking different instances
+   of type __ssize_fn on the same arguments are equivalent, regardless of whether the
+   expression denoting the instance is an lvalue or rvalue, and is const-qualified or
+   not (however, a volatile-qualified instance is not required to be invocable). Thus,
+   ranges::ssize can be copied freely and its copies can be used interchangeably.
+
+   Given a set of types Args..., if std::declval<Args>()... meet the requirements for
+   arguments to ranges::ssize above, __ssize_fn models std::invocable<__ssize_fn,
+   Args...>, std::invocable<const __ssize_fn, Args...>, std::invocable<__ssize_fn&,
+   Args...>, and std::invocable<const __ssize_fn&, Args...>. Otherwise, no function
+   call operator of __ssize_fn participates in overload resolution.
 
 .SH Notes
 
    If ranges::ssize(e) is valid for an expression e, the return type is a
    signed-integer-like type, i.e. an integer type for which std::is_signed_v is true,
    or a signed-integer-class type.
+
+   The width of integer-like types can be detected by std::numeric_limits::digits.
 
 .SH Example
 
@@ -68,11 +99,19 @@ std::ranges::ssize \- std::ranges::ssize
  reversed arr: 5 4 3 2 1
  s = -1
 
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 3403 C++20      ranges::size worked for some non-range types    made work
+                       but ranges::ssize didn't
+
 .SH See also
 
-   ranges::size obtains the size of a range whose size can be calculated in constant
-   (C++20)      time
-                (customization point object)
+   ranges::size returns an integer equal to the size of a range
+   (C++20)      (customization point object)
    size
    ssize        returns the size of a container or array
    \fI(C++17)\fP      \fI(function template)\fP

@@ -1,22 +1,36 @@
-.TH std::uninitialized_copy 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_copy 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_copy \- std::uninitialized_copy
 
 .SH Synopsis
    Defined in header <memory>
-   template< class InputIt, class ForwardIt >
-   ForwardIt uninitialized_copy( InputIt first, InputIt last,         \fB(1)\fP
-   ForwardIt d_first );
-   template< class ExecutionPolicy, class InputIt, class ForwardIt >
-   ForwardIt uninitialized_copy( ExecutionPolicy&& policy, InputIt    \fB(2)\fP \fI(since C++17)\fP
-   first, InputIt last, ForwardIt d_first );
+   template< class InputIt, class NoThrowForwardIt >
+
+   NoThrowForwardIt uninitialized_copy( InputIt first, InputIt last,  \fB(1)\fP
+
+   NoThrowForwardIt d_first );
+   template< class ExecutionPolicy, class ForwardIt, class
+   NoThrowForwardIt >
+
+   NoThrowForwardIt uninitialized_copy( ExecutionPolicy&& policy,     \fB(2)\fP \fI(since C++17)\fP
+   ForwardIt first, ForwardIt last,
+
+   NoThrowForwardIt d_first );
 
    1) Copies elements from the range [first, last) to an uninitialized memory area
    beginning at d_first as if by
 
  for (; first != last; ++d_first, (void) ++first)
-    ::new (static_cast<void*>(std::addressof(*d_first)))
-       typename std::iterator_traits<ForwardIt>::value_type(*first);
+    ::new (/*VOIDIFY*/(*d_first))
+       typename std::iterator_traits<NoThrowForwardIt>::value_type(*first);
+
+   where /*VOIDIFY*/(e) is:
+
+      static_cast<void*>(&e)                                              \fI(until C++11)\fP
+      static_cast<void*>(std::addressof(e))                               \fI(since C++11)\fP
+                                                                          \fI(until C++20)\fP
+      const_cast<void*>(static_cast<const volatile                        \fI(since C++20)\fP
+      void*>(std::addressof(e)))
 
    If an exception is thrown during the initialization, the objects already constructed
    are destroyed in an unspecified order.
@@ -29,18 +43,22 @@ std::uninitialized_copy \- std::uninitialized_copy
 
 .SH Parameters
 
-   first, last           -        the range of the elements to copy
-   d_first               -        the beginning of the destination range
-   policy                -        the execution policy to use. See execution policy for
-                                  details.
+   first, last            -        the range of the elements to copy
+   d_first                -        the beginning of the destination range
+   policy                 -        the execution policy to use. See execution policy
+                                   for details.
 .SH Type requirements
    -
    InputIt must meet the requirements of LegacyInputIterator.
    -
    ForwardIt must meet the requirements of LegacyForwardIterator.
    -
+   NoThrowForwardIt must meet the requirements of LegacyForwardIterator.
+   -
    No increment, assignment, comparison, or indirection through valid instances of
-   ForwardIt may throw exceptions.
+   NoThrowForwardIt may throw exceptions.
+   Applying &* to a NoThrowForwardIt value must yield a pointer to its value type.
+   \fI(until C++11)\fP
 
 .SH Return value
 
@@ -48,7 +66,7 @@ std::uninitialized_copy \- std::uninitialized_copy
 
 .SH Complexity
 
-   Linear in the distance between first and last
+   Linear in the distance between first and last.
 
 .SH Exceptions
 
@@ -62,23 +80,24 @@ std::uninitialized_copy \- std::uninitialized_copy
 
 .SH Possible implementation
 
-   template<class InputIt, class ForwardIt>
-   ForwardIt uninitialized_copy(InputIt first, InputIt last, ForwardIt d_first)
-   {
-       typedef typename std::iterator_traits<ForwardIt>::value_type Value;
-       ForwardIt current = d_first;
-       try {
-           for (; first != last; ++first, (void) ++current) {
-               ::new (static_cast<void*>(std::addressof(*current))) Value(*first);
-           }
-           return current;
-       } catch (...) {
-           for (; d_first != current; ++d_first) {
-               d_first->~Value();
-           }
-           throw;
-       }
-   }
+template<class InputIt, class NoThrowForwardIt>
+NoThrowForwardIt uninitialized_copy(InputIt first, InputIt last, NoThrowForwardIt d_first)
+{
+    using T = typename std::iterator_traits<NoThrowForwardIt>::value_type;
+    NoThrowForwardIt current = d_first;
+    try {
+        for (; first != last; ++first, (void) ++current) {
+            ::new (const_cast<void*>(static_cast<const volatile void*>(
+                std::addressof(*current)))) T(*first);
+        }
+        return current;
+    } catch (...) {
+        for (; d_first != current; ++d_first) {
+            d_first->~T();
+        }
+        throw;
+    }
+}
 
 .SH Example
 
@@ -105,6 +124,7 @@ std::uninitialized_copy \- std::uninitialized_copy
 
              for (auto it = first; it != last; ++it)
                  std::cout << *it << '_';
+             std::cout << '\\n';
 
              std::destroy(first, last);
          }
@@ -119,5 +139,9 @@ std::uninitialized_copy \- std::uninitialized_copy
 
 .SH See also
 
-   uninitialized_copy_n copies a number of objects to an uninitialized area of memory
-   \fI(C++11)\fP              \fI(function template)\fP
+   uninitialized_copy_n       copies a number of objects to an uninitialized area of
+   \fI(C++11)\fP                    memory
+                              \fI(function template)\fP
+   ranges::uninitialized_copy copies a range of objects to an uninitialized area of
+   (C++20)                    memory
+                              (niebloid)

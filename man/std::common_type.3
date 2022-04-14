@@ -1,178 +1,35 @@
-.TH std::common_type 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::common_type 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::common_type \- std::common_type
 
 .SH Synopsis
-   Defined in header <type_traits>
-   template< class... T >           \fI(since C++11)\fP
-   struct common_type;
+   Defined in header <utility>
+   template< class T1, class T2, class U1, class U2 >
 
-   Determines the common type among all types T..., that is the type all T... can be
-   implicitly converted to. If such a type exists (as determined according to the rules
-   below), the member type names that type. Otherwise, there is no member type.
+   requires requires { typename std::pair<std::common_type_t<T1, U1>,  (since C++23)
+   std::common_type_t<T2, U2>>; }
 
-     * If sizeof...(T) is zero, there is no member type.
-     * If sizeof...(T) is one (i.e., T... contains only one type T0), the member type
-       names the same type as std::common_type<T0, T0>::type if it exists; otherwise
-       there is no member type.
-     * If sizeof...(T) is two (i.e., T... contains exactly two types T1 and T2),
+   struct common_type<std::pair<T1, T2>, std::pair<U1, U2>>;
 
-     * If applying std::decay to at least one of T1 and T2 produces a different type,
-       the member type names the same type as std::common_type<std::decay<T1>::type,
-       std::decay<T2>::type>::type, if it exists; if not, there is no member type.
-     * Otherwise, if there is a user specialization for std::common_type<T1, T2>, that
-       specialization is used;
-     * Otherwise, if std::decay<decltype(false ? std::declval<T1>() :
-       std::declval<T2>())>::type is a valid type, the member type denotes that type;
+   The common type of two pairs is a pair of both common types of corresponding element
+   types of both pairs.
 
-     * Otherwise, if std::decay<decltype(false ? std::declval<const
-       std::remove_reference_t<T1> &>() : std::declval<const              \fI(since C++20)\fP
-       std::remove_reference_t<T2> &>())>::type is a valid type, the
-       member type denotes that type;
-
-     * Otherwise, there is no member type.
-
-     * If sizeof...(T) is greater than two (i.e., T... consists of the types T1, T2,
-       R...), then if std::common_type<T1, T2>::type exists, the member type denotes
-       std::common_type<std::common_type<T1, T2>::type, R...>::type if such a type
-       exists. In all other cases, there is no member type.
-
-   The types in the parameter pack T shall each be a complete type, (possibly
-   cv-qualified) void, or an array of unknown bound. Otherwise, the behavior is
-   undefined.
-
-   If an instantiation of a template above depends, directly or indirectly, on an
-   incomplete type, and that instantiation could yield a different result if that type
-   were hypothetically completed, the behavior is undefined.
+   The common type is defined only if both pairs of corresponding element types have
+   common types.
 
 .SH Member types
 
-   Name Definition
-   type the common type for all T...
+   Member type Definition
+   type        std::pair<std::common_type_t<T1, U1>, std::common_type_t<T2, U2>>
 
-.SH Helper types
+.SH Example
 
-   template< class... T >                                   \fI(since C++14)\fP
-   using common_type_t = typename common_type<T...>::type;
+    This section is incomplete
+    Reason: no example
 
-.SH Specializations
+.SH See also
 
-   Users may specialize common_type for types T1 and T2 if
-
-     * At least one of T1 and T2 depends on a user-defined type, and
-     * std::decay is an identity transformation for both T1 and T2.
-
-   If such a specialization has a member named type, it must be a public and
-   unambiguous member type that names a cv-unqualified non-reference type to which both
-   T1 and T2 are explicitly convertible. Additionally, std::common_type<T1, T2>::type
-   and std::common_type<T2, T1>::type must denote the same type.
-
-   A program that adds common_type specializations in violation of these rules has
-   undefined behavior.
-
-   Note that the behavior of a program that adds a specialization to any other template
-   from <type_traits> is undefined.
-
-   The following specializations are already provided by the standard library:
-
-   std::common_type<std::chrono::duration>   specializes the std::common_type trait
-                                             \fI(class template specialization)\fP
-   std::common_type<std::chrono::time_point> specializes the std::common_type trait
-                                             \fI(class template specialization)\fP
-
-.SH Possible implementation
-
-   template <typename...>
-   using void_t = void;
-
-   // primary template (used for zero types)
-   template <class...>
-   struct common_type {};
-
-   //////// one type
-   template <class T>
-   struct common_type<T> : common_type<T, T> {};
-
-   //////// two types
-   template <class T1, class T2>
-   using cond_t = decltype(false ? std::declval<T1>() : std::declval<T2>());
-
-   template <class T1, class T2, class=void>
-   struct common_type_2_impl {};
-
-   template <class T1, class T2>
-   struct common_type_2_impl<T1, T2, void_t<cond_t<T1, T2>>> {
-       using type = typename std::decay<cond_t<T1, T2>>::type;
-   };
-
-   template <class T1, class T2>
-   struct common_type<T1, T2>
-     : common_type_2_impl<typename std::decay<T1>::type,
-                          typename std::decay<T2>::type>
-   {};
-
-   //////// 3+ types
-   template <class AlwaysVoid, class T1, class T2, class...R>
-   struct common_type_multi_impl {};
-
-   template <class T1, class T2, class...R>
-   struct common_type_multi_impl<
-         void_t<typename common_type<T1, T2>::type>, T1, T2, R...>
-     : common_type<typename common_type<T1, T2>::type, R...> {};
-
-
-   template <class T1, class T2, class... R>
-   struct common_type<T1, T2, R...>
-     : common_type_multi_impl<void, T1, T2, R...> {};
-
-.SH Notes
-
-   For arithmetic types not subject to promotion, the common type may be viewed as the
-   type of the (possibly mixed-mode) arithmetic expression such as T0() + T1() + ... +
-   Tn().
-
-.SH Examples
-
-   Demonstrates mixed-mode arithmetic on a user-defined class
-
-
-// Run this code
-
- #include <iostream>
- #include <type_traits>
-
- template <class T>
- struct Number { T n; };
-
- template <class T, class U>
- Number<typename std::common_type<T, U>::type> operator+(const Number<T>& lhs,
-                                                         const Number<U>& rhs)
- {
-     return {lhs.n + rhs.n};
- }
-
- int main()
- {
-     Number<int> i1 = {1}, i2 = {2};
-     Number<double> d1 = {2.3}, d2 = {3.5};
-     std::cout << "i1i2: " << (i1 + i2).n << "\\ni1d2: " << (i1 + d2).n << '\\n'
-               << "d1i2: " << (d1 + i2).n << "\\nd1d2: " << (d1 + d2).n << '\\n';
- }
-
-.SH Output:
-
- i1i2: 3
- i1d2: 4.5
- d1i2: 4.3
- d1d2: 5.8
-
-   Defect reports
-
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
-
-      DR    Applied to          Behavior as published              Correct behavior
-   LWG 2141 C++11      common_type<int, int>::type is int&&     decayed result type
-   LWG 2408 C++11      common_type is not SFINAE-friendly       made SFINAE-friendly
-   LWG 2460 C++11      common_type specializations are nearly   reduced number of
-                       impossible to write                      specializations needed
+   common_type                  determines the common type of a group of types
+   \fI(C++11)\fP                      \fI(class template)\fP
+   std::common_type<std::tuple> determines the common type of two tuples
+   (C++23)                      \fI(class template specialization)\fP

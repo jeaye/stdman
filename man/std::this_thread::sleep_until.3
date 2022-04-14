@@ -1,4 +1,4 @@
-.TH std::this_thread::sleep_until 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::this_thread::sleep_until 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::this_thread::sleep_until \- std::this_thread::sleep_until
 
@@ -11,10 +11,15 @@ std::this_thread::sleep_until \- std::this_thread::sleep_until
    Blocks the execution of the current thread until specified sleep_time has been
    reached.
 
-   The clock tied to sleep_time is used, which means that adjustments of the clock are
-   taken into account. Thus, the duration of the block might, but might not, be less or
-   more than sleep_time - Clock::now() at the time of the call, depending on the
-   direction of the adjustment. The function also may block for longer than until after
+   Clock must meet the Clock requirements.
+   The programs is ill-formed if std::chrono::is_clock_v<Clock> is false
+   \fI(since C++20)\fP.
+
+   The standard recommends that the clock tied to sleep_time be used, in which case
+   adjustments of the clock may be taken into account. Thus, the duration of the block
+   might, but might not, be less or more than sleep_time - Clock::now() at the time of
+   the call, depending on the direction of the adjustment and whether it is honored by
+   the implementation. The function also may block for longer than until after
    sleep_time has been reached due to scheduling or resource contention delays.
 
 .SH Parameters
@@ -30,9 +35,37 @@ std::this_thread::sleep_until \- std::this_thread::sleep_until
    Any exception thrown by Clock or Duration (clocks and durations provided by the
    standard library never throw)
 
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <chrono>
+ #include <thread>
+
+ auto now() { return std::chrono::steady_clock::now(); }
+
+ auto awake_time() {
+     using std::chrono::operator""ms;
+     return now() + 2000ms;
+ }
+
+ int main()
+ {
+     std::cout << "Hello, waiter...\\n" << std::flush;
+     const auto start {now()};
+     std::this_thread::sleep_until(awake_time());
+     std::chrono::duration<double, std::milli> elapsed {now() - start};
+     std::cout << "Waited " << elapsed.count() << " ms\\n";
+ }
+
+.SH Output:
+
+ Hello, waiter...
+ Waited 2000.17 ms
+
 .SH See also
 
    sleep_for stops the execution of the current thread for a specified time duration
    \fI(C++11)\fP   \fI(function)\fP
-   C documentation for
-   thrd_sleep

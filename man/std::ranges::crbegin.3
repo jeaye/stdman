@@ -1,4 +1,4 @@
-.TH std::ranges::crbegin 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::crbegin 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::crbegin \- std::ranges::crbegin
 
@@ -6,17 +6,17 @@ std::ranges::crbegin \- std::ranges::crbegin
    Defined in header <ranges>
    inline namespace /*unspecified*/ {
 
-       inline constexpr /*unspecified*/ crbegin =          \fI(since C++20)\fP
+   inline constexpr /*unspecified*/ crbegin =              \fI(since C++20)\fP
    /*unspecified*/;                                        (customization point object)
 
    }
    Call signature
    template< class T >
 
-       requires /* see below */
+   requires /* see below */                                \fI(since C++20)\fP
 
-   constexpr std::input_or_output_iterator auto
-   crbegin(T&& t);
+   constexpr std::input_or_output_iterator auto crbegin(
+   T&& t );
 
    Returns an iterator to the first element of the const-qualified argument that is
    treated as a reversed sequence.
@@ -34,6 +34,39 @@ std::ranges::crbegin \- std::ranges::crbegin
 
    The return type models std::input_or_output_iterator in both cases.
 
+  Expression-equivalent
+
+   Expression e is expression-equivalent to expression f, if e and f have the same
+   effects, either are both potentially-throwing or are both not potentially-throwing
+   (i.e. noexcept(e) == noexcept(f)), and either are both constant subexpressions or
+   are both not constant subexpressions.
+
+  Customization point objects
+
+   The name ranges::crbegin denotes a customization point object, which is a const
+   function object of a literal semiregular class type. For exposition purposes, the
+   cv-unqualified version of its type is denoted as __crbegin_fn.
+
+   All instances of __crbegin_fn are equal. The effects of invoking different instances
+   of type __crbegin_fn on the same arguments are equivalent, regardless of whether the
+   expression denoting the instance is an lvalue or rvalue, and is const-qualified or
+   not (however, a volatile-qualified instance is not required to be invocable). Thus,
+   ranges::crbegin can be copied freely and its copies can be used interchangeably.
+
+   Given a set of types Args..., if std::declval<Args>()... meet the requirements for
+   arguments to ranges::crbegin above, __crbegin_fn models std::invocable<__crbegin_fn,
+   Args...>, std::invocable<const __crbegin_fn, Args...>, std::invocable<__crbegin_fn&,
+   Args...>, and std::invocable<const __crbegin_fn&, Args...>. Otherwise, no function
+   call operator of __crbegin_fn participates in overload resolution.
+
+.SH Notes
+
+   If the argument is an rvalue (i.e. T is an object type) and
+   ranges::enable_borrowed_range<std::remove_cv_t<T>> is false, the call to
+   ranges::crbegin is ill-formed, which also results in substitution failure.
+
+   The return type models std::input_or_output_iterator in all cases.
+
 .SH Example
 
 
@@ -42,6 +75,7 @@ std::ranges::crbegin \- std::ranges::crbegin
  #include <iostream>
  #include <vector>
  #include <iterator>
+ #include <span>
 
  int main()
  {
@@ -52,17 +86,26 @@ std::ranges::crbegin \- std::ranges::crbegin
      int a[] = { -5, 10, 15 };
      auto ai = std::ranges::crbegin(a);
      std::cout << *ai << '\\n';
+
+     // auto x_x = std::ranges::crbegin(std::vector<int>{6,6,6});
+     // ill-formed: the argument is an rvalue (see Notes ↑)
+
+     auto si = std::ranges::crbegin(std::span{a}); // OK:
+     static_assert(std::ranges::enable_borrowed_range<
+         std::remove_cv_t<decltype(std::span{a})>>);
+     std::cout << *si << '\\n';
  }
 
 .SH Output:
 
  4
  15
+ 15
 
 .SH See also
 
    ranges::rbegin returns a reverse iterator to a range
    (C++20)        (customization point object)
-   rbegin         returns a reverse iterator to a container or array
+   rbegin         returns a reverse iterator to the beginning of a container or array
    crbegin        \fI(function template)\fP
    \fI(C++14)\fP

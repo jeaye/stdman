@@ -1,4 +1,4 @@
-.TH std::chrono::duration 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::chrono::duration 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::chrono::duration \- std::chrono::duration
 
@@ -6,15 +6,15 @@ std::chrono::duration \- std::chrono::duration
    Defined in header <chrono>
    template<
 
-       class Rep,                    \fI(since C++11)\fP
-       class Period = std::ratio<1>
+   class Rep,                    \fI(since C++11)\fP
+   class Period = std::ratio<1>
 
    > class duration;
 
    Class template std::chrono::duration represents a time interval.
 
    It consists of a count of ticks of type Rep and a tick period, where the tick period
-   is a compile-time rational constant representing the number of seconds from one tick
+   is a compile-time rational fraction representing the time in seconds from one tick
    to the next.
 
    The only data stored in a duration is a tick count of type Rep. If Rep is floating
@@ -30,7 +30,7 @@ std::chrono::duration \- std::chrono::duration
                \fI(until C++17)\fP
    period      typename Period::type
                \fI(since C++17)\fP, a std::ratio representing the tick period (i.e. the
-               number of seconds per tick)
+               number of second's fractions per tick)
 
 .SH Member functions
 
@@ -65,17 +65,23 @@ std::chrono::duration \- std::chrono::duration
    operator*                    arguments
    operator/                    \fI(function template)\fP
    operator%
+   \fI(C++11)\fP
    operator==
    operator!=
    operator<
-   operator<=                   compares two durations
-   operator>                    \fI(function template)\fP
+   operator<=
+   operator>
    operator>=
-   operator<=>
-   (removed in C++20)
+   operator<=>                  compares two durations
+   \fI(C++11)\fP                      \fI(function template)\fP
+   \fI(C++11)\fP(removed in C++20)
+   \fI(C++11)\fP
+   \fI(C++11)\fP
+   \fI(C++11)\fP
+   \fI(C++11)\fP
    (C++20)
-                                converts a duration to another, with a different tick
-   duration_cast                interval
+   duration_cast                converts a duration to another, with a different tick
+   \fI(C++11)\fP                      interval
                                 \fI(function template)\fP
    floor(std::chrono::duration) converts a duration to another, rounding down
    \fI(C++17)\fP                      \fI(function template)\fP
@@ -120,19 +126,19 @@ std::chrono::duration \- std::chrono::duration
    ±292 years.
 
    Each of the predefined duration types days, weeks, months and years
-   covers a range of at least ±40000 years. years is equal to 365.2425    \fI(since C++20)\fP
+   covers a range of at least ±40000 years. years is equal to 365.2425   \fI(since C++20)\fP
    days (the average length of a Gregorian year). months is equal to
    30.436875 days (exactly 1/12 of years).
 
 .SH Helper classes
 
    std::common_type<std::chrono::duration> specializes the std::common_type trait
-                                           \fI(class template specialization)\fP
-                                           indicates that a duration is convertible to
-   treat_as_floating_point                 duration with different tick period
+   \fI(C++11)\fP                                 \fI(class template specialization)\fP
+   treat_as_floating_point                 indicates that a duration is convertible to
+   \fI(C++11)\fP                                 duration with different tick period
                                            \fI(class template)\fP
-                                           constructs zero, min, and max values of a
-   duration_values                         tick count of given type
+   duration_values                         constructs zero, min, and max values of a
+   \fI(C++11)\fP                                 tick count of given type
                                            \fI(class template)\fP
                                            specialization of std::formatter that
    std::formatter<std::chrono::duration>   formats a duration according to the provided
@@ -158,6 +164,14 @@ std::chrono::duration \- std::chrono::duration
    Note: the literal suffixes d and y do not refer to days and years but  \fI(since C++20)\fP
    to day and year, respectively.
 
+   Feature testing macro: __cpp_lib_chrono_udls (for user defined literals).
+
+.SH Notes
+
+   The actual time interval (in seconds) that is held by a duration object d is roughly
+   equal to d.count() * D::period::num / D::period::den, where D is of type
+   chrono::duration<> and d is an object of such type.
+
 .SH Example
 
    This example shows how to define several custom duration types and convert between
@@ -168,32 +182,36 @@ std::chrono::duration \- std::chrono::duration
 
  #include <iostream>
  #include <chrono>
+ using namespace std::chrono_literals;
 
- constexpr auto year = 31556952ll; // seconds in average Gregorian year
+ template<typename T1, typename T2>
+ using mul = std::ratio_multiply<T1, T2>;
 
  int main()
  {
-     using shakes = std::chrono::duration<int, std::ratio<1, 100000000>>;
+     using shakes = std::chrono::duration<int, mul<std::deca, std::nano>>;
      using jiffies = std::chrono::duration<int, std::centi>;
-     using microfortnights = std::chrono::duration<float, std::ratio<14*24*60*60, 1000000>>;
-     using nanocenturies = std::chrono::duration<float, std::ratio<100*year, 1000000000>>;
-
-     std::chrono::seconds sec(1);
+     using microfortnights = std::chrono::duration<float,
+         mul<mul<std::ratio<2>, std::chrono::weeks::period>, std::micro>>;
+     using nanocenturies = std::chrono::duration<float,
+         mul<mul<std::hecto, std::chrono::years::period>, std::nano>>;
+     using fps_24 = std::chrono::duration<double, std::ratio<1,24>>;
 
      std::cout << "1 second is:\\n";
 
      // integer scale conversion with no precision loss: no cast
-     std::cout << std::chrono::microseconds(sec).count() << " microseconds\\n"
-               << shakes(sec).count() << " shakes\\n"
-               << jiffies(sec).count() << " jiffies\\n";
+     std::cout << std::chrono::microseconds(1s).count() << " microseconds\\n"
+               << shakes(1s).count() << " shakes\\n"
+               << jiffies(1s).count() << " jiffies\\n";
 
      // integer scale conversion with precision loss: requires a cast
-     std::cout << std::chrono::duration_cast<std::chrono::minutes>(sec).count()
+     std::cout << std::chrono::duration_cast<std::chrono::minutes>(1s).count()
                << " minutes\\n";
 
      // floating-point scale conversion: no cast
-     std::cout << microfortnights(sec).count() << " microfortnights\\n"
-               << nanocenturies(sec).count() << " nanocenturies\\n";
+     std::cout << microfortnights(1s).count() << " microfortnights\\n"
+               << nanocenturies(1s).count() << " nanocenturies\\n"
+               << fps_24(1s).count() << " frames at 24fps\\n";
  }
 
 .SH Output:
@@ -205,3 +223,4 @@ std::chrono::duration \- std::chrono::duration
  0 minutes
  0.82672 microfortnights
  0.316887 nanocenturies
+ 24 frames at 24fps

@@ -1,4 +1,4 @@
-.TH std::chrono::time_point 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::chrono::time_point 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::chrono::time_point \- std::chrono::time_point
 
@@ -6,8 +6,8 @@ std::chrono::time_point \- std::chrono::time_point
    Defined in header <chrono>
    template<
 
-       class Clock,                               \fI(since C++11)\fP
-       class Duration = typename Clock::duration
+   class Clock,                               \fI(since C++11)\fP
+   class Duration = typename Clock::duration
 
    > class time_point;
 
@@ -16,7 +16,7 @@ std::chrono::time_point \- std::chrono::time_point
    of the Clock's epoch.
 
    Clock must meet the requirements for Clock
-   or be std::chrono::local_t
+   or be std::chrono::local_t                 (until C++23)
    \fI(since C++20)\fP.
 
 .SH Member types
@@ -50,18 +50,23 @@ std::chrono::time_point \- std::chrono::time_point
 
    operator+                      performs add and subtract operations involving a time
    operator-                      point
-                                  \fI(function template)\fP
+   \fI(C++11)\fP                        \fI(function template)\fP
    operator==
    operator!=
    operator<
-   operator<=                     compares two time points
-   operator>                      \fI(function template)\fP
+   operator<=
+   operator>
    operator>=
-   operator<=>
-   (removed in C++20)
+   operator<=>                    compares two time points
+   \fI(C++11)\fP                        \fI(function template)\fP
+   \fI(C++11)\fP(removed in C++20)
+   \fI(C++11)\fP
+   \fI(C++11)\fP
+   \fI(C++11)\fP
+   \fI(C++11)\fP
    (C++20)
-                                  converts a time point to another time point on the
-   time_point_cast                same clock, with a different duration
+   time_point_cast                converts a time point to another time point on the
+   \fI(C++11)\fP                        same clock, with a different duration
                                   \fI(function template)\fP
    floor(std::chrono::time_point) converts a time_point to another, rounding down
    \fI(C++17)\fP                        \fI(function template)\fP
@@ -74,7 +79,7 @@ std::chrono::time_point \- std::chrono::time_point
 .SH Helper classes
 
    std::common_type<std::chrono::time_point> specializes the std::common_type trait
-                                             \fI(class template specialization)\fP
+   \fI(C++11)\fP                                   \fI(class template specialization)\fP
 
 .SH Example
 
@@ -90,31 +95,40 @@ std::chrono::time_point \- std::chrono::time_point
  void slow_motion()
  {
      static int a[] {1,2,3,4,5,6,7,8,9,10,11,12};
-     while (std::next_permutation(std::begin(a), std::end(a))) { }
+     while (std::ranges::next_permutation(a).found)
+     { } // generates 12! permutations
  }
 
  int main()
  {
-     using namespace std::literals; // enables the usage of 24h instead of std::chrono::hours(24)
-     auto now = std::chrono::system_clock::now();
-     auto t_c = std::chrono::system_clock::to_time_t(now - 24h);
-     std::cout << "24 hours ago, the time was "
-               << std::put_time(std::localtime(&t_c), "%F %T") << '\\n';
+     using namespace std::literals; // enables the usage of 24h, 1ms, 1s instead of
+                                    // e.g. std::chrono::hours(24), accordingly
 
-     auto start = std::chrono::steady_clock::now();
+     const std::chrono::time_point<std::chrono::system_clock> now =
+         std::chrono::system_clock::now();
+
+     const std::time_t t_c = std::chrono::system_clock::to_time_t(now - 24h);
+     std::cout << "24 hours ago, the time was "
+               << std::put_time(std::localtime(&t_c), "%F %T.\\n") << std::flush;
+
+     const std::chrono::time_point<std::chrono::steady_clock> start =
+         std::chrono::steady_clock::now();
+
      slow_motion();
-     auto end = std::chrono::steady_clock::now();
+
+     const auto end = std::chrono::steady_clock::now();
+
      std::cout
        << "Slow calculations took "
        << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << "µs ≈ "
-       << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms ≈ "
-       << std::chrono::duration_cast<std::chrono::seconds>(end - start).count() << "s.\\n";
+       << (end - start) / 1ms << "ms ≈ " // almost equivalent form of the above, but
+       << (end - start) / 1s << "s.\\n";  // using milliseconds and seconds accordingly
  }
 
 .SH Possible output:
 
- 24 hours ago, the time was 2020-09-26 17:57:24
- Slow calculations took 2542785µs ≈ 2542ms ≈ 2s.
+ 24 hours ago, the time was 2021-02-15 18:28:52.
+ Slow calculations took 2090448µs ≈ 2090ms ≈ 2s.
 
 .SH See also
 

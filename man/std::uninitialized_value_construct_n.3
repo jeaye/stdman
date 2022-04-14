@@ -1,4 +1,4 @@
-.TH std::uninitialized_value_construct_n 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_value_construct_n 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_value_construct_n \- std::uninitialized_value_construct_n
 
@@ -15,8 +15,14 @@ std::uninitialized_value_construct_n \- std::uninitialized_value_construct_n
    the uninitialized storage starting at first by value-initialization, as if by
 
  for (; n > 0; (void) ++first, --n)
-   ::new (static_cast<void*>(std::addressof(*first)))
+   ::new (/*VOIDIFY*/(*first))
        typename std::iterator_traits<ForwardIt>::value_type();
+
+   where /*VOIDIFY*/(e) is:
+
+      static_cast<void*>(std::addressof(e))                               \fI(until C++20)\fP
+      const_cast<void*>(static_cast<const volatile                        \fI(since C++20)\fP
+      void*>(std::addressof(e)))
 
    If an exception is thrown during the initialization, the objects already constructed
    are destroyed in an unspecified order.
@@ -67,7 +73,8 @@ std::uninitialized_value_construct_n \- std::uninitialized_value_construct_n
        ForwardIt current = first;
        try {
            for (; n > 0 ; (void) ++current, --n) {
-               ::new (static_cast<void*>(std::addressof(*current))) T();
+               ::new (const_cast<void*>(static_cast<const volatile void*>(
+                   std::addressof(*current)))) T();
            }
            return current;
        }  catch (...) {
@@ -78,19 +85,65 @@ std::uninitialized_value_construct_n \- std::uninitialized_value_construct_n
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <iostream>
+ #include <memory>
+ #include <string>
+
+ int main()
+ {
+     struct S { std::string m{ "Default value" }; };
+
+     constexpr int n {3};
+     alignas(alignof(S)) unsigned char mem[n * sizeof(S)];
+
+     try
+     {
+         auto first {reinterpret_cast<S*>(mem)};
+         auto last = std::uninitialized_value_construct_n(first, n);
+
+         for (auto it {first}; it != last; ++it) {
+             std::cout << it->m << '\\n';
+         }
+
+         std::destroy(first, last);
+     }
+     catch(...)
+     {
+         std::cout << "Exception!\\n";
+     }
+
+     // Notice that for "trivial types" the uninitialized_value_construct_n
+     // zero-initializes the given uninitialized memory area.
+     int v[] { 1, 2, 3, 4 };
+     for (const int i : v) { std::cout << i << ' '; }
+     std::cout << '\\n';
+     std::uninitialized_value_construct_n(std::begin(v), std::size(v));
+     for (const int i : v) { std::cout << i << ' '; }
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ Default value
+ Default value
+ Default value
+ 1 2 3 4
+ 0 0 0 0
 
 .SH See also
 
-   uninitialized_value_construct     constructs objects by value-initialization in an
-   \fI(C++17)\fP                           uninitialized area of memory, defined by a range
-                                     \fI(function template)\fP
-                                     constructs objects by default-initialization in an
-   uninitialized_default_construct_n uninitialized area of memory, defined by a start
-   \fI(C++17)\fP                           and a count
-                                     \fI(function template)\fP
-
-.SH Category:
-
-     * Todo no example
+                                           constructs objects by value-initialization
+   uninitialized_value_construct           in an uninitialized area of memory, defined
+   \fI(C++17)\fP                                 by a range
+                                           \fI(function template)\fP
+                                           constructs objects by default-initialization
+   uninitialized_default_construct_n       in an uninitialized area of memory, defined
+   \fI(C++17)\fP                                 by a start and a count
+                                           \fI(function template)\fP
+                                           constructs objects by value-initialization
+   ranges::uninitialized_value_construct_n in an uninitialized area of memory, defined
+   (C++20)                                 by a start and a count
+                                           (niebloid)

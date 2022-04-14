@@ -1,4 +1,4 @@
-.TH std::ranges::partition 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::partition 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::partition \- std::ranges::partition
 
@@ -8,19 +8,18 @@ std::ranges::partition \- std::ranges::partition
    template< std::permutable I, std::sentinel_for<I> S, class Proj =
    std::identity,
 
-             std::indirect_unary_predicate<std::projected<I, Proj>>   \fB(1)\fP \fI(since C++20)\fP
-   Pred >
-     constexpr ranges::subrange<I>
+   std::indirect_unary_predicate<std::projected<I, Proj>> Pred >      \fB(1)\fP \fI(since C++20)\fP
+   constexpr ranges::subrange<I>
 
    partition( I first, S last, Pred pred, Proj proj = {} );
-   template<ranges::forward_range R, class Proj = std::identity,
+   template< ranges::forward_range R, class Proj = std::identity,
 
-            std::indirect_unary_predicate<
-                std::projected<ranges::iterator_t<R>, Proj>> Pred>    \fB(2)\fP \fI(since C++20)\fP
+   std::indirect_unary_predicate<
+   std::projected<ranges::iterator_t<R>, Proj>> Pred >                \fB(2)\fP \fI(since C++20)\fP
    requires std::permutable<ranges::iterator_t<R>>
-     constexpr ranges::borrowed_subrange_t<R>
+   constexpr ranges::borrowed_subrange_t<R>
 
-   partition(R&& r, Pred pred, Proj proj = {});
+   partition( R&& r, Pred pred, Proj proj = {} );
 
    1) Reorders the elements in the range [first, last) in such a way that the
    projection proj of all elements for which the predicate pred returns true precede
@@ -44,7 +43,7 @@ std::ranges::partition \- std::ranges::partition
    first, last - the range of elements to reorder
    r           - the range of elements to reorder
    pred        - predicate to apply to the projected elements
-   proj        - projection to apply to the elements
+   proj        - projection to apply to the elements.
 
 .SH Return value
 
@@ -54,10 +53,9 @@ std::ranges::partition \- std::ranges::partition
 
 .SH Complexity
 
-   Given N = ranges::distance(first,last).
-
-   Exactly N applications of the predicate and projection. At most N/2 swaps if I
-   models ranges::bidirectional_iterator, and at most N swaps otherwise.
+   Given N = ranges::distance(first,last), exactly N applications of the predicate and
+   projection. At most N/2 swaps if I models ranges::bidirectional_iterator, and at
+   most N swaps otherwise.
 
 .SH Possible implementation
 
@@ -102,74 +100,75 @@ std::ranges::partition \- std::ranges::partition
 // Run this code
 
  #include <algorithm>
+ #include <forward_list>
+ #include <functional>
  #include <iostream>
  #include <iterator>
+ #include <ranges>
  #include <vector>
- #include <forward_list>
 
  namespace ranges = std::ranges;
 
- template <std::permutable I, std::sentinel_for<I> S>
- void quicksort(I first, S last)
+ template <class I, std::sentinel_for<I> S, class Cmp = ranges::less>
+ requires std::sortable<I, Cmp>
+ void quicksort(I first, S last, Cmp cmp = Cmp{})
  {
-    if(first == last) {
-        return;
-    }
+     using reference = std::iter_reference_t<I>;
 
-    auto pivot = *ranges::next(first, ranges::distance(first,last)/2, last);
-    std::ranges::subrange tail1 = ranges::partition(first, last, [pivot](const auto& em){
-        return em < pivot;
-    });
-    std::ranges::subrange tail2 = ranges::partition(tail1, [pivot](const auto& em){
-        return !(pivot < em);
-    });
-    quicksort(first, tail1.begin());
-    quicksort(tail2.begin(), tail2.end());
+     if (first == last)
+         return;
+
+     auto size = ranges::distance(first, last);
+     auto pivot = ranges::next(first, size - 1);
+     ranges::iter_swap(pivot, ranges::next(first, size / 2));
+
+     ranges::subrange tail = ranges::partition(first, pivot, [=](reference em) {
+         // em < pivot
+         return std::invoke(cmp, em, *pivot);
+     });
+
+     ranges::iter_swap(pivot, tail.begin());
+     quicksort(first, tail.begin(), std::ref(cmp));
+     quicksort(ranges::next(tail.begin()), last, std::ref(cmp));
  }
 
  int main()
  {
-     std::vector<int> v = {0,1,2,3,4,5,6,7,8,9};
-     std::cout << "Original vector:\\n    ";
-     for(int elem : v) {
-         std::cout << elem << ' ';
-     }
+     std::ostream_iterator<int> cout {std::cout, " "};
+
+     std::vector<int> v {0,1,2,3,4,5,6,7,8,9};
+     std::cout << "Original vector:  \\t";
+     ranges::copy(v, cout);
 
      auto tail = ranges::partition(v, [](int i){return i % 2 == 0;});
 
-     std::cout << "\\nPartitioned vector:\\n    ";
-     ranges::copy(ranges::begin(v), ranges::begin(tail), std::ostream_iterator<int>(std::cout, " "));
-     std::cout << " * ";
-     ranges::copy(tail, std::ostream_iterator<int>(std::cout, " "));
+     std::cout << "\\nPartitioned vector: \\t";
+     ranges::copy(ranges::begin(v), ranges::begin(tail), cout);
+     std::cout << "│ ";
+     ranges::copy(tail, cout);
 
-     std::forward_list<int> fl = {1, 30, -4, 3, 5, -4, 1, 6, -8, 2, -5, 64, 1, 92};
-     std::cout << "\\nUnsorted list:\\n    ";
-     for(int n : fl) {
-         std::cout << n << ' ';
-     }
-     std::cout << '\\n';
+     std::forward_list<int> fl {1, 30, -4, 3, 5, -4, 1, 6, -8, 2, -5, 64, 1, 92};
+     std::cout << "\\nUnsorted list: \\t\\t";
+     ranges::copy(fl, cout);
 
-     quicksort(ranges::begin(fl), ranges::end(fl));
-     std::cout << "Sorted using quicksort:\\n    ";
-     for(int fi : fl) {
-         std::cout << fi << ' ';
-     }
+     quicksort(ranges::begin(fl), ranges::end(fl), ranges::greater{});
+     std::cout << "\\nQuick-sorted list: \\t";
+     ranges::copy(fl, cout);
+
      std::cout << '\\n';
  }
 
-.SH Output:
+.SH Possible output:
 
- Original vector:
-     0 1 2 3 4 5 6 7 8 9
- Partitioned vector:
-     0  * 2 4 6 8
- Unsorted list:
-     1 30 -4 3 5 -4 1 6 -8 2 -5 64 1 92
- Sorted using quicksort:
-     -4 -4 -8 -5 1 1 3 2 5 1 30 64 6 92
+ Original vector:        0 1 2 3 4 5 6 7 8 9
+ Partitioned vector:     0 8 2 6 4 │ 5 3 7 1 9
+ Unsorted list:          1 30 -4 3 5 -4 1 6 -8 2 -5 64 1 92
+ Quick-sorted list:      92 64 30 6 5 3 2 1 1 1 -4 -4 -5 -8
 
 .SH See also
 
+   ranges::partition_copy   copies a range dividing the elements into two groups
+   (C++20)                  (niebloid)
    ranges::is_partitioned   determines if the range is partitioned by the given
    (C++20)                  predicate
                             (niebloid)

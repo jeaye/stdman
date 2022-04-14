@@ -1,64 +1,158 @@
-.TH std::ranges::views::drop_while,std::ranges::drop_while_view 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::views::drop_while,std::ranges::drop_while_view 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::views::drop_while,std::ranges::drop_while_view \- std::ranges::views::drop_while,std::ranges::drop_while_view
 
 .SH Synopsis
+   Defined in header <ranges>
    template< ranges::view V, class Pred >
 
-       requires ranges::input_range<V> &&
-                std::is_object_v<Pred> &&
-                std::indirect_unary_predicate<const Pred,             \fB(1)\fP \fI(since C++20)\fP
-   ranges::iterator_t<V>>
+   requires ranges::input_range<V> &&
+   std::is_object_v<Pred> &&                                          \fB(1)\fP \fI(since C++20)\fP
+   std::indirect_unary_predicate<const Pred, ranges::iterator_t<V>>
 
    class drop_while_view : public
    ranges::view_interface<drop_while_view<V, Pred>>
    namespace views {
 
-       inline constexpr /*unspecified*/ drop_while = /*unspecified*/; \fB(2)\fP \fI(since C++20)\fP
+   inline constexpr /*unspecified*/ drop_while = /*unspecified*/;     \fB(2)\fP \fI(since C++20)\fP
 
    }
+   Call signature
+   template< ranges::viewable_range R, class Pred >
+
+   requires /* see below */                                               \fI(since C++20)\fP
+
+   constexpr ranges::view auto drop_while( R&& r, Pred&& pred );
+   template< class Pred >                                                 \fI(since C++20)\fP
+   constexpr /*range adaptor closure*/ drop_while( Pred&& pred );
 
    1) A range adaptor that represents view of elements from an underlying sequence,
    beginning at the first element for which the predicate returns false.
-   2) The expression views::drop_while(E, F) is expression-equivalent to
-   drop_while_view{E, F} for any suitable subexpressions E and F.
+   2) Range adaptor objects. The expression views::drop_while(e, f) is
+   expression-equivalent to drop_while_view(e, f) for any suitable subexpressions e and
+   f.
 
    drop_while_view models the concepts contiguous_range, random_access_range,
    bidirectional_range, forward_range, input_range, and common_range when the
-   underlying view V models respective concepts.
+   underlying view V models respective concepts. It also models sized_range if
+   ranges::forward_range<V> and std::sized_sentinel_for<ranges::sentinel_t<V>,
+   ranges::iterator_t<V>> are modeled.
+
+  Expression-equivalent
+
+   Expression e is expression-equivalent to expression f, if e and f have the same
+   effects, either are both potentially-throwing or are both not potentially-throwing
+   (i.e. noexcept(e) == noexcept(f)), and either are both constant subexpressions or
+   are both not constant subexpressions.
 
 .SH Member functions
 
    constructor   constructs a drop_while_view
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
    base          returns a copy of the underlying (adapted) view
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
    pred          returns a reference to the stored predicate
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
    begin         returns an iterator to the beginning
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
    end           returns an iterator or a sentinel to the end
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
+         Inherited from std::ranges::view_interface
+   empty         Returns whether the derived view is empty. Provided if it satisfies
+   (C++20)       forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator bool Returns whether the derived view is not empty. Provided if
+   (C++20)       ranges::empty is applicable to it.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   data          Gets the address of derived view's data. Provided if its iterator type
+   (C++20)       satisfies contiguous_iterator.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+                 Returns the number of elements in the derived view. Provided if it
+   size          satisfies forward_range and its sentinel and iterator type satisfy
+   (C++20)       sized_sentinel_for.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   front         Returns the first element in the derived view. Provided if it
+   (C++20)       satisfies forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   back          Returns the last element in the derived view. Provided if it satisfies
+   (C++20)       bidirectional_range and common_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator[]    Returns the nth element in the derived view. Provided if it satisfies
+   (C++20)       random_access_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
 
-   Deduction guides
+  Deduction guides
+
+  Helper templates
+
+   template<class T, class Pred>
+
+   inline constexpr bool enable_borrowed_range<std::ranges::drop_while_view<T,  (since
+   Pred>> =                                                                     C++20)
+
+   std::ranges::enable_borrowed_range<T>;
+
+   This specialization of std::ranges::enable_borrowed_range makes drop_while_view
+   satisfy borrowed_range when the underlying view satisfies it.
+
+.SH Notes
+
+   In order to provide the amortized constant time complexity required by the range
+   concept, the result of begin is cached within the drop_while_view object. If the
+   underlying range is modified after the first call to begin(), subsequent uses of the
+   drop_while_view object might have unintuitive behavior.
 
 .SH Example
 
 
 // Run this code
 
- #include <ranges>
- #include <vector>
+ #include <cctype>
+ #include <iomanip>
  #include <iostream>
+ #include <ranges>
+ #include <string>
+ #include <string_view>
+
+ std::string trim(std::string_view const in)
+ {
+     auto view
+         = in
+         | std::views::drop_while(isspace)
+         | std::views::reverse
+         | std::views::drop_while(isspace)
+         | std::views::reverse
+         ;
+     return {view.begin(), view.end()};
+ }
 
  int main()
  {
-     std::vector<int> v{0,1,2,3,4,5};
-     for(int n : v | std::views::drop_while([](int i){return i<3;})) {
+     const auto s = trim(" \\f\\n\\t\\r\\vHello, C++20!\\f\\n\\t\\r\\v ");
+     std::cout << std::quoted(s) << '\\n';
+
+     static constexpr auto v = {0, 1, 2, 3, 4, 5};
+     for (int n : v | std::views::drop_while([](int i) { return i < 3; })) {
          std::cout << n << ' ';
      }
  }
 
 .SH Output:
 
+ "Hello, C++20!"
  3 4 5
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to    Behavior as published              Correct behavior
+   LWG 3494 C++20      drop_while_view was never a it is a borrowed_range if its
+                       borrowed_range              underlying view is
+
+.SH See also
+
+   ranges::drop_view a view consisting of elements of another view, skipping the first
+   views::drop       N elements
+   (C++20)           \fI(class template)\fP (range adaptor object)

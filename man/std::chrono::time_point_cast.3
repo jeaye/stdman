@@ -1,22 +1,24 @@
-.TH std::chrono::time_point_cast 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::chrono::time_point_cast 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::chrono::time_point_cast \- std::chrono::time_point_cast
 
 .SH Synopsis
+   Defined in header <chrono>
+   template <class ToDuration, class Clock, class Duration>
+                                                                        \fI(since C++11)\fP
+   std::chrono::time_point<Clock, ToDuration>                           \fI(until C++14)\fP
+
+   time_point_cast(const std::chrono::time_point<Clock, Duration> &t);
    template <class ToDuration, class Clock, class Duration>
 
-   time_point<Clock, ToDuration> time_point_cast(                         \fI(since C++11)\fP
-                                                                          \fI(until C++14)\fP
-                                    const time_point<Clock, Duration>
-   &t);
-   template <class ToDuration, class Clock, class Duration>
+   constexpr std::chrono::time_point<Clock, ToDuration>                 \fI(since C++14)\fP
 
-   constexpr time_point<Clock, ToDuration> time_point_cast(               \fI(since C++14)\fP
-
-                                    const time_point<Clock, Duration>
-   &t);
+   time_point_cast(const std::chrono::time_point<Clock, Duration> &t);
 
    Converts a std::chrono::time_point from one duration to another.
+
+   time_point_cast participates in overload resolution only if ToDuration is a
+   specialization of std::chrono::duration.
 
 .SH Parameters
 
@@ -24,13 +26,8 @@ std::chrono::time_point_cast \- std::chrono::time_point_cast
 
 .SH Return value
 
-   std::chrono::time_point<Clock,
-   ToDuration>(std::chrono::duration_cast<ToDuration>(t.time_since_epoch()))
-
-.SH Notes
-
-   time_point_cast will only participate in overload resolution if ToDuration is an
-   instantiation of duration.
+   std::chrono::time_point<Clock, ToDuration>(
+   std::chrono::duration_cast<ToDuration>(t.time_since_epoch())).
 
 .SH Example
 
@@ -39,6 +36,7 @@ std::chrono::time_point_cast \- std::chrono::time_point_cast
 
  #include <iostream>
  #include <chrono>
+ using namespace std::chrono_literals;
 
  using Clock = std::chrono::high_resolution_clock;
  using Ms = std::chrono::milliseconds;
@@ -47,6 +45,7 @@ std::chrono::time_point_cast \- std::chrono::time_point_cast
  template<class Duration>
  using TimePoint = std::chrono::time_point<Clock, Duration>;
 
+
  inline void print_ms(const TimePoint<Ms>& time_point)
  {
      std::cout << time_point.time_since_epoch().count() << " ms\\n";
@@ -54,15 +53,16 @@ std::chrono::time_point_cast \- std::chrono::time_point_cast
 
  int main()
  {
-     TimePoint<Sec> time_point_sec(Sec(4));
+     TimePoint<Sec> time_point_sec{4s};
 
      // implicit cast, no precision loss
-     TimePoint<Ms> time_point_ms(time_point_sec);
+     TimePoint<Ms> time_point_ms{time_point_sec};
      print_ms(time_point_ms); // 4000 ms
 
-     time_point_ms = TimePoint<Ms>(Ms(5756));
+     time_point_ms = TimePoint<Ms>{5756ms};
+     print_ms(time_point_ms); // 5756 ms
 
-     // explicit cast, need when precision loss may happens
+     // explicit cast, need when precision loss may happen
      // 5756 truncated to 5000
      time_point_sec = std::chrono::time_point_cast<Sec>(time_point_ms);
      print_ms(time_point_sec); // 5000 ms
@@ -71,4 +71,18 @@ std::chrono::time_point_cast \- std::chrono::time_point_cast
 .SH Output:
 
  4000 ms
+ 5756 ms
  5000 ms
+
+.SH See also
+
+   floor(std::chrono::time_point) converts a time_point to another, rounding down
+   \fI(C++17)\fP                        \fI(function template)\fP
+   ceil(std::chrono::time_point)  converts a time_point to another, rounding up
+   \fI(C++17)\fP                        \fI(function template)\fP
+   round(std::chrono::time_point) converts a time_point to another, rounding to
+   \fI(C++17)\fP                        nearest, ties to even
+                                  \fI(function template)\fP
+   duration_cast                  converts a duration to another, with a different tick
+   \fI(C++11)\fP                        interval
+                                  \fI(function template)\fP

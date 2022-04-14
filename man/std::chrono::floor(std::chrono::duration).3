@@ -1,17 +1,18 @@
-.TH std::chrono::floor(std::chrono::duration) 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::chrono::floor(std::chrono::duration) 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::chrono::floor(std::chrono::duration) \- std::chrono::floor(std::chrono::duration)
 
 .SH Synopsis
    Defined in header <chrono>
-   template <class ToDuration, class Rep, class Period>         \fI(since C++17)\fP
-   constexpr ToDuration floor(const duration<Rep, Period>& d);
+   template <class ToDuration, class Rep, class Period>
+   constexpr ToDuration floor(const std::chrono::duration<Rep, Period>&   \fI(since C++17)\fP
+   d);
 
    Returns the greatest duration t representable in ToDuration that is less or equal to
    d.
 
-   The function does not participate in the overload resolution unless ToDuration is an
-   instance of std::chrono::duration.
+   The function does not participate in the overload resolution unless ToDuration is a
+   specialization of std::chrono::duration.
 
 .SH Parameters
 
@@ -23,12 +24,14 @@ std::chrono::floor(std::chrono::duration) \- std::chrono::floor(std::chrono::dur
 
 .SH Possible implementation
 
-   template <class T> struct is_duration : std::false_type {};
-   template <class Rep, class Period> struct is_duration<
-       std::chrono::duration<Rep, Period>> : std::true_type {};
+   namespace detail {
+   template<class> inline constexpr bool is_duration_v = false;
+   template<class Rep, class Period> inline constexpr bool is_duration_v<
+       std::chrono::duration<Rep, Period>> = true;
+   }
 
    template <class To, class Rep, class Period,
-             class = std::enable_if_t<is_duration<To>{}>>
+             class = std::enable_if_t<detail::is_duration_v<To>>>
    constexpr To floor(const duration<Rep, Period>& d)
    {
        To t = std::chrono::duration_cast<To>(d);
@@ -39,13 +42,50 @@ std::chrono::floor(std::chrono::duration) \- std::chrono::floor(std::chrono::dur
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <iostream>
+ #include <iomanip>
+ #include <chrono>
+
+ int main()
+ {
+     using namespace std::chrono_literals;
+     using Sec = std::chrono::seconds;
+     for (std::cout << "Duration\\tFloor\\tRound\\tCeil\\n"
+                       "(ms)\\t\\t(sec)\\t(sec)\\t(sec)\\n";
+         auto const d: {
+             +4999ms, +5000ms, +5001ms, +5499ms, +5500ms, +5999ms,
+             -4999ms, -5000ms, -5001ms, -5499ms, -5500ms, -5999ms, }) {
+         std::cout << std::showpos << d.count() << "\\t\\t"
+                   << std::chrono::floor<Sec>(d).count() << '\\t'
+                   << std::chrono::round<Sec>(d).count() << '\\t'
+                   << std::chrono::ceil <Sec>(d).count() << '\\n';
+     }
+ }
+
+.SH Output:
+
+ Duration   Floor   Round   Ceil
+ (ms)       (sec)   (sec)   (sec)
+ +4999      +4      +5      +5
+ +5000      +5      +5      +5
+ +5001      +5      +5      +6
+ +5499      +5      +5      +6
+ +5500      +5      +6      +6
+ +5999      +5      +6      +6
+ -4999      -5      -5      -4
+ -5000      -5      -5      -5
+ -5001      -6      -5      -5
+ -5499      -6      -5      -5
+ -5500      -6      -6      -5
+ -5999      -6      -6      -5
 
 .SH See also
 
-                                  converts a duration to another, with a different tick
-   duration_cast                  interval
+   duration_cast                  converts a duration to another, with a different tick
+   \fI(C++11)\fP                        interval
                                   \fI(function template)\fP
    ceil(std::chrono::duration)    converts a duration to another, rounding up
    \fI(C++17)\fP                        \fI(function template)\fP
@@ -59,7 +99,3 @@ std::chrono::floor(std::chrono::duration) \- std::chrono::floor(std::chrono::dur
    floorl                         \fI(function)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
-
-.SH Category:
-
-     * Todo no example

@@ -1,4 +1,4 @@
-.TH std::filesystem::space_info 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::space_info 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::space_info \- std::filesystem::space_info
 
@@ -6,13 +6,13 @@ std::filesystem::space_info \- std::filesystem::space_info
    Defined in header <filesystem>
    struct space_info {
 
-       std::uintmax_t capacity;
-       std::uintmax_t free;        \fI(since C++17)\fP
-       std::uintmax_t available;
+   std::uintmax_t capacity;
+   std::uintmax_t free;            \fI(since C++17)\fP
+   std::uintmax_t available;
 
    };
 
-   Represents the filesystem information as determined by space.
+   Represents the filesystem information as determined by filesystem::space.
 
 .SH Member objects
 
@@ -40,6 +40,8 @@ operator==(std::filesystem::space_info)
    only be found by argument-dependent lookup when std::filesystem::space_info is an
    associated class of the arguments.
 
+   The != operator is synthesized from operator==.
+
 .SH Example
 
 
@@ -47,24 +49,38 @@ operator==(std::filesystem::space_info)
 
  #include <iostream>
  #include <filesystem>
- namespace fs = std::filesystem;
+ #include <cstdint>
+
+ void print_space_info(auto const& dirs, int width = 14)
+ {
+     std::cout << std::left;
+     for (const auto s : {"Capacity", "Free", "Available", "Dir"})
+         std::cout << "│ " << std::setw(width) << s << ' ';
+     std::cout << '\\n';
+     std::error_code ec;
+     for (auto const& dir : dirs) {
+         const std::filesystem::space_info si = std::filesystem::space(dir, ec);
+         std::cout
+             << "│ " << std::setw(width) << static_cast<std::intmax_t>(si.capacity) << ' '
+             << "│ " << std::setw(width) << static_cast<std::intmax_t>(si.free) << ' '
+             << "│ " << std::setw(width) << static_cast<std::intmax_t>(si.available) << ' '
+             << "│ " << dir << '\\n';
+     }
+ }
+
  int main()
  {
-     fs::space_info devi = fs::space("/dev/null");
-     fs::space_info tmpi = fs::space("/tmp");
-
-     std::cout << ".        Capacity       Free      Available\\n"
-               << "/dev:   " << devi.capacity << "   "
-               << devi.free << "   " << devi.available  << '\\n'
-               << "/tmp: " << tmpi.capacity << " "
-               << tmpi.free << " " << tmpi.available  << '\\n';
+     const auto dirs = { "/dev/null", "/tmp", "/home", "/null" };
+     print_space_info(dirs);
  }
 
 .SH Possible output:
 
- .         Capacity       Free      Available
- /dev:   4175114240   4175110144   4175110144
- /tmp: 420651237376 411962273792 390570749952
+ │ Capacity       │ Free           │ Available      │ Dir
+ │ 8342851584     │ 8342851584     │ 8342851584     │ /dev/null
+ │ 12884901888    │ 3045265408     │ 3045265408     │ /tmp
+ │ 250321567744   │ 37623181312    │ 25152159744    │ /home
+ │ -1             │ -1             │ -1             │ /null
 
 .SH See also
 

@@ -1,19 +1,19 @@
-.TH std::lerp 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::lerp 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::lerp \- std::lerp
 
 .SH Synopsis
    Defined in header <cmath>
-   constexpr float       lerp( float a, float b, float t ) noexcept;  \fB(1)\fP \fI(since C++20)\fP
-   constexpr double      lerp( double a, double b, double t )         \fB(2)\fP \fI(since C++20)\fP
-   noexcept;
+   constexpr float lerp( float a, float b, float t ) noexcept;        \fB(1)\fP \fI(since C++20)\fP
+   constexpr double lerp( double a, double b, double t ) noexcept;    \fB(2)\fP \fI(since C++20)\fP
    constexpr long double lerp( long double a, long double b, long     \fB(3)\fP \fI(since C++20)\fP
    double t ) noexcept;
-   constexpr Promoted    lerp( Arithmetic1 a, Arithmetic2 b,          \fB(4)\fP \fI(since C++20)\fP
-   Arithmetic3 t ) noexcept;
+   constexpr Promoted lerp( Arithmetic1 a, Arithmetic2 b, Arithmetic3 \fB(4)\fP \fI(since C++20)\fP
+   t ) noexcept;
 
-   1-3) Computes \\(a+t(b−a)\\)a+t(b−a), i.e. the linear interpolation between a and b
-   for the parameter t (or extrapolation, when t is outside the range [0,1]).
+   1-3) Computes the linear interpolation between a and b, if the parameter t is inside
+   [0, 1] (the linear extrapolation otherwise), i.e. the result of
+   \\(a+t(b−a)\\)a+t(b−a) with accounting for floating-point calculation imprecision.
    4) A set of overloads or a function template for all combinations of arguments of
    arithmetic type not covered by 1-3). If any argument has integral type, it is cast
    to double. If any other argument is long double, then the return type is long
@@ -27,13 +27,13 @@ std::lerp \- std::lerp
 
    \\(a+t(b−a)\\)a+t(b−a)
 
-   When isfinite(a) && isfinite(b), the following properties are guaranteed:
+   When isfinite(a) and isfinite(b), the following properties are guaranteed:
 
      * If t == 0, the result is equal to a.
      * If t == 1, the result is equal to b.
      * If t >= 0 && t <= 1, the result is finite.
      * If isfinite(t) && a == b, the result is equal to a.
-     * If isfinite(t) || (!isnan(t) && b-a != 0), the result is not NaN.
+     * If isfinite(t) || (b - a != 0 and isinf(t)), the result is not NaN.
 
    Let CMP(x,y) be 1 if x > y, -1 if x < y, and 0 otherwise. For any t1 and t2, the
    product of CMP(lerp(a, b, t2), lerp(a, b, t1)), CMP(t2, t1), and CMP(b, a) is
@@ -44,29 +44,63 @@ std::lerp \- std::lerp
    lerp is available in the global namespace when <math.h> is included, even if it is
    not a part of C.
 
+   Feature testing macro: __cpp_lib_interpolate
+
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
  #include <cmath>
+ #include <cassert>
+ #include <iostream>
+
+ float naive_lerp(float a, float b, float t)
+ {
+     return a + t * (b - a);
+ }
 
  int main()
  {
-     float a=10.0f, b=20.0f;
+     std::cout << std::boolalpha;
 
-     std::cout << "a=" << a << ", " << "b=" << b << '\\n'
-               << "mid point=" << std::lerp(a,b,0.5f) << '\\n'
-               << std::boolalpha << (a == std::lerp(a,b,0.0f)) << ' '
-               << std::boolalpha << (b == std::lerp(a,b,1.0f)) << '\\n';
+     const float a = 1e8f, b = 1.0f;
+     const float midpoint = std::lerp(a, b, 0.5f);
+
+     std::cout << "a = " << a << ", " << "b = " << b << '\\n'
+               << "midpoint = " << midpoint << '\\n';
+
+     std::cout << "std::lerp is exact: "
+               << (a == std::lerp(a, b, 0.0f)) << ' '
+               << (b == std::lerp(a, b, 1.0f)) << '\\n';
+
+     std::cout << "naive_lerp is exact: "
+               << (a == naive_lerp(a, b, 0.0f)) << ' '
+               << (b == naive_lerp(a, b, 1.0f)) << '\\n';
+
+     std::cout << "std::lerp(a, b, 1.0f) = " << std::lerp(a, b, 1.0f) << '\\n'
+               << "naive_lerp(a, b, 1.0f) = " << naive_lerp(a, b, 1.0f) << '\\n';
+
+     assert(not std::isnan(std::lerp(a, b, INFINITY))); // lerp here can be -inf
+
+     std::cout << "Extrapolation demo, given std::lerp(5, 10, t):\\n";
+
+     for (auto t{-2.0}; t <= 2.0; t += 0.5)
+         std::cout << std::lerp(5.0, 10.0, t) << ' ';
+
+     std::cout << '\\n';
  }
 
-.SH Output:
+.SH Possible output:
 
- a=10, b=20
- mid point=15
- true true
+ a = 1e+08, b = 1
+ midpoint = 5e+07
+ std::lerp is exact?: true true
+ naive_lerp is exact?: true false
+ std::lerp(a, b, 1.0f) = 1
+ naive_lerp(a, b, 1.0f) = 0
+ Extrapolation demo, given std::lerp(5, 10, t):
+ -5 -2.5 0 2.5 5 7.5 10 12.5 15
 
 .SH See also
 

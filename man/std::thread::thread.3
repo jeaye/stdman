@@ -1,4 +1,4 @@
-.TH std::thread::thread 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::thread::thread 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::thread::thread \- std::thread::thread
 
@@ -16,24 +16,26 @@ std::thread::thread \- std::thread::thread
    execution that was represented by other. After this call other no longer represents
    a thread of execution.
    3) Creates new std::thread object and associates it with a thread of execution. The
-   new thread of execution starts executing
+   new thread of execution starts executing /*INVOKE*/(std::move(f_copy),
+   std::move(args_copy)...), where
 
- std::invoke(decay_copy(std::forward<Function>(f)),
-             decay_copy(std::forward<Args>(args))...);
+     * /*INVOKE*/ performs the INVOKE operation specified in Callable
+       , which can be performed by std::invoke
+       \fI(since C++17)\fP, and
+     * f_copy is an object of type std::decay<Function>::type and constructed from
+       std::forward<Function>(f), and
+     * args_copy... are objects of types std::decay<Args>::type... and constructed from
+       std::forward<Args>(args)....
 
-   where decay_copy is defined as
-
- template <class T>
- std::decay_t<T> decay_copy(T&& v) { return std::forward<T>(v); }
-
-   Except that the calls to decay_copy are evaluated in the context of the caller, so
-   that any exceptions thrown during evaluation and copying/moving of the arguments are
-   thrown in the current thread, without starting the new thread.
+   Constructions of these objects are executed in the context of the caller, so that
+   any exceptions thrown during evaluation and copying/moving of the arguments are
+   thrown in the current thread, without starting the new thread. The program is
+   ill-formed if any construction or the INVOKE operation is invalid.
+   This constructor does not participate in overload resolution if
+   std::decay<Function>::type is the same type as thread.
    The completion of the invocation of the constructor synchronizes-with (as defined in
    std::memory_order) the beginning of the invocation of the copy of f on the new
    thread of execution.
-   This constructor does not participate in overload resolution if
-   std::decay<Function>::type is the same type as std::thread.
    4) The copy constructor is deleted; threads are not copyable. No two std::thread
    objects may represent the same thread of execution.
 
@@ -132,13 +134,14 @@ std::thread::thread \- std::thread::thread
      std::thread t3(f2, std::ref(n)); // pass by reference
      std::thread t4(std::move(t3)); // t4 is now running f2(). t3 is no longer a thread
      std::thread t5(&foo::bar, &f); // t5 runs foo::bar() on object f
-     std::thread t6(b); // t6 runs baz::operator() on object b
+     std::thread t6(b); // t6 runs baz::operator() on a copy of object b
      t2.join();
      t4.join();
      t5.join();
      t6.join();
      std::cout << "Final value of n is " << n << '\\n';
-     std::cout << "Final value of foo::n is " << f.n << '\\n';
+     std::cout << "Final value of f.n (foo::n) is " << f.n << '\\n';
+     std::cout << "Final value of b.n (baz::n) is " << b.n << '\\n';
  }
 
 .SH Possible output:
@@ -164,9 +167,10 @@ std::thread::thread \- std::thread::thread
  Thread 2 executing
  Thread 4 executing
  Final value of n is 5
- Final value of foo::n is 5
+ Final value of f.n (foo::n) is 5
+ Final value of b.n (baz::n) is 0
 
-   Defect reports
+  Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
@@ -179,21 +183,21 @@ std::thread::thread \- std::thread::thread
 
      * C++20 standard (ISO/IEC 14882:2020):
 
-     * 32.4.2.2 thread constructors [thread.thread.constr]
+              * 32.4.2.2 thread constructors [thread.thread.constr]
 
      * C++17 standard (ISO/IEC 14882:2017):
 
-     * 33.3.2.2 thread constructors [thread.thread.constr]
+              * 33.3.2.2 thread constructors [thread.thread.constr]
 
      * C++14 standard (ISO/IEC 14882:2014):
 
-     * 30.3.1.2 thread constructors [thread.thread.constr]
+              * 30.3.1.2 thread constructors [thread.thread.constr]
 
      * C++11 standard (ISO/IEC 14882:2011):
 
-     * 30.3.1.2 thread constructors [thread.thread.constr]
+              * 30.3.1.2 thread constructors [thread.thread.constr]
 
 .SH See also
 
-   C documentation for
-   thrd_create
+   constructor   constructs new jthread object
+                 \fI(public member function of std::jthread)\fP

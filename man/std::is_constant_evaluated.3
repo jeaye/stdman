@@ -1,4 +1,4 @@
-.TH std::is_constant_evaluated 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_constant_evaluated 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_constant_evaluated \- std::is_constant_evaluated
 
@@ -11,39 +11,21 @@ std::is_constant_evaluated \- std::is_constant_evaluated
    expression or conversion that is manifestly constant-evaluated; otherwise returns
    false.
 
-   The following expressions (including conversions to the destination type) are
-   manifestly constant-evaluated:
+   While testing whether initializers of following variables are constant initializers,
+   compilers may first perform a trial constant evaluation of the initializers:
 
-     * Where a constant expression is grammatically required, including:
+     * variables with reference type or const-qualified integral or enumeration type
 
-     * array bounds
-     * the dimensions in new-expressions other than the first
-     * bit-field lengths
-     * enumeration initializers
-     * alignments
-     * case expressions
-     * non-type template arguments
-     * expressions in noexcept specifications
-     * expressions in static_assert declarations
-     * expressions in conditional explicit specifiers
+          * if the initializers are constant expressions, the variables are usable in
+            constant expressions
 
-     * conditions of constexpr if statements
-     * immediate invocations
-     * constraint expressions in concept definitions, nested requirements, and requires
-       clauses
-     * initializers of variables that are usable in constant expressions, including:
+     * static and thread local variables
 
-     * initializers of constexpr variables
-     * initializers of variables with reference type or const-qualified integral or
-       enumeration type, when the initializers are constant expressions
+          * if when all subexpressions of the initializers (including constructor calls
+            and implicit conversions) are constant expressions, static initialization
+            is performed, which can be asserted by constinit
 
-     * initializers of static and thread local variables, when all subexpressions of
-       the initializers (including constructor calls and implicit conversions) are
-       constant expressions (that is, when the initializers are constant initializers)
-
-   To test the last two conditions, compilers may first perform a trial constant
-   evaluation of the initializers. It is not recommended to depend on the result in
-   this case.
+   It is not recommended to depend on the result in this case.
 
  int y;
  const int a = std::is_constant_evaluated() ? y : 1;
@@ -61,12 +43,30 @@ std::is_constant_evaluated \- std::is_constant_evaluated
 .SH Return value
 
    true if the evaluation of the call occurs within the evaluation of an expression or
-   conversion that is manifestly constant-evaluated; otherwise false
+   conversion that is manifestly constant-evaluated; otherwise false.
+
+.SH Possible implementation
+
+   // This implementation requires C++23 if consteval.
+   constexpr bool is_constant_evaluated() noexcept
+   {
+       if consteval {
+           return true;
+       }
+       else {
+           return false;
+       }
+   }
 
 .SH Notes
 
    When directly used as the condition of static_assert declaration or constexpr if
    statement, std::is_constant_evaluated() always returns true.
+
+   Because if consteval is absent in C++20, std::is_constant_evaluated is typically
+   implemented by a compiler extension.
+
+   Feature testing macro: __cpp_lib_is_constant_evaluated
 
 .SH Example
 
@@ -113,3 +113,13 @@ std::is_constant_evaluated \- std::is_constant_evaluated
 .SH Output:
 
  1000 1000
+
+.SH See also
+
+   constexpr specifier\fI(C++11)\fP specifies that the value of a variable or function can be
+                              computed at compile time
+                              specifies that a function is an immediate function, that
+   consteval specifier(C++20) is, every call to the function must be in a constant
+                              evaluation
+   constinit specifier(C++20) asserts that a variable has static initialization, i.e.
+                              zero initialization and constant initialization

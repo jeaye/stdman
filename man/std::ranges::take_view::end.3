@@ -1,10 +1,10 @@
-.TH std::ranges::take_view::end 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::take_view::end 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::take_view::end \- std::ranges::take_view::end
 
 .SH Synopsis
-   constexpr auto end() requires (!__SimpleView<V>);             \fB(1)\fP \fI(since C++20)\fP
-   constexpr auto begin() const requires ranges::range<const V>; \fB(2)\fP \fI(since C++20)\fP
+   constexpr auto end() requires (!__SimpleView<V>);           \fB(1)\fP \fI(since C++20)\fP
+   constexpr auto end() const requires ranges::range<const V>; \fB(2)\fP \fI(since C++20)\fP
 
    Returns a sentinel or an iterator representing the end of the take_view. The end of
    the take_view is either one past the count-th element in the underlying range, or
@@ -24,31 +24,68 @@ std::ranges::take_view::end \- std::ranges::take_view::end
 
 .SH Return value
 
-   The result depends on the concepts satisfied by V (for overload \fB(1)\fP) or const V (for
-   overload \fB(2)\fP).
+   The result depends on the concepts satisfied by possible const-qualified underlying
+   view type Base_, that is V (for overload \fB(1)\fP) or const V (for overload \fB(2)\fP).
 
    Let base_ be the underlying view.
 
-    The underlying view satisfies                   random_access_range
-                 ...                             yes                       no
-                            yes     ranges::begin(base_) + size() std::default_sentinel
-       sized_range          no      1) /*sentinel*/<false>{ranges::end(base_)}
-                                    2) /*sentinel*/<true>{ranges::end(base_)}
+   The underlying                           random_access_range
+   view satisfies
+         ...                             yes                                no
+                   ranges::begin(base_) +
+               yes                                                 std::default_sentinel
+   sized_range     ranges::range_difference_t<Base_>(this->size())
+               no  1) /*sentinel*/<false>{ranges::end(base_)}
+                   2) /*sentinel*/<true>{ranges::end(base_)}
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <list>
+ #include <ranges>
+ #include <iterator>
+ #include <iostream>
+ #include <type_traits>
+
+ int main() {
+     const auto list1 = { 3, 1, 4, 1, 5 };
+     const auto seq1 = list1 | std::views::take(4);
+     static_assert(std::ranges::sized_range<decltype(seq1)> and
+                   std::ranges::random_access_range<decltype(seq1)> and
+                   std::is_same_v<decltype(seq1.end()), decltype(list1.end())>);
+     for (auto it = seq1.begin(); it != seq1.end(); std::cout << *it++ << ' '){ }
+     std::cout << '\\n';
+
+     std::list list2 = { 2, 7, 1, 8, 2 };
+     const auto seq2 = list2 | std::views::take(4);
+     static_assert(std::ranges::sized_range<decltype(seq2)> and
+                   not std::ranges::random_access_range<decltype(seq2)> and
+                   std::is_same_v<decltype(seq2.end()), std::default_sentinel_t>);
+     for (auto it = seq2.begin(); it != std::default_sentinel; std::cout << *it++ << ' '){ }
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ 3 1 4 1
+ 2 7 1 8
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to              Behavior as published               Correct behavior
+   P2393R1 C++20      implicit conversions between signed and unsigned made explicit
+                      integer-class types might fail
 
 .SH See also
 
    begin            returns an iterator to the beginning
-                    \fI(public member function)\fP
+   (C++20)          \fI(public member function)\fP
    counted_iterator iterator adaptor that tracks the distance to the end of the range
    (C++20)          \fI(class template)\fP
    operator==       compares a sentinel with an iterator returned from take_view::begin
-                    \fI(function)\fP
-
-.SH Category:
-
-     * Todo no example
+   (C++20)          \fI(function)\fP

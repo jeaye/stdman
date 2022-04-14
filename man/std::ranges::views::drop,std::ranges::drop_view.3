@@ -1,54 +1,109 @@
-.TH std::ranges::views::drop,std::ranges::drop_view 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::views::drop,std::ranges::drop_view 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::views::drop,std::ranges::drop_view \- std::ranges::views::drop,std::ranges::drop_view
 
 .SH Synopsis
-   template< ranges::view V >                                    \fB(1)\fP \fI(since C++20)\fP
+   Defined in header <ranges>
+   template< ranges::view V >                                         \fB(1)\fP \fI(since C++20)\fP
    class drop_view : public ranges::view_interface<drop_view<V>>
    namespace views {
 
-       inline constexpr /*unspecified*/ drop = /*unspecified*/;  \fB(2)\fP \fI(since C++20)\fP
+   inline constexpr /*unspecified*/ drop = /*unspecified*/;           \fB(2)\fP \fI(since C++20)\fP
 
    }
+   Call signature
+   template< ranges::viewable_range R, class DifferenceType >
+
+   requires /* see below */                                               \fI(since C++20)\fP
+
+   constexpr ranges::view auto drop( R&& r, DifferenceType&& count );
+   template< class DifferenceType >
+   constexpr /*range adaptor closure*/ drop( DifferenceType&& count       \fI(since C++20)\fP
+   );
 
    1) A range adaptor consisting of elements of the underlying sequence, skipping the
    first N elements.
-   2) The expression views::drop(E,F) is expression-equivalent to (where T is
-   std::remove_cvref_t<decltype((E))> and D is
-   ranges::range_difference_t<decltype((E))>):
+   2) Range adaptor object. Given T is std::remove_cvref_t<decltype((e))> and D is
+   ranges::range_difference_t<decltype((e))>), the expression views::drop(e, f) is
+   expression-equivalent to:
 
-     * ((void)F, static_cast<T>(E)), if T is a ranges::empty_view;
-     * T{ranges::begin(E) + std::min<D>(ranges::size(E), F)}, ranges::end(E), if T
-       models both random_access_range and sized_range, and T is a specialization of
+     * ((void)f, static_cast<T>(e)), if T is a ranges::empty_view, except that the
+       evaluations of e and f are indeterminately sequenced;
+     * otherwise, T(ranges::begin(e) + inc, ranges::end(e),
+       /*to-unsigned-like*/(ranges::distance(e) - inc)), if T is a specialization of
+       ranges::subrange that models both random_access_range and sized_range, and T
+       needs to store the size (see ranges::subrange::subrange for details), where inc
+       is std::min<D>(ranges::distance(e), f);
+     * otherwise, U(ranges::begin(e) + std::min<D>(ranges::distance(e), f),
+       ranges::end(e)), if T is a specialization of std::span, std::basic_string_view,
+       ranges::iota_view, or ranges::subrange that models both random_access_range and
+       sized_range, where U is
 
-     * std::span where T::extent == std::dynamic_extent,
-     * std::basic_string_view,
-     * ranges::iota_view, or
-     * ranges::subrange;
+              * std::span<typename T::element_type>, if T is a specialization of
+                std::span;
+              * T otherwise;
 
-     * otherwise, drop_view{E, F}.
+     * otherwise, drop_view(e, f).
 
-   In all cases, decltype((F)) must model std::convertible_to<D>.
+   In all cases, decltype((f)) must model std::convertible_to<D>.
 
    drop_view models the concepts contiguous_range, random_access_range,
    bidirectional_range, forward_range, input_range, common_range, and sized_range when
    the underlying view V models respective concepts.
 
+  Expression-equivalent
+
+   Expression e is expression-equivalent to expression f, if e and f have the same
+   effects, either are both potentially-throwing or are both not potentially-throwing
+   (i.e. noexcept(e) == noexcept(f)), and either are both constant subexpressions or
+   are both not constant subexpressions.
+
 .SH Member functions
 
    constructor   constructs a drop_view
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
    base          returns a copy of the underlying (adapted) view
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
    begin         returns an iterator to the beginning
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
    end           returns an iterator or a sentinel to the end
+   (C++20)       \fI(public member function)\fP
+   size          returns the number of elements. Provided only if the underlying
+   (C++20)       (adapted) range satisfies sized_range
                  \fI(public member function)\fP
-                 returns the number of elements. Provided only if the underlying
-   size          (adapted) range satisfies sized_range
-                 \fI(public member function)\fP
+         Inherited from std::ranges::view_interface
+   empty         Returns whether the derived view is empty. Provided if it satisfies
+   (C++20)       forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator bool Returns whether the derived view is not empty. Provided if
+   (C++20)       ranges::empty is applicable to it.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   data          Gets the address of derived view's data. Provided if its iterator type
+   (C++20)       satisfies contiguous_iterator.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   front         Returns the first element in the derived view. Provided if it
+   (C++20)       satisfies forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   back          Returns the last element in the derived view. Provided if it satisfies
+   (C++20)       bidirectional_range and common_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator[]    Returns the nth element in the derived view. Provided if it satisfies
+   (C++20)       random_access_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
 
-   Deduction guides
+  Deduction guides
+
+  Helper templates
+
+   template<class T>
+
+   inline constexpr bool                                                  \fI(since C++20)\fP
+   enable_borrowed_range<std::ranges::drop_view<T>> =
+
+   std::ranges::enable_borrowed_range<T>;
+
+   This specialization of std::ranges::enable_borrowed_range makes drop_view satisfy
+   borrowed_range when the underlying view satisfies it.
 
 .SH Example
 
@@ -56,12 +111,11 @@ std::ranges::views::drop,std::ranges::drop_view \- std::ranges::views::drop,std:
 // Run this code
 
  #include <ranges>
- #include <vector>
  #include <iostream>
 
  int main()
  {
-     std::vector nums = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+     const auto nums = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
      for (int i : nums | std::views::drop(2))
          std::cout << i << ' ';
@@ -81,3 +135,22 @@ std::ranges::views::drop,std::ranges::drop_view \- std::ranges::views::drop,std:
  3 4 5 6 7 8 9
  3 4 5 6 7 8 9
  3 4 5 6 7 8 9
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to     Behavior as published              Correct behavior
+   LWG 3494 C++20      drop_view was never a          it is a borrowed_range if its
+                       borrowed_range                 underlying view is
+                       views::drop sometimes fails to the construction is adjusted so
+   LWG 3407 C++20      construct                      that it is always valid
+                       a sized random access range
+
+.SH See also
+
+   ranges::drop_while_view a view consisting of the elements of another view, skipping
+   views::drop_while       the initial subsequence of elements until the first element
+   (C++20)                 where the predicate returns false
+                           \fI(class template)\fP (range adaptor object)

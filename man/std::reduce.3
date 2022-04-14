@@ -1,55 +1,53 @@
-.TH std::reduce 3 "2021.11.17" "http://cppreference.com" "C++ Standard Libary"
+.TH std::reduce 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::reduce \- std::reduce
 
 .SH Synopsis
    Defined in header <numeric>
-   template<class InputIt>
-                                                                (since
-   typename std::iterator_traits<InputIt>::value_type           C++17)
-   reduce(                                                      (until
+   template< class InputIt >                                    (since
+                                                                C++17)
+   typename std::iterator_traits<InputIt>::value_type           (until
                                                                 C++20)
-       InputIt first, InputIt last);
-   template<class InputIt>
+   reduce( InputIt first, InputIt last );
+   template< class InputIt >
 
    constexpr typename                                           (since
-   std::iterator_traits<InputIt>::value_type reduce(            C++20)
+   std::iterator_traits<InputIt>::value_type                    C++20)
 
-       InputIt first, InputIt last);
-   template<class ExecutionPolicy, class ForwardIt>
+   reduce( InputIt first, InputIt last );
+   template< class ExecutionPolicy, class ForwardIt >
 
-   typename std::iterator_traits<ForwardIt>::value_type         (since
-   reduce(                                                  \fB(2)\fP C++17)
-       ExecutionPolicy&& policy,
+   typename std::iterator_traits<ForwardIt>::value_type     \fB(2)\fP (since
+   reduce( ExecutionPolicy&& policy,                            C++17)
 
-       ForwardIt first, ForwardIt last);
+   ForwardIt first, ForwardIt last );
                                                                         (since
-   template<class InputIt, class T>                                     C++17)
-   T reduce(InputIt first, InputIt last, T init);                       (until
-                                                        \fB(1)\fP             C++20)
-   template<class InputIt, class T>                                     (since
-   constexpr T reduce(InputIt first, InputIt last, T                    C++20)
-   init);
-   template<class ExecutionPolicy, class ForwardIt,
-   class T>
+   template< class InputIt, class T >                                   C++17)
+   T reduce( InputIt first, InputIt last, T init );                     (until
+                                                                        C++20)
+   template< class InputIt, class T >                   \fB(1)\fP             (since
+   constexpr T reduce( InputIt first, InputIt last, T                   C++20)
+   init );
+   template< class ExecutionPolicy, class ForwardIt,
+   class T >
                                                                 \fB(4)\fP     (since
-   T reduce(ExecutionPolicy&& policy,                                   C++17)
+   T reduce( ExecutionPolicy&& policy,                                  C++17)
 
-            ForwardIt first, ForwardIt last, T init);
-   template<class InputIt, class T, class BinaryOp>         \fB(3)\fP                 (since
-   T reduce(InputIt first, InputIt last, T init,                                C++17)
-   BinaryOp binary_op);                                                         (until
-                                                                                C++17)
-   template<class InputIt, class T, class BinaryOp>                             (since
-   constexpr T reduce(InputIt first, InputIt last, T                            C++17)
-   init, BinaryOp binary_op);                                   \fB(5)\fP
-   template<class ExecutionPolicy, class ForwardIt,
-   class T, class BinaryOp>
+   ForwardIt first, ForwardIt last, T init );
+   template< class InputIt, class T, class BinaryOp >       \fB(3)\fP                 (since
+   T reduce( InputIt first, InputIt last, T init,                               C++17)
+   BinaryOp binary_op );                                                        (until
+                                                                                C++20)
+   template< class InputIt, class T, class BinaryOp >                           (since
+   constexpr T reduce( InputIt first, InputIt last, T                           C++20)
+   init, BinaryOp binary_op );                                  \fB(5)\fP
+   template< class ExecutionPolicy, class ForwardIt,
+   class T, class BinaryOp >
                                                                                 (since
-   T reduce(ExecutionPolicy&& policy,                                   \fB(6)\fP     C++17)
+   T reduce( ExecutionPolicy&& policy,                                  \fB(6)\fP     C++17)
 
-            ForwardIt first, ForwardIt last, T init,
-   BinaryOp binary_op);
+   ForwardIt first, ForwardIt last, T init, BinaryOp
+   binary_op );
 
    1) same as reduce(first, last, typename std::iterator_traits<InputIt>::value_type{})
    3) same as reduce(first, last, init, std::plus<>())
@@ -102,10 +100,10 @@ std::reduce \- std::reduce
        M, ..., b
        N)) where
 
-     * b
-       1, ..., b
-       N may be any permutation of a1, ..., aN and
-     * 1 < K+1 = M ≤ N
+              * b
+                1, ..., b
+                N may be any permutation of a1, ..., aN and
+              * 1 < K+1 = M ≤ N
 
    in other words, reduce behaves like std::accumulate except the elements of the range
    may be grouped and rearranged in arbitrary order
@@ -135,39 +133,53 @@ std::reduce \- std::reduce
 
 // Run this code
 
- #include <iostream>
  #include <chrono>
- #include <vector>
- #include <numeric>
  #include <execution>
+ #include <iomanip>
+ #include <iostream>
+ #include <numeric>
+ #include <utility>
+ #include <vector>
 
  int main()
  {
-     const std::vector<double> v(10'000'007, 0.5);
-
-     {
+     auto eval = [](auto fun) {
          const auto t1 = std::chrono::high_resolution_clock::now();
-         const double result = std::accumulate(v.cbegin(), v.cend(), 0.0);
+         const auto [name, result] = fun();
          const auto t2 = std::chrono::high_resolution_clock::now();
          const std::chrono::duration<double, std::milli> ms = t2 - t1;
-         std::cout << std::fixed << "std::accumulate result " << result
-                   << " took " << ms.count() << " ms\\n";
-     }
-
-     {
-         const auto t1 = std::chrono::high_resolution_clock::now();
-         const double result = std::reduce(std::execution::par, v.cbegin(), v.cend());
-         const auto t2 = std::chrono::high_resolution_clock::now();
-         const std::chrono::duration<double, std::milli> ms = t2 - t1;
-         std::cout << "std::reduce result "
+         std::cout << std::fixed << std::setprecision(1) << name << " result "
                    << result << " took " << ms.count() << " ms\\n";
+     };
+     {
+         const std::vector<double> v(100'000'007, 0.1);
+
+         eval([&v]{ return std::pair{"std::accumulate (double)",
+             std::accumulate(v.cbegin(), v.cend(), 0.0)}; } );
+         eval([&v]{ return std::pair{"std::reduce (seq, double)",
+             std::reduce(std::execution::seq, v.cbegin(), v.cend())}; } );
+         eval([&v]{ return std::pair{"std::reduce (par, double)",
+             std::reduce(std::execution::par, v.cbegin(), v.cend())}; } );
+     }{
+         const std::vector<long> v(100'000'007, 1);
+
+         eval([&v]{ return std::pair{"std::accumulate (long)",
+             std::accumulate(v.cbegin(), v.cend(), 0)}; } );
+         eval([&v]{ return std::pair{"std::reduce (seq, long)",
+             std::reduce(std::execution::seq, v.cbegin(), v.cend())}; } );
+         eval([&v]{ return std::pair{"std::reduce (par, long)",
+             std::reduce(std::execution::par, v.cbegin(), v.cend())}; } );
      }
  }
 
 .SH Possible output:
 
- std::accumulate result 5000003.50000 took 12.7365 ms
- std::reduce result 5000003.50000 took 5.06423 ms
+ std::accumulate (double) result 10000000.7 took 163.6 ms
+ std::reduce (seq, double) result 10000000.7 took 162.9 ms
+ std::reduce (par, double) result 10000000.7 took 97.5 ms
+ std::accumulate (long) result 100000007 took 62.3 ms
+ std::reduce (seq, long) result 100000007 took 64.3 ms
+ std::reduce (par, long) result 100000007 took 49.0 ms
 
 .SH See also
 
