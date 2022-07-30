@@ -1,4 +1,4 @@
-.TH std::filesystem::directory_entry::assign 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::directory_entry::assign 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::directory_entry::assign \- std::filesystem::directory_entry::assign
 
@@ -9,6 +9,8 @@ std::filesystem::directory_entry::assign \- std::filesystem::directory_entry::as
    Assigns new content to the directory entry object. Sets the path to p and calls
    refresh to update the cached attributes. If an error occurs, the values of the
    cached attributes are unspecified.
+
+   This function does not commit any changes to the filesystem.
 
 .SH Parameters
 
@@ -30,8 +32,58 @@ std::filesystem::directory_entry::assign \- std::filesystem::directory_entry::as
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <filesystem>
+ #include <fstream>
+ #include <iostream>
+
+ void print_entry_info(const std::filesystem::directory_entry& entry)
+ {
+     std::cout << "the entry " << entry;
+     if (not entry.exists()) {
+         std::cout << " does not exists on the file system\\n";
+         return;
+     }
+     std::cout << " is ";
+     if (entry.is_directory()) std::cout << "a directory\\n";
+     if (entry.is_regular_file()) std::cout << "a regular file\\n";
+     /*...*/
+ }
+
+ int main()
+ {
+     std::filesystem::current_path(std::filesystem::temp_directory_path());
+
+     std::filesystem::directory_entry entry{std::filesystem::current_path()};
+     print_entry_info(entry);
+
+     std::filesystem::path name{"cppreference.html"};
+     std::ofstream{name} << "C++";
+
+     std::cout << "entry.assign();\\n";
+     entry.assign(entry/name);
+     print_entry_info(entry);
+
+     std::cout << "remove(entry);\\n";
+     std::filesystem::remove(entry);
+     print_entry_info(entry); // the entry still contains old "state"
+
+     std::cout << "entry.assign();\\n";
+     entry.assign(entry); // or just call entry.refresh()
+     print_entry_info(entry);
+ }
+
+.SH Possible output:
+
+ the entry "/tmp" is a directory
+ entry.assign();
+ the entry "/tmp/cppreference.html" is a regular file
+ remove(entry);
+ the entry "/tmp/cppreference.html" is a regular file
+ entry.assign();
+ the entry "/tmp/cppreference.html" does not exists on the file system
 
 .SH See also
 

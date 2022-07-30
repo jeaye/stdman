@@ -1,4 +1,4 @@
-.TH std::pmr::null_memory_resource 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::pmr::null_memory_resource 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::pmr::null_memory_resource \- std::pmr::null_memory_resource
 
@@ -18,3 +18,56 @@ std::pmr::null_memory_resource \- std::pmr::null_memory_resource
      * for any memory_resource r, p->is_equal(r) returns &r == p.
 
    The same value is returned every time this function is called.
+
+.SH Example
+
+   The program demos the main usage of null_memory_resouce: ensure that a memory pool
+   which requires memory allocated on the stack will NOT allocate memory on the heap if
+   it needs more memory.
+
+
+// Run this code
+
+ #include <array>
+ #include <cstddef>
+ #include <iostream>
+ #include <memory_resource>
+ #include <string>
+ #include <unordered_map>
+
+ int main()
+ {
+     // allocate memory on the stack
+     std::array<std::byte, 20000> buf;
+
+     // without fallback memory allocation on heap
+     std::pmr::monotonic_buffer_resource pool{ buf.data(), buf.size(),
+                                               std::pmr::null_memory_resource() };
+
+     // allocate too much memory
+     std::pmr::unordered_map<long, std::pmr::string> coll{ &pool };
+     try
+     {
+         for (std::size_t i = 0; i < buf.size(); ++i)
+         {
+             coll.emplace(i, "just a string with number " + std::to_string(i));
+
+             if (i && i % 50 == 0)
+                 std::clog << "size: " << i << "...\\n";
+         }
+     }
+     catch(const std::bad_alloc& e)
+     {
+         std::cerr << e.what() << '\\n';
+     }
+
+     std::cout << "size: " << coll.size() << '\\n';
+ }
+
+.SH Possible output:
+
+ size: 50...
+ size: 100...
+ size: 150...
+ std::bad_alloc
+ size: 183

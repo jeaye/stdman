@@ -1,4 +1,4 @@
-.TH std::stoi,std::stol,std::stoll 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::stoi,std::stol,std::stoll 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::stoi,std::stol,std::stoll \- std::stoi,std::stol,std::stoll
 
@@ -79,33 +79,75 @@ std::stoi,std::stol,std::stoll \- std::stoi,std::stol,std::stoll
 
 // Run this code
 
- #include <iostream>
  #include <string>
+ #include <iomanip>
+ #include <utility>
+ #include <iostream>
+ #include <stdexcept>
 
  int main()
  {
-     std::string str1 = "45";
-     std::string str2 = "3.14159";
-     std::string str3 = "31337 with words";
-     std::string str4 = "words and 2";
+     const auto data = {
+         "45",
+         "+45",
+         " -45",
+         "3.14159",
+         "31337 with words",
+         "words and 2",
+         "12345678901",
+     };
 
-     int myint1 = std::stoi(str1);
-     int myint2 = std::stoi(str2);
-     int myint3 = std::stoi(str3);
-     // error: 'std::invalid_argument'
-     // int myint4 = std::stoi(str4);
+     for (const std::string s : data)
+     {
+         std::size_t pos{};
+         try
+         {
+             std::cout << "std::stoi('" << s << "'): ";
+             const int i {std::stoi(s, &pos)};
+             std::cout << i << "; pos: " << pos << '\\n';
+         }
+         catch(std::invalid_argument const& ex)
+         {
+             std::cout << "std::invalid_argument::what(): " << ex.what() << '\\n';
+         }
+         catch(std::out_of_range const& ex)
+         {
+             std::cout << "std::out_of_range::what(): " << ex.what() << '\\n';
+             const long long ll {std::stoll(s, &pos)};
+             std::cout << "std::stoll('" << s << "'): " << ll << "; pos: " << pos << '\\n';
+         }
+     }
 
-     std::cout << "std::stoi(\\"" << str1 << "\\") is " << myint1 << '\\n';
-     std::cout << "std::stoi(\\"" << str2 << "\\") is " << myint2 << '\\n';
-     std::cout << "std::stoi(\\"" << str3 << "\\") is " << myint3 << '\\n';
-     //std::cout << "std::stoi(\\"" << str4 << "\\") is " << myint4 << '\\n';
+     std::cout << "\\nCalling with different radixes:\\n";
+     for (const auto& [s, base]: { std::pair<const char*, int>
+         {"11",  2}, {"22",  3}, {"33",  4}, {"77",  8},
+         {"99", 10}, {"FF", 16}, {"jJ", 20}, {"Zz", 36}, })
+     {
+         const int i {std::stoi(s, nullptr, base)};
+         std::cout << "std::stoi('" << s << "', " << base << "): " << i << '\\n';
+     }
  }
 
-.SH Output:
+.SH Possible output:
 
- std::stoi("45") is 45
- std::stoi("3.14159") is 3
- std::stoi("31337 with words") is 31337
+ std::stoi('45'): 45; pos: 2
+ std::stoi('+45'): 45; pos: 3
+ std::stoi(' -45'): -45; pos: 4
+ std::stoi('3.14159'): 3; pos: 1
+ std::stoi('31337 with words'): 31337; pos: 5
+ std::stoi('words and 2'): std::invalid_argument::what(): stoi
+ std::stoi('12345678901'): std::out_of_range::what(): stoi
+ std::stoll('12345678901'): 12345678901; pos: 11
+
+ Calling with different radixes:
+ std::stoi('11', 2): 3
+ std::stoi('22', 3): 8
+ std::stoi('33', 4): 15
+ std::stoi('77', 8): 63
+ std::stoi('99', 10): 99
+ std::stoi('FF', 16): 255
+ std::stoi('jJ', 20): 399
+ std::stoi('Zz', 36): 1295
 
 .SH See also
 

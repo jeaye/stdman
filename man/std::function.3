@@ -1,4 +1,4 @@
-.TH std::function 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::function 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::function \- std::function
 
@@ -71,14 +71,25 @@ std::function \- std::function
 
 .SH Notes
 
-   Care should be taken when a std::function whose result type is a reference
-   initialized from a lambda expression without a trailing-return-type. Due to the way
-   auto deduction works, such lambda expression will always return a prvalue. Hence,
-   the resulting reference will usually bind to a temporary whose lifetime ends when
+   Care should be taken when a std::function, whose result type is a
+   reference, is initialized from a lambda expression without a
+   trailing-return-type. Due to the way auto deduction works, such lambda (until C++23)
+   expression will always return a prvalue. Hence, the resulting
+   reference will usually bind to a temporary whose lifetime ends when
    std::function::operator() returns.
+   If a std::function returning a reference is initialized from a
+   function or function object returning a prvalue (including a lambda
+   expression without a trailing-return-type), the program is ill-formed  (since C++23)
+   because binding the returned referenced to a temporary object is
+   forbidden.
 
- std::function<const int&()> F([]{ return 42; });
- int x = F(); // Undefined behavior: the result of F() is a dangling reference
+ std::function<const int&()> F([]{ return 42; }); // Error since C++23: can't bind
+                                                  // the returned reference to a temporary
+ int x = F(); // Undefined behavior until C++23: the result of F() is a dangling reference
+
+ std::function<int&()> G([]()->int& { static int i{0x2A}; return i; }); // OK
+
+ std::function<const int&()> H([i{052}]->const int& { return i; }); // OK
 
 .SH Example
 

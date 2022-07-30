@@ -1,4 +1,4 @@
-.TH std::memory_order 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::memory_order 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::memory_order \- std::memory_order
 
@@ -79,11 +79,11 @@ std::memory_order \- std::memory_order
                         ordering below).
                         A read-modify-write operation with this memory order is both an
                         acquire operation and a release operation. No memory reads or
-                        writes in the current thread can be reordered before or after
-   memory_order_acq_rel this store. All writes in other threads that release the same
-                        atomic variable are visible before the modification and the
-                        modification is visible in other threads that acquire the same
-                        atomic variable.
+                        writes in the current thread can be reordered before the load,
+   memory_order_acq_rel nor after the store. All writes in other threads that release
+                        the same atomic variable are visible before the modification
+                        and the modification is visible in other threads that acquire
+                        the same atomic variable.
                         A load operation with this memory order performs an acquire
                         operation, a store performs a release operation, and
    memory_order_seq_cst read-modify-write performs both an acquire operation and a
@@ -342,7 +342,8 @@ std::memory_order \- std::memory_order
    (non-atomic and relaxed atomic) that happened-before the atomic store from the point
    of view of thread A, become visible side-effects in thread B. That is, once the
    atomic load is completed, thread B is guaranteed to see everything thread A wrote to
-   memory.
+   memory. This promise only holds if B actually returns the value that A stored, or a
+   value from later in the release sequence.
 
    The synchronization is established only between the threads releasing and acquiring
    the same atomic variable. Other threads can see different order of memory accesses
@@ -397,7 +398,7 @@ std::memory_order \- std::memory_order
  }
 
    The following example demonstrates transitive release-acquire ordering across three
-   threads
+   threads, using a release sequence
 
 
 // Run this code
@@ -419,7 +420,9 @@ std::memory_order \- std::memory_order
  void thread_2()
  {
      int expected=1;
-     while (!flag.compare_exchange_strong(expected, 2, std::memory_order_acq_rel)) {
+     // memory_order_relaxed is okay because this is an RMW,
+     // and RMWs (with any ordering) following a release form a release sequence
+     while (!flag.compare_exchange_strong(expected, 2, std::memory_order_relaxed)) {
          expected = 1;
      }
  }
@@ -428,6 +431,7 @@ std::memory_order \- std::memory_order
  {
      while (flag.load(std::memory_order_acquire) < 2)
          ;
+     // if we read the value 2 from the atomic flag, we see 42 in the vector
      assert(data.at\fB(0)\fP == 42); // will never fire
  }
 

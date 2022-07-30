@@ -1,4 +1,4 @@
-.TH std::iota 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::iota 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::iota \- std::iota
 
@@ -14,17 +14,17 @@ std::iota \- std::iota
 
    Equivalent operation:
 
- *(d_first)   = value;
- *(d_first+1) = ++value;
- *(d_first+2) = ++value;
- *(d_first+3) = ++value;
+ *(first)   = value;
+ *(first+1) = ++value;
+ *(first+2) = ++value;
+ *(first+3) = ++value;
  ...
 
 .SH Parameters
 
    first, last - the range of elements to fill with sequentially increasing values
                  starting with value
-   value       - initial value to store, the expression ++value must be well-formed
+   value       - initial value to store; the expression ++value must be well-formed
 
 .SH Return value
 
@@ -54,43 +54,55 @@ std::iota \- std::iota
 
 .SH Example
 
-   The following example applies std::shuffle to a vector of std::list iterators since
-   std::shuffle cannot be applied to a std::list directly. std::iota is used to
-   populate both containers.
+   The following example applies std::shuffle to a vector of std::lists' iterators.
+   std::iota is used to populate containers.
 
 
 // Run this code
 
  #include <algorithm>
+ #include <iomanip>
  #include <iostream>
  #include <list>
  #include <numeric>
  #include <random>
  #include <vector>
 
+ class BigData // inefficient to copy
+ {
+     int data[1024]; /* some raw data */
+ public:
+     explicit BigData(int i = 0) { data[0] = i; /* ... */ }
+     operator int () const { return data[0]; }
+     BigData& operator=(int i) { data[0] = i; return *this; }
+     /* ... */
+ };
+
  int main()
  {
-     std::list<int> l(10);
+     std::list<BigData> l(10);
      std::iota(l.begin(), l.end(), -4);
 
-     std::vector<std::list<int>::iterator> v(l.size());
+     std::vector<std::list<BigData>::iterator> v(l.size());
      std::iota(v.begin(), v.end(), l.begin());
+     // Vector of iterators (to original data) is used to avoid expensive copying,
+     // and because std::shuffle (below) cannot be applied to a std::list directly.
 
      std::shuffle(v.begin(), v.end(), std::mt19937{std::random_device{}()});
 
-     std::cout << "Contents of the list: ";
-     for(auto n: l) std::cout << n << ' ';
+     std::cout << "Original contents of the list l:\\t";
+     for(auto const& n: l) std::cout << std::setw(2) << n << ' ';
      std::cout << '\\n';
 
-     std::cout << "Contents of the list, shuffled: ";
-     for(auto i: v) std::cout << *i << ' ';
+     std::cout << "Contents of l, viewed via shuffled v:\\t";
+     for(auto const i: v) std::cout << std::setw(2) << *i << ' ';
      std::cout << '\\n';
  }
 
 .SH Possible output:
 
- Contents of the list: -4 -3 -2 -1 0 1 2 3 4 5
- Contents of the list, shuffled: 0 -1 3 4 -4 1 -2 -3 2 5
+ Original contents of the list l:        -4 -3 -2 -1  0  1  2  3  4  5
+ Contents of l, viewed via shuffled v:   -1  5 -4  0  2  1  4 -2  3 -3
 
 .SH See also
 
@@ -106,3 +118,5 @@ std::iota \- std::iota
                      \fI(function template)\fP
    ranges::generate  saves the result of a function in a range
    (C++20)           (niebloid)
+   ranges::iota      fills a range with successive increments of the starting value
+   (C++23)           (niebloid)

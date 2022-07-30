@@ -1,4 +1,4 @@
-.TH std::ranges::includes 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::includes 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::includes \- std::ranges::includes
 
@@ -108,49 +108,62 @@ std::ranges::includes \- std::ranges::includes
 
 // Run this code
 
- #include <iostream>
  #include <algorithm>
  #include <cctype>
+ #include <initializer_list>
+ #include <iomanip>
+ #include <iostream>
+ #include <locale>
+ #include <string>
 
- template <class Os, class R> Os& operator<<(Os& os, const R& r) {
-   for (const auto& e : r) os << e << ' ';
-   return os << '\\t';
+ template <class T>
+ std::ostream& operator<<(std::ostream& os, std::initializer_list<T> const& list)
+ {
+     for (os << "{ "; auto const& elem : list)
+         os << elem << ' ';
+     return os << "} ";
  }
+
+ struct true_false : std::numpunct<char>
+ {
+     std::string do_truename() const { return "? Yes\\n"; }
+     std::string do_falsename() const { return "? No\\n"; }
+ };
 
  int main()
  {
-   const auto
-     v1 = {'a', 'b', 'c', 'f', 'h', 'x'},
-     v2 = {'a', 'b', 'c'},
-     v3 = {'a', 'c'},
-     v4 = {'a', 'a', 'b'},
-     v5 = {'g'},
-     v6 = {'a', 'c', 'g'},
-     v7 = {'A', 'B', 'C'};
+     std::cout.imbue(std::locale(std::cout.getloc(), new true_false));
 
-   auto no_case = [](char a, char b) { return std::tolower(a) < std::tolower(b); };
-   namespace ranges = std::ranges;
-   std::cout
-     << v1 << "\\nincludes:\\n" << std::boolalpha
-     << v2 << ": " << ranges::includes(v1.begin(), v1.end(), v2.begin(), v2.end()) << '\\n'
-     << v3 << ": " << ranges::includes(v1, v3) << '\\n'
-     << v4 << ": " << ranges::includes(v1, v4) << '\\n'
-     << v5 << ": " << ranges::includes(v1, v5) << '\\n'
-     << v6 << ": " << ranges::includes(v1, v6) << '\\n'
-     << v7 << ": " << ranges::includes(v1, v7, no_case)
-           << " (case-insensitive)\\n";
+     auto ignore_case = [](char a, char b) { return std::tolower(a) < std::tolower(b); };
+
+     const auto
+         a = {'a', 'b', 'c'},
+         b = {'a', 'c'},
+         c = {'a', 'a', 'b'},
+         d = {'g'},
+         e = {'a', 'c', 'g'},
+         f = {'A', 'B', 'C'},
+         z = {'a', 'b', 'c', 'f', 'h', 'x'};
+
+     std::cout
+         << z << "includes\\n" << std::boolalpha
+         << a << std::ranges::includes(z.begin(), z.end(), a.begin(), a.end())
+         << b << std::ranges::includes(z, b)
+         << c << std::ranges::includes(z, c)
+         << d << std::ranges::includes(z, d)
+         << e << std::ranges::includes(z, e)
+         << f << std::ranges::includes(z, f, ignore_case);
  }
 
 .SH Output:
 
- a b c f h x
- includes:
- a b c   : true
- a c     : true
- a a b   : false
- g       : false
- a c g   : false
- A B C   : true (case-insensitive)
+ { a b c f h x } includes
+ { a b c } ? Yes
+ { a c } ? Yes
+ { a a b } ? No
+ { g } ? No
+ { a c g } ? No
+ { A B C } ? Yes
 
 .SH See also
 

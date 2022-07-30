@@ -1,17 +1,17 @@
-.TH std::atomic::exchange 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::atomic::exchange 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::atomic::exchange \- std::atomic::exchange
 
 .SH Synopsis
-   T exchange( T desired, std::memory_order order =
+   T exchange( T desired, std::memory_order order =                  \fB(1)\fP
    std::memory_order_seq_cst ) noexcept;                                 \fI(since C++11)\fP
-   T exchange( T desired, std::memory_order order =
+   T exchange( T desired, std::memory_order order =                  \fB(2)\fP
    std::memory_order_seq_cst ) volatile noexcept;
 
    Atomically replaces the underlying value with desired. The operation is
    read-modify-write operation. Memory is affected according to the value of order.
 
-   The volatile-qualified version is deprecated if                        \fI(since C++20)\fP
+   The volatile-qualified version \fB(2)\fP is deprecated if                    \fI(since C++20)\fP
    std::atomic<T>::is_always_lock_free is false.
 
 .SH Parameters
@@ -22,6 +22,74 @@ std::atomic::exchange \- std::atomic::exchange
 .SH Return value
 
    The value of the atomic variable before the call.
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <atomic>
+ #include <cstddef>
+ #include <iostream>
+ #include <syncstream>
+ #include <thread>
+ #include <vector>
+
+ int main(){
+     const std::size_t ThreadNumber = 5;
+     const int Sum = 5;
+     std::atomic<int> atom{0};
+     std::atomic<int> counter{0};
+
+     // lambda as thread proc
+     auto lambda = [&](const int id){
+         for (int next = 0; next < Sum;){
+             // each thread is writing a value from its own knowledge
+             const int current = atom.exchange(next);
+             counter++;
+             // sync writing to prevent from interrupting by other threads
+             std::osyncstream(std::cout)
+                 << '#' << id << " (" << std::this_thread::get_id()
+                 << ") wrote " << next << " replacing the old value "
+                 << current << '\\n';
+             next = std::max(current, next) + 1;
+         }
+     };
+
+     std::vector<std::thread> v;
+     for (std::size_t i = 0; i < ThreadNumber; ++i){
+         v.emplace_back(lambda, i);
+     }
+
+     for (auto& tr : v){
+         tr.join();
+     }
+
+     std::cout << ThreadNumber << " threads adding 0 to "
+               << Sum << " takes total "
+               << counter << " times\\n";
+ }
+
+.SH Possible output:
+
+ #1 (140552371918592) wrote 0 replacing the old value 0
+ #2 (140552363525888) wrote 0 replacing the old value 0
+ #1 (140552371918592) wrote 1 replacing the old value 0
+ #1 (140552371918592) wrote 2 replacing the old value 1
+ #2 (140552363525888) wrote 1 replacing the old value 1
+ #1 (140552371918592) wrote 3 replacing the old value 2
+ #1 (140552371918592) wrote 4 replacing the old value 2
+ #2 (140552363525888) wrote 2 replacing the old value 3
+ #2 (140552363525888) wrote 4 replacing the old value 0
+ #3 (140552355133184) wrote 0 replacing the old value 4
+ #0 (140552380311296) wrote 0 replacing the old value 0
+ #0 (140552380311296) wrote 1 replacing the old value 4
+ #4 (140552346740480) wrote 0 replacing the old value 1
+ #4 (140552346740480) wrote 2 replacing the old value 0
+ #4 (140552346740480) wrote 3 replacing the old value 2
+ #4 (140552346740480) wrote 4 replacing the old value 3
+ 5 threads adding 0 to 5 takes total 16 times
 
 .SH See also
 

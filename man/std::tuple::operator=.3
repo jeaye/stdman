@@ -1,4 +1,4 @@
-.TH std::tuple::operator= 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::tuple::operator= 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::tuple::operator= \- std::tuple::operator=
 
@@ -42,10 +42,11 @@ std::tuple::operator= \- std::tuple::operator=
    template< class... UTypes >                                  (since
    constexpr tuple& operator=(                                  C++20)
    tuple<UTypes...>&& other );
-   template< class... UTypes >      \fB(3)\fP
-   constexpr const tuple&                               \fB(8)\fP     (since
-   operator=( const                                             C++23)
-   <UTypes...>&& other ) const;
+   template< class... UTypes >
+   constexpr const tuple&           \fB(3)\fP                         (since
+   operator=(                                           \fB(8)\fP     C++23)
+   tuple<UTypes...>&& other )
+   const;
    template< class U1, class U2                                         (since
    >                                    \fB(5)\fP                             C++11)
    tuple& operator=( const                                              (until
@@ -53,8 +54,8 @@ std::tuple::operator= \- std::tuple::operator=
    template< class U1, class U2
    >                                                                    (since
    constexpr tuple& operator=(                                          C++20)
-   const std::pair<U1, U2>& p
-   );                                           \fB(7)\fP
+   const std::pair<U1, U2>& p                   \fB(7)\fP
+   );
    template< class U1, class U2
    >
    constexpr const tuple&                                       \fB(10)\fP    (since
@@ -191,7 +192,8 @@ std::tuple::operator= \- std::tuple::operator=
  #include <vector>
 
  // helper function to print std::vector
- template<class Os, class T> Os& operator<< (Os& os, std::vector<T> const& v) {
+ template<class Os, class T>
+ Os& operator<< (Os& os, std::vector<T> const& v) {
      os << "{";
      for (std::size_t t = 0; t != v.size(); ++t)
          os << v[t] << (t+1 < v.size() ? ",":"");
@@ -199,65 +201,81 @@ std::tuple::operator= \- std::tuple::operator=
  }
 
  // helpers to print a tuple of any size
- template<class Os, class Tuple, std::size_t N>
- struct TuplePrinter {
-     static void print(Os& os, const Tuple& t) {
-         TuplePrinter<Os, Tuple, N-1>::print(os, t);
-         os << ", " << std::get<N-1>(t);
-     }
- };
-
- template<class Os, class Tuple>
- struct TuplePrinter<Os, Tuple, 1>{
-     static void print(Os& os, const Tuple& t) {
-         os << std::get<0>(t);
-     }
- };
-
  template<class Os, class... Args>
  Os& operator<< (Os& os, const std::tuple<Args...>& t) {
      os << "{ ";
-     TuplePrinter<Os, decltype(t), sizeof...(Args)>::print(os, t);
+     std::apply([&](auto&& arg, auto&&... args) {
+         os << arg;
+         ((os << ", " << args), ...);
+     }, t);
      return os << " }";
  }
 
- struct line{ int len{60}; };
- template<class Os> Os& operator<< (Os& os, line l) {
-     while (l.len-- > 0) std::cout << "─";
+ struct line { int len{60}; };
+ template<class Os>
+ Os& operator<< (Os& os, line l) {
+     while (l.len-- > 0)
+         std::cout << "─";
      return os << '\\n';
  }
 
  int main() {
+     // Tuple to tuple examples //
      std::tuple<int, std::string, std::vector<int>>
-         t1{1, "alpha", {1, 2, 3} }, t2{2, "beta", {4, 5} };
+         t1{1, "alpha", {1, 2, 3} },
+         t2{2, "beta", {4, 5} };
+
+     // Normal copy assignment
+     // operator=( const tuple& other );
      std::cout << "t1 = " << t1 << ", t2 = " << t2 << '\\n';
-     t1 = t2; // (1) operator=( const tuple& other );
+     t1 = t2;
      std::cout << "t1 = t2;\\n" "t1 = " << t1 << ", t2 = " << t2 << '\\n' << line{};
 
-     t1 = std::move(t2); // (3) operator=( tuple&& other );
+     // Normal move assignment
+     // operator=( tuple&& other );
+     t1 = std::move(t2);
      std::cout << "t1 = std::move(t2);\\n" "t1 = " << t1 << ", t2 = " << t2 << '\\n' << line{};
 
+     // Converting copy assignment
+     // operator=( const tuple<UTypes...>& other );
      std::tuple<short, const char*, std::vector<int>> t3{3, "gamma", {6,7,8} };
-     t1 = t3; // (5) operator=( const tuple<UTypes...>& other );
+     t1 = t3;
      std::cout << "t1 = t3; \\n" "t1 = " << t1 << ", t3 = " << t3 << '\\n' << line{};
 
-     t1 = std::move(t3); // (7) operator=( tuple<UTypes...>&& other );
+     // Converting move assignment
+     // operator=( tuple<UTypes...>&& other );
+     t1 = std::move(t3);
      std::cout << "t1 = std::move(t3);\\n" "t1 = " << t1 << ", t3 = " << t3 << '\\n' << line{};
 
+     // Pair to tuple examples //
      std::tuple<std::string, std::vector<int>> t4{"delta", {10,11,12} };
      std::pair<const char*, std::vector<int>> p1{"epsilon", {14,15,16} };
+
+     // Converting copy assignment from std::pair
+     // operator=( const std::pair<U1,U2>& p );
      std::cout << "t4 = " << t4 << ", "
                << "p1 = { " << p1.first << ", " << p1.second << " };\\n";
-     t4 = p1; // (9) operator=( const std::pair<U1,U2>& p );
+     t4 = p1;
      std::cout << "t4 = p1;\\n" "t4 = " << t4
                << ", p1 = { " << p1.first << ", " << p1.second << " };\\n" << line{};
 
-     t4 = std::move(p1); // (11) operator=( std::pair<U1,U2>&& p );
+     // Converting move assignment from std::pair
+     // operator=( std::pair<U1,U2>&& p );
+     t4 = std::move(p1);
      std::cout << "t4 = std::move(p1);\\n" "t4 = " << t4
-               << ", p1 = { " << p1.first << ", " << p1.second << " };\\n";
+               << ", p1 = { " << p1.first << ", " << p1.second << " };\\n" << line{};
+
+ #ifdef __cpp_lib_ranges_zip
+     // Const tuple-of-proxies assignment example
+     std::vector<bool> v({false, true});
+     const std::tuple<std::vector<bool>::reference> t0_const{v[0]}, t1_const{v[1]};
+     t0_const = t1_const;
+     std::cout << std::boolalpha << "t0_const = t1_const;\\n" "t0_const = " << t0_const
+               << ", t1_const = " << t1_const << '\\n';
+ #endif
  }
 
-.SH Output:
+.SH Possible output:
 
  t1 = { 1, alpha, {1,2,3} }, t2 = { 2, beta, {4,5} }
  t1 = t2;
@@ -278,6 +296,9 @@ std::tuple::operator= \- std::tuple::operator=
  ────────────────────────────────────────────────────────────
  t4 = std::move(p1);
  t4 = { epsilon, {14,15,16} }, p1 = { epsilon, {} };
+ ────────────────────────────────────────────────────────────
+ t0_const = t1_const;
+ t0_const = { true }, t1_const = { true }
 
   Defect reports
 

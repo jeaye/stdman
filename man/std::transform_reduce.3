@@ -1,4 +1,4 @@
-.TH std::transform_reduce 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::transform_reduce 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::transform_reduce \- std::transform_reduce
 
@@ -139,9 +139,9 @@ std::transform_reduce \- std::transform_reduce
                                      binary FunctionObject that will be applied in
    reduce                -           unspecified order to the results of transform, the
                                      results of other reduce and init.
-                                     unary FunctionObject that will be applied to each
-   transform             -           element of the input range. The return type must
-                                     be acceptable as input to reduce
+                                     unary or binary FunctionObject that will be
+   transform             -           applied to each element of the input range(s). The
+                                     return type must be acceptable as input to reduce
 .SH Type requirements
    -
    T must meet the requirements of MoveConstructible in order to use overloads (3,6).
@@ -214,27 +214,68 @@ std::transform_reduce \- std::transform_reduce
 
 // Run this code
 
- #include <vector>
- #include <functional>
+ #include <algorithm>
+ #include <execution>
  #include <iostream>
+ #include <iterator>
+ #include <locale>
  #include <numeric>
- // #include <execution>
+ #include <vector>
+
+ // to parallelize non-associate accumulative operation, you'd better choose
+ // transform_reduce instead of reduce; e.g., a + b * b != b + a * a
+ void print_sum_squared(long const num)
+ {
+     std::cout.imbue(std::locale{"en_US.UTF8"});
+     std::cout << "num = " << num << '\\n';
+
+     // create an immutable vector filled with pattern: 1,2,3,4, 1,2,3,4 ...
+     const std::vector<long> v { [n = num * 4] {
+         std::vector<long> v;
+         v.reserve(n);
+         std::generate_n(std::back_inserter(v), n, [i=0]() mutable { return 1 + i++ % 4; });
+         return v;
+     }()};
+
+     auto squared_sum = [](auto sum, auto val) { return sum + val * val; };
+
+     auto sum1 = std::accumulate(v.cbegin(), v.cend(), 0L, squared_sum);
+     std::cout << "accumulate(): " << sum1 << '\\n';
+
+     auto sum2 = std::reduce(std::execution::par, v.cbegin(), v.cend(), 0L, squared_sum);
+     std::cout << "reduce(): " << sum2 << '\\n';
+
+     auto sum3 = std::transform_reduce(std::execution::par, v.cbegin(), v.cend(), 0L,
+                                       std::plus{},
+                                       [](auto val) { return val * val; });
+     std::cout << "transform_reduce(): " << sum3 << '\\n';
+
+     std::cout << '\\n';
+ }
 
  int main()
  {
-     std::vector<double> xvalues(10007, 1.0), yvalues(10007, 1.0);
-
-     double result = std::transform_reduce(
-     //  std::execution::par,
-         xvalues.begin(), xvalues.end(),
-         yvalues.begin(), 0.0
-     );
-     std::cout << result << '\\n';
+     print_sum_squared(1);
+     print_sum_squared(1'000);
+     print_sum_squared(1'000'000);
  }
 
-.SH Output:
+.SH Possible output:
 
- 10007
+ num = 1
+ accumulate(): 30
+ reduce(): 30
+ transform_reduce(): 30
+
+ num = 1,000
+ accumulate(): 30,000
+ reduce(): -7,025,681,278,312,630,348
+ transform_reduce(): 30,000
+
+ num = 1,000,000
+ accumulate(): 30,000,000
+ reduce(): -5,314,886,882,370,003,032
+ transform_reduce(): 30,000,000
 
 .SH See also
 

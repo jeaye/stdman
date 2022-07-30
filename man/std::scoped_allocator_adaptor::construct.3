@@ -1,4 +1,4 @@
-.TH std::scoped_allocator_adaptor::construct 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::scoped_allocator_adaptor::construct 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::scoped_allocator_adaptor::construct \- std::scoped_allocator_adaptor::construct
 
@@ -21,6 +21,8 @@ std::scoped_allocator_adaptor::construct \- std::scoped_allocator_adaptor::const
    void construct( std::pair<T1, T2>* p, const std::pair<U, V>& xy );
    template< class T1, class T2, class U, class V >                   \fB(6)\fP \fI(until C++20)\fP
    void construct( std::pair<T1, T2>* p, std::pair<U, V>&& xy );
+   template< class T1, class T2, class NonPair >                      \fB(7)\fP \fI(until C++20)\fP
+   void construct( std::pair<T1, T2>* p, NonPair&& non_pair );
 
    Constructs an object in allocated, but not initialized storage pointed to by p using
    OuterAllocator and the provided constructor arguments. If the object is of type that
@@ -79,14 +81,14 @@ std::scoped_allocator_adaptor::construct \- std::scoped_allocator_adaptor::const
   std::tuple_cat(std::tuple<Args1&&...>(std::move(x)),
   std::tuple<inner_allocator_type&>(inner_allocator())).
   Same rules apply to T2 and the replacement of y with yprime
-  Once xprime and yprime are constructed, constructs the pair p in allocated        (until
-  storage by calling                                                                C++20)
+  Once xprime and yprime are constructed, constructs the pair p in allocated
+  storage by calling
 
   std::allocator_traits<O>::construct( OUTERMOST,
                                        p,
                                        std::piecewise_construct,
-                                       std::move(xprime),
-                                       std::move(yprime));
+                                       std::move(xprime),                           (until
+                                       std::move(yprime));                          C++20)
 
   3) Equivalent to construct(p, std::piecewise_construct, std::tuple<>(),
   std::tuple<>()), that is, passes the inner allocator on to the pair's member
@@ -107,13 +109,25 @@ std::scoped_allocator_adaptor::construct \- std::scoped_allocator_adaptor::const
                std::forward_as_tuple(std::forward<U>(xy.first)),
                std::forward_as_tuple(std::forward<V>(xy.second)))
 
+  7) This overload participates in overload resolution only if given the
+  exposition-only function template
+
+  template< class A, class B >
+  void /*deduce-as-pair*/( const std::pair<A, B>& );
+
+  , /*deduce-as-pair*/(non_pair) is ill-formed when considered as an unevaluated
+  operand. Equivalent to
+
+  construct<T1, T2, T1, T2>(p, std::forward<NonPair>(non_pair));
+
 .SH Parameters
 
-   p       - pointer to allocated, but not initialized storage
-   args... - the constructor arguments to pass to the constructor of T
-   x       - the constructor arguments to pass to the constructor of T1
-   y       - the constructor arguments to pass to the constructor of T2
-   xy      - the pair whose two members are the constructor arguments for T1 and T2
+   p        - pointer to allocated, but not initialized storage
+   args...  - the constructor arguments to pass to the constructor of T
+   x        - the constructor arguments to pass to the constructor of T1
+   y        - the constructor arguments to pass to the constructor of T2
+   xy       - the pair whose two members are the constructor arguments for T1 and T2
+   non_pair - non-pair argument to convert to pair for further construction
 
 .SH Return value
 
@@ -133,16 +147,18 @@ std::scoped_allocator_adaptor::construct \- std::scoped_allocator_adaptor::const
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to         Behavior as published              Correct behavior
-   LWG 2975 C++11      first overload is mistakenly used for  constrained to not accept
-                       pair construction in some cases        pairs
-   P0475R1  C++11      pair piecewise construction may copy   transformed to tuples of
-                       the arguments                          references to avoid copy
+      DR    Applied to       Behavior as published              Correct behavior
+                       first overload is mistakenly used constrained to not accept
+   LWG 2975 C++11      for pair construction in some     pairs
+                       cases
+   P0475R1  C++11      pair piecewise construction may   transformed to tuples of
+                       copy the arguments                references to avoid copy
+   LWG 3525 C++11      no overload could handle non-pair reconstructing overload added
+                       types convertible to pair
 
 .SH See also
 
-   construct             constructs an object in the allocated storage
-   \fB[static]\fP              \fI(function template)\fP
-   construct             constructs an object in allocated storage
-   (deprecated in C++17) \fI(public member function of std::allocator<T>)\fP
-   (removed in C++20)
+   construct     constructs an object in the allocated storage
+   \fB[static]\fP      \fI(function template)\fP
+   construct     constructs an object in allocated storage
+   \fI(until C++20)\fP \fI(public member function of std::allocator<T>)\fP

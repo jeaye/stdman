@@ -1,14 +1,20 @@
-.TH std::make_from_tuple 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::make_from_tuple 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::make_from_tuple \- std::make_from_tuple
 
 .SH Synopsis
    Defined in header <tuple>
-   template <class T, class Tuple>          \fI(since C++17)\fP
-   constexpr T make_from_tuple(Tuple&& t);
+   template< class T, class Tuple >           \fI(since C++17)\fP
+   constexpr T make_from_tuple( Tuple&& t );
 
    Construct an object of type T, using the elements of the tuple t as the arguments to
    the constructor.
+
+   The program is ill-formed if the hypothetical variable definition T
+   var(std::get<Is>(std::forward<Tuple>(t))...); is ill-formed
+   , or T is a reference type and var is bound to a temporary object
+   (since C++23), where Is... denotes the parameter pack 0, 1, ...,
+   std::tuple_size_v<std::remove_reference_t<Tuple>> - 1.
 
 .SH Parameters
 
@@ -16,7 +22,7 @@ std::make_from_tuple \- std::make_from_tuple
 
 .SH Return value
 
-   The constructed T object.
+   The constructed T object or reference.
 
 .SH Notes
 
@@ -25,22 +31,28 @@ std::make_from_tuple \- std::make_from_tuple
 
    Due to guaranteed copy elision, T need not be movable.
 
-   Feature testing macro: __cpp_lib_make_from_tuple
+   Feature-test macro: __cpp_lib_make_from_tuple
 
 .SH Possible implementation
 
    namespace detail {
-   template <class T, class Tuple, std::size_t... I>
-   constexpr T make_from_tuple_impl( Tuple&& t, std::index_sequence<I...> )
+   template<class T, class Tuple, std::size_t... I>
+   constexpr T make_from_tuple_impl(Tuple&& t, std::index_sequence<I...>)
    {
        static_assert(std::is_constructible_v<T,
            decltype(std::get<I>(std::declval<Tuple>()))...>);
+   #if __cpp_lib_reference_from_temporary >= 202202L
+       if constexpr (std::tuple_size_v<std::remove_reference_t<Tuple>> == 1) {
+           using tuple_first_t = decltype(std::get<0>(std::declval<Tuple>()));
+           static_assert(!std::reference_constructs_from_temporary_v<T, tuple_first_t>);
+       }
+   #endif
        return T(std::get<I>(std::forward<Tuple>(t))...);
    }
    } // namespace detail
 
-   template <class T, class Tuple>
-   constexpr T make_from_tuple( Tuple&& t )
+   template<class T, class Tuple>
+   constexpr T make_from_tuple(Tuple&& t)
    {
        return detail::make_from_tuple_impl<T>(std::forward<Tuple>(t),
            std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple>>>{});

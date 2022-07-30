@@ -1,4 +1,4 @@
-.TH std::num_get::get,std::num_get::do_get 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::num_get::get,std::num_get::do_get 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::num_get::get,std::num_get::do_get \- std::num_get::get,std::num_get::do_get
 
@@ -144,8 +144,11 @@ std::num_get::get,std::num_get::do_get \- std::num_get::get,std::num_get::do_get
        extracted
      * The next character is extracted from in as if by char_type ct = *in;
 
-          * If the character matches one of "0123456789abcdefxABCDEFX+-", widened to
-            the locale's char_type as if by
+          * If the character matches one of
+            "0123456789abcdefxABCDEFX+-"
+            \fI(until C++11)\fP
+            "0123456789abcdefpxABCDEFPX+-"
+            \fI(since C++11)\fP, widened to the locale's char_type as if by
             std::use_facet<std::ctype<charT>>(str.getloc()).widen(), it is converted to
             the corresponding char.
           * If the character matches the decimal point separator
@@ -153,12 +156,12 @@ std::num_get::get,std::num_get::do_get \- std::num_get::get,std::num_get::do_get
             is replaced by '.'.
           * If the character matches the thousands separator
             (std::use_facet<std::numpunct<charT>>(str.getloc()).thousands_sep()) and
-            the thousands separation is in use at all
+            the thousands separation is in use (as determined by
             std::use_facet<std::numpunct<charT>>(str.getloc()).grouping().length() !=
-            0, then if the decimal point '.' has not yet been accumulated, the position
-            of the character is remembered, but the character is otherwise ignored. If
-            the decimal point has already been accumulated, the character is discarded
-            and Stage 2 terminates.
+            0), then if the decimal point '.' has not yet been accumulated, the
+            position of the character is remembered, but the character is otherwise
+            ignored. If the decimal point has already been accumulated, the character
+            is discarded and Stage 2 terminates.
           * In any case, the check is made whether the char obtained from the previous
             steps is allowed in the input field that would be parsed by std::scanf
             given the conversion specifier selected in Stage 1. If it is allowed, it is
@@ -175,12 +178,12 @@ std::num_get::get,std::num_get::do_get \- std::num_get::get,std::num_get::do_get
 
      * If the conversion function fails to convert the entire field, the value 0
        is stored in v
-     * If the conversion function results in a positive or negative value too large to
-       fit in the type of v which is a signed integer type, the most positive or
+     * If the type of v is a signed integer type and the conversion function results in
+       a positive or negative value too large to fit in it, the most positive or
        negative representable value is stored in v, respectively
-     * If the conversion function results in a value not to fit in the type of v which
-       is an unsigned integer type, the most positive representable value is stored in
-       v.
+     * If the type of v is an unsigned integer type and the conversion function results
+       in a value that does not fit in it, the most positive representable value is
+       stored in v.
      * In any case, if the conversion function fails std::ios_base::failbit is assigned
        to err
      * Otherwise, the numeric result of the conversion is stored in v
@@ -211,10 +214,10 @@ std::num_get::get,std::num_get::do_get \- std::num_get::get,std::num_get::do_get
    than what the target type can represent). Such behavior was specified in C++11/14
    standard but is corrected by LWG1169.
 
-   Because stage 2 filters out characters such as 'p', 'N' or 'i', the hexadecimal
-   floating-point numbers such as "0x1.23p-10" and the strings "NaN" or "inf" may be
-   rejected by do_get(double) even if they are valid input to strtod: this is LWG issue
-   2381.
+   Because stage 2 filters out characters such as 'N' or 'i', the strings "NaN" or
+   "inf" is rejected by do_get(double) even if they are valid input to strtod.
+   Hexadecimal floating-point numbers such "0x1.23p-10" used to be rejected by do_get,
+   which is a defect fixed by LWG2381.
 
 .SH Example
 
@@ -262,13 +265,15 @@ std::num_get::get,std::num_get::do_get \- std::num_get::get,std::num_get::do_get
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to            Behavior as published              Correct behavior
-   LWG 23   C++98      overflowing input resulted in undefined     overflow handled
+      DR    Applied to          Behavior as published              Correct behavior
+   LWG 23   C++98      overflowing input resulted in undefined overflow handled
                        behavior
-   LWG 696  C++98      the result was unchanged on conversion      set to zero
+   LWG 696  C++98      the result was unchanged on conversion  set to zero
                        failure
-   LWG 1169 C++98      overflow handling was inconsistent between  made consistent with
-                       floating-point types                        strtof/strtod
+   LWG 1169 C++98      overflow handling was inconsistent      made consistent with
+                       between floating-point types            strtof/strtod
+   LWG 2381 C++11      do_get did not parse 'p' and 'P' while  made 'p' and 'P' parsed
+                       strtod parsed them
 
 .SH See also
 

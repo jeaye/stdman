@@ -1,4 +1,4 @@
-.TH std::any::any 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::any::any 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::any::any \- std::any::any
 
@@ -78,6 +78,63 @@ std::any::any \- std::any::any
    part of static non-local initialization, before any dynamic non-local initialization
    begins. This makes it safe to use an object of type std::any in a constructor of any
    static object.
+
+.SH Example
+
+
+// Run this code
+
+ #include <utility>
+ #include <set>
+ #include <any>
+ #include <string>
+ #include <memory>
+ #include <iostream>
+ #include <initializer_list>
+ #include <cxxabi.h>
+
+ struct A {
+     int age;
+     std::string name;
+     double salary;
+ };
+
+ // using abi demangle to print nice type name of instance of any holding
+ void printType(const std::any& a) {
+     int status;
+     if (char* p = abi::__cxa_demangle(a.type().name(), 0, 0, &status)){
+         std::cout << p << '\\n';
+         std::free(p);
+     }
+ }
+
+ int main(){
+     // constructor #4: std::any holding int
+     std::any a1{7};
+
+     // constructor #5: std::any holding A, constructed in place
+     std::any a2(std::in_place_type_t<A>{}, 30, "Ada", 1000.25);
+
+     // constructor #6: std::any holding a set of A with custom comparison
+     auto lambda = [](auto&& l, auto&& r){ return l.age < r.age; };
+     std::any a3(
+         std::in_place_type_t<std::set<A, decltype(lambda)>>{},
+         std::initializer_list<A>{
+             {39, std::string{"Ada"}, 100.25},
+             {20, std::string{"Bob"}, 75.5}
+         },
+         lambda);
+
+     printType(a1);
+     printType(a2);
+     printType(a3);
+ }
+
+.SH Possible output:
+
+ int
+ A
+ std::set<A, main::{lambda(auto:1&&, auto:2&&)#1}, std::allocator<A> >
 
 .SH See also
 
