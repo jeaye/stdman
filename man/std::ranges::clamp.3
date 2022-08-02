@@ -1,4 +1,4 @@
-.TH std::ranges::clamp 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::clamp 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::clamp \- std::ranges::clamp
 
@@ -7,11 +7,12 @@ std::ranges::clamp \- std::ranges::clamp
    Call signature
    template< class T, class Proj = std::identity,
 
-   std::indirect_strict_weak_order<std::projected<const T*, Proj>> Comp =       (since
-   ranges::less >                                                               C++20)
+   std::indirect_strict_weak_order<std::projected<const T*, Proj>> Comp =
+   ranges::less >                                                               (since
+   constexpr const T&                                                           C++20)
 
-   constexpr const T& clamp( const T& v, const T& lo, const T& hi, Comp comp =
-   {}, Proj proj = {} );
+   clamp( const T& v, const T& lo, const T& hi, Comp comp = {}, Proj proj = {}
+   );
 
    If v compares less than lo, returns lo; otherwise if hi compares less than v,
    returns hi; otherwise returns v.
@@ -47,20 +48,23 @@ std::ranges::clamp \- std::ranges::clamp
 
 .SH Possible implementation
 
-struct clamp_fn {
-  template<class T, class Proj = std::identity,
-           std::indirect_strict_weak_order<std::projected<const T*, Proj>> Comp = ranges::less>
-  constexpr const T& operator()(const T& v, const T& lo, const T& hi,
-                                Comp comp = {}, Proj proj = {}) const
-  {
-      auto&& pv = std::invoke(proj, v);
+   struct clamp_fn {
+     template<class T, class Proj = std::identity,
+              std::indirect_strict_weak_order<std::projected<const T*, Proj>>
+                  Comp = ranges::less>
+     constexpr const T& operator()(const T& v, const T& lo, const T& hi,
+                                   Comp comp = {}, Proj proj = {}) const
+     {
+       auto&& pv = std::invoke(proj, v);
 
-      return std::invoke(comp, std::forward<decltype(pv)>(pv), std::invoke(proj, lo)) ? lo
-           : std::invoke(comp, std::invoke(proj, hi), std::forward<decltype(pv)>(pv)) ? hi : v;
-  }
-};
+       return
+         std::invoke(comp, std::forward<decltype(pv)>(pv), std::invoke(proj, lo)) ? lo
+         : std::invoke(comp, std::invoke(proj, hi), std::forward<decltype(pv)>(pv)) ? hi
+         : v;
+     }
+   };
 
-inline constexpr clamp_fn clamp;
+   inline constexpr clamp_fn clamp;
 
 .SH Notes
 
@@ -85,14 +89,15 @@ inline constexpr clamp_fn clamp;
  #include <string>
 
  using namespace std::literals;
+ namespace ranges = std::ranges;
 
  int main()
  {
      std::cout << " raw   clamped to int8_t   clamped to uint8_t\\n";
      for(int const v: {-129, -128, -1, 0, 42, 127, 128, 255, 256}) {
          std::cout << std::setw(04) << v
-                   << std::setw(20) << std::ranges::clamp(v, INT8_MIN, INT8_MAX)
-                   << std::setw(21) << std::ranges::clamp(v, 0, UINT8_MAX) << '\\n';
+                   << std::setw(20) << ranges::clamp(v, INT8_MIN, INT8_MAX)
+                   << std::setw(21) << ranges::clamp(v, 0, UINT8_MAX) << '\\n';
      }
      std::cout << '\\n';
 
@@ -100,10 +105,12 @@ inline constexpr clamp_fn clamp;
      const auto stoi = [](std::string s) { return std::stoi(s); };
 
      // Same as above, but with strings
-     for(std::string const v: {"-129", "-128", "-1", "0", "42", "127", "128", "255", "256"}) {
+     for(std::string const v: {"-129", "-128", "-1", "0", "42",
+                               "127", "128", "255", "256"}) {
          std::cout << std::setw(04) << v
-                   << std::setw(20) << std::ranges::clamp(v, "-128"s, "127"s, {}, stoi)
-                   << std::setw(21) << std::ranges::clamp(v, "0"s, "255"s, {}, stoi) << '\\n';
+                   << std::setw(20) << ranges::clamp(v, "-128"s, "127"s, {}, stoi)
+                   << std::setw(21) << ranges::clamp(v, "0"s, "255"s, {}, stoi)
+                   << '\\n';
      }
  }
 

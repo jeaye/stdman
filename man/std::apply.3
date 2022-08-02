@@ -1,11 +1,14 @@
-.TH std::apply 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::apply 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::apply \- std::apply
 
 .SH Synopsis
    Defined in header <tuple>
-   template <class F, class Tuple>                    \fI(since C++17)\fP
-   constexpr decltype(auto) apply(F&& f, Tuple&& t);
+   template< class F, class Tuple >                                       \fI(since C++17)\fP
+   constexpr decltype(auto) apply( F&& f, Tuple&& t );                    (until C++23)
+   template< class F, class Tuple >
+   constexpr decltype(auto) apply( F&& f, Tuple&& t ) noexcept(/* see     (since C++23)
+   below */);
 
    Invoke the Callable object f with a tuple of arguments.
 
@@ -18,12 +21,28 @@ std::apply \- std::apply
 
    The value returned by f.
 
+.SH Exceptions
+
+   \fI(none)\fP                                                                        (until
+                                                                                 C++23)
+   noexcept specification:
+   noexcept(
+
+   noexcept(std::invoke(std::forward<F>(f),
+   std::get<Is>(std::forward<Tuple>(t))...))                                     (since
+                                                                                 C++23)
+   )
+
+   where Is... denotes the parameter pack:
+
+     * 0, 1, ..., std::tuple_size_v<std::remove_reference_t<Tuple>> - 1.
+
 .SH Notes
 
    The tuple need not be std::tuple, and instead may be anything that supports std::get
    and std::tuple_size; in particular, std::array and std::pair may be used.
 
-   Feature testing macro: __cpp_lib_apply
+   Feature-test macro: __cpp_lib_apply
 
 .SH Possible implementation
 
@@ -35,10 +54,22 @@ std::apply \- std::apply
        // In C++17, a constexpr counterpart of std::invoke is actually needed here
        return std::invoke(std::forward<F>(f), std::get<I>(std::forward<Tuple>(t))...);
    }
+
+   template <class F, class Tuple, class Idx>
+   inline constexpr bool apply_is_noexcept = false;
+
+   template <class F, class Tuple, std::size_t... I>
+   inline constexpr bool apply_is_noexcept<F, Tuple, std::index_sequence<I...>> =
+     noexcept(std::invoke(std::declval<F>(), std::get<I>(std::declval<Tuple>())...));
+
    }  // namespace detail
 
    template <class F, class Tuple>
    constexpr decltype(auto) apply(F&& f, Tuple&& t)
+     noexcept( // since C++23
+       detail::apply_is_noexcept<F, Tuple,
+         std::make_index_sequence<std::remove_reference_t<Tuple>>>
+     )
    {
        return detail::apply_impl(
            std::forward<F>(f), std::forward<Tuple>(t),
@@ -89,9 +120,8 @@ std::apply \- std::apply
      std::cout << std::apply(add_lambda, std::pair(2.0f, 3.0f)) << '\\n';
 
      // advanced example
-     std::tuple myTuple(25, "Hello", 9.31f, 'c');
+     std::tuple myTuple{25, "Hello", 9.31f, 'c'};
      std::cout << myTuple << '\\n';
-
  }
 
 .SH Output:

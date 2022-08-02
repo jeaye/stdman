@@ -1,4 +1,4 @@
-.TH std::basic_string_view::basic_string_view 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_string_view::basic_string_view 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_string_view::basic_string_view \- std::basic_string_view::basic_string_view
 
@@ -12,7 +12,7 @@ std::basic_string_view::basic_string_view \- std::basic_string_view::basic_strin
    template< class It, class End >                                    \fB(5)\fP \fI(since C++20)\fP
    constexpr basic_string_view( It first, End last );
    template< class R >                                                \fB(6)\fP (since C++23)
-   constexpr basic_string_view( R&& r );
+   explicit constexpr basic_string_view( R&& r );
    constexpr basic_string_view( std::nullptr_t ) = delete;            \fB(7)\fP (since C++23)
 
    1) Default constructor. Constructs an empty basic_string_view. After construction,
@@ -86,43 +86,48 @@ std::basic_string_view::basic_string_view \- std::basic_string_view::basic_strin
 
  int main()
  {
-     constexpr std::wstring_view wcstr_v = L"xyzzy"; // overload (4)
-     std::cout << "wcstr_v.size(): " << wcstr_v.size() << '\\n';
+     std::string cppstr = "Foo";
+     std::string_view cppstr_v(cppstr); // overload (2), after
+                                        // std::string::operator string_view
+     std::cout << "1) cppstr_v: " << quoted( cppstr_v ) << '\\n';
 
      char array[3] = {'B', 'a', 'r'};
      std::string_view array_v(array, std::size(array)); // overload (3)
-     std::cout << "array_v: " << quoted( array_v ) << '\\n';
-
-     std::string cppstr = "Foo";
-     std::string_view cppstr_v(cppstr); // (2), after std::string::operator string_view
-     std::cout << "cppstr_v: " << quoted( cppstr_v ) << '\\n';
-
-     std::array ar = {'P', 'u', 'b'};
-     std::string_view ar_v(ar.begin(), ar.end()); // (5), C++20
-     std::cout << "ar_v: " << quoted( ar_v ) << '\\n';
-
- //  std::string_view ar_v2{ar}; // (6), OK in C++23
- //  std::cout << "ar_v2: " << quoted( ar_v2 ) << '\\n'; // ar_v2: "Pub"
+     std::cout << "2) array_v: " << quoted( array_v ) << '\\n';
 
      const char* one_0_two = "One\\0Two";
 
-     std::string_view one_v {one_0_two}; // (4)
-     std::cout << "one_v: " << quoted( one_v ) << ", one_v.size(): " << one_v.size() << '\\n';
-
-     std::string_view one_two_v {one_0_two, 7}; // (3)
-     std::cout << "one_two_v: \\"";
+     std::string_view one_two_v {one_0_two, 7}; // overload (3)
+     std::cout << "3) one_two_v: \\"";
      for (char c: one_two_v) { std::cout << (c != '\\0' ? c : '?'); }
      std::cout << "\\", one_two_v.size(): " << one_two_v.size() << '\\n';
+
+     std::string_view one_v {one_0_two}; // overload (4)
+     std::cout << "4) one_v: " << quoted( one_v ) << ", one_v.size(): "
+               << one_v.size() << '\\n';
+
+     constexpr std::wstring_view wcstr_v = L"xyzzy"; // overload (4)
+     std::cout << "5) wcstr_v.size(): " << wcstr_v.size() << '\\n';
+
+     std::array ar = {'P', 'u', 'b'};
+     std::string_view ar_v(ar.begin(), ar.end()); // overload (5), C++20
+     std::cout << "6) ar_v: " << quoted( ar_v ) << '\\n';
+
+ //  std::string_view ar_v2{ar}; // overload (6), OK in C++23
+ //  std::cout << "ar_v2: " << quoted( ar_v2 ) << '\\n'; // ar_v2: "Pub"
+
+     [[maybe_unused]] auto zero = [] { /* ... */ return nullptr; };
+ //  std::string_view s{ zero() }; // overload (7), won't compile since C++23
  }
 
 .SH Output:
 
- wcstr_v.size(): 5
- array_v: "Bar"
- cppstr_v: "Foo"
- ar_v: "Pub"
- one_v: "One", one_v.size(): 3
- one_two_v: "One?Two", one_two_v.size(): 7
+ 1) cppstr_v: "Foo"
+ 2) array_v: "Bar"
+ 3) one_two_v: "One?Two", one_two_v.size(): 7
+ 4) one_v: "One", one_v.size(): 3
+ 5) wcstr_v.size(): 5
+ 6) ar_v: "Pub"
 
 .SH See also
 

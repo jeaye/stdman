@@ -1,4 +1,4 @@
-.TH std::transform 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::transform 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::transform \- std::transform
 
@@ -181,41 +181,51 @@ std::transform \- std::transform
 
    std::transform does not guarantee in-order application of unary_op or binary_op. To
    apply a function to a sequence in-order or to apply a function that modifies the
-   elements of a sequence, use std::for_each
+   elements of a sequence, use std::for_each.
 
 .SH Example
 
    The following code uses transform to convert a string in place to uppercase using
-   the toupper function and then transforms each char to its ordinal value:
+   the std::toupper function and then transforms each char to its ordinal value:
 
 
 // Run this code
 
  #include <algorithm>
  #include <cctype>
+ #include <iomanip>
  #include <iostream>
  #include <string>
  #include <vector>
 
  int main()
  {
-     std::string s("hello");
-     std::transform(s.begin(), s.end(), s.begin(),
-                    [](unsigned char c) -> unsigned char { return std::toupper(c); });
+     std::string s{"hello"};
+     std::transform(s.cbegin(), s.cend(),
+                    s.begin(), // write to the same location
+                    [](unsigned char c) { return std::toupper(c); });
+     std::cout << "s = " << quoted(s) << '\\n';
+
+     // achieving the same with std::for_each (see Notes above)
+     std::string g{"hello"};
+     std::for_each(g.begin(), g.end(), [](char& c) { // modify in-place
+         c = std::toupper(static_cast<unsigned char>(c));
+     });
+     std::cout << "g = " << quoted(g) << '\\n';
 
      std::vector<std::size_t> ordinals;
-     std::transform(s.begin(), s.end(), std::back_inserter(ordinals),
-                    [](unsigned char c) -> std::size_t { return c; });
+     std::transform(s.cbegin(), s.cend(), std::back_inserter(ordinals),
+                    [](unsigned char c) { return c; });
 
-     std::cout << s << ':';
+     std::cout << "ordinals: ";
      for (auto ord : ordinals) {
-        std::cout << ' ' << ord;
+        std::cout << ord << ' ';
      }
 
      std::transform(ordinals.cbegin(), ordinals.cend(), ordinals.cbegin(),
                     ordinals.begin(), std::plus<>{});
 
-     std::cout << '\\n';
+     std::cout << "\\nordinals: ";
      for (auto ord : ordinals) {
         std::cout << ord << ' ';
      }
@@ -224,8 +234,10 @@ std::transform \- std::transform
 
 .SH Output:
 
- HELLO: 72 69 76 76 79
- 144 138 152 152 158
+ s = "HELLO"
+ g = "HELLO"
+ ordinals: 72 69 76 76 79
+ ordinals: 144 138 152 152 158
 
 .SH See also
 

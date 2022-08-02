@@ -1,4 +1,4 @@
-.TH std::uses_allocator_construction_args 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uses_allocator_construction_args 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uses_allocator_construction_args \- std::uses_allocator_construction_args
 
@@ -51,6 +51,12 @@ std::uses_allocator_construction_args \- std::uses_allocator_construction_args
    alloc,
 
    const std::pair<U, V>&& pr ) noexcept;
+   template< class T, class Alloc, class NonPair >
+
+   constexpr auto uses_allocator_construction_args( const Alloc&      \fB(9)\fP \fI(since C++20)\fP
+   alloc,
+
+   NonPair&& non_pair ) noexcept;
 
    Prepares the argument list needed to create an object of the given type T by means
    of uses-allocator construction.
@@ -116,16 +122,53 @@ std::uses_allocator_construction_args \- std::uses_allocator_construction_args
      std::forward_as_tuple(std::get<0>(std::move(pr))),
      std::forward_as_tuple(std::get<1>(std::move(pr))));
 
+   9) This overload participates in overload resolution only if T is a specialization
+   of std::pair, and given the exposition-only function template
+
+ template< class A, class B >
+ void /*deduce-as-pair*/( const std::pair<A, B>& );
+
+   , /*deduce-as-pair*/(non_pair) is ill-formed when considered as an unevaluated
+   operand.
+   Let the exposition-only class pair-constructor be defined as
+
+ class /*pair-constructor*/ {
+     const Alloc& alloc_; // exposition only
+     NonPair&     u_;     // exposition only
+
+     constexpr reconstruct(const std::remove_cv<T>& p) const // exposition only
+     {
+         return std::make_obj_using_allocator<std::remove_cv<T>>(alloc_, p);
+     }
+
+     constexpr reconstruct(std::remove_cv<T>&& p) const // exposition only
+     {
+         return std::make_obj_using_allocator<std::remove_cv<T>>(alloc_, std::move(p));
+     }
+
+ public:
+     constexpr operator std::remove_cv<T>() const
+     {
+         return reconstruct(std::forward<NonPair>(u_));
+     }
+ };
+
+   This overload is equivalent to return std::make_tuple(pair_construction);, where
+   pair_construction is a value of type pair-constructor whose alloc_ and u_ members
+   are alloc and non_pair respectively.
+
 .SH Parameters
 
-   alloc - the allocator to use.
-   args  - the arguments to pass to T's constructor
-   x     - tuple of arguments to pass to the constructors of T's .first
-   y     - tuple of arguments to pass to the constructors of T's .second
-   u     - single argument to pass to the constructor of T's .first
-   v     - single argument to pass to the constructor of T's .second
-   pr    - a pair whose .first will be passed to the constructor of T's .first and
-           .second will be passed to the constructor of T's .second
+   alloc    - the allocator to use.
+   args     - the arguments to pass to T's constructor
+   x        - tuple of arguments to pass to the constructors of T's first data member
+   y        - tuple of arguments to pass to the constructors of T's second data member
+   u        - single argument to pass to the constructor of T's first data member
+   v        - single argument to pass to the constructor of T's second data member
+              a pair whose first data member will be passed to the constructor of T's
+   pr       - first data member and second data member will be passed to the
+              constructor of T's second data member
+   non_pair - single argument to convert to a std::pair for further construction
 
 .SH Return value
 
@@ -138,9 +181,22 @@ std::uses_allocator_construction_args \- std::uses_allocator_construction_args
 
 .SH Notes
 
-   The overloads (2-8) provide allocator propagation into std::pair, which supports
+   The overloads (2-9) provide allocator propagation into std::pair, which supports
    neither leading-allocator nor trailing-allocator calling conventions (unlike, e.g.
    std::tuple, which uses leading-allocator convention).
+
+   When used in uses-allocator construction, the conversion function of
+   pair-constructor converts the provided argument to std::pair at first, and then
+   constructs the result from that std::pair by uses-allocator construction.
+
+  Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to          Behavior as published              Correct behavior
+   LWG 3525 C++20      no overload could handle non-pair types  reconstructing overload
+                       convertible to pair                      added
 
 .SH See also
 

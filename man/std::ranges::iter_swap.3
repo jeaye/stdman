@@ -1,52 +1,50 @@
-.TH std::ranges::iter_swap 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::iter_swap 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::iter_swap \- std::ranges::iter_swap
 
 .SH Synopsis
    Defined in header <iterator>
-   inline namespace /*unspecified*/ {
+   namespace ranges {
 
+   inline namespace /*unspecified*/ {
    inline constexpr /*unspecified*/ iter_swap =            \fI(since C++20)\fP
    /*unspecified*/;                                        (customization point object)
+   }
 
    }
    Call signature
    template< class I1, class I2 >
-
-   requires /* see below */                                \fI(since C++20)\fP
-
-   constexpr void iter_swap( I1&& i1, I2&& i2 )
+   constexpr void iter_swap( I1&& i1, I2&& i2 )            \fI(since C++20)\fP
    noexcept(/* see below */);
 
    Swaps values denoted by two iterators.
 
-   A call to ranges::iter_swap is expression-equivalent to:
+   ranges::iter_swap(i1, i2 is expression-equivalent to:
 
-    1. (void)iter_swap(std::forward<I1>(i1), std::forward<I2>(i2)), if either
-       std::remove_cvref_t<I1> or std::remove_cvref_t<I2> is a class or enumeration
-       type and the expression is well-formed in unevaluated context, where the
-       overload resolution is performed with the following candidates:
+    1. (void)iter_swap(i1, i2), if std::remove_cvref_t<I1> or std::remove_cvref_t<I2>
+       is a class or enumeration type and the expression is well-formed, where the
+       overload resolution is performed within namespace std::ranges with the
+       additional candidate:
 
           * void iter_swap(auto, auto) = delete;
-          * any declarations of iter_swap found by argument-dependent lookup.
 
                     If the selected overload does not exchange the value denoted by i1
                     and i2, the program is ill-formed, no diagnostic required.
 
-    2. otherwise, ranges::swap(*std::forward<I1>(i1), *std::forward<I2>(i2)) if both I1
-       and I2 model indirectly_readable and if std::iter_reference_t<I1> and
-       std::iter_reference_t<I2> model swappable_with.
-    3. otherwise, (void)(*std::forward<I1>(i1) =
-       /*iter_exchange_move*/(std::forward<I2>(i2), std::forward<I1>(i1))), if I1 and
-       I2 model std::indirectly_movable_storable<I1, I2> and
+    2. Otherwise, ranges::swap(*i1, *i2) if both I1 and I2 model indirectly_readable
+       and if std::iter_reference_t<I1> and std::iter_reference_t<I2> model
+       swappable_with.
+    3. Otherwise, (void)(*i1 = /*iter_exchange_move*/(i2, i1)), if
+       std::indirectly_movable_storable<I1, I2> and
        std::indirectly_movable_storable<I2, I1>, where iter_exchange_move is an
-       expositon-only function template described below.
+       exposition-only function template described below (and i1 is only evaluated
+       once).
+    4. Otherwise, ranges::iter_swap(i1, i2) is ill-formed, which can result in
+       substitution failure when ranges::iter_swap(e1, e2) appears in the immediate
+       context of a template instantiation.
 
-   In all other cases, a call to ranges::iter_swap is ill-formed, which can result in
-   substitution failure when ranges::iter_swap(e1, e2) appears in the immediate context
-   of a template instantiation.
-
-   The exposition-only function template iter_exchange_move is equivalently defined as:
+   The exposition-only function template iter_exchange_move is defined the equivalent
+   of:
 
  template<class X, class Y>
  constexpr std::iter_value_t<X> /*iter_exchange_move*/(X&& x, Y&& y)
@@ -60,10 +58,13 @@ std::ranges::iter_swap \- std::ranges::iter_swap
 
   Expression-equivalent
 
-   Expression e is expression-equivalent to expression f, if e and f have the same
-   effects, either are both potentially-throwing or are both not potentially-throwing
-   (i.e. noexcept(e) == noexcept(f)), and either are both constant subexpressions or
-   are both not constant subexpressions.
+   Expression e is expression-equivalent to expression f, if
+
+     * e and f have the same effects, and
+     * either both are constant subexpressions or else neither is a constant
+       subexpression, and
+     * either both are potentially-throwing or else neither is potentially-throwing
+       (i.e. noexcept(e) == noexcept(f)).
 
   Customization point objects
 
@@ -80,10 +81,14 @@ std::ranges::iter_swap \- std::ranges::iter_swap
 
    Given a set of types Args..., if std::declval<Args>()... meet the requirements for
    arguments to ranges::iter_swap above, __iter_swap_fn models
-   std::invocable<__iter_swap_fn, Args...>, std::invocable<const __iter_swap_fn,
-   Args...>, std::invocable<__iter_swap_fn&, Args...>, and std::invocable<const
-   __iter_swap_fn&, Args...>. Otherwise, no function call operator of __iter_swap_fn
-   participates in overload resolution.
+
+     * std::invocable<__iter_swap_fn, Args...>,
+     * std::invocable<const __iter_swap_fn, Args...>,
+     * std::invocable<__iter_swap_fn&, Args...>, and
+     * std::invocable<const __iter_swap_fn&, Args...>.
+
+   Otherwise, no function call operator of __iter_swap_fn participates in overload
+   resolution.
 
 .SH See also
 

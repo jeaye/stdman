@@ -1,4 +1,4 @@
-.TH std::bad_cast 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::bad_cast 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::bad_cast \- std::bad_cast
 
@@ -102,19 +102,28 @@ Inherited from std::exception
  #include <typeinfo>
 
  struct Foo { virtual ~Foo() {} };
- struct Bar { virtual ~Bar() {} };
+ struct Bar { virtual ~Bar() { std::cout << "~Bar\\n"; } };
+ struct Pub : Bar { ~Pub() override { std::cout << "~Pub\\n"; } };
 
  int main()
  {
-     Bar b;
-     try {
-         Foo& f = dynamic_cast<Foo&>(b);
-     } catch(const std::bad_cast& e)
+     Pub pub;
+     try
      {
-         std::cout << e.what() << '\\n';
+         [[maybe_unused]]
+         Bar& r1 = dynamic_cast<Bar&>(pub); // OK, upcast
+
+         [[maybe_unused]]
+         Foo& r2 = dynamic_cast<Foo&>(pub); // throws
+     }
+     catch(const std::bad_cast& e)
+     {
+         std::cout << "e.what(): " << e.what() << '\\n';
      }
  }
 
 .SH Possible output:
 
- Bad dynamic cast
+ e.what(): std::bad_cast
+ ~Pub
+ ~Bar

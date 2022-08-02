@@ -1,4 +1,4 @@
-.TH std::unique_lock::try_lock 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::unique_lock::try_lock 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unique_lock::try_lock \- std::unique_lock::try_lock
 
@@ -32,8 +32,55 @@ std::unique_lock::try_lock \- std::unique_lock::try_lock
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+   The following examples try to acquire a mutex that was locked and unlocked.
+
+
+// Run this code
+
+ #include <mutex>
+ #include <thread>
+ #include <iostream>
+ #include <vector>
+ #include <chrono>
+
+ int main()
+ {
+     std::mutex counter_mutex;
+     std::vector<std::thread> threads;
+
+     auto worker_task = [&](int id, int wait_seconds, int acquire_seconds) {
+         // wait for a few seconds before acquiring lock.
+         std::this_thread::sleep_for(std::chrono::seconds(wait_seconds));
+
+         std::unique_lock<std::mutex> lock(counter_mutex, std::defer_lock);
+         if (lock.try_lock()) {
+             std::cout << id << ", lock acquired.\\n";
+         } else {
+             std::cout << id << ", failed acquiring lock.\\n";
+             return;
+         }
+
+         // keep the lock for a while.
+         std::this_thread::sleep_for(std::chrono::seconds(acquire_seconds));
+
+         std::cout << id << ", releasing lock.\\n";
+         lock.unlock();
+     };
+
+     threads.emplace_back(worker_task, 0, 0, 2);
+     threads.emplace_back(worker_task, 1, 1, 0);
+     threads.emplace_back(worker_task, 2, 3, 0);
+
+     for (auto &thread : threads) thread.join();
+ }
+
+.SH Output:
+
+ 0, lock acquired.
+ 1, failed acquiring lock.
+ 0, releasing lock.
+ 2, lock acquired.
+ 2, releasing lock.
 
 .SH See also
 

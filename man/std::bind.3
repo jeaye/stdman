@@ -1,4 +1,4 @@
-.TH std::bind 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::bind 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::bind \- std::bind
 
@@ -51,20 +51,26 @@ std::bind return type
    member function, result_type is the return type of F. If F is a class  \fI(until C++20)\fP
    type with nested typedef result_type, then result_type is
    F::result_type. Otherwise no result_type is defined.
-
    2) (deprecated in C++17) result_type is exactly R.
 
 .SH Member function operator()
 
    Given an object g obtained from an earlier call to bind, when it is invoked in a
    function call expression g(u1, u2, ... uM), an invocation of the stored object takes
-   place, as if by std::invoke(fd, std::forward<V1>(v1), std::forward<V2>(v2), ...,
-   std::forward<VN>(vN)), where fd is a value of type std::decay_t<F> the values and
-   types of the bound arguments v1, v2, ..., vN are determined as specified below.
+   place, as if by
+
+   1) INVOKE(fd, std::forward<V1>(v1), std::forward<V2>(v2), ...,
+   std::forward<VN>(vN)), or
+   2) INVOKE<R>(fd, std::forward<V1>(v1), std::forward<V2>(v2), ...,
+   std::forward<VN>(vN)),
+
+   where INVOKE is the operation specified in Callable, fd is a value of type
+   std::decay<F>::type the values and types of the bound arguments v1, v2, ..., vN are
+   determined as specified below.
 
      * If the stored argument arg is of type std::reference_wrapper<T> (for example,
        std::ref or std::cref was used in the initial call to bind), then the argument
-       vn in the std::invoke call above is arg.get() and the type Vn in the same call
+       vn in the INVOKE operation above is arg.get() and the type Vn in the same call
        is T&: the stored argument is passed by reference into the invoked function
        object.
      * If the stored argument arg is of type T for which
@@ -74,25 +80,34 @@ std::bind return type
        would return, the subexpression is invoked eagerly, and its return value is
        passed to the outer invokable object. If the bind subexpression has any
        placeholder arguments, they are shared with the outer bind (picked out of u1,
-       u2, ...). Specifically, the argument vn in the std::invoke call above is
+       u2, ...). Specifically, the argument vn in the INVOKE operation above is
        arg(std::forward<Uj>(uj)...) and the type Vn in the same call is
-       std::result_of_t<T cv &(Uj&&...)>&& (cv qualification is the same as that of g).
+       std::result_of<T cv &(Uj&&...)>::type&&
+       \fI(until C++17)\fP
+       std::invoke_result_t<T cv &, Uj&&...>&&
+       \fI(since C++17)\fP (cv qualification is the same as that of g).
      * If the stored argument arg is of type T, for which std::is_placeholder<T>::value
        != 0 (meaning, a placeholder such as std::placeholders::_1, _2, _3, ... was used
        as the argument to the initial call to bind), then the argument indicated by the
        placeholder (u1 for _1, u2 for _2, etc) is passed to the invokable object: the
-       argument vn in the std::invoke call above is std::forward<Uj>(uj) and the
+       argument vn in the INVOKE operation above is std::forward<Uj>(uj) and the
        corresponding type Vn in the same call is Uj&&.
      * Otherwise, the ordinary stored argument arg is passed to the invokable object as
-       lvalue argument: the argument vn in the std::invoke call above is simply arg and
+       lvalue argument: the argument vn in the INVOKE operation above is simply arg and
        the corresponding type Vn is T cv &, where cv is the same cv-qualification as
        that of g.
 
    If some of the arguments that are supplied in the call to g() are not matched by any
    placeholders stored in g, the unused arguments are evaluated and discarded.
 
+   An invocation of operator() is non-throwing
+   or is a constant subexpression
+   \fI(since C++20)\fP if and only if so is the underlying INVOKE operation. operator()
+   participates in overload resolution only if the INVOKE operation is well-formed when
+   treated as an unevaluated operand.
+
    If g is volatile-qualified (i.e., its cv-qualifiers are either volatile or const
-   volatile), the behavior is undefined.
+   volatile), the program is ill-formed.
 
 .SH Exceptions
 
@@ -157,9 +172,11 @@ std::bind return type
                      // makes a call to f(2, 42, 1, n, 7)
 
      std::cout << "2) achieving the same effect using a lambda: ";
+     n = 7;
      auto lambda = [ncref=std::cref(n), n=n](auto a, auto b, auto /*unused*/) {
          f(b, 42, a, ncref, n);
      };
+     n = 10;
      lambda(1, 2, 1001); // same as a call to f1(1, 2, 1001)
 
      std::cout << "3) nested bind subexpressions share the placeholders: ";
@@ -201,7 +218,7 @@ std::bind return type
 .SH Output:
 
  1) argument reordering and pass-by-reference: 2 42 1 10 7
- 2) achieving the same effect using a lambda: 2 42 1 10 10
+ 2) achieving the same effect using a lambda: 2 42 1 10 7
  3) nested bind subexpressions share the placeholders: 12 12 12 4 5
  4) bind a RNG with a distribution: 0 1 8 5 5 2 0 7 7 10
  5) bind to a pointer to member function: 100
@@ -212,9 +229,10 @@ std::bind return type
 
 .SH See also
 
-   bind_front          binds a variable number of arguments, in order, to a function
-   (C++20)             object
-                       \fI(function template)\fP
+   bind_front          bind a variable number of arguments, in order, to a function
+   bind_back           object
+   (C++20)             \fI(function template)\fP
+   (C++23)
    _1, _2, _3, _4, ... placeholders for the unbound arguments in a std::bind expression
    \fI(C++11)\fP             (constant)
    mem_fn              creates a function object out of a pointer to a member

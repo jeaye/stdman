@@ -1,4 +1,4 @@
-.TH std::pmr::polymorphic_allocator::construct 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::pmr::polymorphic_allocator::construct 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::pmr::polymorphic_allocator::construct \- std::pmr::polymorphic_allocator::construct
 
@@ -20,6 +20,8 @@ std::pmr::polymorphic_allocator::construct \- std::pmr::polymorphic_allocator::c
    void construct( std::pair<T1, T2>* p, const std::pair<U, V>& xy );     \fI(until C++20)\fP
    template< class T1, class T2, class U, class V >                   \fB(6)\fP \fI(since C++17)\fP
    void construct( std::pair<T1, T2>* p, std::pair<U, V>&& xy );          \fI(until C++20)\fP
+   template< class T1, class T2, class NonPair >                      \fB(7)\fP \fI(since C++17)\fP
+   void construct( std::pair<T1, T2>* p, NonPair&& non_pair );            \fI(until C++20)\fP
 
    Constructs an object in allocated, but not initialized storage pointed to by p the
    provided constructor arguments. If the object is of type that itself uses
@@ -49,13 +51,13 @@ argument (std::is_constructible<T1, Args1..., polymorphic_allocator>::value==tru
 xprime is std::tuple_cat(std::move(x), std::make_tuple(*this)).
 2d) Otherwise, the program is ill-formed.
 Same rules apply to T2 and the replacement of y with yprime.
-Once xprime and yprime are constructed, constructs the pair p in allocated storage as if  (until
-by ::new((void *) p) pair<T1, T2>(std::piecewise_construct, std::move(xprime),            C++20)
+Once xprime and yprime are constructed, constructs the pair p in allocated storage as if
+by ::new((void *) p) pair<T1, T2>(std::piecewise_construct, std::move(xprime),
 std::move(yprime));
 3) Equivalent to construct(p, std::piecewise_construct, std::tuple<>(), std::tuple<>()),
 that is, passes the memory resource on to the pair's member types if they accept them.
-4) Equivalent to
-
+4) Equivalent to                                                                          (until
+                                                                                          C++20)
 construct(p, std::piecewise_construct, std::forward_as_tuple(std::forward<U>(x)),
                                        std::forward_as_tuple(std::forward<V>(y)))
 
@@ -69,13 +71,25 @@ construct(p, std::piecewise_construct, std::forward_as_tuple(xy.first),
 construct(p, std::piecewise_construct, std::forward_as_tuple(std::forward<U>(xy.first)),
                                        std::forward_as_tuple(std::forward<V>(xy.second)))
 
+7) This overload participates in overload resolution only if given the exposition-only
+function template
+
+template< class A, class B >
+void /*deduce-as-pair*/( const std::pair<A, B>& );
+
+, /*deduce-as-pair*/(non_pair) is ill-formed when considered as an unevaluated operand.
+Equivalent to
+
+construct<T1, T2, T1, T2>(p, std::forward<NonPair>(non_pair));
+
 .SH Parameters
 
-   p       - pointer to allocated, but not initialized storage
-   args... - the constructor arguments to pass to the constructor of T
-   x       - the constructor arguments to pass to the constructor of T1
-   y       - the constructor arguments to pass to the constructor of T2
-   xy      - the pair whose two members are the constructor arguments for T1 and T2
+   p        - pointer to allocated, but not initialized storage
+   args...  - the constructor arguments to pass to the constructor of T
+   x        - the constructor arguments to pass to the constructor of T1
+   y        - the constructor arguments to pass to the constructor of T2
+   xy       - the pair whose two members are the constructor arguments for T1 and T2
+   non_pair - non-pair argument to convert to pair for further construction
 
 .SH Return value
 
@@ -97,11 +111,12 @@ construct(p, std::piecewise_construct, std::forward_as_tuple(std::forward<U>(xy.
                        resource()
    LWG 2975 C++17      first overload is mistakenly used for  constrained to not accept
                        pair construction in some cases        pairs
+   LWG 3525 C++17      no overload could handle non-pair      reconstructing overload
+                       types convertible to pair              added
 
 .SH See also
 
-   construct             constructs an object in the allocated storage
-   \fB[static]\fP              \fI(function template)\fP
-   construct             constructs an object in allocated storage
-   (deprecated in C++17) \fI(public member function of std::allocator<T>)\fP
-   (removed in C++20)
+   construct     constructs an object in the allocated storage
+   \fB[static]\fP      \fI(function template)\fP
+   construct     constructs an object in allocated storage
+   \fI(until C++20)\fP \fI(public member function of std::allocator<T>)\fP

@@ -1,4 +1,4 @@
-.TH std::quoted 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::quoted 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::quoted \- std::quoted
 
@@ -80,7 +80,7 @@ std::quoted \- std::quoted
 
 .SH Notes
 
-   Feature testing macro: __cpp_lib_quoted_string_io
+   Feature-test macro: __cpp_lib_quoted_string_io
 
 .SH Example
 
@@ -91,44 +91,50 @@ std::quoted \- std::quoted
  #include <iomanip>
  #include <sstream>
 
- int main()
- {
-     std::stringstream ss;
-     std::string in = "String with spaces, and embedded \\"quotes\\" too";
-     std::string out;
+ void default_delimiter() {
+   const std::string in = "std::quoted() quotes this string and embedded \\"quotes\\" too";
+   std::stringstream ss;
+   ss << std::quoted(in);
+   std::string out;
+   ss >> std::quoted(out);
 
-     auto show = [&](const auto& what) {
-         &what == &in
-             ?   std::cout << "read in     [" << in << "]\\n"
-                           << "stored as   [" << ss.str() << "]\\n"
-             :   std::cout << "written out [" << out << "]\\n\\n";
-     };
+   std::cout << "Default delimiter case:\\n"
+                "read in     [" << in << "]\\n"
+                "stored as   [" << ss.str() << "]\\n"
+                "written out [" << out << "]\\n\\n";
+ }
 
-     ss << quoted(in); // uses ADL, so `std::` can be omitted
-     show(in);
-     ss >> quoted(out);
-     show(out);
+ void custom_delimiter() {
+   const char delim {'$'};
+   const char escape {'%'};
 
-     ss.str(""); // clear the stream buffer
+   const std::string in = "std::quoted() quotes this string and embedded $quotes$ $too";
+   std::stringstream ss;
+   ss << std::quoted(in, delim, escape);
+   std::string out;
+   ss >> std::quoted(out, delim, escape);
 
-     in = "String with spaces, and embedded $quotes$ too";
-     const char delim {'$'};
-     const char escape {'%'};
+   std::cout << "Custom delimiter case:\\n"
+                "read in     [" << in << "]\\n"
+                "stored as   [" << ss.str() << "]\\n"
+                "written out [" << out << "]\\n\\n";
+ }
 
-     ss << std::quoted(in, delim, escape);
-     show(in);
-     ss >> std::quoted(out, delim, escape);
-     show(out);
+ int main() {
+   default_delimiter();
+   custom_delimiter();
  }
 
 .SH Output:
 
- read in     [String with spaces, and embedded "quotes" too]
- stored as   ["String with spaces, and embedded \\"quotes\\" too"]
- written out [String with spaces, and embedded "quotes" too]
+ Default delimiter case:
+ read in     [std::quoted() quotes this string and embedded "quotes" too]
+ stored as   ["std::quoted() quotes this string and embedded \\"quotes\\" too"]
+ written out [std::quoted() quotes this string and embedded "quotes" too]
 
- read in     [String with spaces, and embedded $quotes$ too]
- stored as   [$String with spaces, and embedded %$quotes%$ too$]
- written out [String with spaces, and embedded $quotes$ too]
+ Custom delimiter case:
+ read in     [std::quoted() quotes this string and embedded $quotes$ $too]
+ stored as   [$std::quoted() quotes this string and embedded %$quotes%$ %$too$]
+ written out [std::quoted() quotes this string and embedded $quotes$ $too]
 
 .SH See also

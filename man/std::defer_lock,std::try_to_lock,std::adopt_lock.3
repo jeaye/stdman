@@ -1,4 +1,4 @@
-.TH std::defer_lock,std::try_to_lock,std::adopt_lock 3 "2022.03.29" "http://cppreference.com" "C++ Standard Libary"
+.TH std::defer_lock,std::try_to_lock,std::adopt_lock 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::defer_lock,std::try_to_lock,std::adopt_lock \- std::defer_lock,std::try_to_lock,std::adopt_lock
 
@@ -32,9 +32,10 @@ std::defer_lock,std::try_to_lock,std::adopt_lock \- std::defer_lock,std::try_to_
 
  #include <mutex>
  #include <thread>
+ #include <iostream>
 
  struct bank_account {
-     explicit bank_account(int balance) : balance(balance) {}
+     explicit bank_account(int balance) : balance{balance} {}
      int balance;
      std::mutex m;
  };
@@ -46,12 +47,12 @@ std::defer_lock,std::try_to_lock,std::adopt_lock \- std::defer_lock,std::try_to_
      // lock both mutexes without deadlock
      std::lock(from.m, to.m);
      // make sure both already-locked mutexes are unlocked at the end of scope
-     std::lock_guard<std::mutex> lock1(from.m, std::adopt_lock);
-     std::lock_guard<std::mutex> lock2(to.m, std::adopt_lock);
+     std::lock_guard lock1{from.m, std::adopt_lock};
+     std::lock_guard lock2{to.m, std::adopt_lock};
 
  // equivalent approach:
- //    std::unique_lock<std::mutex> lock1(from.m, std::defer_lock);
- //    std::unique_lock<std::mutex> lock2(to.m, std::defer_lock);
+ //    std::unique_lock<std::mutex> lock1{from.m, std::defer_lock};
+ //    std::unique_lock<std::mutex> lock2{to.m, std::defer_lock};
  //    std::lock(lock1, lock2);
 
      from.balance -= amount;
@@ -60,15 +61,23 @@ std::defer_lock,std::try_to_lock,std::adopt_lock \- std::defer_lock,std::try_to_
 
  int main()
  {
-     bank_account my_account(100);
-     bank_account your_account(50);
+     bank_account my_account{100};
+     bank_account your_account{50};
 
-     std::thread t1(transfer, std::ref(my_account), std::ref(your_account), 10);
-     std::thread t2(transfer, std::ref(your_account), std::ref(my_account), 5);
+     std::thread t1{transfer, std::ref(my_account), std::ref(your_account), 10};
+     std::thread t2{transfer, std::ref(your_account), std::ref(my_account), 5};
 
      t1.join();
      t2.join();
+
+     std::cout << "my_account.balance = " << my_account.balance << "\\n"
+                  "your_account.balance = " << your_account.balance << '\\n';
  }
+
+.SH Output:
+
+ my_account.balance = 95
+ your_account.balance = 55
 
 .SH See also
 
