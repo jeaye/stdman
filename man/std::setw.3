@@ -1,13 +1,16 @@
-.TH std::setw 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::setw 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::setw \- std::setw
 
 .SH Synopsis
    Defined in header <iomanip>
-   /*unspecified*/ setw( int n );
+   /* unspecified */ setw( int n );
 
-   When used in an expression out << setw(n) or in >> setw(n), sets the width parameter
-   of the stream out or in to exactly n.
+   When used in an expression out << std::setw(n) or in >> std::setw(n), sets the width
+   parameter of the stream out or in to exactly n.
+
+   Some operations reset the width to zero (see below), so std::setw may need to be
+   repeatedly called to set the width for multiple operations.
 
 .SH Parameters
 
@@ -15,12 +18,26 @@ std::setw \- std::setw
 
 .SH Return value
 
-   Returns an object of unspecified type such that if str is the name of an output
-   stream of type std::basic_ostream<CharT, Traits> or std::basic_istream<CharT,
-   Traits>, then the expression str << setw(n) or str >> setw(n) behaves as if the
-   following code was executed:
+   An object of unspecified type such that
 
-   str.width(n);
+     * if out is an object of type std::basic_ostream<CharT, Traits>, the expression
+       out << setw(n)
+          * has type std::basic_ostream<CharT, Traits>&
+          * has value out
+          * behaves as if it called f(out, n)
+     * if in is an object of type std::basic_istream<CharT, Traits>, the expression in
+       >> setw(n)
+          * has type std::basic_istream<CharT, Traits>&
+          * has value in
+          * behaves as if it called f(in, n)
+
+   where the function f is defined as:
+
+ void f(std::ios_base& str, int n)
+ {
+     // set width
+     str.width(n);
+ }
 
 .SH Notes
 
@@ -29,17 +46,16 @@ std::setw \- std::setw
 
      * Input
 
-              * operator>>(basic_istream&, basic_string&)
-              * operator>>(basic_istream&, char*)
-
+     * operator>>(basic_istream&, basic_string&)
+     * operator>>(basic_istream&, char*)
      * Output
 
-              * Overloads 1-7 of basic_ostream::operator<<() (at Stage 3 of
-                num_put::put())
-              * operator<<(basic_ostream&, char) and operator<<(basic_ostream&, char*)
-              * operator<<(basic_ostream&, basic_string&)
-              * std::put_money (inside money_put::put())
-              * std::quoted (when used with an output stream)
+     * Overloads of basic_ostream::operator<<() that take arithmetic types or void
+       pointers (at Stage 3 of num_put::put())
+     * operator<<(basic_ostream&, char) and operator<<(basic_ostream&, char*)
+     * operator<<(basic_ostream&, basic_string&)
+     * std::put_money (inside money_put::put())
+     * std::quoted (when used with an output stream)
 
    The exact effects this modifier has on the input and output vary between the
    individual I/O functions and are described at each operator<< and operator>>
@@ -50,17 +66,20 @@ std::setw \- std::setw
 
 // Run this code
 
- #include <sstream>
- #include <iostream>
  #include <iomanip>
+ #include <iostream>
+ #include <sstream>
 
  int main()
  {
      std::cout << "no setw: [" << 42 << "]\\n"
                << "setw(6): [" << std::setw(6) << 42 << "]\\n"
+               << "no setw, several elements: [" << 89 << 12 << 34 << "]\\n"
                << "setw(6), several elements: [" << 89 << std::setw(6) << 12 << 34 << "]\\n";
+
      std::istringstream is("hello, world");
      char arr[10];
+
      is >> std::setw(6) >> arr;
      std::cout << "Input from \\"" << is.str() << "\\" with setw(6) gave \\""
                << arr << "\\"\\n";
@@ -70,8 +89,18 @@ std::setw \- std::setw
 
  no setw: [42]
  setw\fB(6)\fP: [    42]
+ no setw, several elements: [891234]
  setw\fB(6)\fP, several elements: [89    1234]
  Input from "hello, world" with setw\fB(6)\fP gave "hello"
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to          Behavior as published          Correct behavior
+   LWG 183 C++98      setw could only be used with streams of usable with any
+                      type std::ostream or std::istream       character stream
 
 .SH See also
 

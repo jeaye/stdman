@@ -1,12 +1,12 @@
-.TH std::packaged_task::packaged_task 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::packaged_task::packaged_task 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::packaged_task::packaged_task \- std::packaged_task::packaged_task
 
 .SH Synopsis
    packaged_task() noexcept;                                          \fB(1)\fP \fI(since C++11)\fP
-   template <class F>                                                 \fB(2)\fP \fI(since C++11)\fP
+   template< class F >                                                \fB(2)\fP \fI(since C++11)\fP
    explicit packaged_task( F&& f );
-   template <class F, class Allocator>                                    \fI(since C++11)\fP
+   template< class F, class Allocator >                                   \fI(since C++11)\fP
    explicit packaged_task( std::allocator_arg_t, const Allocator& a,  \fB(3)\fP \fI(until C++17)\fP
    F&& f );
    packaged_task( const packaged_task& ) = delete;                    \fB(4)\fP \fI(since C++11)\fP
@@ -19,28 +19,25 @@ std::packaged_task::packaged_task \- std::packaged_task::packaged_task
    task, initialized with std::forward<F>(f).
    The allocator a is used to allocate memory necessary to store the task.
    \fI(until C++17)\fP
+   These overloads participate in overload resolution only if std::decay<F>::type is
+   not the same type as std::packaged_task<R(Args...)>.
 
-     * These constructors do not
-       \fI(until C++17)\fP
-       This constructor does not
-       \fI(since C++17)\fP participate in overload resolution if std::decay<F>::type is the
-       same type as std::packaged_task<R(ArgTypes...)>.
-     * The program is ill-formed if the INVOKE<R>(std::forward<F>(f),
-       std::declval<Args>()...) expression (described in Callable) is ill-formed when
-       treated as an unevaluated operand
-       (i.e. std::is_invocable_r_v<R, F, Args...> is not true)
-       \fI(since C++17)\fP.
-     * The behavior is undefined if the invocation on a copy of f behaves different
-       from that on f.
+   Let t1, t2, ..., tN be values of the corresponding types in Args, if
+   INVOKE<R>(f, t1, t2, ..., tN) is not a valid expression, the program   \fI(until C++17)\fP
+   is ill-formed.
+   If std::is_invocable_r_v<R, F, Args...> is false, the program is       \fI(since C++17)\fP
+   ill-formed.
 
+   If invoking f itself and invoking a copy of f behave differently, the behavior is
+   undefined.
    4) The copy constructor is deleted, std::packaged_task is move-only.
    5) Constructs a std::packaged_task with the shared state and task formerly owned by
    rhs, leaving rhs with no shared state and a moved-from task.
 
 .SH Parameters
 
-   f   - the callable target \fI(function, member function, lambda-expression, functor) to\fP
-         execute
+   f   - the callable target \fI\fI(function\fP, member function, lambda expression, function\fP
+         object) to execute
    a   - the allocator to use when storing the task
    rhs - the std::packaged_task to move from
 
@@ -62,37 +59,41 @@ std::packaged_task::packaged_task \- std::packaged_task::packaged_task
 
  int fib(int n)
  {
-     if (n < 3) return 1;
-     else return fib(n-1) + fib(n-2);
+     if (n < 3)
+         return 1;
+     else
+         return fib(n - 1) + fib(n - 2);
  }
 
  int main()
  {
      std::packaged_task<int(int)> fib_task(&fib);
 
-     std::cout << "starting task\\n";
+     std::cout << "Starting task\\n";
      auto result = fib_task.get_future();
      std::thread t(std::move(fib_task), 42);
 
-     std::cout << "waiting for task to finish..." << std::endl;
+     std::cout << "Waiting for task to finish..." << std::endl;
      std::cout << result.get() << '\\n';
 
-     std::cout << "task complete\\n";
+     std::cout << "Task complete\\n";
      t.join();
  }
 
 .SH Output:
 
- starting task
- waiting for task to finish...
+ Starting task
+ Waiting for task to finish...
  267914296
- task complete
+ Task complete
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
       DR    Applied to              Behavior as published              Correct behavior
-   LWG 2067 C++11      the deleted copy constructor took reference to  made const
-                       non-const
+   LWG 2067 C++11      the parameter type of the copy constructor was  added const
+                       packaged_task&
+   LWG 2097 C++11      for overloads (2,3), F could be                 F is constrained
+                       std::packaged_task<R(Args...)>

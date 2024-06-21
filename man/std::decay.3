@@ -1,4 +1,4 @@
-.TH std::decay 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::decay 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::decay \- std::decay
 
@@ -7,23 +7,16 @@ std::decay \- std::decay
    template< class T >              \fI(since C++11)\fP
    struct decay;
 
-   Applies lvalue-to-rvalue, array-to-pointer, and function-to-pointer implicit
-   conversions to the type T, removes cv-qualifiers, and defines the resulting type as
-   the member typedef type. Formally:
+   Performs the type conversions equivalent to the ones performed when passing function
+   arguments by value. Formally:
 
-     * If T names the type "array of U" or "reference to array of U", the member
-       typedef type is U*.
-
-     * Otherwise, if T is a function type F or a reference thereto, the member typedef
+     * If T is "array of U" or reference to it, the member typedef type is U*.
+     * Otherwise, if T is a function type F or reference to one, the member typedef
        type is std::add_pointer<F>::type.
-
      * Otherwise, the member typedef type is
        std::remove_cv<std::remove_reference<T>::type>::type.
 
-   These conversions model the type conversion applied to all function arguments when
-   passed by value.
-
-   The behavior of a program that adds specializations for decay is undefined.
+   If the program adds specializations for std::decay, the behavior is undefined.
 
 .SH Member types
 
@@ -37,14 +30,15 @@ std::decay \- std::decay
 
 .SH Possible implementation
 
-   template< class T >
-   struct decay {
+   template<class T>
+   struct decay
+   {
    private:
        typedef typename std::remove_reference<T>::type U;
    public:
        typedef typename std::conditional<
            std::is_array<U>::value,
-           typename std::remove_extent<U>::type*,
+           typename std::add_pointer<typename std::remove_extent<U>::type>::type,
            typename std::conditional<
                std::is_function<U>::value,
                typename std::add_pointer<U>::type,
@@ -60,16 +54,13 @@ std::decay \- std::decay
 
  #include <type_traits>
 
- template <typename T, typename U>
- struct decay_equiv :
-     std::is_same<typename std::decay<T>::type, U>::type
- {};
- template <typename T, typename U>
- constexpr bool is_decay_equ = decay_equiv<T, U>::value;
+ template<typename T, typename U>
+ constexpr bool is_decay_equ = std::is_same_v<std::decay_t<T>, U>;
 
  int main()
  {
-     static_assert(
+     static_assert
+     (
          is_decay_equ<int, int> &&
          ! is_decay_equ<int, float> &&
          is_decay_equ<int&, int> &&

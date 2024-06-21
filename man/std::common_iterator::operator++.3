@@ -1,0 +1,103 @@
+.TH std::common_iterator::operator++ 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::common_iterator::operator++ \- std::common_iterator::operator++
+
+.SH Synopsis
+   constexpr common_iterator& operator++();                          \fB(1)\fP \fI(since C++20)\fP
+   constexpr decltype(auto) operator++( int );                       \fB(2)\fP \fI(since C++20)\fP
+.SH Helper types
+   class /*postfix_proxy*/ {
+
+       std::iter_value_t<I> keep_;
+       constexpr postfix_proxy(std::iter_reference_t<I>&& x)
+           : keep_(std::forward<std::iter_reference_t<I>>(x)) {}
+   public:                                                           \fB(3)\fP (exposition
+       constexpr const std::iter_value_t<I>& operator*() const           only*)
+   noexcept {
+           return keep_;
+       }
+
+   };
+
+   Increments the underlying iterator.
+
+   The behavior is undefined if the underlying std::variant member object var does not
+   hold an object of type I, i.e. std::holds_alternative<I>(var) is equal to false.
+
+   Let it denote the iterator of type I held by var, that is std::get<I>(var).
+
+   1) Pre-increments by one. Equivalent to ++it; return *this;.
+   2) Post-increments by one:
+     * Equivalent to: auto tmp = *this; ++*this; return tmp;, if I models
+       forward_iterator.
+     * Equivalent to: return it++;, if the variable definition auto&& ref = *it++; is
+       well-formed, or either
+
+     * std::indirectly_readable<I> or
+     * std::constructible_from<std::iter_value_t<I>, std::iter_reference_t<I>> or
+     * std::move_constructible<std::iter_value_t<I>>
+
+   is false.
+     * Equivalent to: postfix_proxy p(**this); ++*this; return p; otherwise, where
+       postfix_proxy is an exposition only helper type \fB(3)\fP.
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   1) *this
+   2) A copy of *this that was made before the change, or a result of post-increment of
+   the underlying iterator, or a proxy keeping the value of the current element, as
+   described above.
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <initializer_list>
+ #include <iostream>
+ #include <iterator>
+
+ int main()
+ {
+     const auto il = {1, 2, 3, 4, 5, 6};
+
+     using CI = std::common_iterator<
+                    std::counted_iterator<std::initializer_list<int>::iterator>,
+                    std::default_sentinel_t
+                    >;
+
+     CI first{std::counted_iterator{std::begin(il), std::ssize(il) - 2}};
+
+     for (; first != std::default_sentinel; ++first)
+         std::cout << *first << ' ';
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ 1 2 3 4
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to          Behavior as published              Correct behavior
+   P2259R1  C++20      post increment might discard its result a proxy class is used to
+                       in more situations                      keep the result
+   LWG 3546 C++20      initialization of the proxy object was  situation and definition
+                       sometimes ill-formed                    adjusted
+   LWG 3574 C++20      variant was fully constexpr (P2231R1)   also made constexpr
+                       but common_iterator was not
+   LWG 3595 C++20      functions of the proxy type lacked      added
+                       constexpr and noexcept
+
+.SH See also
+
+   operator- computes the distance between two iterator adaptors
+             \fI(function template)\fP

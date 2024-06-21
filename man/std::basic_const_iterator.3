@@ -1,0 +1,156 @@
+.TH std::basic_const_iterator 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::basic_const_iterator \- std::basic_const_iterator
+
+.SH Synopsis
+   Defined in header <iterator>
+   template< std::input_iterator Iter >  (since C++23)
+   class basic_const_iterator;
+
+   std::basic_const_iterator is an iterator adaptor which behaves exactly like the
+   underlying iterator (which must be at least an LegacyInputIterator or model
+   input_iterator), except that dereferencing converts the value returned by the
+   underlying iterator as immutable. Specializations of std::basic_const_iterator are
+   constant iterators, that is, the iterator can never be used as an output iterator
+   because modifying elements is not allowed.
+
+.SH Member types
+
+   Member type         Definition
+                       If Iter models forward_iterator:
+
+   iterator_category     * member iterator_category is the same type as
+                           std::iterator_traits<Iter>::iterator_category.
+
+                       Otherwise, there is no member iterator_category.
+                         * std::contiguous_iterator_tag, if Iter models
+                           contiguous_iterator;
+                         * std::random_access_iterator_tag, if Iter models
+   iterator_concept        random_access_iterator;
+                         * std::bidirectional_iterator_tag, if Iter models
+                           bidirectional_iterator;
+                         * std::forward_iterator_tag, if Iter models forward_iterator;
+                         * std::input_iterator_tag otherwise.
+   value_type          std::iter_value_t<Iter>
+   difference_type     std::iter_difference_t<Iter>
+   reference (private) std::iter_const_reference_t<Iter>
+                       (exposition-only member type*)
+
+.SH Member objects
+
+   Member name       Definition
+   current (private) the underlying iterator from which base() copies or moves
+                     (exposition-only member object*)
+
+.SH Member functions
+
+   constructor                constructs a new iterator adaptor
+                              \fI(public member function)\fP
+   base                       accesses the underlying iterator
+                              \fI(public member function)\fP
+   operator*                  accesses the pointed-to element
+   operator->                 \fI(public member function)\fP
+   operator[]                 accesses an element by index
+                              \fI(public member function)\fP
+   operator++
+   operator++(int)
+   operator+=                 advances or decrements the iterator
+   operator--                 \fI(public member function)\fP
+   operator--(int)
+   operator-=
+                              converts into any constant iterator to which an
+   operator constant-iterator underlying iterator can be convertible
+                              \fI(public member function)\fP
+   operator==
+   operator<
+   operator>                  compares the underlying iterators
+   operator<=                 \fI(public member function)\fP
+   operator>=
+   operator<=>
+
+.SH Non-member functions
+
+   operator<
+   operator>
+   operator<=  compares basic_const_iterator with non-basic_const_iterator
+   operator>=  \fI(function template)\fP
+   operator<=>
+   (C++23)
+   operator+   advances or decrements the iterator
+   operator-   \fI(function template)\fP
+   (C++23)
+   operator-   computes the distance between two iterator adaptors
+   (C++23)     \fI(function template)\fP
+   iter_move   casts the result of dereferencing the underlying iterator to its
+   (C++23)     associated rvalue reference type
+               \fI(function)\fP
+
+.SH Helper classes
+
+                                               determines the common type of an
+   std::common_type<std::basic_const_iterator> iterator and an adapted
+   (C++23)                                     basic_const_iterator type
+                                               \fI(class template specialization)\fP
+
+   Helper alias templates
+
+   template< std::input_iterator I >              (since C++23)
+   using const_iterator = /* see description */;
+
+   If I models constant-iterator (an exposition-only concept), then const_iterator<I>
+   denotes a type I. Otherwise, basic_const_iterator<I>.
+
+   template< std::semiregular S >                 (since C++23)
+   using const_sentinel = /* see description */;
+
+   If S models input_iterator, then const_sentinel<S> denotes a type const_iterator<S>.
+   Otherwise, S.
+
+   Helper function templates
+
+   template< std::input_iterator T >
+   constexpr const_iterator<T> make_const_iterator( I it ) { return it;   (since C++23)
+   }
+   template< std::semiregular S >                                         (since C++23)
+   constexpr const_sentinel<S> make_const_sentinel( S s ) { return s; }
+
+.SH Notes
+
+      Feature-test macro      Value    Std                    Feature
+                             202207L (C++23) std::basic_const_iterator
+   __cpp_lib_ranges_as_const 202311L (C++23) std::basic_const_iterator should follow
+                                     (DR)    its underlying type's convertibility
+
+.SH Example
+
+
+// Run this code
+
+ #include <cassert>
+ #include <iterator>
+ #include <vector>
+
+ int main()
+ {
+     std::vector v{1, 2, 3};
+     std::vector<int>::iterator i = v.begin();
+     *i = 4;   // OK, v[0] == 4 now
+     i[1] = 4; // OK, the same as *(i + 1) = 4;
+
+     auto ci = std::make_const_iterator(i);
+     assert(*ci == 4);   // OK, can read the underlying object
+     assert(ci[0] == 4); // OK, ditto
+     // *ci = 13;        // Error: location is read-only
+     // ci[0] = 13;      // Error: ditto
+     ci.base()[0] = 42;  // OK, underlying iterator is writable
+     assert(*ci == 42);  // OK, underlying location v[0] was modified
+ }
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to             Behavior as published              Correct behavior
+   P2836R1 C++23      basic_const_iterator doesn't follow its       conversion operator
+                      underlying type's convertibility              provided

@@ -1,4 +1,4 @@
-.TH std::has_unique_object_representations 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::has_unique_object_representations 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::has_unique_object_representations \- std::has_unique_object_representations
 
@@ -6,6 +6,8 @@ std::has_unique_object_representations \- std::has_unique_object_representations
    Defined in header <type_traits>
    template< class T >                        \fI(since C++17)\fP
    struct has_unique_object_representations;
+
+   std::has_unique_object_representations is a UnaryTypeTrait.
 
    If T is TriviallyCopyable and if any two objects of type T with the same value have
    the same object representation, provides the member constant value equal true. For
@@ -24,25 +26,28 @@ std::has_unique_object_representations \- std::has_unique_object_representations
    The behavior is undefined if T is an incomplete type other than (possibly
    cv-qualified) void or array of unknown bound.
 
-   The behavior of a program that adds specializations for
-   has_unique_object_representations or has_unique_object_representations_v is
-   undefined.
+   If the program adds specializations for std::has_unique_object_representations or
+   std::has_unique_object_representations_v, the behavior is undefined.
 
 .SH Template parameters
 
    T - a type to check
 
-  Helper variable template
+   Helper variable template
 
    template< class T >
-   inline constexpr bool has_unique_object_representations_v =            \fI(since C++17)\fP
-   has_unique_object_representations<T>::value;
+
+   inline constexpr bool has_unique_object_representations_v =  \fI(since C++17)\fP
+
+       has_unique_object_representations<T>::value;
+
+
 
 Inherited from std::integral_constant
 
 .SH Member constants
 
-   value    true if T has unique object representations , false otherwise
+   value    true if T has unique object representations, false otherwise
    \fB[static]\fP \fI(public static member constant)\fP
 
 .SH Member functions
@@ -63,43 +68,48 @@ Inherited from std::integral_constant
    This trait was introduced to make it possible to determine whether a type can be
    correctly hashed by hashing its object representation as a byte array.
 
-   Feature-test macro: __cpp_lib_has_unique_object_representations
+            Feature-test macro               Value    Std                  Feature
+__cpp_lib_has_unique_object_representations 201606L \fI(C++17)\fP std::has_unique_object_representations
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
+ #include <cstdint>
  #include <type_traits>
 
- struct foo
+ struct unpadded
  {
-     char c;
-     float f;
-     short st;
-     int i;
+     std::uint32_t a, b;
  };
 
- struct bar
+ struct likely_padded
  {
-     int a;
-     int b;
+     std::uint8_t c;
+     std::uint16_t st;
+     std::uint32_t i;
  };
 
  int main()
  {
-      std::cout  << std::boolalpha
-                 << "Does foo have unique object representations? "
-                 << std::has_unique_object_representations_v<foo> << '\\n'
-                 << "Does bar have unique object representations? "
-                 << std::has_unique_object_representations_v<bar> << '\\n';
+     // Every value of a char corresponds to exactly one object representation.
+     static_assert(std::has_unique_object_representations_v<char>);
+     // For IEC 559 floats, assertion passes because the value NaN has
+     // multiple object representations.
+     static_assert(!std::has_unique_object_representations_v<float>);
+
+     // Should succeed in any sane implementation because unpadded
+     // is typically not padded, and std::uint32_t cannot contain padding bits.
+     static_assert(std::has_unique_object_representations_v<unpadded>);
+     // Fails in most implementations because padding bits are inserted
+     // between the data members c and st for the purpose of aligning st to 16 bits.
+     static_assert(!std::has_unique_object_representations_v<likely_padded>);
+
+     // Notable architectural divergence:
+     static_assert(std::has_unique_object_representations_v<bool>);  // x86
+  // static_assert(!std::has_unique_object_representations_v<bool>); // ARM
  }
-
-.SH Possible output:
-
- Does foo have unique object representations? false
- Does bar have unique object representations? true
 
 .SH See also
 

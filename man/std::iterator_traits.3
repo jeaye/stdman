@@ -1,72 +1,210 @@
-.TH std::iterator_traits 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::iterator_traits 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::iterator_traits \- std::iterator_traits
 
 .SH Synopsis
    Defined in header <iterator>
-   template< std::input_iterator I >
+   template< class Iter >
+   struct iterator_traits;
+   template< class T >
+   struct iterator_traits<T*>;
+   template< class T >                (removed in C++20)
+   struct iterator_traits<const T*>;
 
-   requires /* see below */
-   struct iterator_traits<std::counted_iterator<I>> :
-   std::iterator_traits<I> {                                              \fI(since C++20)\fP
-   using pointer = std::conditional_t<std::contiguous_iterator<I>,
-   std::add_pointer_t<std::iter_reference_t<I>>,
-   void>;
+   std::iterator_traits is the type trait class that provides uniform interface to the
+   properties of LegacyIterator types. This makes it possible to implement algorithms
+   only in terms of iterators.
 
-   };
+   The template can be specialized for user-defined iterators so that the information
+   about the iterator can be retrieved even if the type does not provide the usual
+   typedefs.
 
-   Inherits the properties from customized (generated from either a standard partial
-   specialization or a program-defined specialization) std::iterator_traits<I>, with
-   the member type pointer adjusted, where I models input_iterator.
+   User specializations may define the nested type iterator_concept to
+   one of iterator category tags, to indicate conformance to the iterator \fI(since C++20)\fP
+   concepts.
 
-   Notably, the iterator_concept (if present) and iterator_category are inherited from
-   std::iterator_traits<I>.
+.SH Template parameters
 
-   The condition in the requires-clause is true if and only if std::iterator_traits<I>
-   is not generated from the primary template.
+   Iter - the iterator type to retrieve properties for
 
-.SH Note
+   Nested types
 
-   Before P2259R1, this specialization is used even if std::iterator_traits<I> is
-   generated from the primary template. As a result, when testing
-   std::counted_iterator<I> against an iterator concept (e.g. forward_iterator), the
-   determination of /*ITER_CONCEPT*/ does not take I::iterator_concept into account,
-   and thus std::counted_iterator<I> sometimes erroneously behaves as if it cannot
-   model that concept. This incorrect behavior is implemented in libstdc++ prior to
-   10.4, and in MSVC STL prior to VS 2022 17.0 Preview 3.
+   Nested type       Definition
+   difference_type   Iter::difference_type
+   value_type        Iter::value_type
+   pointer           Iter::pointer
+   reference         Iter::reference
+   iterator_category Iter::iterator_category
 
-   The standard library provides partial specializations of std::iterator_traits for
-   pointer types, std::counted_iterator, and std::common_iterator.
+   If Iter does not have any of the five nested types above, then this template  (since
+   has no members by any of those names (std::iterator_traits is                 C++17)
+   SFINAE-friendly).                                                             (until
+                                                                                 C++20)
+   If Iter does not have pointer, but has all four remaining nested types, then
+   these four nested types are declared as follows:
+
+   Nested type       Definition
+   difference_type   Iter::difference_type
+   value_type        Iter::value_type
+   pointer           void
+   reference         Iter::reference
+   iterator_category Iter::iterator_category
+
+   Otherwise, if Iter satisfies the exposition-only concept
+   __LegacyInputIterator, the nested types are declared as follows:
+
+   Nested type       Definition
+   difference_type   std::incrementable_traits<Iter>::difference_type
+   value_type        std::indirectly_readable_traits<Iter>::value_type
+                       * Iter::pointer if valid.
+   pointer             * Otherwise decltype(std::declval<Iter&>().operator->())
+                         if valid.
+                       * Otherwise void.
+   reference           * Iter::reference if valid.
+                       * Otherwise std::iter_reference_t<Iter>.                  (since
+                       * Iter::iterator_category if valid.                       C++20)
+                       * Otherwise, std::random_access_iterator_tag if Iter
+                         satisfies __LegacyRandomAccessIterator.
+   iterator_category   * Otherwise, std::bidirectional_iterator_tag if Iter
+                         satisfies __LegacyBidirectionalIterator.
+                       * Otherwise, std::forward_iterator_tag if Iter satisfies
+                         __LegacyForwardIterator.
+                       * Otherwise, std::input_iterator_tag.
+
+   Otherwise, if Iter satisfies the exposition-only concept __LegacyIterator,
+   the nested types are declared as follows:
+
+   Nested type       Definition
+                       * std::incrementable_traits<Iter>::difference_type if
+   difference_type       valid.
+                       * Otherwise void.
+   value_type        void
+   pointer           void
+   reference         void
+   iterator_category std::output_iterator_tag
+
+   Otherwise, this template has no members by any of those names
+   (std::iterator_traits is SFINAE-friendly).
+
+.SH Specializations
+
+   This type trait may be specialized for user-provided types that may be used as
+   iterators. The standard library provides partial specializations for pointer types
+   T*, which makes it possible to use all iterator-based algorithms with raw pointers.
+
+   The standard library also provides partial specializations for some    \fI(since C++20)\fP
+   standard iterator adaptors.
+
+     T* specialization nested types
+
+   Only specialized if std::is_object_v<T> is true. \fI(since C++20)\fP
+
+   Nested type                    Definition
+   difference_type                std::ptrdiff_t
+                                  T
+   value_type                     \fI(until C++20)\fP
+                                  std::remove_cv_t<T>
+                                  \fI(since C++20)\fP
+   pointer                        T*
+   reference                      T&
+   iterator_category              std::random_access_iterator_tag
+   iterator_concept \fI(since C++20)\fP std::contiguous_iterator_tag
+
+       const T* specialization nested types
+
+   Nested type       Definition
+   difference_type   std::ptrdiff_t                  \fI(until C++20)\fP
+   value_type        T
+   pointer           const T*
+   reference         const T&
+   iterator_category std::random_access_iterator_tag
+
+     Specializations for library types
+
+                                               provides uniform interface to the
+   std::iterator_traits<std::common_iterator>  properties of the std::common_iterator
+   (C++20)                                     type
+                                               \fI(class template specialization)\fP
+                                               provides uniform interface to the
+   std::iterator_traits<std::counted_iterator> properties of the std::counted_iterator
+   (C++20)                                     type
+                                               \fI(class template specialization)\fP
 
 .SH Example
+
+   Shows a general-purpose std::reverse() implementation for bidirectional iterators.
 
 
 // Run this code
 
+ #include <iostream>
  #include <iterator>
- #include <type_traits>
  #include <list>
  #include <vector>
 
- int main() {
-     std::vector v{1,2,3,4};
-     std::list l{1,2,3,4};
-     std::counted_iterator iv{v.begin(), 3};
-     std::counted_iterator il{l.begin(), 3};
-     static_assert(std::is_same<int*, std::iterator_traits<decltype(iv)>::pointer>());
-     static_assert(std::is_same<void, std::iterator_traits<decltype(il)>::pointer>());
+ template<class BidirIt>
+ void my_reverse(BidirIt first, BidirIt last)
+ {
+     typename std::iterator_traits<BidirIt>::difference_type n = std::distance(first, last);
+     for (--n; n > 0; n -= 2)
+     {
+         typename std::iterator_traits<BidirIt>::value_type tmp = *first;
+         *first++ = *--last;
+         *last = tmp;
+     }
  }
 
-  Defect reports
+ int main()
+ {
+     std::vector<int> v{1, 2, 3, 4, 5};
+     my_reverse(v.begin(), v.end());
+     for (int n : v)
+         std::cout << n << ' ';
+     std::cout << '\\n';
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+     std::list<int> l{1, 2, 3, 4, 5};
+     my_reverse(l.begin(), l.end());
+     for (int n : l)
+         std::cout << n << ' ';
+     std::cout << '\\n';
 
-     DR    Applied to           Behavior as published            Correct behavior
-   P2259R1 C++20      there's no requires-clause                 constraint added
-                      pointer is unconditionally defined as void
+     int a[]{1, 2, 3, 4, 5};
+     my_reverse(a, a + std::size(a));
+     for (int n : a)
+         std::cout << n << ' ';
+     std::cout << '\\n';
+
+ //  std::istreambuf_iterator<char> i1(std::cin), i2;
+ //  my_reverse(i1, i2); // compilation error: i1, i2 are input iterators
+ }
+
+.SH Output:
+
+ 5 4 3 2 1
+ 5 4 3 2 1
+ 5 4 3 2 1
 
 .SH See also
 
-   iterator_traits provides uniform interface to the properties of an iterator
-                   \fI(class template)\fP
+   iterator                   base class to ease the definition of required types for
+   (deprecated in C++17)      simple iterators
+                              \fI(class template)\fP
+   input_iterator_tag
+   output_iterator_tag
+   forward_iterator_tag       empty class types used to indicate iterator categories
+   bidirectional_iterator_tag \fI(class)\fP
+   random_access_iterator_tag
+   contiguous_iterator_tag
+   (C++20)
+   iter_value_t
+   iter_reference_t
+   iter_const_reference_t
+   iter_difference_t
+   iter_rvalue_reference_t
+   iter_common_reference_t    computes the associated types of an iterator
+   (C++20)                    (alias template)
+   (C++20)
+   (C++23)
+   (C++20)
+   (C++20)
+   (C++20)

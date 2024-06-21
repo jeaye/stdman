@@ -1,0 +1,117 @@
+.TH std::add_sat 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::add_sat \- std::add_sat
+
+.SH Synopsis
+   Defined in header <numeric>
+   template< class T >                        (since C++26)
+   constexpr T add_sat( T x, T y ) noexcept;
+
+   Computes the saturating addition x + y. This operation (unlike built-in arithmetic
+   operations on integers) behaves as-if it is a mathematical operation with an
+   infinite range. Let q denote the result of such operation. Returns:
+
+     * q, if q is representable as a value of type T. Otherwise,
+     * the largest or smallest value of type T, whichever is closer to the q.
+
+   This overload participates in overload resolution only if T is an integer type, that
+   is: signed char, short, int, long, long long, an extended signed integer type, or an
+   unsigned version of such types. In particular, T must not be (possibly cv-qualified)
+   bool, char, wchar_t, char8_t, char16_t, and char32_t, as these types are not
+   intended for arithmetic.
+
+.SH Parameters
+
+   x, y - integer values
+
+.SH Return value
+
+   Saturated x + y.
+
+.SH Exceptions
+
+   Throws no exceptions.
+
+.SH Notes
+
+   Unlike the built-in arithmetic operators on integers, the integral promotion does
+   not apply to the x and y arguments.
+
+   If two arguments of different type are passed, the call fails to compile, i.e. the
+   behavior relative to template argument deduction is the same as for std::min or
+   std::max.
+
+   Most modern hardware architectures have efficient support for saturation arithmetic
+   on SIMD vectors, including SSE2 for x86 and NEON for ARM.
+
+         Feature-test macro         Value    Std          Feature
+   __cpp_lib_saturation_arithmetic 202311L (C++26) Saturation arithmetic
+
+.SH Possible implementation
+
+   See libstdc++ (gcc).
+
+.SH Example
+
+   Can be previewed on Compiler Explorer.
+
+
+// Run this code
+
+ #include <climits>
+ #include <limits>
+ #include <numeric>
+
+ static_assert(CHAR_BIT == 8);
+ static_assert(UCHAR_MAX == 255);
+
+ int main()
+ {
+     constexpr int a = std::add_sat(3, 4); // no saturation occurs, T = int
+     static_assert(a == 7);
+
+     constexpr unsigned char b = std::add_sat<unsigned char>(UCHAR_MAX, 4); // saturated
+     static_assert(b == UCHAR_MAX);
+
+     constexpr unsigned char c = std::add_sat(UCHAR_MAX, 4); // not saturated, T = int
+         // add_sat(int, int) returns int tmp == 259,
+         // then assignment truncates 259 % 256 == 3
+     static_assert(c == 3);
+
+ //  unsigned char d = std::add_sat(252, c); // Error: inconsistent deductions for T
+
+     constexpr unsigned char e = std::add_sat<unsigned char>(251, a); // saturated
+     static_assert(e == UCHAR_MAX);
+         // 251 is of type T = unsigned char, `a` is converted to unsigned char value;
+         // might yield an int -> unsigned char conversion warning for `a`
+
+     constexpr signed char f = std::add_sat<signed char>(-123, -3); // not saturated
+     static_assert(f == -126);
+
+     constexpr signed char g = std::add_sat<signed char>(-123, -13); // saturated
+     static_assert(g == std::numeric_limits<signed char>::min()); // g == -128
+ }
+
+.SH See also
+
+   sub_sat       saturating subtraction operation on two integers
+   (C++26)       \fI(function template)\fP
+   mul_sat       saturating multiplication operation on two integers
+   (C++26)       \fI(function template)\fP
+   div_sat       saturating division operation on two integers
+   (C++26)       \fI(function template)\fP
+   saturate_cast returns an integer value clamped to the range of a another integer
+   (C++26)       type
+                 \fI(function template)\fP
+   clamp         clamps a value between a pair of boundary values
+   \fI(C++17)\fP       \fI(function template)\fP
+   in_range      checks if an integer value is in the range of a given integer type
+   (C++20)       \fI(function template)\fP
+   min           returns the smallest finite value of the given type
+   \fB[static]\fP      \fI(public static member function of std::numeric_limits<T>)\fP
+   max           returns the largest finite value of the given type
+   \fB[static]\fP      \fI(public static member function of std::numeric_limits<T>)\fP
+
+.SH External links
+
+   1.  A branch-free implementation of saturation arithmetic — Locklessinc.com, 2012

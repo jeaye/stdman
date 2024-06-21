@@ -1,4 +1,4 @@
-.TH std::return_temporary_buffer 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::return_temporary_buffer 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::return_temporary_buffer \- std::return_temporary_buffer
 
@@ -7,12 +7,15 @@ std::return_temporary_buffer \- std::return_temporary_buffer
    template< class T >                    (deprecated in C++17)
    void return_temporary_buffer( T* p );  (removed in C++20)
 
-   Deallocates storage previously allocated with std::get_temporary_buffer.
+   Deallocates the storage referenced by p.
+
+   If p is not a pointer value returned by an earlier call to
+   std::get_temporary_buffer, or has been invalidated by an intervening
+   std::return_temporary_buffer call, the behavior is undefined.
 
 .SH Parameters
 
-   p - the pointer previously returned by std::get_temporary_buffer and not invalidated
-       by an earlier call to return_temporary_buffer
+   p - the pointer referring to the storage to be declloated
 
 .SH Return value
 
@@ -25,20 +28,27 @@ std::return_temporary_buffer \- std::return_temporary_buffer
 .SH Example
 
 
+
 // Run this code
 
  #include <algorithm>
  #include <iostream>
+ #include <iterator>
  #include <memory>
  #include <string>
- #include <iterator>
 
  int main()
  {
      const std::string s[] = {"string", "1", "test", "..."};
      const auto p = std::get_temporary_buffer<std::string>(4);
      // requires that p.first is passed to return_temporary_buffer
-     // (beware of early exit points and exceptions)
+     // (beware of early exit points and exceptions), or better use:
+     std::unique_ptr<std::string, void(*)(std::string*)> on_exit(p.first,
+     [](std::string* p)
+     {
+         std::cout << "returning temporary buffer...\\n";
+         std::return_temporary_buffer(p);
+     });
 
      std::copy(s, s + p.second,
                std::raw_storage_iterator<std::string*, std::string>(p.first));
@@ -49,11 +59,13 @@ std::return_temporary_buffer \- std::return_temporary_buffer
      std::copy(p.first, p.first + p.second,
                std::ostream_iterator<std::string>{std::cout, "\\n"});
 
-     std::for_each(p.first, p.first + p.second, [](std::string& e) {
+     std::for_each(p.first, p.first + p.second, [](std::string& e)
+     {
          e.~basic_string<char>();
      }); // same as: std::destroy(p.first, p.first + p.second);
 
-     std::return_temporary_buffer(p.first);
+     // manually reclaim memory if unique_ptr-like technique is not used:
+     // std::return_temporary_buffer(p.first);
  }
 
 .SH Output:
@@ -62,6 +74,17 @@ std::return_temporary_buffer \- std::return_temporary_buffer
  1
  test
  ...
+ returning temporary buffer...
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to             Behavior as published              Correct behavior
+                       the storage allocated by                       the behavior is
+   LWG 2072 C++98      std::get_temporary_buffer                      undefined in this
+                       could be deallocated multiple times            case
 
 .SH See also
 

@@ -1,4 +1,4 @@
-.TH std::ranges::construct_at 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::construct_at 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::construct_at \- std::ranges::construct_at
 
@@ -15,8 +15,7 @@ std::ranges::construct_at \- std::ranges::construct_at
 
    Equivalent to
 
- return ::new (const_cast<void*>(static_cast<const volatile void*>(p)))
-     T(std::forward<Args>(args)...);
+ return ::new (static_cast<void*>(p)) T(std::forward<Args>(args)...);
 
    except that construct_at may be used in evaluation of constant expressions.
 
@@ -26,10 +25,10 @@ std::ranges::construct_at \- std::ranges::construct_at
 
    The function-like entities described on this page are niebloids, that is:
 
-     * Explicit template argument lists may not be specified when calling any of them.
-     * None of them is visible to argument-dependent lookup.
-     * When one of them is found by normal unqualified lookup for the name to the left
-       of the function-call operator, it inhibits argument-dependent lookup.
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
 
    In practice, they may be implemented as function objects, or with special compiler
    extensions.
@@ -46,17 +45,19 @@ std::ranges::construct_at \- std::ranges::construct_at
 
 .SH Possible implementation
 
- struct construct_at_fn {
-   template<class T, class...Args>
-     requires
-       requires (void* vp, Args&&... args) { ::new (vp) T(static_cast<Args&&>(args)...); }
-   constexpr T* operator()(T* p, Args&&... args) const
+   struct construct_at_fn
    {
-     return std::construct_at(p, static_cast<Args&&>(args)...);
-   }
- };
+       template<class T, class...Args>
+           requires
+               requires (void* vp, Args&&... args)
+                   { ::new (vp) T(static_cast<Args&&>(args)...); }
+       constexpr T* operator()(T* p, Args&&... args) const
+       {
+           return std::construct_at(p, static_cast<Args&&>(args)...);
+       }
+   };
 
- inline constexpr construct_at_fn construct_at{};
+   inline constexpr construct_at_fn construct_at{};
 
 .SH Notes
 
@@ -71,7 +72,8 @@ std::ranges::construct_at \- std::ranges::construct_at
  #include <iostream>
  #include <memory>
 
- struct S {
+ struct S
+ {
      int x;
      float y;
      double z;
@@ -80,7 +82,8 @@ std::ranges::construct_at \- std::ranges::construct_at
 
      ~S() { std::cout << "S::~S();\\n"; }
 
-     void print() const {
+     void print() const
+     {
          std::cout << "S { x=" << x << "; y=" << y << "; z=" << z << "; };\\n";
      }
  };
@@ -100,6 +103,15 @@ std::ranges::construct_at \- std::ranges::construct_at
  S::S();
  S { x=42; y=2.71828; z=3.1415; };
  S::~S();
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to       Behavior as published              Correct behavior
+   LWG 3870 C++20      construct_at could create objects  only cv-unqualified types are
+                       of a cv-qualified types            permitted
 
 .SH See also
 

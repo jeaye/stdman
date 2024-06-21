@@ -1,16 +1,18 @@
-.TH std::basic_format_arg 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_format_arg 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_format_arg \- std::basic_format_arg
 
 .SH Synopsis
    Defined in header <format>
-   template<class Context>     \fI(since C++20)\fP
+   template< class Context >   \fI(since C++20)\fP
    class basic_format_arg;
 
    Provides access to a formatting argument.
 
    basic_format_arg objects are typically created by std::make_format_args and accessed
-   through std::visit_format_arg.
+   through std::visit_format_arg
+   or the visit member functions
+   (since C++26).
 
    A basic_format_arg object behaves as if it stores a std::variant of the following
    types:
@@ -32,49 +34,27 @@ std::basic_format_arg \- std::basic_format_arg
 
 .SH Member classes
 
-   Type   Definition
-   handle type-erased wrapper that allows formatting an object of user-defined type
-          \fI(class)\fP
+   handle  type-erased wrapper that allows formatting an object of user-defined type
+   (C++20) \fI(public member class)\fP
 
 .SH Member functions
 
    constructor   constructs a std::basic_format_arg
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
    operator bool checks if the current object holds a formatting argument
-                 \fI(public member function)\fP
+   (C++20)       \fI(public member function)\fP
+   visit         visit the stored formatting argument
+   (C++26)       \fI(public member function)\fP
 
 .SH Non-member functions
 
-   visit_format_arg argument visitation interface for user-defined formatters
-   (C++20)          \fI(function template)\fP
-
-std::basic_format_arg::handle
-
-   template<class Context>
-   class basic_format_arg<Context>::handle;
-
-   Allows formatting an object of a user-defined type.
-
-.SH Member functions
-
-   format formats the referenced object with the given contexts
-          \fI(public member function)\fP
-
-std::basic_format_arg::handle::format
-
-   void format(std::basic_format_parse_context<Context::char_type>& parse_ctx,
-   Context& format_ctx) const;
-
-   Let T be the type of the associated formatting argument, ref be a const T& that
-   refers to the formatting argument. Equivalent to:
-
-   typename Context::template formatter_type<T> f;
-   parse_ctx.advance_to(f.parse(parse_ctx));
-   format_ctx.advance_to(f.format(ref, format_ctx));
+   visit_format_arg              argument visitation interface for user-defined
+   (C++20) (deprecated in C++26) formatters
+                                 \fI(function template)\fP
 
 std::basic_format_arg::basic_format_arg
 
-   basic_format_arg() noexcept;
+   basic_format_arg() noexcept;  \fI(since C++20)\fP
 
    Default constructor. Constructs a basic_format_arg that does not hold a formatting
    argument. The stored object has type std::monostate.
@@ -84,12 +64,34 @@ std::basic_format_arg::basic_format_arg
 
 std::basic_format_arg::operator bool
 
-   explicit operator bool() const noexcept;
+   explicit operator bool() const noexcept;  \fI(since C++20)\fP
 
    Checks whether *this holds a formatting argument.
 
    Returns true if *this holds a formatting argument (i.e. the stored object does not
    have type std::monostate), false otherwise.
+
+std::basic_format_arg::visit
+
+   template< class Visitor >                                         \fB(1)\fP (since C++26)
+   decltype(auto) visit( this basic_format_arg arg, Visitor&& vis );
+   template< class R, class Visitor >                                \fB(2)\fP (since C++26)
+   R visit( this basic_format_arg arg, Visitor&& vis );
+
+   Applies the visitor vis to the object contained in arg.
+
+   The visit functions do not modify the basic_format_arg object on which it is called
+   because a copy of the object is used when calling vis.
+
+   1) Equivalent to return std::visit(std::forward<Visitor>(vis), v);, where v is the
+   std::variant stored in arg.
+   2) Equivalent to return std::visit<R>(std::forward<Visitor>(vis), v);, where v is
+   the std::variant stored in arg.
+
+.SH Notes
+
+   Feature-test macro  Value    Std     Feature
+   __cpp_lib_format   202306L (C++26) Member visit
 
 .SH Example
 
@@ -97,3 +99,13 @@ std::basic_format_arg::operator bool
     Reason: no example
 
 .SH See also
+
+   basic_format_args
+   format_args
+   wformat_args      class that provides access to all formatting arguments
+   (C++20)           \fI(class template)\fP
+   (C++20)
+   (C++20)
+
+.SH Category:
+     * Todo no example

@@ -1,20 +1,22 @@
-.TH std::map::emplace 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::map::emplace 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::map::emplace \- std::map::emplace
 
 .SH Synopsis
-   template< class... Args >                            \fI(since C++11)\fP
-   std::pair<iterator,bool> emplace( Args&&... args );
+   template< class... Args >                             \fI(since C++11)\fP
+   std::pair<iterator, bool> emplace( Args&&... args );
 
-   Inserts a new element into the container constructed in-place with the given args if
-   there is no element with the key in the container.
+   Inserts a new element into the container constructed in-place with the given args,
+   if there is no element with the key in the container.
+
+   The constructor of the new element (i.e. std::pair<const Key, T>) is called with
+   exactly the same arguments as supplied to emplace, forwarded via
+   std::forward<Args>(args).... The element may be constructed even if there already is
+   an element with the key in the container, in which case the newly constructed
+   element will be destroyed immediately.
 
    Careful use of emplace allows the new element to be constructed while avoiding
-   unnecessary copy or move operations. The constructor of the new element (i.e.
-   std::pair<const Key, T>) is called with exactly the same arguments as supplied to
-   emplace, forwarded via std::forward<Args>(args).... The element may be constructed
-   even if there already is an element with the key in the container, in which case the
-   newly constructed element will be destroyed immediately.
+   unnecessary copy or move operations.
 
    No iterators or references are invalidated.
 
@@ -24,14 +26,14 @@ std::map::emplace \- std::map::emplace
 
 .SH Return value
 
-   Returns a pair consisting of an iterator to the inserted element, or the
-   already-existing element if no insertion happened, and a bool denoting whether the
-   insertion took place (true if insertion happened, false if it did not).
+   A pair consisting of an iterator to the inserted element (or to the element that
+   prevented the insertion) and a bool value set to true if and only if the insertion
+   took place.
 
 .SH Exceptions
 
-   If an exception is thrown by any operation, this function has no effect (strong
-   exception guarantee).
+   If an exception is thrown for any reason, this function has no effect (strong
+   exception safety guarantee).
 
 .SH Complexity
 
@@ -43,8 +45,8 @@ std::map::emplace \- std::map::emplace
 // Run this code
 
  #include <iostream>
- #include <utility>
  #include <string>
+ #include <utility>
  #include <map>
 
  int main()
@@ -60,15 +62,17 @@ std::map::emplace \- std::map::emplace
      // uses pair's template constructor
      m.emplace("d", "ddd");
 
+     // emplace with duplicate key has no effect
+     m.emplace("d", "DDD");
+
      // uses pair's piecewise constructor
      m.emplace(std::piecewise_construct,
                std::forward_as_tuple("c"),
                std::forward_as_tuple(10, 'c'));
-     // as of C++17, m.try_emplace("c", 10, 'c'); can be used
+     // an alternative is: m.try_emplace("c", 10, 'c');
 
-     for (const auto &p : m) {
+     for (const auto& p : m)
          std::cout << p.first << " => " << p.second << '\\n';
-     }
  }
 
 .SH Output:

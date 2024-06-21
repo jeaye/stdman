@@ -1,0 +1,63 @@
+.TH std::inout_ptr_t::~inout_ptr_t 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::inout_ptr_t::~inout_ptr_t \- std::inout_ptr_t::~inout_ptr_t
+
+.SH Synopsis
+   ~inout_ptr_t();  (since C++23)
+
+   Resets the adapted Smart object by the value of modified Pointer object (or the
+   void* object if operator void**() has been called) and the captured arguments.
+   release() may be called on the adapted Smart object if it is not called by the
+   constructor.
+
+   Let
+
+     * s denotes the adapted Smart object,
+     * args... denotes the captured arguments,
+     * p denotes the value of stored Pointer, or static_cast<Pointer>(*operator
+       void**()) if operator void** has been called,
+     * SP be
+          * Smart::pointer, if it is valid and denotes a type, otherwise,
+          * Smart::element_type*, if Smart::element_type is valid and denotes a type,
+            otherwise,
+          * std::pointer_traits<Smart>::element_type*, if
+            std::pointer_traits<Smart>::element_type is valid and denotes a type,
+            otherwise,
+          * Pointer,
+     * /*do-release*/ denotes s.release() if the constructor does not call release(),
+       empty otherwise.
+
+   If Smart is a pointer type, the destructor performs
+
+   s = static_cast<Smart>(p);, and the program is ill-formed if sizeof...(Args) > 0;
+
+   otherwise, if s.reset(static_cast<SP>(p), std::forward<Args>(args)...) is
+   well-formed, the destructor performs
+
+   /*do-release*/; if (p) { s.reset(static_cast<SP>(p), std::forward<Args>(args)...);
+   };
+
+   otherwise, if std::is_constructible_v<Smart, SP, Args...> is true, the destructor
+   performs
+
+   /*do-release*/; if (p) { s = Smart(static_cast<SP>(p), std::forward<Args>(args)...);
+   };
+
+   otherwise, the program is ill-formed.
+
+.SH Notes
+
+   The implementation may allocate the storage for the data structure needed for Smart
+   (e.g. a control block) on construction, in order to leave non-throwing works to the
+   destructor.
+
+   Arguments captured by value are destroyed after resetting.
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 3897 C++23      the destructor did not update a raw pointer to  it does
+                       the null value

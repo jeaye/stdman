@@ -1,4 +1,4 @@
-.TH std::bit_cast 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::bit_cast 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::bit_cast \- std::bit_cast
 
@@ -20,13 +20,34 @@ std::bit_cast \- std::bit_cast
 
      * does not correspond to a bit in the value representation of From (i.e. it
        corresponds to a padding bit), or
-     * corresponds to a bit of an object that is not within its lifetime, or
+     * corresponds to a bit
+       of an object that
+       (until C++26)
+       for which the smallest enclosing object
+       (since C++26) is not within its lifetime, or
      * has an indeterminate value.
 
-   For each bit in the value representation of the result that is indeterminate, the
-   smallest object containing that bit has an indeterminate value; the behavior is
-   undefined unless that object is of unsigned char or std::byte type. The result does
-   not otherwise contain any indeterminate values.
+   A bit in the value representation of the result is erroneous if it
+   corresponds to a bit for which the smallest enclosing object has an    (since C++26)
+   erroneous value.
+
+   The result does not otherwise contain any indeterminate or erroneous values.
+
+   For each bit in the value representation of the result that is
+   indeterminate, the smallest object containing that bit has an
+   indeterminate value; the behavior is undefined unless that object is   (until C++26)
+   of an uninitialized-friendly type.
+
+   The result does not otherwise contain any indeterminate values.
+   For each bit b in the value representation of the result that is
+   indeterminate or erroneous, let u be the smallest object enclosing b:
+
+     * If u is of uninitialized-friendly type, u has an indeterminate
+       value if any of the bits in its value representation are           (since C++26)
+       indeterminate, or otherwise has an erroneous value.
+     * Otherwise, if b is indeterminate, the behavior is undefined.
+     * Otherwise, the behavior is erroneous, and the result is as
+       specified above.
 
    This overload participates in overload resolution only if sizeof(To) == sizeof(From)
    and both To and From are TriviallyCopyable types.
@@ -50,10 +71,11 @@ std::bit_cast \- std::bit_cast
 
 .SH Possible implementation
 
-   To implement std::bit_cast, std::memcpy can be used, when it is needed, to interpret
-   the object representation as one of another type:
+   To implement std::bit_cast, ignoring the fact that it's constexpr, std::memcpy can
+   be used, when it is needed, to interpret the object representation as one of another
+   type:
 
- template <class To, class From>
+ template<class To, class From>
  std::enable_if_t<
      sizeof(To) == sizeof(From) &&
      std::is_trivially_copyable_v<From> &&
@@ -77,24 +99,25 @@ std::bit_cast \- std::bit_cast
    shall not be used to reinterpret object representation in most cases because of the
    type aliasing rule.
 
-   Feature-test macro: __cpp_lib_bit_cast
+   Feature-test macro  Value    Std      Feature
+   __cpp_lib_bit_cast 201806L (C++20) std::bit_cast
 
 .SH Example
 
 
 // Run this code
 
- #include <cstdint>
  #include <bit>
+ #include <cstdint>
  #include <iostream>
 
  constexpr double f64v = 19880124.0;
  constexpr auto u64v = std::bit_cast<std::uint64_t>(f64v);
- static_assert( std::bit_cast<double>(u64v) == f64v ); // round-trip
+ static_assert(std::bit_cast<double>(u64v) == f64v); // round-trip
 
  constexpr std::uint64_t u64v2 = 0x3fe9000000000000ull;
  constexpr auto f64v2 = std::bit_cast<double>(u64v2);
- static_assert( std::bit_cast<std::uint64_t>(f64v2) == u64v2 ); // round-trip
+ static_assert(std::bit_cast<std::uint64_t>(f64v2) == u64v2); // round-trip
 
  int main()
  {
@@ -110,11 +133,17 @@ std::bit_cast \- std::bit_cast
  std::bit_cast<std::uint64_t>(19880124.000000) == 0x4172f58bc0000000
  std::bit_cast<double>(0x3fe9000000000000) == 0.781250
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to              Behavior as published              Correct behavior
-   CWG 2482 C++20      it was unspecified whether UB would occur when  specified
-                       involving indeterminate bits
+      DR     Applied to             Behavior as published              Correct behavior
+   CWG 2482  C++20      it was unspecified whether UB would occur when specified
+   (P1272R4)            involving indeterminate bits
+
+.SH See also
+
+   start_lifetime_as       implicitly creates objects in given storage with the object
+   start_lifetime_as_array representation reused
+   (C++23)                 \fI(function template)\fP

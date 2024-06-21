@@ -1,50 +1,45 @@
-.TH std::uninitialized_fill_n 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_fill_n 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_fill_n \- std::uninitialized_fill_n
 
 .SH Synopsis
    Defined in header <memory>
    template< class ForwardIt, class Size, class T >
-   void uninitialized_fill_n( ForwardIt first, Size count, const          \fI(until C++11)\fP
+   ForwardIt uninitialized_fill_n( ForwardIt first, Size count, const \fB(1)\fP
    T& value );
-   template< class ForwardIt, class Size, class T >
-   ForwardIt uninitialized_fill_n( ForwardIt first, Size count,   \fB(1)\fP     \fI(since C++11)\fP
-   const T& value );
    template< class ExecutionPolicy, class ForwardIt, class Size,
-   class T >                                                          \fB(2)\fP \fI(since C++17)\fP
-   ForwardIt uninitialized_fill_n( ExecutionPolicy&& policy,
-   ForwardIt first, Size count, const T& value );
+   class T >
+
+   ForwardIt uninitialized_fill_n( ExecutionPolicy&& policy,          \fB(2)\fP \fI(since C++17)\fP
+
+                                   ForwardIt first, Size count, const
+   T& value );
 
    1) Copies the given value value to the first count elements in an uninitialized
-   memory area beginning at first as if by
+   memory area beginning at first as if by for (; n--; ++first)
+       ::new (/* VOIDIFY */(*first))
+           typename std::iterator_traits<ForwardIt>::value_type(value);
+   where /* VOIDIFY */(e) is:
 
- for (; n--; ++first)
-     ::new (/*VOIDIFY*/(*first))
-         typename std::iterator_traits<ForwardIt>::value_type(value);
-
-   where /*VOIDIFY*/(e) is:
-
-      static_cast<void*>(&e)                                              \fI(until C++11)\fP
-      static_cast<void*>(std::addressof(e))                               \fI(since C++11)\fP
-                                                                          \fI(until C++20)\fP
-      const_cast<void*>(static_cast<const volatile                        \fI(since C++20)\fP
-      void*>(std::addressof(e)))
+   static_cast<void*>(&e)                \fI(until C++11)\fP
+   static_cast<void*>(std::addressof(e)) \fI(since C++11)\fP
 
    If an exception is thrown during the initialization, the objects already constructed
    are destroyed in an unspecified order.
-   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
-   in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+   2) Same as \fB(1)\fP, but executed according to policy. This overload participates in
+   overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
 
 .SH Parameters
 
    first            -           the beginning of the range of the elements to
                                 initialize
    count            -           number of elements to construct
-   value            -           the value to construct the elements with.
+   value            -           the value to construct the elements with
 .SH Type requirements
    -
    ForwardIt must meet the requirements of LegacyForwardIterator.
@@ -56,8 +51,7 @@ std::uninitialized_fill_n \- std::uninitialized_fill_n
 
 .SH Return value
 
-   \fI(none)\fP                                                \fI(until C++11)\fP
-   Iterator to the element past the last element copied. \fI(since C++11)\fP
+   Iterator to the element past the last element copied.
 
 .SH Complexity
 
@@ -75,21 +69,21 @@ std::uninitialized_fill_n \- std::uninitialized_fill_n
 
 .SH Possible implementation
 
-   template< class ForwardIt, class Size, class T >
+   template<class ForwardIt, class Size, class T>
    ForwardIt uninitialized_fill_n(ForwardIt first, Size count, const T& value)
    {
        using V = typename std::iterator_traits<ForwardIt>::value_type;
        ForwardIt current = first;
-       try {
-           for (; count > 0; ++current, (void) --count) {
-               ::new (const_cast<void*>(static_cast<const volatile void*>(
-                   std::addressof(*current)))) V(value);
-           }
+       try
+       {
+           for (; count > 0; ++current, (void) --count)
+               ::new (static_cast<void*>(std::addressof(*current))) V(value);
            return current;
-       } catch (...) {
-           for (; first != current; ++first) {
+       }
+       catch (...)
+       {
+           for (; first != current; ++first)
                first->~V();
-           }
            throw;
        }
    }
@@ -112,7 +106,8 @@ std::uninitialized_fill_n \- std::uninitialized_fill_n
      std::tie(p, sz) = std::get_temporary_buffer<std::string>(4);
      std::uninitialized_fill_n(p, sz, "Example");
 
-     for (std::string* i = p; i != p+sz; ++i) {
+     for (std::string* i = p; i != p + sz; ++i)
+     {
          std::cout << *i << '\\n';
          i->~basic_string<char>();
      }
@@ -125,6 +120,24 @@ std::uninitialized_fill_n \- std::uninitialized_fill_n
 .SH Example
 .SH Example
 .SH Example
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to          Behavior as published              Correct behavior
+                       given T as the value type of ForwardIt,
+   LWG 866  C++98      if                                      uses global replacement-
+                       T::operator new exists, the program     new instead
+                       might be ill-formed
+                       the location of the first element
+   LWG 1339 C++98      following                               returned
+                       the filling range was not returned
+   LWG 2433 C++11      this algorithm might be hijacked by     uses std::addressof
+                       overloaded operator&
+   LWG 3870 C++20      this algorithm might create objects on  kept disallowed
+                       a const storage
 
 .SH See also
 

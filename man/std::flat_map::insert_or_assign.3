@@ -1,0 +1,123 @@
+.TH std::flat_map::insert_or_assign 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::flat_map::insert_or_assign \- std::flat_map::insert_or_assign
+
+.SH Synopsis
+   template< class M >
+   std::pair<iterator, bool> insert_or_assign( const key_type& k, M&& \fB(1)\fP (since C++23)
+   obj );
+   template< class M >
+   std::pair<iterator, bool> insert_or_assign( key_type&& k, M&& obj  \fB(2)\fP (since C++23)
+   );
+   template< class K, class M >                                       \fB(3)\fP (since C++23)
+   std::pair<iterator, bool> insert_or_assign( K&& k, M&& obj );
+   template< class M >
+   iterator insert_or_assign( const_iterator hint, const key_type& k, \fB(4)\fP (since C++23)
+   M&& obj );
+   template< class M >
+   iterator insert_or_assign( const_iterator hint, key_type&& k, M&&  \fB(5)\fP (since C++23)
+   obj );
+   template< class K, class M >                                       \fB(6)\fP (since C++23)
+   iterator insert_or_assign( const_iterator hint, K&& k, M&& obj );
+
+   1,2) If a key equivalent to k already exists in the container, assigns
+   std::forward<M>(obj) to the mapped_type corresponding to the key k. If the key does
+   not exist, inserts the new value as if by
+     * (1,2) try_emplace(std::forward<decltype(k)>(k), std::forward<M>(obj)),
+     * (4,5) try_emplace(hint, std::forward<decltype(k)>(k), std::forward<M>(obj)).
+   The program is ill-formed if either std::is_assignable_v<mapped_type&, M> or
+   std::is_constructible_v<mapped_type, M> is false.
+   3,6) If a key equivalent to k already exists in the container, assigns
+   std::forward<M>(obj) to the mapped_type corresponding to the key k. Otherwise,
+   equivalent to
+     * \fB(3)\fP try_emplace(std::forward<K>(k), std::forward<M>(obj)),
+     * \fB(6)\fP try_emplace(hint, std::forward<K>(k), std::forward<M>(obj)).
+   The conversion from k into key_type must construct an object u, for which find(k) ==
+   find(u) is true. Otherwise, the behavior is undefined.
+   These overloads participate in overload resolution only if :
+     * The qualified-id Compare::is_transparent is valid and denotes a type.
+     * std::is_constructible_v<key_type, K> is true.
+     * std::is_assignable_v<mapped_type&, M> is true.
+     * std::is_constructible_v<mapped_type, M> is true.
+
+    Information on iterator invalidation is copied from here
+
+.SH Parameters
+
+   k    - the key used both to look up and to insert if not found
+   hint - iterator to the position before which the new element will be inserted
+   obj  - the value to insert or assign
+
+.SH Return value
+
+   1-3) The bool component is true if the insertion took place and false if the
+   assignment took place. The iterator component is pointing at the element that was
+   inserted or updated.
+   4-6) Iterator pointing at the element that was inserted or updated.
+
+.SH Complexity
+
+   1-3) Same as for emplace.
+   4-6) Same as for emplace_hint.
+
+.SH Notes
+
+   insert_or_assign returns more information than operator[] and does not require
+   default-constructibility of the mapped type.
+
+.SH Example
+
+
+// Run this code
+
+ #include <flat_map>
+ #include <iostream>
+ #include <string>
+
+ void print_node(const auto& node)
+ {
+     std::cout << '[' << node.first << "] = " << node.second << '\\n';
+ }
+
+ void print_result(auto const& pair)
+ {
+     std::cout << (pair.second ? "inserted: " : "assigned: ");
+     print_node(*pair.first);
+ }
+
+ int main()
+ {
+     std::flat_map<std::string, std::string> map;
+
+     print_result(map.insert_or_assign("a", "apple"));
+     print_result(map.insert_or_assign("b", "banana"));
+     print_result(map.insert_or_assign("c", "cherry"));
+     print_result(map.insert_or_assign("c", "clementine"));
+
+     for (const auto& node : map)
+         print_node(node);
+ }
+
+.SH Output:
+
+ inserted: [a] = apple
+ inserted: [b] = banana
+ inserted: [c] = cherry
+ assigned: [c] = clementine
+ [a] = apple
+ [b] = banana
+ [c] = clementine
+
+.SH See also
+
+   operator[]  access or insert specified element
+               \fI(public member function)\fP
+   at          access specified element with bounds checking
+               \fI(public member function)\fP
+   insert      inserts elements
+               \fI(public member function)\fP
+   emplace     constructs element in-place
+               \fI(public member function)\fP
+               inserts in-place if the key does not exist, does nothing if the key
+   try_emplace exists
+               \fI(public member function)\fP

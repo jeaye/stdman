@@ -1,10 +1,10 @@
-.TH std::setlocale 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::setlocale 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::setlocale \- std::setlocale
 
 .SH Synopsis
    Defined in header <clocale>
-   char* setlocale( int category, const char* locale);
+   char* setlocale( int category, const char* locale );
 
    The setlocale function installs the specified system locale or its portion as the
    new C locale. The modifications remain in effect and influences the execution of all
@@ -57,30 +57,46 @@ std::setlocale \- std::setlocale
 
 // Run this code
 
- #include <cstdio>
  #include <clocale>
+ #include <cstdio>
  #include <ctime>
  #include <cwchar>
+ #include <iterator>
+ #include <string>
 
  int main()
  {
-     // the C locale will be UTF-8 enabled English;
-     // decimal dot will be German
-     // date and time formatting will be Japanese
-     std::setlocale(LC_ALL, "en_US.UTF-8");
-     std::setlocale(LC_NUMERIC, "de_DE.UTF-8");
-     std::setlocale(LC_TIME, "ja_JP.UTF-8");
+     // Make a "deep copy" of current locale name.
+     std::string prev_loc = std::setlocale(LC_ALL, nullptr);
 
-     wchar_t str[100];
+     // The C locale will be UTF-8 enabled English,
+     // decimal dot will be German,
+     // date and time formatting will be Japanese.
+     if (const char* loc = std::setlocale(LC_ALL, "en_US.UTF-8"))
+         std::wprintf(L"New LC_ALL locale: %s\\n", loc);
+     if (const char* loc = std::setlocale(LC_NUMERIC, "de_DE.UTF-8"))
+         std::wprintf(L"New LC_NUMERIC locale: %s\\n", loc);
+     if (const char* loc = std::setlocale(LC_TIME, "ja_JP.UTF-8"))
+         std::wprintf(L"New LC_TIME locale: %s\\n", loc);
+
+     wchar_t buf[100];
      std::time_t t = std::time(nullptr);
-     std::wcsftime(str, 100, L"%A %c", std::localtime(&t));
-     std::wprintf(L"Number: %.2f\\nDate: %Ls\\n", 3.14, str);
+     std::wcsftime(buf, std::size(buf), L"%A %c", std::localtime(&t));
+     std::wprintf(L"Number: %.2f\\nDate: %Ls\\n", 3.14, buf);
+
+     // Restore the previous locale.
+     if (const char* loc = std::setlocale(LC_ALL, prev_loc.c_str()))
+         std::wprintf(L"Restorred LC_ALL locale: %s\\n", loc);
  }
 
-.SH Output:
+.SH Possible output:
 
+ New LC_ALL locale: en_US.UTF-8
+ New LC_NUMERIC locale: de_DE.UTF-8
+ New LC_TIME locale: ja_JP.UTF-8
  Number: 3,14
- Date: 月曜日 2011年12月19日 18時04分40秒
+ Date: 日曜日 2022年11月06日 20時40分59秒
+ Restorred LC_ALL locale: C
 
 .SH See also
 
@@ -92,3 +108,10 @@ std::setlocale \- std::setlocale
    LC_TIME
    locale      set of polymorphic facets that encapsulate cultural differences
                \fI(class)\fP
+   C documentation for
+   setlocale
+
+.SH External links
+
+   1.  List of Windows locale names.
+   2.  List of Linux locale names.

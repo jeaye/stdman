@@ -1,4 +1,4 @@
-.TH std::strtok 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::strtok 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::strtok \- std::strtok
 
@@ -17,20 +17,17 @@ std::strtok \- std::strtok
        for this particular string. The function searches for the first character which
        is not contained in delim.
 
-              * If no such character was found, there are no tokens in str at all, and
-                the function returns a null pointer.
-              * If such character was found, it is the beginning of the token. The
-                function then searches from that point on for the first character that
-                is contained in delim.
+     * If no such character was found, there are no tokens in str at all, and the
+       function returns a null pointer.
+     * If such character was found, it is the beginning of the token. The function then
+       searches from that point on for the first character that is contained in delim.
 
-                           * If no such character was found, str has only one token,
-                             and the future calls to strtok will return a null pointer
-                           * If such character was found, it is replaced by the null
-                             character '\\0' and the pointer to the following character
-                             is stored in a static location for subsequent invocations.
-
-              * The function then returns the pointer to the beginning of the token
-
+     * If no such character was found, str has only one token, and the future calls to
+       strtok will return a null pointer.
+     * If such character was found, it is replaced by the null character '\\0' and the
+       pointer to the following character is stored in a static location for subsequent
+       invocations.
+     * The function then returns the pointer to the beginning of the token.
      * If str is a null pointer, the call is treated as a subsequent call to strtok:
        the function continues from where it left in previous invocation. The behavior
        is the same as if the previously stored pointer is passed as str.
@@ -55,27 +52,57 @@ std::strtok \- std::strtok
    Unlike most other tokenizers, the delimiters in std::strtok can be different for
    each subsequent token, and can even depend on the contents of the previous tokens.
 
+.SH Possible implementation
+
+   char* strtok(char* str, const char* delim)
+   {
+       static char* buffer;
+
+       if (str != nullptr)
+           buffer = str;
+
+       buffer += std::strspn(buffer, delim);
+
+       if (*buffer == '\\0')
+           return nullptr;
+
+       char* const tokenBegin = buffer;
+
+       buffer += std::strcspn(buffer, delim);
+
+       if (*buffer != '\\0')
+           *buffer++ = '\\0';
+
+       return tokenBegin;
+   }
+
+   Actual C++ library implementations of this function delegate to the C library, where
+   it may be implemented directly (as in MUSL libc), or in terms of its reentrant
+   version (as in GNU libc).
+
 .SH Example
 
 
 // Run this code
 
  #include <cstring>
- #include <iostream>
  #include <iomanip>
+ #include <iostream>
 
  int main()
  {
      char input[] = "one + two * (three - four)!";
      const char* delimiters = "! +- (*)";
-     char *token = std::strtok(input, delimiters);
-     while (token) {
+     char* token = std::strtok(input, delimiters);
+     while (token)
+     {
          std::cout << std::quoted(token) << ' ';
          token = std::strtok(nullptr, delimiters);
      }
 
      std::cout << "\\nContents of the input string now:\\n\\"";
-     for (std::size_t n = 0; n < sizeof input; ++n) {
+     for (std::size_t n = 0; n < sizeof input; ++n)
+     {
          if (const char c = input[n]; c != '\\0')
              std::cout << c;
          else
@@ -104,3 +131,5 @@ std::strtok \- std::strtok
    ranges::split_view a view over the subranges obtained from splitting another view
    views::split       using a delimiter
    (C++20)            \fI(class template)\fP (range adaptor object)
+   C documentation for
+   strtok

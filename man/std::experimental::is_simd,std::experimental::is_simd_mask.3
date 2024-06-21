@@ -1,4 +1,4 @@
-.TH std::experimental::is_simd,std::experimental::is_simd_mask 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::experimental::is_simd,std::experimental::is_simd_mask 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::experimental::is_simd,std::experimental::is_simd_mask \- std::experimental::is_simd,std::experimental::is_simd_mask
 
@@ -18,18 +18,20 @@ std::experimental::is_simd,std::experimental::is_simd_mask \- std::experimental:
 
    T - a type to check
 
-  Helper variable template
+   Helper variable template
 
    template< class T >                                             (parallelism TS v2)
    inline constexpr bool is_simd_v = is_simd<T>::value;
    template< class T >                                             (parallelism TS v2)
    inline constexpr bool is_simd_mask_v = is_simd_mask<T>::value;
 
+
+
 Inherited from std::integral_constant
 
 .SH Member constants
 
-   value    true if T is a simd/simd_mask type , false otherwise
+   value    true if T is a simd/simd_mask type, false otherwise
    \fB[static]\fP \fI(public static member constant)\fP
 
 .SH Member functions
@@ -45,6 +47,13 @@ Inherited from std::integral_constant
    value_type bool
    type       std::integral_constant<bool, value>
 
+.SH Notes
+
+   is_simd_v<T> is necessary but not sufficient for testing whether T can be used as a
+   SIMD type. For example, is_simd_v<simd<bool>> is true, even though bool is not
+   included in the permissible vectorizable types. The missing condition is
+   std::is_constructible_v<T>, which is false for simd<bool>.
+
 .SH Example
 
 
@@ -52,21 +61,59 @@ Inherited from std::integral_constant
 
  #include <experimental/simd>
  #include <iostream>
+ #include <string_view>
+
+ namespace stdx = std::experimental;
+
+ template<typename T>
+ void test_simd(std::string_view type_name)
+ {
+     std::cout << std::boolalpha
+               << "Type: " << type_name << '\\n'
+               << "  is_simd: " << stdx::is_simd_v<T> << '\\n'
+               << "  is_constructible: " << std::is_constructible_v<T> << '\\n';
+ }
+
+ template<typename T>
+ void test_simd_mask(std::string_view type_name)
+ {
+     std::cout << std::boolalpha
+               << "Type: " << type_name << '\\n'
+               << "  is_simd_mask: " << stdx::is_simd_mask_v<T> << '\\n'
+               << "  is_constructible: " << std::is_constructible_v<T> << "\\n\\n";
+ }
 
  int main()
  {
-     namespace stdx = std::experimental;
-     std::cout
-     << std::boolalpha
-     << stdx::is_simd_v<stdx::simd<float>> << '\\n';
-     << stdx::is_simd_v<int> << '\\n';
-     << stdx::is_simd_mask_v<stdx::simd_mask<float>> << '\\n';
-     << stdx::is_simd_mask_v<int> << '\\n';
+     test_simd<int>("int");
+     test_simd_mask<int>("int");
+
+     test_simd<stdx::simd<float>>("simd<float>");
+     test_simd_mask<stdx::simd_mask<float>>("simd_mask<float>");
+
+     test_simd<stdx::simd<bool>>("simd<bool>");
+     test_simd_mask<stdx::simd_mask<bool>>("simd_mask<bool>");
  }
 
 .SH Output:
 
- true
- false
- true
- false
+ Type: int
+   is_simd: false
+   is_constructible: true
+ Type: int
+   is_simd_mask: false
+   is_constructible: true
+
+ Type: simd<float>
+   is_simd: true
+   is_constructible: true
+ Type: simd_mask<float>
+   is_simd_mask: true
+   is_constructible: true
+
+ Type: simd<bool>
+   is_simd: true
+   is_constructible: false
+ Type: simd_mask<bool>
+   is_simd_mask: true
+   is_constructible: false

@@ -1,0 +1,176 @@
+.TH std::ranges::views::adjacent,std::ranges::adjacent_view,std::ranges::views::pairwise 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::views::adjacent,std::ranges::adjacent_view,std::ranges::views::pairwise \- std::ranges::views::adjacent,std::ranges::adjacent_view,std::ranges::views::pairwise
+
+.SH Synopsis
+   Defined in header <ranges>
+   template< ranges::forward_range V, std::size_t N >
+
+       requires ranges::view<V> && (N > 0)                            \fB(1)\fP (since C++23)
+   class adjacent_view
+
+       : public ranges::view_interface<adjacent_view<V, N>>
+   namespace views {
+
+   template< std::size_t N >
+       inline constexpr /* unspecified */ adjacent = /* unspecified   \fB(2)\fP (since C++23)
+   */ ;
+
+   }
+   namespace views {
+
+       inline constexpr auto pairwise = adjacent<2>;                  \fB(3)\fP (since C++23)
+
+   }
+   Call signature
+   template< ranges::viewable_range R >
+
+       requires /* see below */                                           (since C++23)
+
+   constexpr ranges::view auto adjacent<N>( R&& r );
+
+   1) adjacent_view is a range adaptor that takes a view, and produces a view whose
+   i^th element (a "window") is a std::tuple that holds N references to the elements of
+   the original view, from i^th up to i + N - 1^th inclusively.
+   Let S be the size of the original view. Then the size of produced view is:
+     * S - N + 1, if S >= N,
+     * 0 otherwise, and the resulting view is empty.
+   2) The name views::adjacent<N> denotes a RangeAdaptorObject. Given a subexpression e
+   and a constant expression N, the expression views::adjacent<N>(e) is
+   expression-equivalent to
+     * ((void)e, auto(views::empty<tuple<>>)) if N is equal to 0,
+     * adjacent_view<views::all_t<decltype((e))>, N>(e) otherwise.
+   3) The name views::pairwise denotes a RangeAdaptorObject that behaves exactly as
+   views::adjacent<2>.
+
+   adjacent_view always models forward_range, and models bidirectional_range,
+   random_access_range, or sized_range if adapted view type models the corresponding
+   concept.
+
+.SH Member functions
+
+   constructor   constructs a adjacent_view
+   (C++23)       \fI(public member function)\fP
+   begin         returns an iterator to the beginning
+   (C++23)       \fI(public member function)\fP
+   end           returns an iterator or a sentinel to the end
+   (C++23)       \fI(public member function)\fP
+   size          returns the number of elements. Provided only if the underlying
+   (C++23)       (adapted) range satisfies sized_range.
+                 \fI(public member function)\fP
+         Inherited from std::ranges::view_interface
+   empty         returns whether the derived view is empty. Provided if it satisfies
+   (C++20)       sized_range or forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   cbegin        returns a constant iterator to the beginning of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   cend          returns a sentinel for the constant iterator of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator bool returns whether the derived view is not empty. Provided if
+   (C++20)       ranges::empty is applicable to it.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   front         returns the first element in the derived view. Provided if it
+   (C++20)       satisfies forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   back          returns the last element in the derived view. Provided if it satisfies
+   (C++20)       bidirectional_range and common_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator[]    returns the n^th element in the derived view. Provided if it satisfies
+   (C++20)       random_access_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+
+   Deduction guides
+
+   \fI(none)\fP
+
+   Nested classes
+
+   iterator the iterator type
+   (C++23)  (exposition-only member class template*)
+   sentinel the sentinel type used when adjacent_view is not a common_range
+   (C++23)  (exposition-only member class template*)
+
+   Helper templates
+
+   template< class V, size_t N >
+
+   inline constexpr bool ranges::enable_borrowed_range<adjacent_view<V,   (since C++23)
+   N>> =
+
+       ranges::enable_borrowed_range<V>;
+
+   This specialization of ranges::enable_borrowed_range makes adjacent_view satisfy
+   borrowed_range when the underlying view satisfies it.
+
+.SH Notes
+
+   There are similarities between ranges::adjacent_view and ranges::slide_view:
+
+     * Both create a "sliding window" of size N.
+     * Both have the same size S - N + 1, where S is the size of an adapted view such
+       that S >= N > 0.
+
+   The differences between these adapters are:
+
+                  View adaptor          value_type       The window size N
+              ranges::adjacent_view A std::tuple object A template parameter
+              ranges::slide_view    A range             A runtime parameter
+
+    Feature-test macro   Value    Std                 Feature
+                                        std::ranges::zip_view,
+   __cpp_lib_ranges_zip 202110L (C++23) std::ranges::zip_transform_view,
+                                        std::ranges::adjacent_view,
+                                        std::ranges::adjacent_transform_view
+
+.SH Example
+
+
+// Run this code
+
+ #include <array>
+ #include <format>
+ #include <iostream>
+ #include <ranges>
+ #include <tuple>
+
+ int main()
+ {
+     constexpr std::array v{1, 2, 3, 4, 5, 6};
+     std::cout << "v = [1 2 3 4 5 6]\\n";
+
+     for (int i{}; std::tuple t : v | std::views::adjacent<3>)
+     {
+         auto [t0, t1, t2] = t;
+         std::cout << std::format("e = {:<{}}[{} {} {}]\\n", "", 2 * i++, t0, t1, t2);
+     }
+ }
+
+.SH Output:
+
+ v = [1 2 3 4 5 6]
+ e = [1 2 3]
+ e =   [2 3 4]
+ e =     [3 4 5]
+ e =       [4 5 6]
+
+.SH References
+
+     * C++23 standard (ISO/IEC 14882:2023):
+
+     * 26.7.25 Adjacent view [range.adjacent]
+
+.SH See also
+
+   ranges::adjacent_transform_view a view consisting of tuples of results of
+   views::adjacent_transform       application of a transformation function to adjacent
+   (C++23)                         elements of the adapted view
+                                   \fI(class template)\fP (range adaptor object)
+   ranges::slide_view              a view whose M^th element is a view over the M^th
+   views::slide                    through (M + N - 1)^th elements of another view
+   (C++23)                         \fI(class template)\fP (range adaptor object)
+   ranges::chunk_view              a range of views that are N-sized non-overlapping
+   views::chunk                    successive chunks of the elements of another view
+   (C++23)                         \fI(class template)\fP (range adaptor object)
+   ranges::stride_view             a view consisting of elements of another view,
+   views::stride                   advancing over N elements at a time
+   (C++23)                         \fI(class template)\fP (range adaptor object)

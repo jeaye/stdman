@@ -1,27 +1,16 @@
-.TH std::uses_allocator 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uses_allocator 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uses_allocator \- std::uses_allocator
 
 .SH Synopsis
-   Defined in header <functional>
-   template< class R, class... ArgTypes, class Alloc >                    \fI(since C++11)\fP
-   struct uses_allocator<std::function<R(ArgTypes...)>, Alloc> :          \fI(until C++17)\fP
-   std::true_type { };
+   Defined in header <tuple>
+   template< class... Types, class Alloc >
+   struct uses_allocator< std::tuple<Types...>, Alloc > : std::true_type  \fI(since C++11)\fP
+   { };
 
-   This specialization of std::uses_allocator informs other library components that all
-   objects of type std::function support uses-allocator construction, even though they
-   do not have a nested allocator_type.
-
-.SH Notes
-
-   std::function's allocator support was poorly specified and inconsistently
-   implemented. Some implementations do not support uses-allocator construction at all,
-   some provide the needed constructor overloads but ignore the supplied allocator
-   argument, and some provide the overloads and use the supplied allocator for
-   construction but not when the std::function is reassigned. As a result, allocator
-   support was removed in C++17.
-
-Inherited from std::integral_constant
+   This specialization of std::uses_allocator informs other library components that
+   tuples support uses-allocator construction, even though they do not have a nested
+   allocator_type.
 
 .SH Member constants
 
@@ -40,6 +29,20 @@ Inherited from std::integral_constant
    Type       Definition
    value_type bool
    type       std::integral_constant<bool, value>
+
+.SH Example
+
+ // myalloc is a stateful Allocator with a single-argument constructor
+ // that takes an int. It has no default constructor.
+
+     using innervector_t = std::vector<int, myalloc<int>>;
+     using elem_t = std::tuple<int, innervector_t>;
+     using Alloc = std::scoped_allocator_adaptor< myalloc<elem_t>, myalloc<int>>;
+
+     Alloc a(1,2);
+     std::vector<elem_t, Alloc> v(a);
+     v.resize(1);                  // uses allocator #1 for elements of v
+     std::get<1>(v[0]).resize(10); // uses allocator #2 for innervector_t
 
 .SH See also
 

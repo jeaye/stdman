@@ -1,4 +1,4 @@
-.TH std::swap_ranges 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::swap_ranges 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::swap_ranges \- std::swap_ranges
 
@@ -6,45 +6,43 @@ std::swap_ranges \- std::swap_ranges
    Defined in header <algorithm>
    template< class ForwardIt1, class ForwardIt2 >
 
-   ForwardIt2 swap_ranges( ForwardIt1 first1, ForwardIt1 last1,           \fI(until C++20)\fP
+   ForwardIt2 swap_ranges( ForwardIt1 first1, ForwardIt1    \fB(1)\fP (constexpr since C++20)
+   last1,
 
-   ForwardIt2 first2 );
-   template< class ForwardIt1, class ForwardIt2 >
+                           ForwardIt2 first2 );
+   template< class ExecutionPolicy,
 
-   constexpr ForwardIt2 swap_ranges( ForwardIt1 first1,                   \fI(since C++20)\fP
-   ForwardIt1 last1,                                              \fB(1)\fP
+             class ForwardIt1, class ForwardIt2 >
+   ForwardIt2 swap_ranges( ExecutionPolicy&& policy,        \fB(2)\fP \fI(since C++17)\fP
+                           ForwardIt1 first1, ForwardIt1
+   last1,
 
-   ForwardIt2 first2 );
-   template< class ExecutionPolicy, class ForwardIt1, class
-   ForwardIt2 >
-                                                                      \fB(2)\fP \fI(since C++17)\fP
-   ForwardIt2 swap_ranges( ExecutionPolicy&& policy,
+                           ForwardIt2 first2 );
 
-   ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2 );
+   1) Exchanges elements between range [first1, last1) and another range of
+   std::distance(first1, last1) elements starting at first2.
+   2) Same as \fB(1)\fP, but executed according to policy.
+   This overload participates in overload resolution only if
 
-   1) Exchanges elements between range [first1, last1) and another range starting at
-   first2.
-   Precondition: the two ranges [first1, last1) and [first2, last2) do not overlap,
-   where last2 = std::next(first2, std::distance(first1, last1)).
-   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
-   in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
+
+   If any of the following conditions is satisfied, the behavior is undefined:
+
+     * The two ranges overlap.
+     * There exists a pair of corresponding iterators iter1 and iter2 in the two ranges
+       such that *iter1 is not Swappable with *iter2.
 
 .SH Parameters
 
-   first1, last1       -     the first range of elements to swap
-   first2              -     beginning of the second range of elements to swap
-   policy              -     the execution policy to use. See execution policy for
-                             details.
+   first1, last1 - the first range of elements to swap
+   first2        - beginning of the second range of elements to swap
+   policy        - the execution policy to use. See execution policy for details.
 .SH Type requirements
    -
    ForwardIt1, ForwardIt2 must meet the requirements of LegacyForwardIterator.
-   -
-   The types of dereferenced ForwardIt1 and ForwardIt2 must meet the requirements of
-   Swappable
 
 .SH Return value
 
@@ -53,7 +51,7 @@ std::swap_ranges \- std::swap_ranges
 
 .SH Complexity
 
-   linear in the distance between first1 and last1.
+   Exactly std::distance(first1, last1) swaps.
 
 .SH Exceptions
 
@@ -73,14 +71,15 @@ std::swap_ranges \- std::swap_ranges
 
 .SH Possible implementation
 
-  template<class ForwardIt1, class ForwardIt2>
-  constexpr ForwardIt2 swap_ranges(ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2)
-  {
-      while (first1 != last1) {
-          std::iter_swap(first1++, first2++);
-      }
-      return first2;
-  }
+   template<class ForwardIt1, class ForwardIt2>
+   constexpr //< since C++20
+   ForwardIt2 swap_ranges(ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2)
+   {
+       for (; first1 != last1; ++first1, ++first2)
+           std::iter_swap(first1, first2);
+
+       return first2;
+   }
 
 .SH Example
 
@@ -89,26 +88,28 @@ std::swap_ranges \- std::swap_ranges
 
 // Run this code
 
+ #include <algorithm>
+ #include <iostream>
  #include <list>
  #include <vector>
- #include <iostream>
- #include <algorithm>
 
- auto print = [](auto comment, auto const& seq) {
+ auto print = [](auto comment, auto const& seq)
+ {
      std::cout << comment;
-     for (const auto& e : seq) { std::cout << e << ' '; }
+     for (const auto& e : seq)
+         std::cout << e << ' ';
      std::cout << '\\n';
  };
 
  int main()
  {
-     std::vector<char> v = {'a', 'b', 'c', 'd', 'e'};
-     std::list<char> l = {'1', '2', '3', '4', '5'};
+     std::vector<char> v{'a', 'b', 'c', 'd', 'e'};
+     std::list<char> l{'1', '2', '3', '4', '5'};
 
      print("Before swap_ranges:\\n" "v: ", v);
      print("l: ", l);
 
-     std::swap_ranges(v.begin(), v.begin()+3, l.begin());
+     std::swap_ranges(v.begin(), v.begin() + 3, l.begin());
 
      print("After swap_ranges:\\n" "v: ", v);
      print("l: ", l);

@@ -1,35 +1,26 @@
-.TH std::future::get 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::future::get 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::future::get \- std::future::get
 
 .SH Synopsis
-   T get();    \fB(1)\fP (member only of generic future template)
-                   \fI(since C++11)\fP
-   T& get();   \fB(2)\fP (member only of future<T&> template specialization)
-                   \fI(since C++11)\fP
-   void get(); \fB(3)\fP (member only of future<void> template specialization)
-                   \fI(since C++11)\fP
+   Main template
+   T get();                         \fB(1)\fP \fI(since C++11)\fP
+   std::future<T&> specializations
+   T& get();                        \fB(2)\fP \fI(since C++11)\fP
+   std::future<void> specialization
+   void get();                      \fB(3)\fP \fI(since C++11)\fP
 
-   The get member function waits until the future has a valid result and (depending on
-   which template is used) retrieves it. It effectively calls wait() in order to wait
-   for the result.
+   The get member function waits (by calling wait()) until the shared state is ready,
+   then retrieves the value stored in the shared state (if any). Right after calling
+   this function, valid() is false.
 
-   The generic template and two template specializations each contain a single version
-   of get. The three versions of get differ only in the return type.
-
-   The behavior is undefined if valid() is false before the call to this function.
-
-   Any shared state is released. valid() is false after a call to this member function.
-
-.SH Parameters
-
-   \fI(none)\fP
+   If valid() is false before the call to this function, the behavior is undefined.
 
 .SH Return value
 
    1) The value v stored in the shared state, as std::move(v).
    2) The reference stored as value in the shared state.
-   3) Nothing.
+   3) \fI(none)\fP
 
 .SH Exceptions
 
@@ -38,8 +29,8 @@ std::future::get \- std::future::get
 
 .SH Notes
 
-   The implementations are encouraged to detect the case when valid() is false before
-   the call and throw a std::future_error with an error condition of
+   The C++ standard recommends the implementations to detect the case when valid() is
+   false before the call and throw a std::future_error with an error condition of
    std::future_errc::no_state.
 
 .SH Example
@@ -47,47 +38,57 @@ std::future::get \- std::future::get
 
 // Run this code
 
- #include <thread>
+ #include <chrono>
  #include <future>
  #include <iostream>
  #include <string>
- #include <chrono>
+ #include <thread>
 
- std::string time() {
+ std::string time()
+ {
      static auto start = std::chrono::steady_clock::now();
      std::chrono::duration<double> d = std::chrono::steady_clock::now() - start;
      return "[" + std::to_string(d.count()) + "s]";
  }
- int main() {
+
+ int main()
+ {
      using namespace std::chrono_literals;
+
      {
          std::cout << time() << " launching thread\\n";
-         std::future<int> f = std::async(std::launch::async, []{
+         std::future<int> f = std::async(std::launch::async, []
+         {
              std::this_thread::sleep_for(1s);
              return 7;
          });
-         std::cout << time() << " waiting for the future, f.valid() == "
-                   << f.valid() << "\\n";
+         std::cout << time() << " waiting for the future, f.valid() = "
+                   << f.valid() << '\\n';
          int n = f.get();
-         std::cout << time() << " future.get() returned with " << n << ". f.valid() = "
+         std::cout << time() << " f.get() returned " << n << ", f.valid() = "
                    << f.valid() << '\\n';
      }
 
      {
          std::cout << time() << " launching thread\\n";
-         std::future<int> f = std::async(std::launch::async, []{
+         std::future<int> f = std::async(std::launch::async, []
+         {
              std::this_thread::sleep_for(1s);
              return true ? throw std::runtime_error("7") : 7;
          });
-         std::cout << time() << " waiting for the future, f.valid() == "
-                   << f.valid() << "\\n";
-         try {
+         std::cout << time() << " waiting for the future, f.valid() = "
+                   << f.valid() << '\\n';
+
+         try
+         {
              int n = f.get();
-             std::cout << time() << " future.get() returned with " << n
-                       << " f.valid() = " << f.valid() << '\\n';
-         } catch(const std::exception& e) {
+             std::cout << time() << " f.get() returned " << n
+                       << ", f.valid() = " << f.valid() << '\\n';
+         }
+         catch (const std::exception& e)
+         {
              std::cout << time() << " caught exception " << e.what()
-                       << ", f.valid() == " << f.valid() << "\\n";
+                       << ", f.valid() = " << f.valid() << '\\n';
          }
      }
  }
@@ -95,11 +96,20 @@ std::future::get \- std::future::get
 .SH Possible output:
 
  [0.000004s] launching thread
- [0.000461s] waiting for the future, f.valid() == 1
- [1.001156s] future.get() returned with 7. f.valid() = 0
+ [0.000461s] waiting for the future, f.valid() = 1
+ [1.001156s] f.get() returned with 7, f.valid() = 0
  [1.001192s] launching thread
- [1.001275s] waiting for the future, f.valid() == 1
- [2.002356s] caught exception 7, f.valid() == 0
+ [1.001275s] waiting for the future, f.valid() = 1
+ [2.002356s] caught exception 7, f.valid() = 0
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 2096 C++11      overload \fB(1)\fP needed to check whether T is       not required
+                       MoveAssignable
 
 .SH See also
 

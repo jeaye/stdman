@@ -1,29 +1,57 @@
-.TH std::fill_n 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::fill_n 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::fill_n \- std::fill_n
 
 .SH Synopsis
    Defined in header <algorithm>
-   template< class OutputIt, class Size, class T >                        \fI(until C++11)\fP
-   void fill_n( OutputIt first, Size count, const T& value );
-   template< class OutputIt, class Size, class T >                        \fI(since C++11)\fP
-   OutputIt fill_n( OutputIt first, Size count, const T& value );         \fI(until C++20)\fP
-   template< class OutputIt, class Size, class T >
-   constexpr OutputIt fill_n( OutputIt first, Size count, const   \fB(1)\fP     \fI(since C++20)\fP
-   T& value );
-   template< class ExecutionPolicy, class ForwardIt, class Size,
-   class T >                                                          \fB(2)\fP \fI(since C++17)\fP
-   ForwardIt fill_n( ExecutionPolicy&& policy, ForwardIt first,
-   Size count, const T& value );
+   template< class OutputIt, class Size, class T         (constexpr since
+   >                                                     C++20)
+   OutputIt fill_n( OutputIt first, Size count,          (until C++26)
+   const T& value );
+   template< class OutputIt, class Size,
+
+             class T = typename
+   std::iterator_traits
+                                                         (since C++26)
+   <OutputIt>::value_type >
+   constexpr OutputIt fill_n( OutputIt first,
+   Size count,
+
+                              const T& value );
+   template< class ExecutionPolicy,
+
+             class ForwardIt, class Size, class  \fB(1)\fP
+   T >                                                                    \fI(since C++17)\fP
+   ForwardIt fill_n( ExecutionPolicy&& policy,                            (until C++26)
+
+                     ForwardIt first, Size
+   count, const T& value );
+   template< class ExecutionPolicy,
+                                                     \fB(2)\fP
+             class ForwardIt, class Size,
+             class T = typename
+   std::iterator_traits
+                                                                          (since C++26)
+   <OutputIt>::value_type >
+   ForwardIt fill_n( ExecutionPolicy&& policy,
+
+                     ForwardIt first, Size
+   count, const T& value );
 
    1) Assigns the given value to the first count elements in the range beginning at
    first if count > 0. Does nothing otherwise.
-   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
-   in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+   2) Same as \fB(1)\fP, but executed according to policy.
+   This overload participates in overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
+
+   If any of the following conditions is satisfied, the program is ill-formed:
+
+     * value is not writable to first.
+     * Size is not convertible to an integral type.
 
 .SH Parameters
 
@@ -39,13 +67,11 @@ std::fill_n \- std::fill_n
 
 .SH Return value
 
-   \fI(none)\fP                                                                 \fI(until C++11)\fP
-   Iterator one past the last element assigned if count > 0, first        \fI(since C++11)\fP
-   otherwise.
+   Iterator one past the last element assigned if count > 0, first otherwise.
 
 .SH Complexity
 
-   Exactly count assignments, for count > 0.
+   Exactly std::max(0, count) assignments.
 
 .SH Exceptions
 
@@ -59,41 +85,74 @@ std::fill_n \- std::fill_n
 
 .SH Possible implementation
 
-   template<class OutputIt, class Size, class T>
+                                   fill_n
+   template<class OutputIt, class Size,
+            class T = typename std::iterator_traits<OutputIt>::value_type>
    OutputIt fill_n(OutputIt first, Size count, const T& value)
    {
-       for (Size i = 0; i < count; i++) {
+       for (Size i = 0; i < count; i++)
            *first++ = value;
-       }
        return first;
    }
 
-.SH Example
+.SH Notes
 
-   The following code uses fill_n() to assign -1 to the first half of a vector of
-   integers:
+             Feature-test macro           Value    Std              Feature
+   __cpp_lib_algorithm_default_value_type 202403 (C++26) List-initialization for
+                                                         algorithms (1,2)
+
+.SH Example
 
 
 // Run this code
 
  #include <algorithm>
- #include <vector>
+ #include <complex>
  #include <iostream>
  #include <iterator>
+ #include <vector>
 
  int main()
  {
      std::vector<int> v1{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
+     // replace values of the first 5 elements with -1
      std::fill_n(v1.begin(), 5, -1);
 
-     std::copy(begin(v1), end(v1), std::ostream_iterator<int>(std::cout, " "));
+     std::copy_n(v1.cbegin(), v1.size(), std::ostream_iterator<int>(std::cout, " "));
+     std::cout << '\\n';
+
+     std::vector<std::complex<double>> nums{{1, 3}, {2, 2}, {4, 8}};
+     #ifdef __cpp_lib_algorithm_default_value_type
+         std::fill_n(nums.begin(), 2, {4, 2});
+     #else
+         std::fill_n(nums.begin(), 2, std::complex<double>{4, 2});
+     #endif
+     std::copy_n(nums.cbegin(), nums.size(),
+                 std::ostream_iterator<std::complex<double>>(std::cout, " "));
      std::cout << '\\n';
  }
 
 .SH Output:
 
  -1 -1 -1 -1 -1 5 6 7 8 9
+ (4,2) (4,2) (4,8)
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to           Behavior as published              Correct behavior
+   LWG 283 C++98      T was required to be CopyAssignable, but  required to be writable
+                      T is not always writable to OutputIt      instead
+                      the complexity requirement was “exactly
+   LWG 426 C++98      count                                     no assignment if
+                      assignments”, which is broken if count is count is non-positive
+                      negative
+                      the location of the first element
+   LWG 865 C++98      following                                 returned
+                      the filling range was not returned
 
 .SH See also
 

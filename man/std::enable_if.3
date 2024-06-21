@@ -1,4 +1,4 @@
-.TH std::enable_if 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::enable_if 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::enable_if \- std::enable_if
 
@@ -17,11 +17,11 @@ std::enable_if \- std::enable_if
 
    std::enable_if can be used in many forms, including:
 
-     * as an additional function argument (not applicable to operator overloads)
-     * as a return type (not applicable to constructors and destructors)
-     * as a class template or function template parameter
+     * as an additional function argument (not applicable to most operator overloads),
+     * as a return type (not applicable to constructors and destructors),
+     * as a class template or function template parameter.
 
-   The behavior of a program that adds specializations for enable_if is undefined.
+   If the program adds specializations for std::enable_if, the behavior is undefined.
 
 .SH Member types
 
@@ -50,31 +50,31 @@ std::enable_if \- std::enable_if
 
  /* WRONG */
 
- struct T {
+ struct T
+ {
      enum { int_t, float_t } type;
-     template <typename Integer,
-               typename = std::enable_if_t<std::is_integral<Integer>::value>
-     >
+
+     template<typename Integer,
+              typename = std::enable_if_t<std::is_integral<Integer>::value>>
      T(Integer) : type(int_t) {}
 
-     template <typename Floating,
-               typename = std::enable_if_t<std::is_floating_point<Floating>::value>
-     >
+     template<typename Floating,
+              typename = std::enable_if_t<std::is_floating_point<Floating>::value>>
      T(Floating) : type(float_t) {} // error: treated as redefinition
  };
 
  /* RIGHT */
 
- struct T {
+ struct T
+ {
      enum { int_t, float_t } type;
-     template <typename Integer,
-               std::enable_if_t<std::is_integral<Integer>::value, bool> = true
-     >
+
+     template<typename Integer,
+              std::enable_if_t<std::is_integral<Integer>::value, bool> = true>
      T(Integer) : type(int_t) {}
 
-     template <typename Floating,
-               std::enable_if_t<std::is_floating_point<Floating>::value, bool> = true
-     >
+     template<typename Floating,
+              std::enable_if_t<std::is_floating_point<Floating>::value, bool> = true>
      T(Floating) : type(float_t) {} // OK
  };
 
@@ -87,7 +87,8 @@ std::enable_if \- std::enable_if
 
  // first translation unit
 
- struct X {
+ struct X
+ {
      enum { value1 = true, value2 = true };
  };
 
@@ -98,14 +99,15 @@ std::enable_if \- std::enable_if
 
  // second translation unit
 
- struct X {
+ struct X
+ {
      enum { value1 = true, value2 = true };
  };
 
  template<class T, std::enable_if_t<T::value2, int> = 0>
  void func() {} // #3
 
- template void func<X>(); //#4
+ template void func<X>(); // #4
 
    The function templates #1 and #3 have different signatures and are distinct
    templates. Nonetheless, #2 and #4, despite being instantiations of different
@@ -118,15 +120,14 @@ std::enable_if \- std::enable_if
 
 // Run this code
 
- #include <type_traits>
- #include <new>
  #include <iostream>
+ #include <new>
  #include <string>
+ #include <type_traits>
 
- namespace detail {
-
- void* voidify(const volatile void* ptr) noexcept { return const_cast<void*>(ptr); }
-
+ namespace detail
+ {
+     void* voidify(const volatile void* ptr) noexcept { return const_cast<void*>(ptr); }
  }
 
  // #1, enabled via the return type
@@ -161,8 +162,8 @@ std::enable_if \- std::enable_if
      T*,
      typename std::enable_if<
          std::is_trivially_destructible<T>::value
-     >::type* = 0
- ){
+     >::type* = 0)
+ {
      std::cout << "destroying trivially destructible T\\n";
  }
 
@@ -171,7 +172,7 @@ std::enable_if \- std::enable_if
           typename std::enable_if<
               !std::is_trivially_destructible<T>{} &&
               (std::is_class<T>{} || std::is_union<T>{}),
-             bool>::type = true>
+              bool>::type = true>
  void destroy(T* t)
  {
      std::cout << "destroying non-trivially destructible T\\n";
@@ -180,17 +181,17 @@ std::enable_if \- std::enable_if
 
  // #5, enabled via a type template parameter
  template<class T,
-         typename = std::enable_if_t<std::is_array<T>::value> >
+          typename = std::enable_if_t<std::is_array<T>::value>>
  void destroy(T* t) // note: function signature is unmodified
  {
-     for(std::size_t i = 0; i < std::extent<T>::value; ++i) {
+     for (std::size_t i = 0; i < std::extent<T>::value; ++i)
          destroy((*t)[i]);
-     }
  }
+
  /*
  template<class T,
-         typename = std::enable_if_t<std::is_void<T>::value> >
- void destroy(T* t){} // error: has the same signature with #5
+          typename = std::enable_if_t<std::is_void<T>::value>>
+ void destroy(T* t) {} // error: has the same signature with #5
  */
 
  // the partial specialization of A is enabled via a template parameter
@@ -198,17 +199,17 @@ std::enable_if \- std::enable_if
  class A {}; // primary template
 
  template<class T>
- class A<T, typename std::enable_if<std::is_floating_point<T>::value>::type> {
- }; // specialization for floating point types
+ class A<T, typename std::enable_if<std::is_floating_point<T>::value>::type>
+ {}; // specialization for floating point types
 
  int main()
  {
-     std::aligned_union_t<0,int,std::string> u;
+     union { int i; char s[sizeof(std::string)]; } u;
 
      construct(reinterpret_cast<int*>(&u));
      destroy(reinterpret_cast<int*>(&u));
 
-     construct(reinterpret_cast<std::string*>(&u),"Hello");
+     construct(reinterpret_cast<std::string*>(&u), "Hello");
      destroy(reinterpret_cast<std::string*>(&u));
 
      A<int>{}; // OK: matches the primary template

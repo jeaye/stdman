@@ -1,4 +1,4 @@
-.TH std::compare_three_way 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::compare_three_way 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::compare_three_way \- std::compare_three_way
 
@@ -10,28 +10,6 @@ std::compare_three_way \- std::compare_three_way
    Function object for performing comparisons. Deduces the parameter types and the
    return type of the function call operator.
 
-  Implementation-defined strict total order over pointers
-
-   The function call operator yields the implementation-defined strict total order over
-   pointers if the <=> operator between arguments invokes a built-in comparison
-   operator for a pointer, even if the built-in <=> operator does not.
-
-   The implementation-defined strict total order is consistent with the partial order
-   imposed by built-in comparison operators (<=>, <, >, <=, and >=), and consistent
-   among following standard function objects:
-
-     * std::less, std::greater, std::less_equal, and std::greater_equal, when the
-       template argument is a pointer type or void
-
-     * std::ranges::equal_to, std::ranges::not_equal_to, std::ranges::less,
-       std::ranges::greater, std::ranges::less_equal, std::ranges::greater_equal, and
-       std::compare_three_way
-
-.SH Member types
-
-   Member type    Definition
-   is_transparent /* unspecified */
-
 .SH Member functions
 
    operator() obtains the result of three-way comparison on both arguments
@@ -40,72 +18,45 @@ std::compare_three_way \- std::compare_three_way
 std::compare_three_way::operator()
 
    template< class T, class U >
-
-   requires std::three_way_comparable_with<T, U> // with different semantic
-   requirements
-
    constexpr auto operator()( T&& t, U&& u ) const;
 
-   Compares t and u, equivalent to return std::forward<T>(t) <=> std::forward<U>(u);,
-   except when that expression resolves to a call to a builtin operator<=> comparing
-   pointers.
+   Given the expression std::forward<T>(t) <=> std::forward<U>(u) as expr:
 
-   When a call would not invoke a built-in operator comparing pointers, the behavior is
-   undefined if std::three_way_comparable_with<T, U> is not modeled.
+     * If expr results in a call to built-in operator<=> comparing pointers, given the
+       composite pointer type of t and u as P:
 
-   When a call would invoke a built-in operator comparing pointers of type P, the
-   result is instead determined as follows:
+     * Compares the two converted pointers (of type P) in the implementation-defined
+       strict total order over pointers:
 
-     * Returns std::strong_ordering::less if the (possibly converted) value of the
-       first argument precedes the (possibly converted) value of the second argument in
-       the implementation-defined strict total ordering over all pointer values of type
-       P. This strict total ordering is consistent with the partial order imposed by
-       the builtin operators <, >, <=, and >=.
-     * Otherwise, returns std::strong_ordering::greater if (possibly converted) value
-       of the second argument precedes the (possibly converted) value of the first
-       argument in the same strict total ordering.
+     * If t precedes u, returns std::strong_ordering::less.
+     * If u precedes t, returns std::strong_ordering::greater.
      * Otherwise, returns std::strong_ordering::equal.
+     * If the conversion sequence from T to P or the conversion sequence from U to P is
+       not equality-preserving, the behavior is undefined.
+     * Otherwise:
 
-   The behavior is undefined unless the conversion sequences from both T and U to P are
-   equality-preserving (see below).
+     * Returns the result of expr.
+     * If std::three_way_comparable_with<T, U> is not modeled, the behavior is
+       undefined.
 
-  Equality preservation
-
-   An expression is equality preserving if it results in equal outputs given equal
-   inputs.
-
-     * The inputs to an expression consist of its operands.
-     * The outputs of an expression consist of its result and all operands modified by
-       the expression (if any).
-
-   In specification of standard concepts, operands are defined as the largest
-   subexpressions that include only:
-
-     * an id-expression, and
-     * invocations of std::move, std::forward, and std::declval.
-
-   The cv-qualification and value category of each operand is determined by assuming
-   that each template type parameter denotes a cv-unqualified complete non-array object
-   type.
-
-   Every expression required to be equality preserving is further required to be
-   stable: two evaluations of such an expression with the same input objects must have
-   equal outputs absent any explicit intervening modification of those input objects.
+   This overload participates in overload resolution only if
+   std::three_way_comparable_with<T, U> is satisfied.
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
  #include <compare>
+ #include <iostream>
 
- struct Rational {
+ struct Rational
+ {
      int num;
      int den; // > 0
 
      // Although the comparison X <=> Y will work, a direct call
-     // to std::compare_three_way{}(X,Y) requires the operator==
+     // to std::compare_three_way{}(X, Y) requires the operator==
      // be defined, to satisfy the std::three_way_comparable_with.
      constexpr bool operator==(Rational const&) const = default;
  };
@@ -117,17 +68,17 @@ std::compare_three_way::operator()
 
  void print(std::weak_ordering value)
  {
-     value < 0 ? std::cout << "less\\n"    :
+     value < 0 ? std::cout << "less\\n" :
      value > 0 ? std::cout << "greater\\n" :
-                 std::cout << "equal\\n"   ;
+                 std::cout << "equal\\n";
  }
 
  int main()
  {
-     Rational a{6,5};
-     Rational b{8,7};
+     Rational a{6, 5};
+     Rational b{8, 7};
      print(a <=> b);
-     print(std::compare_three_way{}(a,b));
+     print(std::compare_three_way{}(a, b));
  }
 
 .SH Output:
@@ -135,26 +86,26 @@ std::compare_three_way::operator()
  greater
  greater
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to         Behavior as published              Correct behavior
-   LWG 3530 C++20      syntactic checks were relaxed while   only semantic requirements
-                       comparing pointers                    relaxed
+      DR    Applied to       Behavior as published              Correct behavior
+   LWG 3530 C++20      syntactic checks were relaxed     only semantic requirements are
+                       while comparing pointers          relaxed
 
 .SH See also
 
-   ranges::equal_to      function object implementing x == y
+   ranges::equal_to      constrained function object implementing x == y
    (C++20)               \fI(class)\fP
-   ranges::not_equal_to  function object implementing x != y
+   ranges::not_equal_to  constrained function object implementing x != y
    (C++20)               \fI(class)\fP
-   ranges::less          function object implementing x < y
+   ranges::less          constrained function object implementing x < y
    (C++20)               \fI(class)\fP
-   ranges::greater       function object implementing x > y
+   ranges::greater       constrained function object implementing x > y
    (C++20)               \fI(class)\fP
-   ranges::less_equal    function object implementing x <= y
+   ranges::less_equal    constrained function object implementing x <= y
    (C++20)               \fI(class)\fP
-   ranges::greater_equal function object implementing x >= y
+   ranges::greater_equal constrained function object implementing x >= y
    (C++20)               \fI(class)\fP

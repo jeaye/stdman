@@ -1,4 +1,4 @@
-.TH std::add_pointer 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::add_pointer 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::add_pointer \- std::add_pointer
 
@@ -7,22 +7,12 @@ std::add_pointer \- std::add_pointer
    template< class T >              \fI(since C++11)\fP
    struct add_pointer;
 
-   If T is a reference type, then provides the member typedef type which is a pointer
-   to the referred type.
+   If T is a referenceable type or (possibly cv-qualified) void, the member typedef
+   type provided is typename std::remove_reference::type<T>*.
 
-   Otherwise, if T names an object type, a function type that is not cv- or
-   ref-qualified, or a (possibly cv-qualified) void type, provides the member typedef
-   type which is the type T*.
+   Otherwise, the member typedef type provided is T.
 
-   Otherwise (if T is a cv- or ref-qualified function type), provides the member
-   typedef type which is the type T.
-
-   The behavior of a program that adds specializations for add_pointer is undefined.
-
-.SH Member types
-
-   Name Definition
-   type pointer to T or to the type referenced by T
+   If the program adds specializations for std::add_pointer, the behavior is undefined.
 
 .SH Helper types
 
@@ -31,20 +21,22 @@ std::add_pointer \- std::add_pointer
 
 .SH Possible implementation
 
-   namespace detail {
+  namespace detail
+  {
+      template<class T>
+      struct type_identity { using type = T; }; // or use std::type_identity \fI(since C++20)\fP
 
-   template <class T>
-   struct type_identity { using type = T; }; // or use std::type_identity \fI(since C++20)\fP
+      template<class T>
+      auto try_add_pointer(int)
+        -> type_identity<typename std::remove_reference<T>::type*>; // usual case
 
-   template <class T>
-   auto try_add_pointer(int) -> type_identity<typename std::remove_reference<T>::type*>;
-   template <class T>
-   auto try_add_pointer(...) -> type_identity<T>;
+      template<class T>
+      auto try_add_pointer(...)
+        -> type_identity<T>; // unusual case (cannot form std::remove_reference<T>::type*)
+  } // namespace detail
 
-   } // namespace detail
-
-   template <class T>
-   struct add_pointer : decltype(detail::try_add_pointer<T>\fB(0)\fP) {};
+  template<class T>
+  struct add_pointer : decltype(detail::try_add_pointer<T>\fB(0)\fP) {};
 
 .SH Example
 
@@ -57,7 +49,7 @@ std::add_pointer \- std::add_pointer
  template<typename F, typename Class>
  void ptr_to_member_func_cvref_test(F Class::*)
  {
-     // F is an "abominable function type"
+     // F is an “abominable function type”
      using FF = std::add_pointer_t<F>;
      static_assert(std::is_same_v<F, FF>, "FF should be precisely F");
  }
@@ -75,19 +67,19 @@ std::add_pointer \- std::add_pointer
      typedef std::add_pointer<decltype(i)>::type IntPtr;
      typedef std::add_pointer<decltype(ri)>::type IntPtr2;
      IntPtr pi = &i;
-     std::cout << "i = " << i << "\\n";
-     std::cout << "*pi = " << *pi << "\\n";
+     std::cout << "i = " << i << '\\n';
+     std::cout << "*pi = " << *pi << '\\n';
 
-     static_assert(std::is_pointer<IntPtr>::value, "IntPtr should be a pointer");
-     static_assert(std::is_same<IntPtr, int*>::value, "IntPtr should be a pointer to int");
-     static_assert(std::is_same<IntPtr2, IntPtr>::value, "IntPtr2 should be equal to IntPtr");
+     static_assert(std::is_pointer_v<IntPtr>, "IntPtr should be a pointer");
+     static_assert(std::is_same_v<IntPtr, int*>, "IntPtr should be a pointer to int");
+     static_assert(std::is_same_v<IntPtr2, IntPtr>, "IntPtr2 should be equal to IntPtr");
 
      typedef std::remove_pointer<IntPtr>::type IntAgain;
      IntAgain j = i;
-     std::cout << "j = " << j << "\\n";
+     std::cout << "j = " << j << '\\n';
 
-     static_assert(!std::is_pointer<IntAgain>::value, "IntAgain should not be a pointer");
-     static_assert(std::is_same<IntAgain, int>::value, "IntAgain should be equal to int");
+     static_assert(!std::is_pointer_v<IntAgain>, "IntAgain should not be a pointer");
+     static_assert(std::is_same_v<IntAgain, int>, "IntAgain should be equal to int");
 
      ptr_to_member_func_cvref_test(&S::f_ref);
      ptr_to_member_func_cvref_test(&S::f_const);
@@ -99,16 +91,14 @@ std::add_pointer \- std::add_pointer
  *pi = 123
  j = 123
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to     Behavior as published              Correct behavior
-                       std::add_pointer was required
-   LWG 2101 C++11      to produce                    Produces cv-/ref-qualified
-                       pointer to cv-/ref-qualified  function types themselves.
-                       function types.
+      DR    Applied to         Behavior as published              Correct behavior
+   LWG 2101 C++11      the program was ill-formed if T is a   the type produced is T in
+                       function type with cv or ref           this case
 
 .SH See also
 

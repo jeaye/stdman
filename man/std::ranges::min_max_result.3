@@ -1,0 +1,134 @@
+.TH std::ranges::min_max_result 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::min_max_result \- std::ranges::min_max_result
+
+.SH Synopsis
+   Defined in header <algorithm>
+   template< class T >            \fI(since C++20)\fP
+   struct min_max_result;
+
+   ranges::min_max_result is a class template that provides a way to store two objects
+   or references of the same type as a single unit.
+
+   This class template has no base classes or declared members other than those shown
+   below. Thus it is suitable for use with structured bindings.
+
+   All special member functions of this class template are implicitly declared, which
+   makes specializations be aggregate classes, and propagate triviality,
+   potentially-throwing-ness, and constexpr-ness of corresponding operations on data
+   members.
+
+.SH Template parameters
+
+   T - the type of the objects or references that the ranges::min_max_result stores.
+
+   Data members
+
+   Member name Definition
+               may be a reference to, a copy of, or an iterator of type T to a minimum
+   min         element in a range.
+               \fI(public member object)\fP
+               may be a reference to, a copy of, or an iterator of type T to a maximum
+   max         element in a range
+               \fI(public member object)\fP
+
+   All these members are declared with [[no_unique_address]] attribute.
+
+.SH Member functions
+
+std::ranges::min_max_result::operator min_max_result<T2>
+
+   template<class T2>
+
+   requires std::convertible_to<const T&, T2>       \fB(1)\fP
+
+   constexpr operator min_max_result<T2>() const &;
+   template<class T2>
+
+   requires std::convertible_to<T, T2>              \fB(2)\fP
+
+   constexpr operator min_max_result<T2>() &&;
+
+   Converts *this to the result by constructing every data member of the result from
+   the corresponding member of *this.
+
+   1) Equivalent to return {min, max};.
+   2) Equivalent to return {std::move(min), std::move(max)};.
+
+.SH Standard library
+
+   The following standard library functions use ranges::min_max_result as the return
+   type:
+
+         Algorithm functions
+   ranges::minmax         returns the smaller and larger of two elements
+   (C++20)                (niebloid)
+   ranges::minmax_element returns the smallest and the largest elements in a range
+   (C++20)                (niebloid)
+
+.SH Synopsis
+
+ namespace std::ranges
+ {
+     template<class T>
+     struct min_max_result
+     {
+         [[no_unique_address]] T min;
+         [[no_unique_address]] T max;
+
+         template<class T2>
+         requires std::convertible_to<const T&, T2>
+         constexpr operator min_max_result<T2>() const &
+         {
+             return {min, max};
+         }
+
+         template<class T2>
+         requires std::convertible_to<T, T2>
+         constexpr operator min_max_result<T2>() &&
+         {
+             return {std::move(min), std::move(max)};
+         }
+     };
+ }
+
+.SH Notes
+
+   Each standard library algorithm that uses this family of return types declares a new
+   alias type, e.g. using merge_result = in_in_out_result<I1, I2, O>;.
+
+   The names for such aliases are formed by adding the suffix "_result" to the
+   algorithm's name. So, the return type of std::ranges::merge can be named as
+   std::ranges::merge_result.
+
+   Unlike std::pair and std::tuple, this class template has data members of meaningful
+   names.
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <ranges>
+
+ int main()
+ {
+     constexpr static auto v = {3, 1, 4, 1, 5, 9, 2};
+     {
+         constexpr auto result = std::ranges::minmax(v);
+         static_assert(1 == result.min && 9 == result.max);
+     }
+     {
+         constexpr auto result = std::ranges::minmax_element(v);
+         static_assert(1 == *result.min && 9 == *result.max);
+     }
+ }
+
+.SH See also
+
+   pair    implements binary tuple, i.e. a pair of values
+           \fI(class template)\fP
+   tuple   implements fixed size container, which holds elements of possibly different
+   \fI(C++11)\fP types
+           \fI(class template)\fP

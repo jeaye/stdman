@@ -1,4 +1,4 @@
-.TH std::time_get::get_date,std::time_get::do_get_date 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::time_get::get_date,std::time_get::do_get_date 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::time_get::get_date,std::time_get::do_get_date \- std::time_get::get_date,std::time_get::do_get_date
 
@@ -8,25 +8,28 @@ std::time_get::get_date,std::time_get::do_get_date \- std::time_get::get_date,st
 
    iter_type get_date( iter_type beg, iter_type end, std::ios_base& str,           \fB(1)\fP
 
-   std::ios_base::iostate& err, std::tm* t ) const;
+                       std::ios_base::iostate& err, std::tm* t ) const;
    protected:
 
    virtual iter_type do_get_date( iter_type beg, iter_type end, std::ios_base&     \fB(2)\fP
    str,
 
-   std::ios_base::iostate& err, std::tm* t ) const;
+                                  std::ios_base::iostate& err, std::tm* t ) const;
 
-   1) Public member function, calls the protected virtual member function do_get_date()
+   1) Public member function, calls the protected virtual member function do_get_date
    of the most derived class.
    2) Reads successive characters from the sequence [beg, end) and parses out the
-   calendar date value using the default format expected by this locale, which is the
-   same format as
+   calendar date value using the default format expected by this locale, which is
+   determined as
 
-   "%x"                                                                   \fI(until C++11)\fP
-   "%d/%m/%y", "%m/%d/%y", "%y/%m/%d", and "%y/%d/%m", depending on       \fI(since C++11)\fP
-   date_order()
+   date_order()   Format
+   no_order     "%m/%d/%y"
+   dmy          "%d/%m/%y"
+   mdy          "%m/%d/%y"
+   ymd          "%y/%m/%d"
+   ydm          "%y/%d/%m"
 
-   as used by the functions std::get_time(), get(), and the POSIX function strptime()
+   as used by the functions std::get_time(), get(), and the POSIX function strptime().
    The parsed date is stored in the corresponding fields of the std::tm structure
    pointed to by the argument t.
    If the end iterator is reached before a valid date is read, the function sets
@@ -63,30 +66,32 @@ std::time_get::get_date,std::time_get::do_get_date \- std::time_get::get_date,st
 
 // Run this code
 
+ #include <ctime>
  #include <iostream>
+ #include <iterator>
  #include <locale>
  #include <sstream>
- #include <iterator>
- #include <ctime>
 
  void try_get_date(const std::string& s)
  {
-     std::cout << "Parsing the date out of '" << s <<
-                  "' in the locale " << std::locale().name() << '\\n';
+     std::cout << "Parsing the date out of '" << s
+               << "' in the locale " << std::locale().name() << '\\n';
      std::istringstream str(s);
      std::ios_base::iostate err = std::ios_base::goodbit;
 
      std::tm t;
-     std::istreambuf_iterator<char> ret =
-         std::use_facet<std::time_get<char>>(str.getloc()).get_date(
-             {str}, {}, str, err, &t
-         );
+     const std::time_get<char>& facet = std::use_facet<std::time_get<char>>(str.getloc());
+     std::istreambuf_iterator<char> ret = facet.get_date({str}, {}, str, err, &t);
      str.setstate(err);
-     if(str) {
-         std::cout << "Day: "   << t.tm_mday << ' '
+
+     if (str)
+     {
+         std::cout << "Day: " << t.tm_mday << ' '
                    << "Month: " << t.tm_mon + 1 << ' '
-                   << "Year: "  << t.tm_year + 1900 << '\\n';
-     } else {
+                   << "Year: " << t.tm_year + 1900 << '\\n';
+     }
+     else
+     {
          std::cout << "Parse failed. Unparsed string: ";
          std::copy(ret, {}, std::ostreambuf_iterator<char>(std::cout));
          std::cout << '\\n';
@@ -110,6 +115,17 @@ std::time_get::get_date,std::time_get::do_get_date \- std::time_get::get_date,st
  Parse failed. Unparsed string: -01-2013
  Parsing the date out of '2013年02月01日' in the locale ja_JP.utf8
  Day: 1 Month: 2 Year: 2013
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to         Behavior as published              Correct behavior
+   LWG 248 C++98      eofbit was not set upon reaching the  sets eofbit if a valid date
+                      end iterator                          has not been read
+   LWG 461 C++98      do_get_date needed to parse localized parses with the format
+                      date representation                   determined by date_order()
 
 .SH See also
 

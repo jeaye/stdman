@@ -1,111 +1,95 @@
-.TH std::condition_variable_any::wait_until 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::condition_variable_any::wait_until 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::condition_variable_any::wait_until \- std::condition_variable_any::wait_until
 
 .SH Synopsis
    template< class Lock, class Clock, class Duration >
 
-   std::cv_status                                                     \fB(1)\fP \fI(since C++11)\fP
-   wait_until( Lock& lock,
+   std::cv_status
+       wait_until( Lock& lock,                                        \fB(1)\fP \fI(since C++11)\fP
 
-   const std::chrono::time_point<Clock, Duration>& timeout_time );
+                   const std::chrono::time_point<Clock, Duration>&
+   abs_time );
    template< class Lock, class Clock, class Duration, class Predicate
    >
 
    bool wait_until( Lock& lock,                                       \fB(2)\fP \fI(since C++11)\fP
-   const std::chrono::time_point<Clock, Duration>& timeout_time,
+                    const std::chrono::time_point<Clock, Duration>&
+   abs_time,
 
-   Predicate stop_waiting );
+                    Predicate pred );
    template< class Lock, class Clock, class Duration, class Predicate
    >
 
-   bool wait_until( Lock& lock,                                       \fB(3)\fP \fI(since C++20)\fP
-   std::stop_token stoken,
-   const std::chrono::time_point<Clock, Duration>& timeout_time,
+   bool wait_until( Lock& lock, std::stop_token stoken,               \fB(3)\fP \fI(since C++20)\fP
+                    const std::chrono::time_point<Clock, Duration>&
+   abs_time,
 
-   Predicate stop_waiting );
+                    Predicate pred );
 
    wait_until causes the current thread to block until the condition variable is
-   notified, a specific time is reached, or a spurious wakeup occurs, optionally
-   looping until some predicate is satisfied (bool(stop_waiting()) == true).
+   notified, the given duration has been elapsed, or a spurious wakeup occurs. pred can
+   be optionally provided to detect spurious wakeup.
 
-   1) Atomically releases lock, blocks the current executing thread, and adds it to the
-   list of threads waiting on *this. The thread will be unblocked when notify_all() or
-   notify_one() is executed, or when the absolute time point timeout_time is reached.
-   It may also be unblocked spuriously. When unblocked, regardless of the reason, lock
-   is reacquired and wait_until exits.
-   2) Equivalent to
+   1) Atomically calls lock.unlock() and blocks on *this.
+   The thread will be unblocked when notify_all() or notify_one() is executed, or
+   abs_time is reached. It may also be unblocked spuriously.
+   When unblocked, calls lock.lock() (possibly blocking on the lock), then returns.
+   2,3) Waiting for a specific condition to become true, can be used to ignore spurious
+   awakenings.
+   2) Equivalent to while (!pred())
+       if (wait_until(lock, abs_time) == std::cv_status::timeout)
+           return pred();
+   return true;.
+   3) Registers *this for the duration of this call, to be notified if a stop request
+   is made on stoken's associated stop-state; it is then equivalent to while
+   (!stoken.stop_requested())
+   {
+       if (pred())
+           return true;
+       if (wait_until(lock, abs_time) == std::cv_status::timeout)
+           return pred();
+   }
+   return pred();.
 
- while (!stop_waiting()) {
-     if (wait_until(lock, timeout_time) == std::cv_status::timeout) {
-         return stop_waiting();
-     }
- }
- return true;
+   Right after wait_until returns, lock is locked by the calling thread. If this
+   postcondition cannot be satisfied^[1], calls std::terminate.
 
-   This overload may be used to ignore spurious wakeups.
-
-   3) An interruptible wait: registers the condition_variable_any for the duration of
-   wait_until(), to be notified if a stop request is made on the given stoken's
-   associated stop-state; it is then equivalent to
-
- while (!stoken.stop_requested()) {
-     if (stop_waiting())
-         return true;
-     if (wait_until(lock, timeout_time) == std::cv_status::timeout)
-         return stop_waiting();
- }
- return stop_waiting();
-
-   If these functions fail to meet the postcondition (lock is locked by the calling
-   thread), std::terminate is called. For example, this could happen if relocking the
-   mutex throws an exception.
-
-   Clock must meet the Clock requirements.
-   The program is ill-formed if std::chrono::is_clock_v<Clock> is false.
-   \fI(since C++20)\fP
+    1. ↑ This can happen if the re-locking of the mutex throws an exception.
 
 .SH Parameters
 
-   lock         - an object of type Lock that meets the requirements of BasicLockable,
-                  which must be locked by the current thread
-   stoken       - a std::stop_token to register interruption for
-   timeout_time - an object of type std::chrono::time_point representing the time when
-                  to stop waiting
-                  predicate which returns false if the waiting should be continued
-                  (bool(stop_waiting()) == false).
-
-   stop_waiting - The signature of the predicate function should be equivalent to the
-                  following:
-
-                  bool pred();
+   lock     - an lock which must be locked by the calling thread
+   stoken   - a stop token to register interruption for
+   abs_time - the time point where waiting expires
+   pred     - the predicate to check whether the waiting can be completed
+.SH Type requirements
+   -
+   Lock must meet the requirements of BasicLockable.
+   -
+   Predicate must meet the requirements of FunctionObject.
 
 .SH Return value
 
-   1) std::cv_status::timeout if the absolute timeout specified by timeout_time was
-   reached, std::cv_status::no_timeout otherwise.
-   2) false if the predicate stop_waiting still evaluates to false after the
-   timeout_time timeout expired, otherwise true. If the timeout had already expired,
-   evaluates and returns the result of stop_waiting.
-   3) stop_waiting(), regardless of whether the timeout was met or stop was requested.
+   1) std::cv_status::timeout if abs_time has been reached, otherwise
+   std::cv_status::no_timeout.
+   2,3) The latest result of pred() before returning to the caller.
 
 .SH Exceptions
 
-   1) Any exception thrown by clock, time point, or duration during the execution
-   (clocks, time points, and durations provided by the standard library never throw)
-   2) Same as \fB(1)\fP but may also propagate exceptions thrown by stop_waiting
-   3) Same as \fB(2)\fP
+   1) Timeout-related exceptions.
+   2,3) Timeout-related exceptions, and any exception thrown by pred.
 
 .SH Notes
 
-   The standard recommends that the clock tied to timeout_time be used to measure time;
+   The standard recommends that the clock tied to abs_time be used to measure time;
    that clock is not required to be a monotonic clock. There are no guarantees
    regarding the behavior of this function if the clock is adjusted discontinuously,
-   but the existing implementations convert timeout_time from Clock to
+   but the existing implementations convert abs_time from Clock to
    std::chrono::system_clock and delegate to POSIX pthread_cond_timedwait so that the
    wait honors adjustments to the system clock, but not to the user-provided Clock. In
-   any case, the function also may wait for longer than until after timeout_time has
-   been reached due to scheduling or resource contention delays.
+   any case, the function also may wait for longer than until after abs_time has been
+   reached due to scheduling or resource contention delays.
 
    Even if the clock in use is std::chrono::steady_clock or another monotonic clock, a
    system clock adjustment may induce a spurious wakeup.
@@ -122,41 +106,48 @@ std::condition_variable_any::wait_until \- std::condition_variable_any::wait_unt
 
 // Run this code
 
- #include <iostream>
- #include <atomic>
- #include <condition_variable>
- #include <thread>
  #include <chrono>
- using namespace std::chrono_literals;
+ #include <condition_variable>
+ #include <iostream>
+ #include <thread>
 
- std::condition_variable cv;
- std::mutex cv_m;
- std::atomic<int> i{0};
+ std::condition_variable_any cv;
+ std::mutex cv_m; // This mutex is used for three purposes:
+                  // 1) to synchronize accesses to i
+                  // 2) to synchronize accesses to std::cerr
+                  // 3) for the condition variable cv
+ int i = 0;
 
- void waits(int idx)
+ void waits()
  {
      std::unique_lock<std::mutex> lk(cv_m);
-     auto now = std::chrono::system_clock::now();
-     if(cv.wait_until(lk, now + idx*100ms, [](){return i == 1;}))
-         std::cerr << "Thread " << idx << " finished waiting. i == " << i << '\\n';
-     else
-         std::cerr << "Thread " << idx << " timed out. i == " << i << '\\n';
+     std::cerr << "Waiting... \\n";
+     cv.wait(lk, []{ return i == 1; });
+     std::cerr << "...finished waiting. i == 1\\n";
  }
 
  void signals()
  {
-     std::this_thread::sleep_for(120ms);
-     std::cerr << "Notifying...\\n";
+     std::this_thread::sleep_for(std::chrono::seconds(1));
+     {
+         std::lock_guard<std::mutex> lk(cv_m);
+         std::cerr << "Notifying...\\n";
+     }
      cv.notify_all();
-     std::this_thread::sleep_for(100ms);
-     i = 1;
-     std::cerr << "Notifying again...\\n";
+
+     std::this_thread::sleep_for(std::chrono::seconds(1));
+
+     {
+         std::lock_guard<std::mutex> lk(cv_m);
+         i = 1;
+         std::cerr << "Notifying again...\\n";
+     }
      cv.notify_all();
  }
 
  int main()
  {
-     std::thread t1(waits, 1), t2(waits, 2), t3(waits, 3), t4(signals);
+     std::thread t1(waits), t2(waits), t3(waits), t4(signals);
      t1.join();
      t2.join();
      t3.join();
@@ -165,27 +156,33 @@ std::condition_variable_any::wait_until \- std::condition_variable_any::wait_unt
 
 .SH Possible output:
 
- Thread 1 timed out. i == 0
+ Waiting...
+ Waiting...
+ Waiting...
  Notifying...
- Thread 2 timed out. i == 0
  Notifying again...
- Thread 3 finished waiting. i == 1
+ ...finished waiting. i == 1
+ ...finished waiting. i == 1
+ ...finished waiting. i == 1
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to            Behavior as published              Correct behavior
-   LWG 2093 C++11      timeout-related exceptions were missing in  mentioned
-                       the specification
-   LWG 2135 C++11      wait_until threw an exception on            calls std::terminate
-                       unlocking/relocking failure
+      DR    Applied to         Behavior as published              Correct behavior
+   LWG 2093 C++11      timeout-related exceptions were       mentions these exceptions
+                       missing in the specification
+   LWG 2135 C++11      the behavior was unclear if           calls std::terminate in
+                       lock.lock() throws an exception       this case
 
 .SH See also
 
-   wait     blocks the current thread until the condition variable is woken up
-            \fI(public member function)\fP
-            blocks the current thread until the condition variable is woken up or after
-   wait_for the specified timeout duration
-            \fI(public member function)\fP
+   wait       blocks the current thread until the condition variable is awakened
+              \fI(public member function)\fP
+              blocks the current thread until the condition variable is awakened or
+   wait_until until specified time point has been reached
+              \fI(public member function)\fP
+
+.SH Hidden category:
+     * Pages with unreviewed LWG DR marker

@@ -1,0 +1,139 @@
+.TH std::experimental::reduce,std::experimental::hmin,std::experimental::hmax 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::experimental::reduce,std::experimental::hmin,std::experimental::hmax \- std::experimental::reduce,std::experimental::hmin,std::experimental::hmax
+
+.SH Synopsis
+   Defined in header <experimental/simd>
+   template< class T, class Abi, class BinaryOperation =
+   std::plus<> >                                               \fB(1)\fP  (parallelism TS v2)
+   T reduce( const simd<T, Abi>& v, BinaryOperation binary_op
+   = {} );
+   template< class M, class V, class BinaryOperation >
+
+   typename V::value_type
+   reduce( const const_where_expression<M, V>& x,              \fB(2)\fP  (parallelism TS v2)
+
+           typename V::value_type identity_element,
+   BinaryOperation binary_op = {} );
+   template< class M, class V >
+
+   typename V::value_type                                      \fB(3)\fP  (parallelism TS v2)
+
+   reduce( const const_where_expression<M, V>& x, std::plus<>
+   binary_op ) noexcept;
+   template< class M, class V >
+
+   typename V::value_type                                      \fB(4)\fP  (parallelism TS v2)
+
+   reduce( const const_where_expression<M, V>& x,
+   std::multiplies<> binary_op ) noexcept;
+   template< class M, class V >
+
+   typename V::value_type                                      \fB(5)\fP  (parallelism TS v2)
+
+   reduce( const const_where_expression<M, V>& x,
+   std::bit_and<> binary_op ) noexcept;
+   template< class M, class V >
+
+   typename V::value_type                                      \fB(6)\fP  (parallelism TS v2)
+
+   reduce( const const_where_expression<M, V>& x,
+   std::bit_or<> binary_op ) noexcept;
+   template< class M, class V >
+
+   typename V::value_type                                      \fB(7)\fP  (parallelism TS v2)
+
+   reduce( const const_where_expression<M, V>& x,
+   std::bit_xor<> binary_op ) noexcept;
+   template< class T, class Abi >                              \fB(8)\fP  (parallelism TS v2)
+   T hmin( const simd<T, Abi>& v ) noexcept;
+   template< class M, class V >
+
+   typename V::value_type                                      \fB(9)\fP  (parallelism TS v2)
+
+   hmin( const const_where_expression<M, V>& x ) noexcept;
+   template< class T, class Abi >                              \fB(10)\fP (parallelism TS v2)
+   T hmax( const simd<T, Abi>& v ) noexcept;
+   template< class M, class V >
+
+   typename V::value_type                                      \fB(11)\fP (parallelism TS v2)
+
+   hmax( const const_where_expression<M, V>& x ) noexcept;
+
+   1) Reduces all values in v over binary_op.
+   2) Reduces the values in x where the associated mask element is true over binary_op.
+   3) Returns the sum of all values in x where the associated mask element is true.
+   4) Returns the product of all values in x where the associated mask element is true.
+   5) Returns the aggregation using bitwise-and of all values in x where the associated
+   mask element is true.
+   6) Returns the aggregation using bitwise-or of all values in x where the associated
+   mask element is true.
+   7) Returns the aggregation using bitwise-xor of all values in x where the associated
+   mask element is true.
+   8) Reduces all values in v over std::min.
+   9) Reduces all values in x where the associated mask element is true over std::min.
+   10) Reduces all values in v over std::max.
+   11) Reduces all values in x where the associated mask element is true over std::max.
+
+   The behavior is non-deterministic if binary_op is not associative or not
+   commutative.
+
+.SH Parameters
+
+   v                - the simd vector to apply the reduction to
+   x                - the return value of a where expression to apply the reduction to
+                      a value that acts as identity element for binary_op;
+   identity_element - binary_op(identity_element, a) == a must hold for all finite a of
+                      type V::value_type
+                      binary FunctionObject that will be applied in unspecified order
+   binary_op        - to arguments of type V::value_type or simd<V::value_type, A>,
+                      with unspecified ABI tag A. binary_op(v, v) must be convertible
+                      to V
+
+.SH Return value
+
+   The result of operation of the type:
+
+   1,8,10) T
+   2-7,9,11) V::value_type
+
+.SH Example
+
+
+// Run this code
+
+ #include <array>
+ #include <cassert>
+ #include <cstddef>
+ #include <experimental/simd>
+ #include <functional>
+ #include <iostream>
+ #include <numeric>
+ namespace stdx = std::experimental;
+
+ int main()
+ {
+     using V = stdx::native_simd<double>;
+
+     alignas(stdx::memory_alignment_v<V>) std::array<V::value_type, 1024> data;
+     std::iota(data.begin(), data.end(), 0);
+
+     V::value_type acc{};
+     for (std::size_t i = 0; i < data.size(); i += V::size())
+         acc += stdx::reduce(V(&data[i], stdx::vector_aligned), std::plus{});
+     std::cout << "sum of data = " << acc << '\\n';
+
+     using W = stdx::fixed_size_simd<int, 4>;
+     alignas(stdx::memory_alignment_v<W>) std::array<int, 4> arr{2, 5, 4, 1};
+     auto w = W(&arr[0], stdx::vector_aligned);
+     assert(stdx::hmin(w) == 1 and stdx::hmax(w) == 5);
+ }
+
+.SH Output:
+
+ sum of data = 523776
+
+.SH See also
+
+   reduce  similar to std::accumulate, except out of order
+   \fI(C++17)\fP \fI(function template)\fP

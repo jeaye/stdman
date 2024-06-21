@@ -1,0 +1,184 @@
+.TH std::div,std::ldiv,std::lldiv,std::imaxdiv 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::div,std::ldiv,std::lldiv,std::imaxdiv \- std::div,std::ldiv,std::lldiv,std::imaxdiv
+
+.SH Synopsis
+   Defined in header <cstdlib>
+   std::div_t     div( int x, int y );                      \fB(1)\fP (constexpr since C++23)
+   std::ldiv_t    div( long x, long y );                    \fB(2)\fP (constexpr since C++23)
+   std::lldiv_t   div( long long x, long long y );          \fB(3)\fP \fI(since C++11)\fP
+                                                                (constexpr since C++23)
+   std::ldiv_t   ldiv( long x, long y );                    \fB(4)\fP (constexpr since C++23)
+   std::lldiv_t lldiv( long long x, long long y );          \fB(5)\fP \fI(since C++11)\fP
+                                                                (constexpr since C++23)
+   Defined in header <cinttypes>
+   std::imaxdiv_t div( std::intmax_t x, std::intmax_t y );  \fB(6)\fP \fI(since C++11)\fP
+                                                                (constexpr since C++23)
+   std::imaxdiv_t imaxdiv( std::intmax_t x, std::intmax_t y \fB(7)\fP \fI(since C++11)\fP
+   );                                                           (constexpr since C++23)
+
+   Computes both the quotient and the remainder of the division of the numerator x by
+   the denominator y.
+
+   6,7) Overload of std::div for std::intmax_t is provided in <cinttypes> \fI(since C++11)\fP
+   if and only if std::intmax_t is an extended integer type.
+
+   The quotient is the algebraic quotient with any fractional part
+   discarded (truncated towards zero). The remainder is such that quot *  \fI(until C++11)\fP
+   y + rem == x.
+   The quotient is the result of the expression x / y. The remainder is   \fI(since C++11)\fP
+   the result of the expression x % y.
+
+.SH Parameters
+
+   x, y - integer values
+
+.SH Return value
+
+   If both the remainder and the quotient can be represented as objects of the
+   corresponding type (int, long, long long, std::intmax_t, respectively), returns both
+   as an object of type std::div_t, std::ldiv_t, std::lldiv_t, std::imaxdiv_t defined
+   as follows:
+
+std::div_t
+
+ struct div_t { int quot; int rem; };
+
+   or
+
+ struct div_t { int rem; int quot; };
+
+std::ldiv_t
+
+ struct ldiv_t { long quot; long rem; };
+
+   or
+
+ struct ldiv_t { long rem; long quot; };
+
+std::lldiv_t
+
+ struct lldiv_t { long long quot; long long rem; };
+
+   or
+
+ struct lldiv_t { long long rem; long long quot; };
+
+std::imaxdiv_t
+
+ struct imaxdiv_t { std::intmax_t quot; std::intmax_t rem; };
+
+   or
+
+ struct imaxdiv_t { std::intmax_t rem; std::intmax_t quot; };
+
+   If either the remainder or the quotient cannot be represented, the behavior is
+   undefined.
+
+.SH Notes
+
+   Until CWG issue 614 was resolved (N2757), the rounding direction of the quotient and
+   the sign of the remainder in the built-in division and remainder operators was
+   implementation-defined if either of the operands was negative, but it was
+   well-defined in std::div.
+
+   On many platforms, a single CPU instruction obtains both the quotient and the
+   remainder, and this function may leverage that, although compilers are generally
+   able to merge nearby / and % where suitable.
+
+.SH Example
+
+
+// Run this code
+
+ #include <cassert>
+ #include <cmath>
+ #include <cstdlib>
+ #include <iostream>
+ #include <sstream>
+ #include <string>
+
+ std::string division_with_remainder_string(int dividend, int divisor)
+ {
+     auto dv = std::div(dividend, divisor);
+     assert(dividend == divisor * dv.quot + dv.rem);
+     assert(dv.quot == dividend / divisor);
+     assert(dv.rem == dividend % divisor);
+
+     auto sign = [](int n){ return n > 0 ? 1 : n < 0 ? -1 : 0; };
+     assert((dv.rem == 0) or (sign(dv.rem) == sign(dividend)));
+
+     return (std::ostringstream() << std::showpos << dividend << " = "
+                                  << divisor << " * (" << dv.quot << ") "
+                                  << std::showpos << dv.rem).str();
+ }
+
+ std::string itoa(int n, int radix /*[2..16]*/)
+ {
+     std::string buf;
+     std::div_t dv{}; dv.quot = n;
+
+     do
+     {
+         dv = std::div(dv.quot, radix);
+         buf += "0123456789abcdef"[std::abs(dv.rem)]; // string literals are arrays
+     }
+     while (dv.quot);
+
+     if (n < 0)
+         buf += '-';
+
+     return {buf.rbegin(), buf.rend()};
+ }
+
+ int main()
+ {
+     std::cout << division_with_remainder_string(369, 10) << '\\n'
+               << division_with_remainder_string(369, -10) << '\\n'
+               << division_with_remainder_string(-369, 10) << '\\n'
+               << division_with_remainder_string(-369, -10) << "\\n\\n";
+
+     std::cout << itoa(12345, 10) << '\\n'
+               << itoa(-12345, 10) << '\\n'
+               << itoa(42, 2) << '\\n'
+               << itoa(65535, 16) << '\\n';
+ }
+
+.SH Output:
+
+ +369 = +10 * (+36) +9
+ +369 = -10 * (-36) +9
+ -369 = +10 * (-36) -9
+ -369 = -10 * (+36) -9
+
+ 12345
+ -12345
+ 101010
+ ffff
+
+.SH See also
+
+   fmod
+   fmodf      remainder of the floating point division operation
+   fmodl      \fI(function)\fP
+   \fI(C++11)\fP
+   \fI(C++11)\fP
+   remainder
+   remainderf
+   remainderl signed remainder of the division operation
+   \fI(C++11)\fP    \fI(function)\fP
+   \fI(C++11)\fP
+   \fI(C++11)\fP
+   remquo
+   remquof
+   remquol    signed remainder as well as the three last bits of the division operation
+   \fI(C++11)\fP    \fI(function)\fP
+   \fI(C++11)\fP
+   \fI(C++11)\fP
+   C documentation for
+   div
+
+.SH External links
+
+   1.  Euclidean division — From Wikipedia.
+   2.  Modulo (and Truncated division) — From Wikipedia.

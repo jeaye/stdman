@@ -1,4 +1,4 @@
-.TH std::uncaught_exception,std::uncaught_exceptions 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uncaught_exception,std::uncaught_exceptions 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uncaught_exception,std::uncaught_exceptions \- std::uncaught_exception,std::uncaught_exceptions
 
@@ -28,7 +28,7 @@ std::uncaught_exception,std::uncaught_exceptions \- std::uncaught_exception,std:
 
 .SH Return value
 
-   1) true if stack unwinding is currently in progress in this thread.
+   1) true if stack unwinding is currently in progress in this thread, false otherwise.
    2) The number of uncaught exception objects in the current thread.
 
 .SH Notes
@@ -43,33 +43,43 @@ std::uncaught_exception,std::uncaught_exceptions \- std::uncaught_exception,std:
    on the functionality of uncaught_exceptions, because their destructors need to do
    different things that depend on whether is called during stack unwinding.
 
-   Feature-test macro: __cpp_lib_uncaught_exceptions
+        Feature-test macro        Value    Std           Feature
+   __cpp_lib_uncaught_exceptions 201411L \fI(C++17)\fP std::uncaught_exceptions
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
  #include <exception>
+ #include <iostream>
  #include <stdexcept>
 
- struct Foo {
+ struct Foo
+ {
+     char id{'?'};
      int count = std::uncaught_exceptions();
-     ~Foo() {
-         std::cout << (count == std::uncaught_exceptions()
-             ? "~Foo() called normally\\n"
-             : "~Foo() called during stack unwinding\\n");
+
+     ~Foo()
+     {
+         count == std::uncaught_exceptions()
+             ? std::cout << id << ".~Foo() called normally\\n"
+             : std::cout << id << ".~Foo() called during stack unwinding\\n";
      }
  };
+
  int main()
  {
-     Foo f;
-     try {
-         Foo f;
+     Foo f{'f'};
+
+     try
+     {
+         Foo g{'g'};
          std::cout << "Exception thrown\\n";
          throw std::runtime_error("test exception");
-     } catch (const std::exception& e) {
+     }
+     catch (const std::exception& e)
+     {
          std::cout << "Exception caught: " << e.what() << '\\n';
      }
  }
@@ -77,9 +87,18 @@ std::uncaught_exception,std::uncaught_exceptions \- std::uncaught_exception,std:
 .SH Possible output:
 
  Exception thrown
- ~Foo() called during stack unwinding
+ g.~Foo() called during stack unwinding
  Exception caught: test exception
- ~Foo() called normally
+ f.~Foo() called normally
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR   Applied to             Behavior as published               Correct behavior
+   LWG 70 C++98      the exception specification of                specified as throw()
+                     uncaught_exception() was missing
 
 .SH See also
 
@@ -92,5 +111,5 @@ std::uncaught_exception,std::uncaught_exceptions \- std::uncaught_exception,std:
 
 .SH External links
 
-     * GOTW issue 47: Uncaught Exceptions
-     * Rationale for std::uncaught_exceptions
+   1.  GOTW issue 47: Uncaught Exceptions
+   2.  Rationale for std::uncaught_exceptions (N4125)

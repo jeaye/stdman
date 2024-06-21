@@ -1,4 +1,4 @@
-.TH std::ios_base::pword 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ios_base::pword 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ios_base::pword \- std::ios_base::pword
 
@@ -11,13 +11,14 @@ std::ios_base::pword \- std::ios_base::pword
 
    The reference may be invalidated by any operation on this ios_base object, including
    another call to pword(), but the stored values are retained, so that reading from
-   pword(index) with the same index later will produce the same value (until the next
-   call to copyfmt()). The value can be used for any purpose. The index of the element
-   must be obtained by xalloc(), otherwise the behavior is undefined. New elements are
-   initialized to a null pointer.
+   pword(index) with the same index later will produce the same value until the next
+   call to std::basic_ios::copyfmt(). The value can be used for any purpose. The index
+   of the element must be obtained by xalloc(), otherwise the behavior is undefined.
+   New elements are initialized to a null pointer.
 
-   If allocation fails, calls std::basic_ios<>::setstate(badbit) which may throw
-   std::ios_base::failure
+   If the function fails (possibly caused by an allocation failure) and *this is a base
+   class subobject of a basic_ios<> object or subobject, calls
+   std::basic_ios<>::setstate(badbit) which may throw std::ios_base::failure.
 
 .SH Parameters
 
@@ -38,6 +39,8 @@ std::ios_base::pword \- std::ios_base::pword
 
 .SH Example
 
+
+
    Uses base class pword storage for runtime type identification of derived stream
    objects.
 
@@ -46,15 +49,16 @@ std::ios_base::pword \- std::ios_base::pword
 
  #include <iostream>
 
- template<class charT, class traits = std::char_traits<charT> >
- class mystream : public std::basic_ostream<charT, traits>
+ template<class CharT, class Traits = std::char_traits<CharT>>
+ class mystream : public std::basic_ostream<CharT, Traits>
  {
-  public:
+ public:
      static const int xindex;
-     mystream(std::basic_ostream<charT, traits>& ostr) :
-         std::basic_ostream<charT, traits>(ostr.rdbuf())
+
+     mystream(std::basic_ostream<CharT, Traits>& ostr) :
+         std::basic_ostream<CharT, Traits>(ostr.rdbuf())
      {
-          this->pword(xindex) = this;
+         this->pword(xindex) = this;
      }
 
      void myfn()
@@ -63,18 +67,18 @@ std::ios_base::pword \- std::ios_base::pword
      }
  };
 
- // each specialization of mystream obtains a unique index from xalloc()
- template<class charT, class traits>
- const int mystream<charT, traits>::xindex = std::ios_base::xalloc();
+ // Each specialization of mystream obtains a unique index from xalloc()
+ template<class CharT, class Traits>
+ const int mystream<CharT, Traits>::xindex = std::ios_base::xalloc();
 
  // This I/O manipulator will be able to recognize ostreams that are mystreams
  // by looking up the pointer stored in pword
- template<class charT, class traits>
- std::basic_ostream<charT,traits>& mymanip(std::basic_ostream<charT,traits>& os)
+ template<class CharT, class Traits>
+ std::basic_ostream<CharT, Traits>& mymanip(std::basic_ostream<CharT, Traits>& os)
  {
-  if (os.pword(mystream<charT,traits>::xindex) == &os)
-     static_cast<mystream<charT,traits>&>(os).myfn();
-  return os;
+     if (os.pword(mystream<CharT, Traits>::xindex) == &os)
+         static_cast<mystream<CharT, Traits>&>(os).myfn();
+     return os;
  }
 
  int main()
@@ -96,6 +100,20 @@ std::ios_base::pword \- std::ios_base::pword
  myout, narrow-character test [special handling for mystream]
  wcout, wide-character test
  mywout, wide-character test [special handling for mystream]
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR   Applied to         Behavior as published               Correct behavior
+                     the stored value might not be         the stored value is retained
+   LWG 36 C++98      retained if the reference is          until the next call of
+                     invalidated                           copyfmt()
+                     the function set badbit by itself on  badbit is set by basic_ios
+   LWG 41 C++98      failure,                              (if *this is its base class
+                     but ios_base does not provide such    subobject)
+                     interface
 
 .SH See also
 

@@ -1,70 +1,99 @@
-.TH std::remove_copy,std::remove_copy_if 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::remove_copy,std::remove_copy_if 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::remove_copy,std::remove_copy_if \- std::remove_copy,std::remove_copy_if
 
 .SH Synopsis
    Defined in header <algorithm>
-   template< class InputIt, class OutputIt, class T
-   >
+   template< class InputIt, class OutputIt,
+   class T >
+                                                      (constexpr since
+   OutputIt remove_copy( InputIt first,               C++20)
+   InputIt last,                                      (until C++26)
 
-   OutputIt remove_copy( InputIt first, InputIt             \fI(until C++20)\fP
-   last, OutputIt d_first,
-
+                         OutputIt d_first,
    const T& value );
-   template< class InputIt, class OutputIt, class T
-   >
+   template< class InputIt, class OutputIt,
 
-   constexpr OutputIt remove_copy( InputIt first,           \fI(since C++20)\fP
-   InputIt last, OutputIt d_first,
+             class T = typename
+   std::iterator_traits
 
-   const T& value );
-   template< class ExecutionPolicy, class
-   ForwardIt1, class ForwardIt2, class T >
+   <InputIt>::value_type >                            (since C++26)
+   constexpr OutputIt remove_copy( InputIt
+   first, InputIt last,
 
-   ForwardIt2 remove_copy( ExecutionPolicy&&            \fB(2)\fP \fI(since C++17)\fP
-   policy, ForwardIt1 first, ForwardIt1 last,
+                                   OutputIt
+   d_first, const T& value );
+   template< class ExecutionPolicy,
 
-   ForwardIt2 d_first, const T& value );
-   template< class InputIt, class OutputIt, class   \fB(1)\fP
-   UnaryPredicate >
+             class ForwardIt1, class
+   ForwardIt2, class T >
+   ForwardIt2 remove_copy( ExecutionPolicy&&                           \fI(since C++17)\fP
+   policy,                                                             (until C++26)
+                           ForwardIt1 first,
+   ForwardIt1 last,
 
-   OutputIt remove_copy_if( InputIt first, InputIt                        \fI(until C++20)\fP
-   last, OutputIt d_first,
+                           ForwardIt2
+   d_first, const T& value );
+   template< class ExecutionPolicy,
+                                              \fB(1)\fP
+             class ForwardIt1, class
+   ForwardIt2,
+             class T = typename
+   std::iterator_traits
 
-   UnaryPredicate p );
-   template< class InputIt, class OutputIt, class
-   UnaryPredicate >
+   <ForwardIt1>::value_type >                                          (since C++26)
+   ForwardIt2 remove_copy( ExecutionPolicy&&
+   policy,
+                           ForwardIt1 first,
+   ForwardIt1 last,                               \fB(2)\fP
 
-   constexpr OutputIt remove_copy_if( InputIt           \fB(3)\fP               \fI(since C++20)\fP
-   first, InputIt last, OutputIt d_first,
+                           ForwardIt2
+   d_first, const T& value );
+   template< class InputIt, class OutputIt,
+   class UnaryPred >
 
-   UnaryPredicate p );
-   template< class ExecutionPolicy, class
-   ForwardIt1, class ForwardIt2, class
-   UnaryPredicate >
-                                                            \fB(4)\fP           \fI(since C++17)\fP
-   ForwardIt2 remove_copy_if( ExecutionPolicy&&
-   policy, ForwardIt1 first, ForwardIt1 last,
+   OutputIt remove_copy_if( InputIt first,            \fB(3)\fP              (constexpr since
+   InputIt last,                                                       C++20)
 
-   ForwardIt2 d_first, UnaryPredicate p );
+                            OutputIt d_first,
+   UnaryPred p );
+   template< class ExecutionPolicy,
+
+             class ForwardIt1, class
+   ForwardIt2, class UnaryPred >
+   ForwardIt2 remove_copy_if(
+   ExecutionPolicy&& policy,                          \fB(4)\fP              \fI(since C++17)\fP
+                              ForwardIt1
+   first, ForwardIt1 last,
+
+                              ForwardIt2
+   d_first, UnaryPred p );
 
    Copies elements from the range [first, last), to another range beginning at d_first,
-   omitting the elements which satisfy specific criteria. Source and destination ranges
-   cannot overlap.
+   omitting the elements which satisfy specific criteria.
 
-   1) Ignores all elements that are equal to value.
+   1) Ignores all elements that are equal to value (using operator==).
    3) Ignores all elements for which predicate p returns true.
-   2,4) Same as (1,3), but executed according to policy. These overloads do not
-   participate in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
+   2,4) Same as (1,3), but executed according to policy.
+   These overloads participate in overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
+
+   If
+   *d_first = *first is invalid
    \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+   *first is not writable to d_first
+   \fI(since C++20)\fP, the program is ill-formed.
+
+   If source and destination ranges overlap, the behavior is undefined.
 
 .SH Parameters
 
    first, last - the range of elements to copy
-   d_first     - the beginning of the destination range.
+   d_first     - the beginning of the destination range
    value       - the value of the elements not to copy
    policy      - the execution policy to use. See execution policy for details.
 .SH Type requirements
@@ -75,7 +104,7 @@ std::remove_copy,std::remove_copy_if \- std::remove_copy,std::remove_copy_if
    -
    ForwardIt1, ForwardIt2 must meet the requirements of LegacyForwardIterator.
    -
-   UnaryPredicate must meet the requirements of Predicate.
+   UnaryPred must meet the requirements of Predicate.
 
 .SH Return value
 
@@ -83,7 +112,10 @@ std::remove_copy,std::remove_copy_if \- std::remove_copy,std::remove_copy_if
 
 .SH Complexity
 
-   Exactly std::distance(first, last) applications of the predicate.
+   Given \\(\\scriptsize N\\)N as std::distance(first, last):
+
+   1,2) Exactly \\(\\scriptsize N\\)N comparisons with value using operator==.
+   3,4) Exactly \\(\\scriptsize N\\)N applications of the predicate p.
 
    For the overloads with an ExecutionPolicy, there may be a performance cost if
    ForwardIt1's value_type is not MoveConstructible.
@@ -100,59 +132,84 @@ std::remove_copy,std::remove_copy_if \- std::remove_copy,std::remove_copy_if
 
 .SH Possible implementation
 
-.SH First version
-   template<class InputIt, class OutputIt, class T>
-   OutputIt remove_copy(InputIt first, InputIt last,
-                        OutputIt d_first, const T& value)
+                              remove_copy \fB(1)\fP
+   template<class InputIt, class OutputIt,
+            class T = typename std::iterator_traits<InputIt>::value_type>
+   constexpr OutputIt remove_copy(InputIt first, InputIt last,
+                                  OutputIt d_first, const T& value)
    {
-       for (; first != last; ++first) {
-           if (!(*first == value)) {
+       for (; first != last; ++first)
+           if (!(*first == value))
                *d_first++ = *first;
-           }
-       }
        return d_first;
    }
-.SH Second version
-   template<class InputIt, class OutputIt, class UnaryPredicate>
-   OutputIt remove_copy_if(InputIt first, InputIt last,
-                           OutputIt d_first, UnaryPredicate p)
+                             remove_copy_if \fB(3)\fP
+   template<class InputIt, class OutputIt, class UnaryPred>
+   constexpr OutputIt remove_copy_if(InputIt first, InputIt last,
+                                     OutputIt d_first, UnaryPred p)
    {
-       for (; first != last; ++first) {
-           if (!p(*first)) {
+       for (; first != last; ++first)
+           if (!p(*first))
                *d_first++ = *first;
-           }
-       }
        return d_first;
    }
+
+.SH Notes
+
+             Feature-test macro           Value    Std              Feature
+   __cpp_lib_algorithm_default_value_type 202403 (C++26) List-initialization for
+                                                         algorithms (1,2)
 
 .SH Example
-
-   The following code outputs a string while erasing the hash characters '#' on the
-   fly.
 
 
 // Run this code
 
  #include <algorithm>
+ #include <complex>
+ #include <iomanip>
+ #include <iostream>
  #include <iterator>
  #include <string>
- #include <iostream>
- #include <iomanip>
+ #include <vector>
+
  int main()
  {
+     // Erase the hash characters '#' on the fly.
      std::string str = "#Return #Value #Optimization";
-     std::cout << "before: " << std::quoted(str) << "\\n";
+     std::cout << "before: " << std::quoted(str) << '\\n';
 
      std::cout << "after:  \\"";
      std::remove_copy(str.begin(), str.end(),
                       std::ostream_iterator<char>(std::cout), '#');
      std::cout << "\\"\\n";
+
+     // Erase {1, 3} value on the fly.
+     std::vector<std::complex<double>> nums{{2, 2}, {1, 3}, {4, 8}, {1, 3}};
+     std::remove_copy(nums.begin(), nums.end(),
+                      std::ostream_iterator<std::complex<double>>(std::cout),
+     #ifdef __cpp_lib_algorithm_default_value_type
+                      {1, 3}); // T gets deduced
+     #else
+                      std::complex<double>{1, 3});
+     #endif
  }
 
 .SH Output:
 
  before: "#Return #Value #Optimization"
  after:  "Return Value Optimization"
+ (2,2)(4,8)
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to            Behavior as published               Correct behavior
+                      T was required to be EqualityComparable, but required *d_first =
+   LWG 779 C++98      the value type of ForwardIt is not always T  *first
+                                                                   to be valid instead
 
 .SH See also
 

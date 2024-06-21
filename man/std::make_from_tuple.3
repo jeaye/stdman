@@ -1,20 +1,41 @@
-.TH std::make_from_tuple 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::make_from_tuple 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::make_from_tuple \- std::make_from_tuple
 
 .SH Synopsis
    Defined in header <tuple>
    template< class T, class Tuple >           \fI(since C++17)\fP
+   constexpr T make_from_tuple( Tuple&& t );  (until C++23)
+   template< class T, tuple-like Tuple >      (since C++23)
    constexpr T make_from_tuple( Tuple&& t );
 
    Construct an object of type T, using the elements of the tuple t as the arguments to
    the constructor.
 
-   The program is ill-formed if the hypothetical variable definition T
-   var(std::get<Is>(std::forward<Tuple>(t))...); is ill-formed
-   , or T is a reference type and var is bound to a temporary object
-   (since C++23), where Is... denotes the parameter pack 0, 1, ...,
-   std::tuple_size_v<std::remove_reference_t<Tuple>> - 1.
+   Given the exposition-only function /*make-from-tuple-impl*/ defined as follows:
+   template<class T, tuple-like Tuple, std::size_t... I> // no constraint on Tuple
+   before C++23
+   constexpr T /*make-from-tuple-impl*/(Tuple&& t, std::index_sequence<I...>)
+   {
+       return T(std::get<I>(std::forward<Tuple>(t))...);
+   }
+
+   The effect is equivalent to:
+   return /*make-from-tuple-impl*/<T>(
+       std::forward<Tuple>(t),
+       std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple>>>{}
+   );.
+
+   If
+
+     * std::tuple_size_v<std::remove_reference_t<Tuple>> is 1 and                (since
+       std::reference_constructs_from_temporary_v<                               C++23)
+           T, decltype(std::get<0>(std::declval<Tuple>()))> is true, or
+
+     * std::is_constructible_v<T, decltype(std::get<I>(std::declval<Tuple>()))...> is
+       false,
+
+   the program is ill-formed.
 
 .SH Parameters
 
@@ -26,37 +47,17 @@ std::make_from_tuple \- std::make_from_tuple
 
 .SH Notes
 
-   The tuple need not be std::tuple, and instead may be anything that supports std::get
-   and std::tuple_size; in particular, std::array and std::pair may be used.
+   Tuple need not be std::tuple, and instead may be anything that
+   supports std::get and std::tuple_size; in particular, std::array and   (until C++23)
+   std::pair may be used.
+   Tuple is constrained to be tuple-like, i.e. each type therein is
+   required to be a specialization of std::tuple or another type (such as (since C++23)
+   std::array and std::pair) that models tuple-like.
 
    Due to guaranteed copy elision, T need not be movable.
 
-   Feature-test macro: __cpp_lib_make_from_tuple
-
-.SH Possible implementation
-
-   namespace detail {
-   template<class T, class Tuple, std::size_t... I>
-   constexpr T make_from_tuple_impl(Tuple&& t, std::index_sequence<I...>)
-   {
-       static_assert(std::is_constructible_v<T,
-           decltype(std::get<I>(std::declval<Tuple>()))...>);
-   #if __cpp_lib_reference_from_temporary >= 202202L
-       if constexpr (std::tuple_size_v<std::remove_reference_t<Tuple>> == 1) {
-           using tuple_first_t = decltype(std::get<0>(std::declval<Tuple>()));
-           static_assert(!std::reference_constructs_from_temporary_v<T, tuple_first_t>);
-       }
-   #endif
-       return T(std::get<I>(std::forward<Tuple>(t))...);
-   }
-   } // namespace detail
-
-   template<class T, class Tuple>
-   constexpr T make_from_tuple(Tuple&& t)
-   {
-       return detail::make_from_tuple_impl<T>(std::forward<Tuple>(t),
-           std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple>>>{});
-   }
+      Feature-test macro      Value    Std         Feature
+   __cpp_lib_make_from_tuple 201606L \fI(C++17)\fP std::make_from_tuple
 
 .SH Example
 
@@ -66,29 +67,31 @@ std::make_from_tuple \- std::make_from_tuple
  #include <iostream>
  #include <tuple>
 
- struct Foo {
-     Foo(int first, float second, int third) {
-         std::cout << first << ", " << second << ", " << third << "\\n";
+ struct Foo
+ {
+     Foo(int first, float second, int third)
+     {
+         std::cout << first << ", " << second << ", " << third << '\\n';
      }
  };
 
  int main()
  {
-    auto tuple = std::make_tuple(42, 3.14f, 0);
-    std::make_from_tuple<Foo>(std::move(tuple));
+     auto tuple = std::make_tuple(42, 3.14f, 0);
+     std::make_from_tuple<Foo>(std::move(tuple));
  }
 
 .SH Output:
 
  42, 3.14, 0
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
       DR    Applied to              Behavior as published              Correct behavior
-   LWG 3528 C++17      cast containing reinterpret_cast etc. was       disallowed
+   LWG 3528 C++17      cast containing reinterpret_cast etc. was       prohibited
                        allowed in the case of 1-tuple
 
 .SH See also

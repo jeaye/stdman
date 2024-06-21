@@ -1,68 +1,100 @@
-.TH std::remove,std::remove_if 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::remove,std::remove_if 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::remove,std::remove_if \- std::remove,std::remove_if
 
 .SH Synopsis
    Defined in header <algorithm>
-   template< class ForwardIt, class T >
-   ForwardIt remove( ForwardIt first, ForwardIt             \fI(until C++20)\fP
-   last, const T& value );
-   template< class ForwardIt, class T >
-   constexpr ForwardIt remove( ForwardIt first,             \fI(since C++20)\fP
-   ForwardIt last, const T& value );
+   template< class ForwardIt, class T >               (constexpr since
+   ForwardIt remove( ForwardIt first,                 C++20)
+   ForwardIt last, const T& value );                  (until C++26)
+   template< class ForwardIt, class T =
+   typename std::iterator_traits
+
+
+    <ForwardIt>::value_type >                         (since C++26)
+   constexpr ForwardIt remove( ForwardIt
+   first, ForwardIt last,
+
+                               const T& value
+   );
    template< class ExecutionPolicy, class
    ForwardIt, class T >
 
-   ForwardIt remove( ExecutionPolicy&& policy,          \fB(2)\fP \fI(since C++17)\fP
-   ForwardIt first, ForwardIt last,
+   ForwardIt remove( ExecutionPolicy&&                                 \fI(since C++17)\fP
+   policy,                                                             (until C++26)
 
-   const T& value );
-   template< class ForwardIt, class UnaryPredicate  \fB(1)\fP
-   >                                                                      \fI(until C++20)\fP
-   ForwardIt remove_if( ForwardIt first, ForwardIt
-   last, UnaryPredicate p );
-   template< class ForwardIt, class UnaryPredicate
-   >                                                                      \fI(since C++20)\fP
-   constexpr ForwardIt remove_if( ForwardIt first,
-   ForwardIt last, UnaryPredicate p );                  \fB(3)\fP
+                     ForwardIt first,
+   ForwardIt last, const T& value );
    template< class ExecutionPolicy, class
-   ForwardIt, class UnaryPredicate >
+   ForwardIt,                                 \fB(1)\fP
 
-   ForwardIt remove_if( ExecutionPolicy&& policy,           \fB(4)\fP           \fI(since C++17)\fP
-   ForwardIt first, ForwardIt last,
+             class T = typename
+   std::iterator_traits
+                                                                       (since C++26)
+   <ForwardIt>::value_type >
+   ForwardIt remove( ExecutionPolicy&&            \fB(2)\fP
+   policy,
 
-   UnaryPredicate p );
+                     ForwardIt first,
+   ForwardIt last, const T& value );
+   template< class ForwardIt, class UnaryPred
+   >                                                  \fB(3)\fP              (constexpr since
+   ForwardIt remove_if( ForwardIt first,                               C++20)
+   ForwardIt last, UnaryPred p );
+   template< class ExecutionPolicy, class
+   ForwardIt, class UnaryPred >
+
+   ForwardIt remove_if( ExecutionPolicy&&             \fB(4)\fP              \fI(since C++17)\fP
+   policy,
+
+                        ForwardIt first,
+   ForwardIt last, UnaryPred p );
 
    Removes all elements satisfying specific criteria from the range [first, last) and
    returns a past-the-end iterator for the new end of the range.
 
-   1) Removes all elements that are equal to value, using operator== to compare them.
+   1) Removes all elements that are equal to value (using operator==).
    3) Removes all elements for which predicate p returns true.
-   2,4) Same as (1,3), but executed according to policy. These overloads do not
-   participate in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+   2,4) Same as (1,3), but executed according to policy.
+   These overloads participate in overload resolution only if
 
-   Removing is done by shifting (by means of
-   copy assignment
-   \fI(until C++11)\fP
-   move assignment
-   \fI(since C++11)\fP) the elements in the range in such a way that the elements that are
-   not to be removed appear in the beginning of the range. Relative order of the
-   elements that remain is preserved and the physical size of the container is
-   unchanged. Iterators pointing to an element between the new logical end and the
-   physical end of the range are still dereferenceable, but the elements themselves
-   have unspecified values (as per MoveAssignable post-condition).
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
+
+   If the value type of ForwardIt is not CopyAssignable, the behavior is  \fI(until C++11)\fP
+   undefined.
+   If the type of *first is not MoveAssignable, the behavior is           \fI(since C++11)\fP
+   undefined.
+
+.SH Explanation
+
+   Removing is done by shifting the elements in the range in such a way that the
+   elements that are not to be removed appear in the beginning of the range.
+
+     * Shifting is done by
+       copy assignment
+       \fI(until C++11)\fP
+       move assignment
+       \fI(since C++11)\fP.
+     * The removing operation is stable: the relative order of the elements not to be
+       removed stays the same.
+     * The underlying sequence of [first, last) is not shortened by the removing
+       operation. Given result as the returned iterator:
+
+     * All iterators in [result, last) are still dereferenceable.
+
+     * Each element of [result, last) has a valid but unspecified state,
+       because move assignment can eliminate elements by moving from      \fI(since C++11)\fP
+       elements that were originally in that range.
 
 .SH Parameters
 
    first, last - the range of elements to process
    value       - the value of elements to remove
    policy      - the execution policy to use. See execution policy for details.
-                 unary predicate which returns true if the element should be
-                 removed.
+                 unary predicate which returns true if the element should be removed.
 
                  The expression p(v) must be convertible to bool for every argument v
    p           - of type (possibly const) VT, where VT is the value type of ForwardIt,
@@ -74,8 +106,6 @@ std::remove,std::remove_if \- std::remove,std::remove_if
    -
    ForwardIt must meet the requirements of LegacyForwardIterator.
    -
-   The type of dereferenced ForwardIt must meet the requirements of MoveAssignable.
-   -
    UnaryPredicate must meet the requirements of Predicate.
 
 .SH Return value
@@ -86,7 +116,10 @@ std::remove,std::remove_if \- std::remove,std::remove_if
 
 .SH Complexity
 
-   Exactly std::distance(first, last) applications of the predicate.
+   Given \\(\\scriptsize N\\)N as std::distance(first, last):
+
+   1,2) Exactly \\(\\scriptsize N\\)N comparisons using operator==.
+   3,4) Exactly \\(\\scriptsize N\\)N applications of the predicate p.
 
 .SH Exceptions
 
@@ -98,16 +131,43 @@ std::remove,std::remove_if \- std::remove,std::remove_if
        For any other ExecutionPolicy, the behavior is implementation-defined.
      * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
+.SH Possible implementation
+
+                                        remove \fB(1)\fP
+ template<class ForwardIt, class T = typename std::iterator_traits<ForwardIt>::value_type>
+ ForwardIt remove(ForwardIt first, ForwardIt last, const T& value)
+ {
+     first = std::find(first, last, value);
+     if (first != last)
+         for (ForwardIt i = first; ++i != last;)
+             if (!(*i == value))
+                 *first++ = std::move(*i);
+     return first;
+ }
+                                       remove_if \fB(3)\fP
+ template<class ForwardIt, class UnaryPred>
+ ForwardIt remove_if(ForwardIt first, ForwardIt last, UnaryPred p)
+ {
+     first = std::find_if(first, last, p);
+     if (first != last)
+         for (ForwardIt i = first; ++i != last;)
+             if (!p(*i))
+                 *first++ = std::move(*i);
+     return first;
+ }
+
 .SH Notes
 
-   A call to remove is typically followed by a call to a container's erase method,
-   which erases the unspecified values and reduces the physical size of the container
-   to match its new logical size. These two invocations together constitute a so-called
-   Erase–remove idiom
-   , which can be achieved by the free function std::erase that has overloads for all
-   standard sequence containers, or std::erase_if that has overloads for all standard
-   containers
-   \fI(since C++20)\fP.
+   A call to remove is typically followed by a call to a container's erase member
+   function to actually remove elements from the container. These two invocations
+   together constitute a so-called Erase-remove idiom.
+
+   The same effect can also be achieved by the following non-member
+   functions:
+                                                                          \fI(since C++20)\fP
+     * std::erase, which has overloads for all standard sequence
+       containers.
+     * std::erase_if, which has overloads for all standard containers.
 
    The similarly-named container member functions list::remove, list::remove_if,
    forward_list::remove, and forward_list::remove_if erase the removed elements.
@@ -122,49 +182,31 @@ std::remove,std::remove_if \- std::remove,std::remove_if
    Because std::remove takes value by reference, it can have unexpected behavior if it
    is a reference to an element of the range [first, last).
 
-.SH Possible implementation
+             Feature-test macro           Value    Std              Feature
+   __cpp_lib_algorithm_default_value_type 202403 (C++26) List-initialization for
+                                                         algorithms (1,2)
 
-.SH First version
-   template< class ForwardIt, class T >
-   ForwardIt remove(ForwardIt first, ForwardIt last, const T& value)
-   {
-       first = std::find(first, last, value);
-       if (first != last)
-           for(ForwardIt i = first; ++i != last; )
-               if (!(*i == value))
-                   *first++ = std::move(*i);
-       return first;
-   }
-.SH Second version
-   template<class ForwardIt, class UnaryPredicate>
-   ForwardIt remove_if(ForwardIt first, ForwardIt last, UnaryPredicate p)
-   {
-       first = std::find_if(first, last, p);
-       if (first != last)
-           for(ForwardIt i = first; ++i != last; )
-               if (!p(*i))
-                   *first++ = std::move(*i);
-       return first;
-   }
-
-.SH Examples
+.SH Example
 
    The following code removes all spaces from a string by shifting all non-space
    characters to the left and then erasing the extra. This is an example of
-   erase-remove idiom.
+   Erase-remove idiom.
 
 
 // Run this code
 
  #include <algorithm>
+ #include <cassert>
+ #include <cctype>
+ #include <complex>
+ #include <iostream>
  #include <string>
  #include <string_view>
- #include <iostream>
- #include <cctype>
+ #include <vector>
 
  int main()
  {
-     std::string str1 = "Text with some   spaces";
+     std::string str1{"Text with some   spaces"};
 
      auto noSpaceEnd = std::remove(str1.begin(), str1.end(), ' ');
 
@@ -181,9 +223,18 @@ std::remove,std::remove_if \- std::remove,std::remove_if
      std::string str2 = "Text\\n with\\tsome \\t  whitespaces\\n\\n";
      str2.erase(std::remove_if(str2.begin(),
                                str2.end(),
-                               [](unsigned char x){return std::isspace(x);}),
+                               [](unsigned char x) { return std::isspace(x); }),
                 str2.end());
      std::cout << str2 << '\\n';
+
+     std::vector<std::complex<double>> nums{{2, 2}, {1, 3}, {4, 8}};
+     #ifdef __cpp_lib_algorithm_default_value_type
+         nums.erase(std::remove(nums.begin(), nums.end(), {1, 3}), nums.end());
+     #else
+         nums.erase(std::remove(nums.begin(), nums.end(), std::complex<double>{1, 3}),
+                    nums.end());
+     #endif
+     assert((nums == std::vector<std::complex<double>>{{2, 2}, {4, 8}}));
  }
 
 .SH Output:
@@ -191,6 +242,17 @@ std::remove,std::remove_if \- std::remove,std::remove_if
  Textwithsomespaces size: 23
  Textwithsomespaces size: 18
  Textwithsomewhitespaces
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to        Behavior as published               Correct behavior
+                      T was required to be                 required the value type of
+   LWG 283 C++98      EqualityComparable, but              ForwardIt
+                      the value type of ForwardIt is not   to be CopyAssignable instead
+                      always T
 
 .SH See also
 

@@ -1,20 +1,18 @@
-.TH std::atomic::wait 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::atomic::wait 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::atomic::wait \- std::atomic::wait
 
 .SH Synopsis
-   void wait( T old,
-   std::memory_order order = std::memory_order::seq_cst ) const
-   noexcept;                                                             \fI(since C++20)\fP
-   void wait( T old,
-   std::memory_order order = std::memory_order::seq_cst ) const
-   volatile noexcept;
+   void wait( T old, std::memory_order order =                        \fB(1)\fP \fI(since C++20)\fP
+                         std::memory_order::seq_cst ) const noexcept;
+   void wait( T old, std::memory_order order =
+                         std::memory_order::seq_cst ) const volatile  \fB(2)\fP \fI(since C++20)\fP
+   noexcept;
 
    Performs atomic waiting operations. Behaves as if it repeatedly performs the
    following steps:
 
      * Compare the value representation of this->load(order) with that of old.
-
           * If those are equal, then blocks until *this is notified by notify_one() or
             notify_all(), or the thread is unblocked spuriously.
           * Otherwise, returns.
@@ -22,11 +20,13 @@ std::atomic::wait \- std::atomic::wait
    These functions are guaranteed to return only if value has changed, even if
    underlying implementation unblocks spuriously.
 
+   If order is one of std::memory_order::release and std::memory_order::acq_rel, the
+   behavior is undefined.
+
 .SH Parameters
 
    old   - the value to check the atomic's object no longer contains
-   order - the memory synchronization ordering for this operation: must not be
-           std::memory_order::release or std::memory_order::acq_rel
+   order - memory order constraints to enforce
 
 .SH Return value
 
@@ -45,8 +45,52 @@ std::atomic::wait \- std::atomic::wait
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <atomic>
+ #include <chrono>
+ #include <future>
+ #include <iostream>
+ #include <thread>
+
+ using namespace std::literals;
+
+ int main()
+ {
+     std::atomic<bool> all_tasks_completed{false};
+     std::atomic<unsigned> completion_count{};
+     std::future<void> task_futures[16];
+     std::atomic<unsigned> outstanding_task_count{16};
+
+     // Spawn several tasks which take different amounts of
+     // time, then decrement the outstanding task count.
+     for (std::future<void>& task_future : task_futures)
+         task_future = std::async([&]
+         {
+             // This sleep represents doing real work...
+             std::this_thread::sleep_for(50ms);
+
+             ++completion_count;
+             --outstanding_task_count;
+
+             // When the task count falls to zero, notify
+             // the waiter (main thread in this case).
+             if (outstanding_task_count.load() == 0)
+             {
+                 all_tasks_completed = true;
+                 all_tasks_completed.notify_one();
+             }
+         });
+
+     all_tasks_completed.wait(false);
+
+     std::cout << "Tasks completed = " << completion_count.load() << '\\n';
+ }
+
+.SH Output:
+
+ Tasks completed = 16
 
 .SH See also
 

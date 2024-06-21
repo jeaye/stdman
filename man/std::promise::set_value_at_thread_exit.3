@@ -1,20 +1,15 @@
-.TH std::promise::set_value_at_thread_exit 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::promise::set_value_at_thread_exit 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::promise::set_value_at_thread_exit \- std::promise::set_value_at_thread_exit
 
 .SH Synopsis
-   void set_value_at_thread_exit( const R&         (member only of generic promise
-   value );                                    \fB(1)\fP template)
-                                                   \fI(since C++11)\fP
-                                                   (member only of generic promise
-   void set_value_at_thread_exit( R&& value ); \fB(2)\fP template)
-                                                   \fI(since C++11)\fP
-                                                   (member only of promise<R&> template
-   void set_value_at_thread_exit( R& value );  \fB(3)\fP specialization)
-                                                   \fI(since C++11)\fP
-                                                   (member only of promise<void>
-   void set_value_at_thread_exit()             \fB(4)\fP template specialization)
-                                                   \fI(since C++11)\fP
+   Main template
+   void set_value_at_thread_exit( const R& value ); \fB(1)\fP \fI(since C++11)\fP
+   void set_value_at_thread_exit( R&& value );      \fB(2)\fP \fI(since C++11)\fP
+   std::promise<R&> specializations
+   void set_value_at_thread_exit( R& value );       \fB(3)\fP \fI(since C++11)\fP
+   std::promise<void> specialization
+   void set_value_at_thread_exit();                 \fB(4)\fP \fI(since C++11)\fP
 
    Stores the value into the shared state without making the state ready immediately.
    The state is made ready when the current thread exits, after all variables with
@@ -23,9 +18,6 @@ std::promise::set_value_at_thread_exit \- std::promise::set_value_at_thread_exit
    The operation behaves as though set_value, set_exception, set_value_at_thread_exit,
    and set_exception_at_thread_exit acquire a single mutex associated with the promise
    object while updating the promise object.
-
-   An exception is thrown if there is no shared state or the shared state already
-   stores a value or exception.
 
    Calls to this function do not introduce data races with calls to get_future
    (therefore they need not synchronize with each other).
@@ -43,22 +35,21 @@ std::promise::set_value_at_thread_exit \- std::promise::set_value_at_thread_exit
    std::future_error on the following conditions:
 
      * *this has no shared state. The error code is set to no_state.
-
      * The shared state already stores a value or exception. The error code is set to
        promise_already_satisfied.
 
    Additionally:
 
-   1-2) Any exception thrown by the copy constructor of value
-   3) Any exception thrown by the move constructor of value
+   1) Any exception thrown by the constructor selected to copy an object of type R.
+   2) Any exception thrown by the constructor selected to move an object of type R.
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
  #include <future>
+ #include <iostream>
  #include <thread>
 
  int main()
@@ -66,22 +57,35 @@ std::promise::set_value_at_thread_exit \- std::promise::set_value_at_thread_exit
      using namespace std::chrono_literals;
      std::promise<int> p;
      std::future<int> f = p.get_future();
-     std::thread([&p] {
-           std::this_thread::sleep_for(1s);
-           p.set_value_at_thread_exit(9);
+     std::thread([&p]
+     {
+         std::this_thread::sleep_for(1s);
+         p.set_value_at_thread_exit(9);
      }).detach();
 
-     std::cout << "Waiting..." << std::flush;
+     std::cout << "Waiting... " << std::flush;
      f.wait();
      std::cout << "Done!\\nResult is: " << f.get() << '\\n';
  }
 
 .SH Output:
 
- Waiting...Done!
+ Waiting... Done!
  Result is: 9
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 2098 C++11      it was unclear which exceptions are required to made clear
+                       be thrown
 
 .SH See also
 
-   set_value sets the result to specific value
-             \fI(public member function)\fP
+   set_value                    sets the result to specific value
+                                \fI(public member function)\fP
+                                sets the result to indicate an exception while
+   set_exception_at_thread_exit delivering the notification only at thread exit
+                                \fI(public member function)\fP

@@ -1,4 +1,4 @@
-.TH std::binary_negate 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::binary_negate 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::binary_negate \- std::binary_negate
 
@@ -6,19 +6,19 @@ std::binary_negate \- std::binary_negate
    Defined in header <functional>
    template< class Predicate >
 
-   struct binary_negate :
-   public std::binary_function<
-   Predicate::first_argument_type,   \fI(until C++11)\fP
-   Predicate::second_argument_type,
-   bool
+   struct binary_negate
+       : public std::binary_function<
+           Predicate::first_argument_type,   \fI(until C++11)\fP
+           Predicate::second_argument_type,
+           bool
 
-   >;
-   template< class Predicate >       \fI(since C++11)\fP
-   struct binary_negate;             (deprecated in C++17)
-                                     (removed in C++20)
+       >;
+   template< class Predicate >               \fI(since C++11)\fP
+   struct binary_negate;                     (deprecated in C++17)
+                                             (removed in C++20)
 
-   binary_negate is a wrapper function object returning the complement of the binary
-   predicate it holds.
+   std::binary_negate is a wrapper function object returning the complement of the
+   binary predicate it holds.
 
    The binary predicate type must define two member types, first_argument_type and
    second_argument_type, that are convertible to the predicate's parameter types. The
@@ -30,7 +30,7 @@ std::binary_negate \- std::binary_negate
    a call to std::not2 have these types defined, as are function objects derived from
    the deprecated std::binary_function.
 
-   binary_negate objects are easily constructed with helper function std::not2.
+   std::binary_negate objects are easily constructed with helper function std::not2.
 
 .SH Member types
 
@@ -50,9 +50,9 @@ std::binary_negate \- std::binary_negate
 std::binary_negate::binary_negate
 
    explicit binary_negate( Predicate const& pred );            \fI(until C++14)\fP
-   explicit constexpr binary_negate( Predicate const& pred );  \fI(since C++14)\fP
+   constexpr explicit binary_negate( Predicate const& pred );  \fI(since C++14)\fP
 
-   Constructs a binary_negate function object with the stored predicate pred.
+   Constructs a std::binary_negate function object with the stored predicate pred.
 
 .SH Parameters
 
@@ -60,10 +60,10 @@ std::binary_negate::binary_negate
 
 std::binary_negate::operator()
 
-   bool operator()( first_argument_type const& x,            \fI(until C++14)\fP
-   second_argument_type const& y ) const;
-   constexpr bool operator()( first_argument_type const& x,  \fI(since C++14)\fP
-   second_argument_type const& y ) const;
+   bool operator()( first_argument_type const& x,                     \fI(until C++14)\fP
+                    second_argument_type const& y ) const;
+   constexpr bool operator()( first_argument_type const& x,           \fI(since C++14)\fP
+                              second_argument_type const& y ) const;
 
    Returns the logical complement of the result of calling pred(x, y).
 
@@ -82,6 +82,7 @@ std::binary_negate::operator()
 // Run this code
 
  #include <algorithm>
+ #include <cstddef>
  #include <functional>
  #include <iostream>
  #include <vector>
@@ -94,41 +95,36 @@ std::binary_negate::operator()
  int main()
  {
      std::vector<int> v1;
-     std::vector<int> v2;
-     for (int i = 0; i < 10; ++i) v1.push_back(i);
-     for (int i = 0; i < 10; ++i) v2.push_back(10 - i);
+     for (int i = 0; i < 7; ++i)
+         v1.push_back(i);
+
+     std::vector<int> v2(v1.size());
+     std::reverse_copy(v1.begin(), v1.end(), v2.begin());
 
      std::vector<bool> v3(v1.size());
 
      std::binary_negate<same> not_same((same()));
 
+     // C++11 solution:
+     // std::function<bool (int, int)> not_same =
+     //     [](int x, int y) -> bool { return !same()(x, y); };
+
      std::transform(v1.begin(), v1.end(), v2.begin(), v3.begin(), not_same);
 
-     /* C++11 solution:
-         // Use std::function<bool (int, int)>
-         std::function<bool (int, int)> not_same =
-             [](int x, int y)->bool{ return !same()(x, y); };
-
-         std::transform(v1.begin(), v1.end(), v2.begin(), v3.begin(), not_same);
-     */
-
      std::cout.setf(std::ios_base::boolalpha);
-     for (int i = 0; i < 10; ++i)
-         std::cout << v1[i] << ' ' << v2[i] << ' ' << v3[i] << '\\n';
+     for (std::size_t i = 0; i != v1.size(); ++i)
+         std::cout << v1[i] << " != " << v2[i] << " : " << v3[i] << '\\n';
  }
 
 .SH Output:
 
- 0 10 true
- 1 9 true
- 2 8 true
- 3 7 true
- 4 6 true
- 5 5 false
- 6 4 true
- 7 3 true
- 8 2 true
- 9 1 true
+ 0 != 6 : true
+ 1 != 5 : true
+ 2 != 4 : true
+ 3 != 3 : false
+ 4 != 2 : true
+ 5 != 1 : true
+ 6 != 0 : true
 
 .SH See also
 

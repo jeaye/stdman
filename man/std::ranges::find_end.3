@@ -1,0 +1,226 @@
+.TH std::ranges::find_end 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::find_end \- std::ranges::find_end
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< std::forward_iterator I1, std::sentinel_for<I1> S1,
+
+             std::forward_iterator I2, std::sentinel_for<I2> S2,
+             class Pred = ranges::equal_to,
+             class Proj1 = std::identity,                                  (since
+             class Proj2 = std::identity >                             \fB(1)\fP C++20)
+   requires std::indirectly_comparable<I1, I2, Pred, Proj1, Proj2>
+   constexpr ranges::subrange<I1>
+       find_end( I1 first1, S1 last1, I2 first2, S2 last2,
+
+                 Pred pred = {}, Proj1 proj1 = {}, Proj2 proj2 = {} );
+   template< ranges::forward_range R1, ranges::forward_range R2,
+
+             class Pred = ranges::equal_to,
+             class Proj1 = std::identity,
+             class Proj2 = std::identity >
+   requires std::indirectly_comparable<ranges::iterator_t<R1>,         \fB(2)\fP (since
+                                       ranges::iterator_t<R2>,             C++20)
+                                       Pred, Proj1, Proj2>
+   constexpr ranges::borrowed_subrange_t<R1>
+       find_end( R1&& r1, R2&& r2, Pred pred = {},
+
+                 Proj1 proj1 = {}, Proj2 proj2 = {} );
+
+   1) Searches for the last occurrence of the sequence [first2, last2) in the range
+   [first1, last1), after projection with proj1 and proj2 respectively. The projected
+   elements are compared using the binary predicate pred.
+   2) Same as \fB(1)\fP, but uses r1 as the first source range and r2 as the second source
+   range, as if using ranges::begin(r1) as first1, ranges::end(r1) as last1,
+   ranges::begin(r2) as first2, and ranges::end(r2) as last2.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first1, last1 - the range of elements to examine (aka haystack)
+   first2, last2 - the range of elements to search for (aka needle)
+   r1            - the range of elements to examine (aka haystack)
+   r2            - the range of elements to search for (aka needle)
+   pred          - binary predicate to compare the elements
+   proj1         - projection to apply to the elements in the first range
+   proj2         - projection to apply to the elements in the second range
+
+.SH Return value
+
+   1) ranges::subrange<I1>{} value initialized with expression {i, i + (i == last1 ? 0
+   : ranges::distance(first2, last2))} that denotes the last occurrence of the sequence
+   [first2, last2) in range [first1, last1) (after projections with proj1 and proj2).
+   If [first2, last2) is empty or if no such sequence is found, the return value is
+   effectively initialized with {last1, last1}.
+   2) Same as \fB(1)\fP, except that the return type is ranges::borrowed_subrange_t<R1>.
+
+.SH Complexity
+
+   At most \\(\\scriptsize S\\cdot(N-S+1)\\)S·(N-S+1) applications of the corresponding
+   predicate and each projection, where \\(\\scriptsize S\\)S is ranges::distance(first2,
+   last2) and \\(\\scriptsize N\\)N is ranges::distance(first1, last1) for \fB(1)\fP, or
+   \\(\\scriptsize S\\)S is ranges::distance(r2) and \\(\\scriptsize N\\)N is
+   ranges::distance(r1) for \fB(2)\fP.
+
+.SH Notes
+
+   An implementation can improve efficiency of the search if the input iterators model
+   std::bidirectional_iterator by searching from the end towards the begin. Modelling
+   the std::random_access_iterator may improve the comparison speed. All this however
+   does not change the theoretical complexity of the worst case.
+
+.SH Possible implementation
+
+   struct find_end_fn
+   {
+       template<std::forward_iterator I1, std::sentinel_for<I1> S1,
+                std::forward_iterator I2, std::sentinel_for<I2> S2,
+                class Pred = ranges::equal_to,
+                class Proj1 = std::identity, class Proj2 = std::identity>
+       requires std::indirectly_comparable<I1, I2, Pred, Proj1, Proj2>
+       constexpr ranges::subrange<I1>
+           operator()(I1 first1, S1 last1,
+                      I2 first2, S2 last2, Pred pred = {},
+                      Proj1 proj1 = {}, Proj2 proj2 = {}) const
+       {
+           if (first2 == last2)
+           {
+               auto last_it = ranges::next(first1, last1);
+               return {last_it, last_it};
+           }
+           auto result = ranges::search(
+               std::move(first1), last1, first2, last2, pred, proj1, proj2);
+
+           if (result.empty())
+               return result;
+
+           for (;;)
+           {
+               auto new_result = ranges::search(
+                   std::next(result.begin()), last1, first2, last2, pred, proj1, proj2);
+               if (new_result.empty())
+                   return result;
+               else
+                   result = std::move(new_result);
+           }
+       }
+
+       template<ranges::forward_range R1, ranges::forward_range R2,
+                class Pred = ranges::equal_to,
+                class Proj1 = std::identity,
+                class Proj2 = std::identity>
+       requires std::indirectly_comparable<ranges::iterator_t<R1>,
+                                           ranges::iterator_t<R2>,
+                                           Pred, Proj1, Proj2>
+       constexpr ranges::borrowed_subrange_t<R1>
+           operator()(R1&& r1, R2&& r2, Pred pred = {},
+                      Proj1 proj1 = {}, Proj2 proj2 = {}) const
+       {
+           return (*this)(ranges::begin(r1), ranges::end(r1),
+                          ranges::begin(r2), ranges::end(r2),
+                          std::move(pred),
+                          std::move(proj1), std::move(proj2));
+       }
+   };
+
+   inline constexpr find_end_fn find_end {};
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <array>
+ #include <cctype>
+ #include <iostream>
+ #include <ranges>
+ #include <string_view>
+
+ void print(const auto haystack, const auto needle)
+ {
+     const auto pos = std::distance(haystack.begin(), needle.begin());
+     std::cout << "In \\"";
+     for (const auto c : haystack)
+         std::cout << c;
+     std::cout << "\\" found \\"";
+     for (const auto c : needle)
+         std::cout << c;
+     std::cout << "\\" at position [" << pos << ".." << pos + needle.size() << ")\\n"
+         << std::string(4 + pos, ' ') << std::string(needle.size(), '^') << '\\n';
+ }
+
+ int main()
+ {
+     using namespace std::literals;
+     constexpr auto secret{"password password word..."sv};
+     constexpr auto wanted{"password"sv};
+
+     constexpr auto found1 = std::ranges::find_end(
+         secret.cbegin(), secret.cend(), wanted.cbegin(), wanted.cend());
+     print(secret, found1);
+
+     constexpr auto found2 = std::ranges::find_end(secret, "word"sv);
+     print(secret, found2);
+
+     const auto found3 = std::ranges::find_end(secret, "ORD"sv,
+         [](const char x, const char y) { // uses a binary predicate
+             return std::tolower(x) == std::tolower(y);
+         });
+     print(secret, found3);
+
+     const auto found4 = std::ranges::find_end(secret, "SWORD"sv, {}, {},
+         [](char c) { return std::tolower(c); }); // projects the 2nd range
+     print(secret, found4);
+
+     static_assert(std::ranges::find_end(secret, "PASS"sv).empty()); // => not found
+ }
+
+.SH Output:
+
+ In "password password word..." found "password" at position [9..17)
+              ^^^^^^^^
+ In "password password word..." found "word" at position [18..22)
+                       ^^^^
+ In "password password word..." found "ord" at position [19..22)
+                        ^^^
+ In "password password word..." found "sword" at position [12..17)
+                 ^^^^^
+
+.SH See also
+
+   ranges::find_last
+   ranges::find_last_if
+   ranges::find_last_if_not finds the last element satisfying specific criteria
+   (C++23)                  (niebloid)
+   (C++23)
+   (C++23)
+   ranges::find
+   ranges::find_if
+   ranges::find_if_not      finds the first element satisfying specific criteria
+   (C++20)                  (niebloid)
+   (C++20)
+   (C++20)
+   ranges::find_first_of    searches for any one of a set of elements
+   (C++20)                  (niebloid)
+   ranges::adjacent_find    finds the first two adjacent items that are equal (or
+   (C++20)                  satisfy a given predicate)
+                            (niebloid)
+   ranges::search           searches for a range of elements
+   (C++20)                  (niebloid)
+   ranges::search_n         searches for a number consecutive copies of an element in a
+   (C++20)                  range
+                            (niebloid)
+   find_end                 finds the last sequence of elements in a certain range
+                            \fI(function template)\fP

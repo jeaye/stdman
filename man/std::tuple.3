@@ -1,4 +1,4 @@
-.TH std::tuple 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::tuple 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::tuple \- std::tuple
 
@@ -11,7 +11,10 @@ std::tuple \- std::tuple
    a generalization of std::pair.
 
    If std::is_trivially_destructible<Ti>::value is true for every Ti in Types, the
-   destructor of tuple is trivial.
+   destructor of std::tuple is trivial.
+
+   If a program declares an explicit or partial specialization of std::tuple, the
+   program is ill-formed, no diagnostic required.
 
 .SH Template parameters
 
@@ -20,11 +23,11 @@ std::tuple \- std::tuple
 .SH Member functions
 
    constructor   constructs a new tuple
-   \fI(C++11)\fP       \fI(public member function)\fP
+                 \fI(public member function)\fP
    operator=     assigns the contents of one tuple to another
-   \fI(C++11)\fP       \fI(public member function)\fP
+                 \fI(public member function)\fP
    swap          swaps the contents of two tuples
-   \fI(C++11)\fP       \fI(public member function)\fP
+                 \fI(public member function)\fP
 
 .SH Non-member functions
 
@@ -38,7 +41,7 @@ std::tuple \- std::tuple
    \fI(C++11)\fP               \fI(function template)\fP
    tuple_cat             creates a tuple by concatenating any number of tuples
    \fI(C++11)\fP               \fI(function template)\fP
-   std::get(std::tuple)  tuple accesses specified element
+   get(std::tuple)       tuple accesses specified element
    \fI(C++11)\fP               \fI(function template)\fP
    operator==
    operator!=
@@ -56,6 +59,12 @@ std::tuple \- std::tuple
    std::swap(std::tuple) specializes the std::swap algorithm
    \fI(C++11)\fP               \fI(function template)\fP
 
+   Helper concepts
+
+   tuple-like specifies that a type implemented the tuple protocol
+   pair-like  (std::get, std::tuple_element, std::tuple_size)
+   (C++23)    (exposition-only concept*)
+
 .SH Helper classes
 
    std::tuple_size<std::tuple>             obtains the size of tuple at compile time
@@ -71,22 +80,37 @@ std::tuple \- std::tuple
    std::common_type<tuple-like>            determines the common type of a tuple and a
    (C++23)                                 tuple-like type
                                            \fI(class template specialization)\fP
+   std::formatter<std::tuple>              formatting support for tuple
+   (C++23)                                 \fI(class template specialization)\fP
    ignore                                  placeholder to skip an element when
    \fI(C++11)\fP                                 unpacking a tuple using tie
                                            (constant)
 
-  Deduction guides \fI(since C++17)\fP
+   Deduction guides \fI(since C++17)\fP
 
 .SH Notes
+
+   Since the "shape" of a tuple – its size, the types of its elements, and the ordering
+   of those types – are part of its type signature, they must all be available at
+   compile time and can only depend on other compile-time information. This means that
+   many conditional operations on tuples – in particular, conditional prepend/append
+   and filter – are only possible if the conditions can be evaluated at compile time.
+   For example, given a std::tuple<int, double, int>, it is possible to filter on types
+   – e.g. returning a std::tuple<int, int> – but not to filter on whether or not each
+   element is positive (which would have a different type signature depending on
+   runtime values of the tuple), unless all the elements were themselves constexpr.
+
+   As a workaround, one can work with tuples of std::optional, but there is still no
+   way to adjust the size based on runtime information.
 
    Until N4387 (applied as a defect report for C++11), a function could not return a
    tuple using copy-list-initialization:
 
  std::tuple<int, int> foo_tuple()
  {
-   return {1, -1};  // Error until N4387
-   return std::tuple<int, int>{1, -1}; // Always works
-   return std::make_tuple(1, -1); // Always works
+     return {1, -1};  // Error until N4387
+     return std::tuple<int, int>{1, -1}; // Always works
+     return std::make_tuple(1, -1); // Always works
  }
 
 .SH Example
@@ -94,42 +118,53 @@ std::tuple \- std::tuple
 
 // Run this code
 
- #include <tuple>
  #include <iostream>
- #include <string>
  #include <stdexcept>
+ #include <string>
+ #include <tuple>
 
  std::tuple<double, char, std::string> get_student(int id)
  {
-     if (id == 0) return std::make_tuple(3.8, 'A', "Lisa Simpson");
-     if (id == 1) return std::make_tuple(2.9, 'C', "Milhouse Van Houten");
-     if (id == 2) return std::make_tuple(1.7, 'D', "Ralph Wiggum");
+     switch (id)
+     {
+         case 0: return {3.8, 'A', "Lisa Simpson"};
+         case 1: return {2.9, 'C', "Milhouse Van Houten"};
+         case 2: return {1.7, 'D', "Ralph Wiggum"};
+         case 3: return {0.6, 'F', "Bart Simpson"};
+     }
+
      throw std::invalid_argument("id");
  }
 
  int main()
  {
-     auto student0 = get_student(0);
+     const auto student0 = get_student(0);
      std::cout << "ID: 0, "
                << "GPA: " << std::get<0>(student0) << ", "
                << "grade: " << std::get<1>(student0) << ", "
                << "name: " << std::get<2>(student0) << '\\n';
 
-     double gpa1;
-     char grade1;
-     std::string name1;
-     std::tie(gpa1, grade1, name1) = get_student(1);
+     const auto student1 = get_student(1);
      std::cout << "ID: 1, "
-               << "GPA: " << gpa1 << ", "
-               << "grade: " << grade1 << ", "
-               << "name: " << name1 << '\\n';
+               << "GPA: " << std::get<double>(student1) << ", "
+               << "grade: " << std::get<char>(student1) << ", "
+               << "name: " << std::get<std::string>(student1) << '\\n';
 
-     // C++17 structured binding:
-     auto [ gpa2, grade2, name2 ] = get_student(2);
+     double gpa2;
+     char grade2;
+     std::string name2;
+     std::tie(gpa2, grade2, name2) = get_student(2);
      std::cout << "ID: 2, "
                << "GPA: " << gpa2 << ", "
                << "grade: " << grade2 << ", "
                << "name: " << name2 << '\\n';
+
+     // C++17 structured binding:
+     const auto [gpa3, grade3, name3] = get_student(3);
+     std::cout << "ID: 3, "
+               << "GPA: " << gpa3 << ", "
+               << "grade: " << grade3 << ", "
+               << "name: " << name3 << '\\n';
  }
 
 .SH Output:
@@ -137,33 +172,38 @@ std::tuple \- std::tuple
  ID: 0, GPA: 3.8, grade: A, name: Lisa Simpson
  ID: 1, GPA: 2.9, grade: C, name: Milhouse Van Houten
  ID: 2, GPA: 1.7, grade: D, name: Ralph Wiggum
+ ID: 3, GPA: 0.6, grade: F, name: Bart Simpson
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to              Behavior as published              Correct behavior
-   LWG 2796 C++11      triviality of the destructor of tuple was       specified
-                       unspecified
+      DR    Applied to         Behavior as published              Correct behavior
+   LWG 2796 C++11      triviality of the destructor of        specified
+                       std::tuple was unspecified
+                                                              the program is ill-formed
+   LWG 3990 C++11      a program could declare an explicit or in this
+                       partial specialization of std::tuple   case (no diagnostic
+                                                              required)
 
 .SH References
 
+     * C++23 standard (ISO/IEC 14882:2023):
+
+     * 22.4 Tuples [tuple]
      * C++20 standard (ISO/IEC 14882:2020):
 
-              * 20.5 Tuples [tuple]
-
+     * 20.5 Tuples [tuple]
      * C++17 standard (ISO/IEC 14882:2017):
 
-              * 23.5 Tuples [tuple]
-
+     * 23.5 Tuples [tuple]
      * C++14 standard (ISO/IEC 14882:2014):
 
-              * 20.4 Tuples [tuple]
-
+     * 20.4 Tuples [tuple]
      * C++11 standard (ISO/IEC 14882:2011):
 
-              * 20.4 Tuples [tuple]
+     * 20.4 Tuples [tuple]
 
 .SH See also
 

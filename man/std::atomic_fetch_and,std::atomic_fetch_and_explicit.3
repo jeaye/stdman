@@ -1,4 +1,4 @@
-.TH std::atomic_fetch_and,std::atomic_fetch_and_explicit 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::atomic_fetch_and,std::atomic_fetch_and_explicit 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::atomic_fetch_and,std::atomic_fetch_and_explicit \- std::atomic_fetch_and,std::atomic_fetch_and_explicit
 
@@ -6,81 +6,72 @@ std::atomic_fetch_and,std::atomic_fetch_and_explicit \- std::atomic_fetch_and,st
    Defined in header <atomic>
    template< class T >
 
-   T atomic_fetch_and( std::atomic<T>* obj,
+   T atomic_fetch_and( std::atomic<T>* obj,                           \fB(1)\fP \fI(since C++11)\fP
 
-   typename std::atomic<T>::value_type arg )
+                       typename std::atomic<T>::value_type arg )
    noexcept;
    template< class T >
 
-   T atomic_fetch_and( volatile std::atomic<T>*
-   obj,
+   T atomic_fetch_and( volatile std::atomic<T>* obj,                  \fB(2)\fP \fI(since C++11)\fP
 
-   typename std::atomic<T>::value_type arg )
+                       typename std::atomic<T>::value_type arg )
    noexcept;
-   template< class T >                            \fB(1)\fP \fI(since C++11)\fP
-
-   T atomic_fetch_and_explicit( std::atomic<T>*
-   obj,
-   typename std::atomic<T>::value_type arg,
-
-   std::memory_order order) noexcept;                               \fB(2)\fP \fI(since C++11)\fP
    template< class T >
 
-   T atomic_fetch_and_explicit( volatile
-   std::atomic<T>* obj,
-   typename std::atomic<T>::value_type arg,
+   T atomic_fetch_and_explicit( std::atomic<T>* obj,
+                                typename std::atomic<T>::value_type   \fB(3)\fP \fI(since C++11)\fP
+   arg,
 
-   std::memory_order order) noexcept;
+                                std::memory_order order ) noexcept;
+   template< class T >
+
+   T atomic_fetch_and_explicit( volatile std::atomic<T>* obj,
+                                typename std::atomic<T>::value_type   \fB(4)\fP \fI(since C++11)\fP
+   arg,
+
+                                std::memory_order order ) noexcept;
 
    Atomically replaces the value pointed by obj with the result of bitwise AND between
    the old value of obj and arg. Returns the value obj held previously.
 
    The operation is performed as if the following is executed:
 
-   1) obj->fetch_and(arg)
-   2) obj->fetch_and(arg, order)
+   1,2) obj->fetch_and(arg)
+   3,4) obj->fetch_and(arg, order)
 
    If std::atomic<T> has no fetch_and member (this member is only provided for integral
-   types), the program is ill-formed.
+   types except bool), the program is ill-formed.
 
 .SH Parameters
 
-   obj   - pointer to the atomic object to modify. bool is not an Integral type for the
-           purposes of the atomic operations.
+   obj   - pointer to the atomic object to modify
    arg   - the value to bitwise AND to the value stored in the atomic object
-   order - the memory synchronization ordering for this operation: all values are
-           permitted.
+   order - the memory synchronization ordering
 
 .SH Return value
 
    The value immediately preceding the effects of this function in the modification
    order of *obj.
 
-.SH Possible implementation
-
-template< class T >
-T atomic_fetch_and(std::atomic<T>* obj, typename std::atomic<T>::value_type arg ) noexcept
-{
-    return obj->fetch_and(arg);
-}
-
 .SH Example
+
 
 
 // Run this code
 
- #include <iostream>
  #include <atomic>
- #include <thread>
  #include <chrono>
  #include <functional>
+ #include <iostream>
+ #include <thread>
 
- // Binary semaphore for demonstrative purposes only
+ // Binary semaphore for demonstrative purposes only.
  // This is a simple yet meaningful example: atomic operations
  // are unnecessary without threads.
- class Semaphore {
+ class Semaphore
+ {
      std::atomic_char m_signaled;
-   public:
+ public:
      Semaphore(bool initial = false)
      {
          m_signaled = initial;
@@ -88,7 +79,8 @@ T atomic_fetch_and(std::atomic<T>* obj, typename std::atomic<T>::value_type arg 
      // Block until semaphore is signaled
      void take()
      {
-         while (!std::atomic_fetch_and(&m_signaled, false)) {
+         while (!std::atomic_fetch_and(&m_signaled, false))
+         {
              std::this_thread::sleep_for(std::chrono::milliseconds(10));
          }
      }
@@ -99,7 +91,8 @@ T atomic_fetch_and(std::atomic<T>* obj, typename std::atomic<T>::value_type arg 
      }
  };
 
- class ThreadedCounter {
+ class ThreadedCounter
+ {
      static const int N = 100;
      static const int REPORT_INTERVAL = 10;
      int m_count;
@@ -109,13 +102,14 @@ T atomic_fetch_and(std::atomic<T>* obj, typename std::atomic<T>::value_type arg 
 
      void count_up()
      {
-         for (m_count = 1; m_count <= N; m_count++) {
-             if (m_count % REPORT_INTERVAL == 0) {
-                 if (m_count == N) m_done = true;
+         for (m_count = 1; m_count <= N; ++m_count)
+             if (m_count % REPORT_INTERVAL == 0)
+             {
+                 if (m_count == N)
+                     m_done = true;
                  m_print_sem.put(); // signal printing to occur
                  m_count_sem.take(); // wait until printing is complete proceeding
              }
-         }
          std::cout << "count_up() done\\n";
          m_done = true;
          m_print_sem.put();
@@ -123,15 +117,17 @@ T atomic_fetch_and(std::atomic<T>* obj, typename std::atomic<T>::value_type arg 
 
      void print_count()
      {
-         do {
+         do
+         {
              m_print_sem.take();
              std::cout << m_count << '\\n';
              m_count_sem.put();
-         } while (!m_done);
+         }
+         while (!m_done);
          std::cout << "print_count() done\\n";
      }
 
-   public:
+ public:
      ThreadedCounter() : m_done(false) {}
      void run()
      {
@@ -163,14 +159,14 @@ T atomic_fetch_and(std::atomic<T>* obj, typename std::atomic<T>::value_type arg 
  print_count() done
  count_up() done
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-     DR    Applied to            Behavior as published              Correct behavior
-   P0558R1 C++11      exact type match required because T is      T is deduced from the
-                      deduced from multiple arguments             atomic argument only
+     DR    Applied to         Behavior as published         Correct behavior
+   P0558R1 C++11      exact type match was required because T is only deduced
+                      T was deduced from multiple arguments from obj
 
 .SH See also
 
@@ -186,3 +182,6 @@ T atomic_fetch_and(std::atomic<T>* obj, typename std::atomic<T>::value_type arg 
    atomic_fetch_xor_explicit with a non-atomic argument and obtains the previous value
    \fI(C++11)\fP                   of the atomic
    \fI(C++11)\fP                   \fI(function template)\fP
+   C documentation for
+   atomic_fetch_and,
+   atomic_fetch_and_explicit

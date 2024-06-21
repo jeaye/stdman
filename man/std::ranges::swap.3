@@ -1,4 +1,4 @@
-.TH std::ranges::swap 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::swap 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::swap \- std::ranges::swap
 
@@ -6,59 +6,49 @@ std::ranges::swap \- std::ranges::swap
    Defined in header <concepts>
    namespace ranges {
 
-   inline namespace /* unspecified */ {
-   inline constexpr /* unspecified */ swap = /*            \fI(since C++20)\fP
+       inline namespace /* unspecified */ {
+           inline constexpr /* unspecified */ swap = /*    \fI(since C++20)\fP
    unspecified */;                                         (customization point object)
-   }
+       }
 
    }
    Call signature
    template< class T, class U >
-   constexpr void ranges::swap(T&& t, U&& u) noexcept(/*
-   see below */);
+   constexpr void ranges::swap( T&& t, U&& u )             \fI(since C++20)\fP
+   noexcept(/* see below */);
 
    Exchanges the values referenced by t and u.
 
    ranges::swap(t, u) is expression-equivalent to:
 
-    1. (void)swap(t, u), if std::remove_cvref_t<T> or std::remove_cvref_t<U> are class
-       or enumeration types, and that expression is valid, where the overload
-       resolution is performed within namespace std::ranges with the additional
-       candidate:
-
-          * template<class T> void swap(T&, T&) = delete;
-
-                    If the function selected by overload resolution does not exchange
-                    the values referenced by t and u, the program is ill-formed; no
-                    diagnostic required.
-
+    1. (void)swap(t, u), if t or u has class or enumeration type, and that expression
+       is valid, where the overload resolution is performed within namespace
+       std::ranges with the additional candidate template<class T> void swap(T&, T&) =
+       delete;.
+          * If the function selected by overload resolution does not exchange the
+            values referenced by t and u, the program is ill-formed; no diagnostic
+            required.
     2. Otherwise, (void)ranges::swap_ranges(t, u), if t and u are lvalue arrays of
        equal extent (but possibly different element types) and ranges::swap(*t, *u) is
-       a valid expression, except that noexcept(ranges::swap(t, u)) is equal to
-       noexcept(ranges::swap(*t, *u)).
-    3. Otherwise, exchanges the referenced values as if by V v(std::move(t)); t =
-       std::move(u); u = std::move(v); if t and u are both lvalues of the same type V
-       that satisfies std::move_constructible<V> and std::assignable_from<V&, V>, in
-       which case noexcept(ranges::swap(t, u)) is equal to
-       std::is_nothrow_move_constructible_v<V> && std::is_nothrow_move_assignable_v<V>.
-
-                    ranges::swap(t, u) is a constant expression if V(std::move(t)),
-                    V(std::move(u)), t = std::move(u), and u = std::move(t); are all
-                    constant expressions
-
+       a valid expression, except that noexcept((void)ranges::swap_ranges(t, u)) is
+       equal to noexcept(ranges::swap(*t, *u)).
+    3. Otherwise, an expression which exchanges the referenced values of t and u, if
+       they are both lvalues of the same type V that models std::move_constructible<V>
+       and std::assignable_from<V&, V>.
+          * The result of applying the noexcept operator to that expression is equal to
+            std::is_nothrow_move_constructible_v<V> &&
+            std::is_nothrow_move_assignable_v<V>.
+          * That expression is a constant expression if
+               * V is a LiteralType,
+               * both t = std::move(u)) and u = std::move(t) are constant
+                 subexpressions, and
+               * the full-expressions of the initializers in the following declarations
+                 are constant subexpressions:
+                    * V v1(std::move(t));
+                    * V v2(std::move(u));
     4. Otherwise, ranges::swap(t, u) is ill-formed, which can result in substitution
        failure when ranges::swap(t, u) appears in the immediate context of a template
        instantiation.
-
-  Expression-equivalent
-
-   Expression e is expression-equivalent to expression f, if
-
-     * e and f have the same effects, and
-     * either both are constant subexpressions or else neither is a constant
-       subexpression, and
-     * either both are potentially-throwing or else neither is potentially-throwing
-       (i.e. noexcept(e) == noexcept(f)).
 
   Customization point objects
 
@@ -100,9 +90,11 @@ std::ranges::swap \- std::ranges::swap
             std::ranges::common_range auto const& q)
  {
      std::cout << name << "1{ ";
-     for (auto const& i : p) std::cout << i << ' ';
+     for (auto const& i : p)
+         std::cout << i << ' ';
      std::cout << "}, " << name << "2{ ";
-     for (auto const& i : q) std::cout << i << ' ';
+     for (auto const& i : q)
+         std::cout << i << ' ';
      std::cout << "}\\n";
  }
 
@@ -111,9 +103,21 @@ std::ranges::swap \- std::ranges::swap
      std::cout << name << "1 = " << p << ", " << name << "2 = " << q << '\\n';
  }
 
- struct IntLike { int v; };
- void swap(IntLike& lhs, int& rhs) { std::swap(lhs.v, rhs); }
- void swap(int& lhs, IntLike& rhs) { std::swap(lhs, rhs.v); }
+ struct IntLike
+ {
+     int v;
+ };
+
+ void swap(IntLike& lhs, int& rhs)
+ {
+     std::swap(lhs.v, rhs);
+ }
+
+ void swap(int& lhs, IntLike& rhs)
+ {
+     std::swap(lhs, rhs.v);
+ }
+
  std::ostream& operator<<(std::ostream& out, IntLike i)
  {
      return out << i.v;
@@ -121,30 +125,30 @@ std::ranges::swap \- std::ranges::swap
 
  int main()
  {
-     std::vector a1{10,11,12}, a2{13,14};
+     std::vector a1{10, 11, 12}, a2{13, 14};
      std::ranges::swap(a1, a2);
      print("a", a1, a2);
 
-     std::array b1{15,16,17}, b2{18,19,20};
+     std::array b1{15, 16, 17}, b2{18, 19, 20};
      std::ranges::swap(b1, b2);
      print("b", b1, b2);
 
-     // std::array c1{1,2,3}; std::array c2{4,5};
+     // std::array c1{1, 2, 3}; std::array c2{4, 5};
      // std::ranges::swap(c1, c2); // error: no swap found by ADL
 
-     int d1[]{21,22,23}, d2[]{24,25,26};
+     int d1[]{21, 22, 23}, d2[]{24, 25, 26};
      std::ranges::swap(d1, d2);
      print("d", d1, d2);
 
-     // int e1[]{1,2,3}, e2[]{4,5};
+     // int e1[]{1, 2, 3}, e2[]{4, 5};
      // std::ranges::swap(e1, e2); // error: extents mismatch
 
-     // char f1[]{1,2,3};
-     // int  f2[]{4,5,6};
+     // char f1[]{1, 2, 3};
+     // int  f2[]{4, 5, 6};
      // std::ranges::swap(f1, f2); // error: no swap(*f1, *f2) found by ADL
 
-     IntLike g1[]{1,2,3};
-     int     g2[]{4,5,6};
+     IntLike g1[]{1, 2, 3};
+     int     g2[]{4, 5, 6};
      std::ranges::swap(g1, g2); // heterogeneous swap supported
      print("g", g1, g2);
 

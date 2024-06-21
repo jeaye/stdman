@@ -1,4 +1,4 @@
-.TH std::kill_dependency 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::kill_dependency 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::kill_dependency \- std::kill_dependency
 
@@ -14,7 +14,7 @@ std::kill_dependency \- std::kill_dependency
 
    This may be used to avoid unnecessary std::memory_order_acquire fences when the
    dependency chain leaves function scope (and the function does not have the
-   [[carries_dependency]] attribute)
+   [[carries_dependency]] attribute).
 
 .SH Parameters
 
@@ -26,31 +26,39 @@ std::kill_dependency \- std::kill_dependency
 
 .SH Examples
 
-   file1.cpp:
+       file1.cpp:
 
- struct foo { int* a; int* b; };
- std::atomic<struct foo*> foo_head[10];
+ struct Foo
+ {
+     int* a;
+     int* b;
+ };
+
+ std::atomic<Foo*> foo_head[10];
  int foo_array[10][10];
 
  // consume operation starts a dependency chain, which escapes this function
- [[carries_dependency]] struct foo* f(int i) {
+ [[carries_dependency]] Foo* f(int i)
+ {
      return foo_head[i].load(memory_order_consume);
  }
 
- // the dependency chain enters this function through the right parameter
- // and is killed before the function ends (so no extra acquire operation takes place)
- int g(int* x, int* y [[carries_dependency]]) {
+ // the dependency chain enters this function through the right parameter and is
+ // killed before the function ends (so no extra acquire operation takes place)
+ int g(int* x, int* y [[carries_dependency]])
+ {
      return std::kill_dependency(foo_array[*x][*y]);
  }
 
-   file2.cpp:
+       file2.cpp:
 
- [[carries_dependency]] struct foo* f(int i);
+ [[carries_dependency]] struct Foo* f(int i);
  int g(int* x, int* y [[carries_dependency]]);
 
  int c = 3;
- void h(int i) {
-     struct foo* p;
+ void h(int i)
+ {
+     Foo* p;
      p = f(i); // dependency chain started inside f continues into p without undue acquire
      do_something_with(g(&c, p->a)); // p->b is not brought in from the cache
      do_something_with(g(p->a, &c)); // left argument does not have the carries_dependency
@@ -62,3 +70,5 @@ std::kill_dependency \- std::kill_dependency
 
    memory_order defines memory ordering constraints for the given atomic operation
    \fI(C++11)\fP      \fI(enum)\fP
+   C documentation for
+   kill_dependency

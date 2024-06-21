@@ -1,72 +1,64 @@
-.TH std::condition_variable::wait_for 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::condition_variable::wait_for 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::condition_variable::wait_for \- std::condition_variable::wait_for
 
 .SH Synopsis
    template< class Rep, class Period >
 
-   std::cv_status wait_for( std::unique_lock<std::mutex>& lock, \fB(1)\fP \fI(since C++11)\fP
+   std::cv_status wait_for( std::unique_lock<std::mutex>& lock,       \fB(1)\fP \fI(since C++11)\fP
 
-   const std::chrono::duration<Rep, Period>& rel_time);
+                            const std::chrono::duration<Rep, Period>&
+   rel_time );
    template< class Rep, class Period, class Predicate >
 
-   bool wait_for( std::unique_lock<std::mutex>& lock,           \fB(2)\fP \fI(since C++11)\fP
-   const std::chrono::duration<Rep, Period>& rel_time,
+   bool wait_for( std::unique_lock<std::mutex>& lock,                 \fB(2)\fP \fI(since C++11)\fP
+                  const std::chrono::duration<Rep, Period>& rel_time,
 
-   Predicate stop_waiting);
+                  Predicate pred );
 
-   1) Atomically releases lock, blocks the current executing thread, and adds it to the
-   list of threads waiting on *this. The thread will be unblocked when notify_all() or
-   notify_one() is executed, or when the relative timeout rel_time expires. It may also
-   be unblocked spuriously. When unblocked, regardless of the reason, lock is
-   reacquired and wait_for() exits.
+   wait_for causes the current thread to block until the condition variable is
+   notified, the given duration has been elapsed, or a spurious wakeup occurs. pred can
+   be optionally provided to detect spurious wakeup.
+
+   1) Equivalent to return wait_until(lock, std::chrono::steady_clock::now() +
+   rel_time);.
    2) Equivalent to return wait_until(lock, std::chrono::steady_clock::now() +
-   rel_time, std::move(stop_waiting));. This overload may be used to ignore spurious
-   awakenings by looping until some predicate is satisfied (bool(stop_waiting()) ==
-   true).
+   rel_time, std::move(pred));.
+   This overload may be used to ignore spurious awakenings while waiting for a specific
+   condition to become true.
 
-   The standard recommends that a steady clock be used to measure the duration. This
-   function may block for longer than timeout_duration due to scheduling or resource
-   contention delays.
+   Right after wait_for returns, lock.owns_lock() is true, and lock.mutex() is locked
+   by the calling thread. If these postconditions cannot be satisfied^[1], calls
+   std::terminate.
 
-   Calling this function if lock.mutex() is not locked by the current thread is
-   undefined behavior.
+   If any of the following conditions is satisfied, the behavior is undefined:
 
-   Calling this function if lock.mutex() is not the same mutex as the one used by all
-   other threads that are currently waiting on the same condition variable is undefined
-   behavior.
-
-   If these functions fail to meet the postcondition (lock.owns_lock()==true and
-   lock.mutex() is locked by the calling thread), std::terminate is called. For
-   example, this could happen if relocking the mutex throws an exception.
+     * lock.owns_lock() is false.
+     * lock.mutex() is not locked by the calling thread.
+     * If some other threads are also waiting on *this, lock.mutex() is different from
+       the mutex unlocked by the waiting functions (wait, wait_for and wait_until)
+       called on *this by those threads.
+    1. ↑ This can happen if the re-locking of the mutex throws an exception.
 
 .SH Parameters
 
-   lock         - an object of type std::unique_lock<std::mutex>, which must be locked
-                  by the current thread
-                  an object of type std::chrono::duration representing the maximum time
-   rel_time     - to spend waiting. Note that rel_time must be small enough not to
-                  overflow when added to std::chrono::steady_clock::now().
-                  predicate which returns false if the waiting should be continued
-                  (bool(stop_waiting()) == false).
-
-   stop_waiting - The signature of the predicate function should be equivalent to the
-                  following:
-
-                  bool pred();
+   lock     - an lock which must be locked by the calling thread
+   rel_time - the maximum duration to wait
+   pred     - the predicate to check whether the waiting can be completed
+.SH Type requirements
+   -
+   Predicate must meet the requirements of FunctionObject.
 
 .SH Return value
 
-   1) std::cv_status::timeout if the relative timeout specified by rel_time expired,
-   std::cv_status::no_timeout otherwise.
-   2) false if the predicate stop_waiting still evaluates to false after the rel_time
-   timeout expired, otherwise true.
+   1) std::cv_status::timeout if rel_time has been elapsed since the beginning of this
+   call, otherwise std::cv_status::no_timeout.
+   2) The latest result of pred() before returning to the caller.
 
 .SH Exceptions
 
-   1) Any exception thrown by clock, time_point, or duration during the execution
-   (clocks, time points, and durations provided by the standard library never throw)
-   2) Same as \fB(1)\fP but may also propagate exceptions thrown by stop_waiting
+   1) Timeout-related exceptions.
+   2) Timeout-related exceptions, and any exception thrown by pred.
 
 .SH Notes
 
@@ -85,72 +77,83 @@ std::condition_variable::wait_for \- std::condition_variable::wait_for
 
 // Run this code
 
- #include <iostream>
- #include <atomic>
- #include <condition_variable>
- #include <thread>
  #include <chrono>
- using namespace std::chrono_literals;
+ #include <condition_variable>
+ #include <iostream>
+ #include <thread>
 
  std::condition_variable cv;
- std::mutex cv_m;
- int i;
+ std::mutex cv_m; // This mutex is used for three purposes:
+                  // 1) to synchronize accesses to i
+                  // 2) to synchronize accesses to std::cerr
+                  // 3) for the condition variable cv
+ int i = 0;
 
- void waits(int idx)
+ void waits()
  {
      std::unique_lock<std::mutex> lk(cv_m);
-     if(cv.wait_for(lk, idx*100ms, []{return i == 1;}))
-         std::cerr << "Thread " << idx << " finished waiting. i == " << i << '\\n';
-     else
-         std::cerr << "Thread " << idx << " timed out. i == " << i << '\\n';
+     std::cerr << "Waiting... \\n";
+     cv.wait(lk, []{ return i == 1; });
+     std::cerr << "...finished waiting. i == 1\\n";
  }
 
  void signals()
  {
-     std::this_thread::sleep_for(120ms);
-     std::cerr << "Notifying...\\n";
+     std::this_thread::sleep_for(std::chrono::seconds(1));
+     {
+         std::lock_guard<std::mutex> lk(cv_m);
+         std::cerr << "Notifying...\\n";
+     }
      cv.notify_all();
-     std::this_thread::sleep_for(100ms);
+
+     std::this_thread::sleep_for(std::chrono::seconds(1));
+
      {
          std::lock_guard<std::mutex> lk(cv_m);
          i = 1;
+         std::cerr << "Notifying again...\\n";
      }
-     std::cerr << "Notifying again...\\n";
      cv.notify_all();
  }
 
  int main()
  {
-     std::thread t1(waits, 1), t2(waits, 2), t3(waits, 3), t4(signals);
+     std::thread t1(waits), t2(waits), t3(waits), t4(signals);
      t1.join();
      t2.join();
      t3.join();
      t4.join();
  }
 
-.SH Output:
+.SH Possible output:
 
- Thread 1 timed out. i == 0
+ Waiting...
+ Waiting...
+ Waiting...
  Notifying...
- Thread 2 timed out. i == 0
  Notifying again...
- Thread 3 finished waiting. i == 1
+ ...finished waiting. i == 1
+ ...finished waiting. i == 1
+ ...finished waiting. i == 1
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to            Behavior as published              Correct behavior
-   LWG 2093 C++11      timeout-related exceptions were missing in  mentioned
-                       the specification
-   LWG 2135 C++11      wait_for threw an exception on              calls std::terminate
-                       unlocking/relocking failure
+      DR    Applied to         Behavior as published              Correct behavior
+   LWG 2093 C++11      timeout-related exceptions were       mentions these exceptions
+                       missing in the specification
+   LWG 2135 C++11      the behavior was unclear if           calls std::terminate in
+                       lock.lock() throws an exception       this case
 
 .SH See also
 
-   wait       blocks the current thread until the condition variable is woken up
+   wait       blocks the current thread until the condition variable is awakened
               \fI(public member function)\fP
-              blocks the current thread until the condition variable is woken up or
+              blocks the current thread until the condition variable is awakened or
    wait_until until specified time point has been reached
               \fI(public member function)\fP
+
+.SH Hidden category:
+     * Pages with unreviewed LWG DR marker

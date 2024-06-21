@@ -1,4 +1,4 @@
-.TH std::execution::sequenced_policy,std::execution::parallel_policy, 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::execution::sequenced_policy,std::execution::parallel_policy, 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::execution::sequenced_policy,std::execution::parallel_policy, \- std::execution::sequenced_policy,std::execution::parallel_policy,
 
@@ -43,25 +43,28 @@ std::execution::sequenced_policy,std::execution::parallel_policy, \- std::execut
    When using parallel execution policy, it is the programmer's responsibility to avoid
    data races and deadlocks:
 
- int a[] = {0,1};
+ int a[] = {0, 1};
  std::vector<int> v;
- std::for_each(std::execution::par, std::begin(a), std::end(a), [&](int i) {
-   v.push_back(i*2+1); // Error: data race
+ std::for_each(std::execution::par, std::begin(a), std::end(a), [&](int i)
+ {
+     v.push_back(i * 2 + 1); // Error: data race
  });
 
- std::atomic<int> x{0};
- int a[] = {1,2};
- std::for_each(std::execution::par, std::begin(a), std::end(a), [&](int) {
-   x.fetch_add(1, std::memory_order_relaxed);
-   while (x.load(std::memory_order_relaxed) == 1) { } // Error: assumes execution order
+ std::atomic<int> x {0};
+ int a[] = {1, 2};
+ std::for_each(std::execution::par, std::begin(a), std::end(a), [&](int)
+ {
+     x.fetch_add(1, std::memory_order_relaxed);
+     while (x.load(std::memory_order_relaxed) == 1) { } // Error: assumes execution order
  });
 
  int x = 0;
  std::mutex m;
- int a[] = {1,2};
- std::for_each(std::execution::par, std::begin(a), std::end(a), [&](int) {
-   std::lock_guard<std::mutex> guard(m);
-   ++x; // correct
+ int a[] = {1, 2};
+ std::for_each(std::execution::par, std::begin(a), std::end(a), [&](int)
+ {
+     std::lock_guard<std::mutex> guard(m);
+     ++x; // correct
  });
 
    Unsequenced execution policies are the only case where function calls are
@@ -71,14 +74,15 @@ std::execution::sequenced_policy,std::execution::parallel_policy, \- std::execut
    mutexes, use non-lockfree std::atomic specializations, or, in general, perform any
    vectorization-unsafe operations when using these policies (vectorization-unsafe
    functions are the ones that synchronize-with another function, e.g.
-   std::mutex::unlock synchronizes-with the next std::mutex::lock)
+   std::mutex::unlock synchronizes-with the next std::mutex::lock).
 
  int x = 0;
  std::mutex m;
- int a[] = {1,2};
- std::for_each(std::execution::par_unseq, std::begin(a), std::end(a), [&](int) {
-   std::lock_guard<std::mutex> guard(m); // Error: lock_guard constructor calls m.lock()
-   ++x;
+ int a[] = {1, 2};
+ std::for_each(std::execution::par_unseq, std::begin(a), std::end(a), [&](int)
+ {
+     std::lock_guard<std::mutex> guard(m); // Error: lock_guard constructor calls m.lock()
+     ++x;
  });
 
    If the implementation cannot parallelize or vectorize (e.g. due to lack of

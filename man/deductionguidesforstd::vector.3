@@ -1,4 +1,4 @@
-.TH deductionguidesforstd::vector 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH deductionguidesforstd::vector 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 deductionguidesforstd::vector \- deductionguidesforstd::vector
 
@@ -6,15 +6,25 @@ deductionguidesforstd::vector \- deductionguidesforstd::vector
    Defined in header <vector>
    template< class InputIt,
 
-   class Alloc = std::allocator<typename
-   std::iterator_traits<InputIt>::value_type>>                            \fI(since C++17)\fP
-   vector(InputIt, InputIt, Alloc = Alloc())
+             class Alloc = std::allocator<
+                 typename std::iterator_traits<InputIt>::value_type>
+   >                                                                  \fB(1)\fP \fI(since C++17)\fP
+   vector( InputIt, InputIt, Alloc = Alloc() )
 
-   -> vector<typename std::iterator_traits<InputIt>::value_type, Alloc>;
+       -> vector<typename std::iterator_traits<InputIt>::value_type,
+   Alloc>;
+   template< ranges::input_range R,
 
-   This deduction guide is provided for vector to allow deduction from an iterator
+             class Alloc = std::allocator<ranges::range_value_t<R>> > \fB(2)\fP (since C++23)
+   vector( std::from_range_t, R&&, Alloc = Alloc() )
+
+       -> vector<ranges::range_value_t<R>, Alloc>;
+
+   1) This deduction guide is provided for vector to allow deduction from an iterator
    range. This overload participates in overload resolution only if InputIt satisfies
    LegacyInputIterator and Alloc satisfies Allocator.
+   2) This deduction guide is provided for vector to allow deduction from a
+   std::from_range_t tag and an input_range.
 
    Note: the extent to which the library determines that a type does not satisfy
    LegacyInputIterator is unspecified, except that as a minimum integral types do not
@@ -24,6 +34,12 @@ deductionguidesforstd::vector \- deductionguidesforstd::vector
    std::declval<Alloc&>().allocate(std::size_t{}) must be well-formed when treated as
    an unevaluated operand.
 
+.SH Notes
+
+       Feature-test macro       Value    Std                   Feature
+   __cpp_lib_containers_ranges 202202L (C++23) Ranges-aware construction and insertion;
+                                               overload \fB(2)\fP
+
 .SH Example
 
 
@@ -31,15 +47,16 @@ deductionguidesforstd::vector \- deductionguidesforstd::vector
 
  #include <vector>
 
- int main() {
-    std::vector<int> v = {1, 2, 3, 4};
+ int main()
+ {
+     std::vector<int> v = {1, 2, 3, 4};
 
-    // uses explicit deduction guide to deduce std::vector<int>
-    std::vector x(v.begin(), v.end());
+     // uses explicit deduction guide to deduce std::vector<int>
+     std::vector x(v.begin(), v.end());
 
-    // deduces std::vector<std::vector<int>::iterator>
-    // first phase of overload resolution for list-initialization selects the candidate
-    // synthesized from the initializer-list constructor; second phase is not performed and
-    // deduction guide has no effect
-    std::vector y{v.begin(), v.end()};
+     // deduces std::vector<std::vector<int>::iterator>
+     // first phase of overload resolution for list-initialization selects the candidate
+     // synthesized from the initializer-list constructor; second phase is not performed
+     // and deduction guide has no effect
+     std::vector y{v.begin(), v.end()};
  }

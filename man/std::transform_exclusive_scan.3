@@ -1,4 +1,4 @@
-.TH std::transform_exclusive_scan 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::transform_exclusive_scan 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::transform_exclusive_scan \- std::transform_exclusive_scan
 
@@ -6,78 +6,76 @@ std::transform_exclusive_scan \- std::transform_exclusive_scan
    Defined in header <numeric>
    template< class InputIt, class OutputIt, class T,
 
-   class BinaryOperation, class UnaryOperation>                           \fI(since C++17)\fP
-   OutputIt transform_exclusive_scan( InputIt first, InputIt              \fI(until C++20)\fP
-   last, OutputIt d_first, T init,
+             class BinaryOp, class UnaryOp >
+   OutputIt transform_exclusive_scan                        \fB(1)\fP \fI(since C++17)\fP
+       ( InputIt first, InputIt last, OutputIt d_first, T       (constexpr since C++20)
+   init,
 
-   BinaryOperation binary_op, UnaryOperation unary_op );
-   template< class InputIt, class OutputIt, class T,
-
-   class BinaryOperation, class UnaryOperation>
-   constexpr OutputIt transform_exclusive_scan( InputIt first,            \fI(since C++20)\fP
-   InputIt last, OutputIt d_first,                                \fB(1)\fP
-   T init, BinaryOperation binary_op,
-
-   UnaryOperation unary_op );
+         BinaryOp binary_op, UnaryOp unary_op );
    template< class ExecutionPolicy,
 
-   class ForwardIt1, class ForwardIt2,
-   class T, class BinaryOperation, class UnaryOperation >
-   ForwardIt2 transform_exclusive_scan( ExecutionPolicy&& policy,     \fB(2)\fP \fI(since C++17)\fP
-   ForwardIt1 first, ForwardIt1 last,
-   ForwardIt2 d_first, T init,
+             class ForwardIt1, class ForwardIt2, class T,
+             class BinaryOp, class UnaryOp >
+   ForwardIt2 transform_exclusive_scan                      \fB(2)\fP \fI(since C++17)\fP
+       ( ExecutionPolicy&& policy,
+         ForwardIt1 first, ForwardIt1 last, ForwardIt2
+   d_first, T init,
 
-   BinaryOperation binary_op, UnaryOperation unary_op );
+         BinaryOp binary_op, UnaryOp unary_op );
 
-   Transforms each element in the range [first, last) with unary_op, then computes an
-   exclusive prefix sum operation using binary_op over the resulting range, with init
-   as the initial value, and writes the results to the range beginning at d_first.
-   "exclusive" means that the i-th input element is not included in the i-th sum.
+   1) Computes the exclusive prefix sum using op.
+   For each integer i in [0, std::distance(first, last)), performs the following
+   operations in order:
+    1. Creates a sequence which is formed by init followed by the values transformed
+       from the elements of [first, iter) in order by unary_op, where iter is the next
+       i
+       th iterator of first.
+    2. Computes the generalized noncommutative sum of the sequence over binary_op.
+    3. Assigns the result to *dest, where dest is the next i
+       th iterator of d_first.
+   2) Same as \fB(1)\fP, but executed according to policy.
+   This overload participates in overload resolution only if
 
-   Formally, assigns through each iterator i in [d_first, d_first + (last - first)) the
-   value of the generalized noncommutative sum of init, unary_op(*j)... for every j in
-   [first, first + (i - d_first)) over binary_op,
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
 
-   where generalized noncommutative sum GNSUM(op, a
-   1, ..., a
-   N) is defined as follows:
+   The generalized noncommutative sum of a sequence of elements over a binary operation
+   binary_op is defined as follows:
 
-     * if N=1, a
-       1
-     * if N > 1, op(GNSUM(op, a
-       1, ..., a
-       K), GNSUM(op, a
-       M, ..., a
-       N)) for any K where 1 < K+1 = M ≤ N
+     * If the sequence only has one element, the sum is the value of the element.
+     * Otherwise, performs the following operations in order:
+    1. Selects any two adjacent elements elem1 and elem2 from the sequence.
+    2. Calculates binary_op(elem1, elem2) and replaces the two elements in the sequence
+       with the result.
+    3. Repeats steps 1 and 2 until there is only one element in the sequence.
 
-   In other words, the summation operations may be performed in arbitrary order, and
-   the behavior is nondeterministic if binary_op is not associative.
+   The result is non-deterministic if the binary_op is not associative (such as
+   floating-point addition).
 
-   Overload \fB(2)\fP is executed according to policy. This overload does not participate in
-   overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+   If any of the following values is not convertible to T, the program is ill-formed:
 
-   unary_op and binary_op shall not invalidate iterators (including the end iterators)
-   or subranges, nor modify elements in the ranges [first, last) or [d_first, d_first +
-   (last - first)). Otherwise, the behavior is undefined.
+     * binary_op(init, init)
+     * binary_op(init, unary_op(*first))
+     * binary_op(unary_op(*first), unary_op(*first))
+
+   If any of the following conditions is satisfied, the behavior is undefined:
+
+     * T is not MoveConstructible.
+     * unary_op or binary_op modifies any element of [first, last).
+     * unary_op or binary_op invalidates any iterator or subrange of [first, last].
 
 .SH Parameters
 
-   first, last       -       the range of elements to sum
-   d_first           -       the beginning of the destination range, may be equal to
-                             first
-   policy            -       the execution policy to use. See execution policy for
-                             details.
-   init              -       the initial value
-                             unary FunctionObject that will be applied to each element
-   unary_op          -       of the input range. The return type must be acceptable as
-                             input to binary_op.
-                             binary FunctionObject that will be applied in to the
-   binary_op         -       result of unary_op, the results of other binary_op, and
-                             init.
+   first, last - the range of elements to sum
+   d_first     - the beginning of the destination range, may be equal to first
+   policy      - the execution policy to use. See execution policy for details.
+   init        - the initial value
+   unary_op    - unary FunctionObject that will be applied to each element of the input
+                 range. The return type must be acceptable as input to binary_op.
+   binary_op   - binary FunctionObject that will be applied in to the result of
+                 unary_op, the results of other binary_op, and init.
 .SH Type requirements
    -
    InputIt must meet the requirements of LegacyInputIterator.
@@ -85,10 +83,6 @@ std::transform_exclusive_scan \- std::transform_exclusive_scan
    OutputIt must meet the requirements of LegacyOutputIterator.
    -
    ForwardIt1, ForwardIt2 must meet the requirements of LegacyForwardIterator.
-   -
-   T must meet the requirements of MoveConstructible. All of binary_op(init,
-   unary_op(*first)), binary_op(init, init), and binary_op(unary_op(*first),
-   unary_op(*first)) must be convertible to T.
 
 .SH Return value
 
@@ -96,7 +90,9 @@ std::transform_exclusive_scan \- std::transform_exclusive_scan
 
 .SH Complexity
 
-   O(last - first) applications of each of binary_op and unary_op.
+   Given \\(\\scriptsize N\\)N as std::distance(first, last):
+
+   1,2) \\(\\scriptsize O(N)\\)O(N) applications of unary_op and binary_op respectively.
 
 .SH Exceptions
 
@@ -110,7 +106,7 @@ std::transform_exclusive_scan \- std::transform_exclusive_scan
 
 .SH Notes
 
-   unary_op is not applied to init.
+   unary_op is never applied to init.
 
 .SH Example
 
@@ -125,18 +121,19 @@ std::transform_exclusive_scan \- std::transform_exclusive_scan
 
  int main()
  {
-   std::vector data {3, 1, 4, 1, 5, 9, 2, 6};
+     std::vector data{3, 1, 4, 1, 5, 9, 2, 6};
 
-   auto times_10 = [](int x) { return x * 10; };
+     auto times_10 = [](int x) { return x * 10; };
 
-   std::cout << "10 times exclusive sum: ";
-   std::transform_exclusive_scan(data.begin(), data.end(),
-                                 std::ostream_iterator<int>(std::cout, " "),
-                                 0, std::plus<int>{}, times_10);
-   std::cout << "\\n10 times inclusive sum: ";
-   std::transform_inclusive_scan(data.begin(), data.end(),
-                                 std::ostream_iterator<int>(std::cout, " "),
-                                 std::plus<int>{}, times_10);
+     std::cout << "10 times exclusive sum: ";
+     std::transform_exclusive_scan(data.begin(), data.end(),
+                                   std::ostream_iterator<int>(std::cout, " "),
+                                   0, std::plus<int>{}, times_10);
+     std::cout << "\\n10 times inclusive sum: ";
+     std::transform_inclusive_scan(data.begin(), data.end(),
+                                   std::ostream_iterator<int>(std::cout, " "),
+                                   std::plus<int>{}, times_10);
+     std::cout << '\\n';
  }
 
 .SH Output:
@@ -148,8 +145,8 @@ std::transform_exclusive_scan \- std::transform_exclusive_scan
 
    partial_sum              computes the partial sum of a range of elements
                             \fI(function template)\fP
-   exclusive_scan           similar to std::partial_sum, excludes the ith input element
-   \fI(C++17)\fP                  from the ith sum
+   exclusive_scan           similar to std::partial_sum, excludes the i^th input
+   \fI(C++17)\fP                  element from the i^th sum
                             \fI(function template)\fP
    transform_inclusive_scan applies an invocable, then calculates inclusive scan
    \fI(C++17)\fP                  \fI(function template)\fP

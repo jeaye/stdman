@@ -1,34 +1,47 @@
-.TH std::cos,std::cosf,std::cosl 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::cos,std::cosf,std::cosl 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::cos,std::cosf,std::cosl \- std::cos,std::cosf,std::cosl
 
 .SH Synopsis
    Defined in header <cmath>
-   float cos ( float arg );
-   float cosf( float arg );                     \fI(since C++11)\fP
-   double cos ( double arg );           \fB(1)\fP \fB(2)\fP
-   long double cos ( long double arg );
-   long double cosl( long double arg );     \fB(3)\fP               \fI(since C++11)\fP
-   double cos ( IntegralType arg );             \fB(4)\fP           \fI(since C++11)\fP
+   float       cos ( float num );
 
-   1-3) Computes the cosine of arg (measured in radians).
-   4) A set of overloads or a function template accepting an argument of any integral
-   type. Equivalent to 2) (the argument is cast to double).
+   double      cos ( double num );                            (until C++23)
+
+   long double cos ( long double num );
+   /* floating-point-type */                                  (since C++23)
+               cos ( /* floating-point-type */ num );         (constexpr since C++26)
+   float       cosf( float num );                     \fB(1)\fP \fB(2)\fP \fI(since C++11)\fP
+                                                              (constexpr since C++26)
+   long double cosl( long double num );                   \fB(3)\fP \fI(since C++11)\fP
+                                                              (constexpr since C++26)
+   Additional overloads \fI(since C++11)\fP
+   Defined in header <cmath>
+   template< class Integer >                              (A) (constexpr since C++26)
+   double      cos ( Integer num );
+
+   1-3) Computes the cosine of num (measured in radians).
+   The library provides overloads of std::cos for all cv-unqualified floating-point
+   types as the type of the parameter.
+   (since C++23)
+
+   A) Additional overloads are provided for all integer types, which are  \fI(since C++11)\fP
+   treated as double.
 
 .SH Parameters
 
-   arg - value representing angle in radians, of a floating-point or Integral type
+   num - floating-point or integer value representing angle in radians
 
 .SH Return value
 
-   If no errors occur, the cosine of arg (cos(arg)) in the range [-1 ; +1], is
+   If no errors occur, the cosine of num (cos(num)) in the range [-1.0, +1.0], is
    returned.
 
-   The result may have little or no significance if the magnitude of arg  \fI(until C++11)\fP
-   is large
+   The result may have little or no significance if the magnitude of num  \fI(until C++11)\fP
+   is large.
 
    If a domain error occurs, an implementation-defined value is returned (NaN where
-   supported)
+   supported).
 
    If a range error occurs due to underflow, the correct result (after rounding) is
    returned.
@@ -39,38 +52,61 @@ std::cos,std::cosf,std::cosl \- std::cos,std::cosf,std::cosl
 
    If the implementation supports IEEE floating-point arithmetic (IEC 60559),
 
-     * if the argument is ±0, the result is 1.0
-     * if the argument is ±∞, NaN is returned and FE_INVALID is raised
-     * if the argument is NaN, NaN is returned
+     * if the argument is ±0, the result is 1.0.
+     * if the argument is ±∞, NaN is returned and FE_INVALID is raised.
+     * if the argument is NaN, NaN is returned.
 
 .SH Notes
 
    The case where the argument is infinite is not specified to be a domain error in C,
-   but it is defined as a domain error in POSIX
+   but it is defined as a domain error in POSIX.
+
+   The additional overloads are not required to be provided exactly as (A). They only
+   need to be sufficient to ensure that for their argument num of integer type,
+   std::cos(num) has the same effect as std::cos(static_cast<double>(num)).
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
- #include <cmath>
  #include <cerrno>
  #include <cfenv>
+ #include <cmath>
+ #include <iomanip>
+ #include <iostream>
+ #include <numbers>
 
- #pragma STDC FENV_ACCESS ON
- const double pi = std::acos(-1);
+ // #pragma STDC FENV_ACCESS ON
+
+ constexpr double pi = std::numbers::pi; // or std::acos(-1) before C++20
+
+ constexpr double your_cos(double x)
+ {
+     double cos{1}, pow{x};
+     for (auto fac{1ull}, n{1ull}; n != 19; fac *= ++n, pow *= x)
+         if ((n & 1) == 0)
+             cos += (n & 2 ? -pow : pow) / fac;
+     return cos;
+ }
+
  int main()
  {
-     // typical usage
-     std::cout << "cos(pi/3) = " << std::cos(pi/3) << '\\n'
-               << "cos(pi/2) = " << std::cos(pi/2) << '\\n'
-               << "cos(-3*pi/4) = " << std::cos(-3*pi/4) << '\\n';
-     // special values
-     std::cout << "cos(+0) = " << std::cos(0.0) << '\\n'
-               << "cos(-0) = " << std::cos(-0.0) << '\\n';
+     std::cout << std::setprecision(10) << std::showpos
+               << "Typical usage:\\n"
+               << "std::cos(pi/3) = " << std::cos(pi / 3) << '\\n'
+               << "your cos(pi/3) = " << your_cos(pi / 3) << '\\n'
+               << "std::cos(pi/2) = " << std::cos(pi / 2) << '\\n'
+               << "your cos(pi/2) = " << your_cos(pi / 2) << '\\n'
+               << "std::cos(-3*pi/4) = " << std::cos(-3 * pi / 4) << '\\n'
+               << "your cos(-3*pi/4) = " << your_cos(-3 * pi / 4) << '\\n'
+               << "Special values:\\n"
+               << "std::cos(+0) = " << std::cos(0.0) << '\\n'
+               << "std::cos(-0) = " << std::cos(-0.0) << '\\n';
+
      // error handling
      std::feclearexcept(FE_ALL_EXCEPT);
+
      std::cout << "cos(INFINITY) = " << std::cos(INFINITY) << '\\n';
      if (std::fetestexcept(FE_INVALID))
          std::cout << "    FE_INVALID raised\\n";
@@ -78,32 +114,39 @@ std::cos,std::cosf,std::cosl \- std::cos,std::cosf,std::cosl
 
 .SH Possible output:
 
- cos(pi/3) = 0.5
- cos(pi/2) = 6.12323e-17
- cos(-3*pi/4) = -0.707107
- cos(+0) = 1
- cos(-0) = 1
+ Typical usage:
+ std::cos(pi/3) = +0.5
+ your cos(pi/3) = +0.5
+ std::cos(pi/2) = +6.123233996e-17
+ your cos(pi/2) = -3.373452105e-15
+ std::cos(-3*pi/4) = -0.7071067812
+ your cos(-3*pi/4) = -0.7071067812
+ Special values:
+ std::cos(+0) = +1
+ std::cos(-0) = +1
  cos(INFINITY) = -nan
      FE_INVALID raised
 
 .SH See also
 
    sin
-   sinf               computes sine (\\({\\small\\sin{x} }\\)sin(x))
+   sinf               computes sine (\\({\\small\\sin{x}}\\)sin(x))
    sinl               \fI(function)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
    tan
-   tanf               computes tangent (\\({\\small\\tan{x} }\\)tan(x))
+   tanf               computes tangent (\\({\\small\\tan{x}}\\)tan(x))
    tanl               \fI(function)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
    acos
-   acosf              computes arc cosine (\\({\\small\\arccos{x} }\\)arccos(x))
+   acosf              computes arc cosine (\\({\\small\\arccos{x}}\\)arccos(x))
    acosl              \fI(function)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
-   cos(std::complex)  computes cosine of a complex number (\\({\\small\\cos{z} }\\)cos(z))
+   cos(std::complex)  computes cosine of a complex number (\\({\\small\\cos{z}}\\)cos(z))
                       \fI(function template)\fP
    cos(std::valarray) applies the function std::cos to each element of valarray
                       \fI(function template)\fP
+   C documentation for
+   cos

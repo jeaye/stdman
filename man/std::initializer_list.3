@@ -1,4 +1,4 @@
-.TH std::initializer_list 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::initializer_list 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::initializer_list \- std::initializer_list
 
@@ -8,41 +8,25 @@ std::initializer_list \- std::initializer_list
    class initializer_list;
 
    An object of type std::initializer_list<T> is a lightweight proxy object that
-   provides access to an array of objects of type const T.
+   provides access to an array of objects of type const T (that may be allocated in
+   read-only memory).
 
    A std::initializer_list object is automatically constructed when:
 
-     * a braced-init-list is used to list-initialize an object, where the corresponding
-       constructor accepts an std::initializer_list parameter
-     * a braced-init-list is used as the right operand of assignment or as a function
-       call argument, and the corresponding assignment operator/function accepts an
-       std::initializer_list parameter
-     * a braced-init-list is bound to auto, including in a ranged for loop
+     * a brace-enclosed initializer list is used to list-initialize an object, where
+       the corresponding constructor accepts an std::initializer_list parameter,
+     * a brace-enclosed initializer list is used as the right operand of assignment or
+       as a function call argument, and the corresponding assignment operator/function
+       accepts an std::initializer_list parameter,
+     * a brace-enclosed initializer list is bound to auto, including in a ranged for
+       loop.
 
-   Initializer lists may be implemented as a pair of pointers or pointer and length.
-   Copying a std::initializer_list does not copy the underlying objects.
-
-   The underlying array is a temporary array of type const T[N], in which each element
-   is copy-initialized (except that narrowing conversions are invalid) from the
-   corresponding element of the original initializer list. The lifetime of the
-   underlying array is the same as any other temporary object, except that initializing
-   an initializer_list object from the array extends the lifetime of the array exactly
-   like binding a reference to a temporary (with the same exceptions, such as for
-   initializing a non-static class member). The underlying array may be allocated in
-   read-only memory.
+   std::initializer_list may be implemented as a pair of pointers or pointer and
+   length. Copying a std::initializer_list does not copy the backing array of the
+   corresponding initializer list.
 
    The program is ill-formed if an explicit or partial specialization of
    std::initializer_list is declared.
-
-.SH Member types
-
-   Member type     Definition
-   value_type      T
-   reference       const T&
-   const_reference const T&
-   size_type       std::size_t
-   iterator        const T*
-   const_iterator  const T*
 
 .SH Member functions
 
@@ -75,39 +59,52 @@ std::initializer_list \- std::initializer_list
    data                              obtains the pointer to the underlying array
    \fI(C++17)\fP                           \fI(function template)\fP
 
+.SH Notes
+
+     Feature-test macro     Value    Std                     Feature
+   __cpp_initializer_lists 200806L \fI(C++11)\fP List-initialization and
+                                           std::initializer_list
+
 .SH Example
 
 
 // Run this code
 
+ #include <initializer_list>
  #include <iostream>
  #include <vector>
- #include <initializer_list>
 
- template <class T>
- struct S {
+ template<class T>
+ struct S
+ {
      std::vector<T> v;
-     S(std::initializer_list<T> l) : v(l) {
+
+     S(std::initializer_list<T> l) : v(l)
+     {
           std::cout << "constructed with a " << l.size() << "-element list\\n";
      }
-     void append(std::initializer_list<T> l) {
+
+     void append(std::initializer_list<T> l)
+     {
          v.insert(v.end(), l.begin(), l.end());
      }
-     std::pair<const T*, std::size_t> c_arr() const {
-         return {&v[0], v.size()};  // copy list-initialization in return statement
-                                    // this is NOT a use of std::initializer_list
+
+     std::pair<const T*, std::size_t> c_arr() const
+     {
+         return {&v[0], v.size()}; // copy list-initialization in return statement
+                                   // this is NOT a use of std::initializer_list
      }
  };
 
- template <typename T>
+ template<typename T>
  void templated_fn(T) {}
 
  int main()
  {
      S<int> s = {1, 2, 3, 4, 5}; // copy list-initialization
-     s.append({6, 7, 8});      // list-initialization in function call
+     s.append({6, 7, 8});        // list-initialization in function call
 
-     std::cout << "The vector size is now " << s.c_arr().second << " ints:\\n";
+     std::cout << "The vector now has " << s.c_arr().second << " ints:\\n";
 
      for (auto n : s.v)
          std::cout << n << ' ';
@@ -119,11 +116,11 @@ std::initializer_list \- std::initializer_list
          std::cout << x << ' ';
      std::cout << '\\n';
 
-     auto al = {10, 11, 12};   // special rule for auto
+     auto al = {10, 11, 12}; // special rule for auto
 
      std::cout << "The list bound to auto has size() = " << al.size() << '\\n';
 
- //    templated_fn({1, 2, 3}); // compiler error! "{1, 2, 3}" is not an expression,
+ //  templated_fn({1, 2, 3}); // compiler error! "{1, 2, 3}" is not an expression,
                               // it has no type, and so T cannot be deduced
      templated_fn<std::initializer_list<int>>({1, 2, 3}); // OK
      templated_fn<std::vector<int>>({1, 2, 3});           // also OK
@@ -132,27 +129,21 @@ std::initializer_list \- std::initializer_list
 .SH Output:
 
  constructed with a 5-element list
- The vector size is now 8 ints:
+ The vector now has 8 ints:
  1 2 3 4 5 6 7 8
  Range-for over brace-init-list:
  -1 -2 -3
  The list bound to auto has size() = 3
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to          Behavior as published              Correct behavior
-                       the lifetime of the underlying array
-   CWG 1290 C++11      referenced by                            specified same as other
-                       the initializer_list was not correctly   temporary objects
-                       specified
-   CWG 1418 C++11      the type of the underlying array lacked  const added
-                       const
-                       specializing initializer_list was
-   LWG 2129 C++11      allowed                                  made ill-formed
-                       but not guaranteed to work
+      DR    Applied to           Behavior as published              Correct behavior
+                       std::initializer_list could have explicit the program is
+   LWG 2129 C++11      specializations or partial                ill-formed in this
+                       specializations                           case
 
 .SH See also
 

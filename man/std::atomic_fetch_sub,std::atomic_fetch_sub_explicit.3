@@ -1,4 +1,4 @@
-.TH std::atomic_fetch_sub,std::atomic_fetch_sub_explicit 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::atomic_fetch_sub,std::atomic_fetch_sub_explicit 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::atomic_fetch_sub,std::atomic_fetch_sub_explicit \- std::atomic_fetch_sub,std::atomic_fetch_sub_explicit
 
@@ -6,68 +6,67 @@ std::atomic_fetch_sub,std::atomic_fetch_sub_explicit \- std::atomic_fetch_sub,st
    Defined in header <atomic>
    template< class T >
 
-   T atomic_fetch_sub( std::atomic<T>* obj,
+   T atomic_fetch_sub( std::atomic<T>* obj,                           \fB(1)\fP \fI(since C++11)\fP
 
-   typename std::atomic<T>::difference_type arg ) noexcept;
+                       typename std::atomic<T>::difference_type arg )
+   noexcept;
    template< class T >
 
-   T atomic_fetch_sub( volatile std::atomic<T>* obj,
+   T atomic_fetch_sub( volatile std::atomic<T>* obj,                  \fB(2)\fP \fI(since C++11)\fP
 
-   typename std::atomic<T>::difference_type arg ) noexcept;
-   template< class T >                                        \fB(1)\fP
+                       typename std::atomic<T>::difference_type arg )
+   noexcept;
+   template< class T >
 
    T atomic_fetch_sub_explicit( std::atomic<T>* obj,
-   typename std::atomic<T>::difference_type arg,
+                                typename                              \fB(3)\fP \fI(since C++11)\fP
+   std::atomic<T>::difference_type arg,
 
-   std::memory_order order ) noexcept;                            \fB(2)\fP
+                                std::memory_order order ) noexcept;
    template< class T >
 
    T atomic_fetch_sub_explicit( volatile std::atomic<T>* obj,
-   typename std::atomic<T>::difference_type arg,
+                                typename                              \fB(4)\fP \fI(since C++11)\fP
+   std::atomic<T>::difference_type arg,
 
-   std::memory_order order ) noexcept;
+                                std::memory_order order ) noexcept;
 
    Performs atomic subtraction. Atomically subtracts arg from the value pointed to by
    obj and returns the value obj held previously. The operation is performed as if the
    following was executed:
 
-   1) obj->fetch_sub(arg)
-   2) obj->fetch_sub(arg, order)
+   1,2) obj->fetch_sub(arg)
+   3,4) obj->fetch_sub(arg, order)
+
+   If std::atomic<T> has no fetch_sub member (this member is only provided for integral
+   , floating-point
+   \fI(since C++20)\fP and pointer types except bool), the program is ill-formed.
 
 .SH Parameters
 
    obj   - pointer to the atomic object to modify
    arg   - the value to subtract from the value stored in the atomic object
-   order - the memory sycnhronization ordering for this operation: all values are
-           permitted.
+   order - the memory synchronization ordering
 
 .SH Return value
 
    The value immediately preceding the effects of this function in the modification
    order of *obj.
 
-.SH Possible implementation
-
-   template< class T >
-   T atomic_fetch_sub( std::atomic<T>* obj,
-                       typename std::atomic<T>::difference_type arg ) noexcept
-   {
-       return obj->fetch_sub(arg);
-   }
-
 .SH Example
 
-   Multiple threads may use fetch_sub to concurrently process an indexed container
+   Multiple threads may use std::atomic_fetch_sub to concurrently process an indexed
+   container.
 
 
 // Run this code
 
+ #include <atomic>
+ #include <iostream>
+ #include <numeric>
  #include <string>
  #include <thread>
  #include <vector>
- #include <iostream>
- #include <atomic>
- #include <numeric>
 
  const int N = 50;
  std::atomic<int> cnt;
@@ -75,12 +74,14 @@ std::atomic_fetch_sub,std::atomic_fetch_sub_explicit \- std::atomic_fetch_sub,st
 
  void reader(int id)
  {
-     for (;;) {
+     for (;;)
+     {
          int idx = atomic_fetch_sub_explicit(&cnt, 1, std::memory_order_relaxed);
-         if (idx >= 0) {
+         if (idx >= 0)
              std::cout << "reader " << std::to_string(id) << " processed item "
                        << std::to_string(data[idx]) << '\\n';
-         } else {
+         else
+         {
              std::cout << "reader " << std::to_string(id) << " done\\n";
              break;
          }
@@ -93,12 +94,10 @@ std::atomic_fetch_sub,std::atomic_fetch_sub_explicit \- std::atomic_fetch_sub,st
      cnt = data.size() - 1;
 
      std::vector<std::thread> v;
-     for (int n = 0; n < 5; ++n) {
+     for (int n = 0; n < 5; ++n)
          v.emplace_back(reader, n);
-     }
-     for (auto& t : v) {
+     for (auto& t : v)
          t.join();
-     }
  }
 
 .SH Output:
@@ -111,14 +110,14 @@ std::atomic_fetch_sub,std::atomic_fetch_sub_explicit \- std::atomic_fetch_sub,st
  reader 4 done
  reader 3 done
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-     DR    Applied to            Behavior as published              Correct behavior
-   P0558R1 C++11      exact type match required because T is      T is deduced from the
-                      deduced from multiple arguments             atomic argument only
+     DR    Applied to         Behavior as published         Correct behavior
+   P0558R1 C++11      exact type match was required because T is only deduced
+                      T was deduced from multiple arguments from obj
 
 .SH See also
 
@@ -129,3 +128,6 @@ std::atomic_fetch_sub,std::atomic_fetch_sub_explicit \- std::atomic_fetch_sub,st
    atomic_fetch_add_explicit the previous value of the atomic
    \fI(C++11)\fP                   \fI(function template)\fP
    \fI(C++11)\fP
+   C documentation for
+   atomic_fetch_sub,
+   atomic_fetch_sub_explicit

@@ -1,4 +1,4 @@
-.TH std::queue 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::queue 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::queue \- std::queue
 
@@ -6,14 +6,13 @@ std::queue \- std::queue
    Defined in header <queue>
    template<
 
-   class T,
-   class Container = std::deque<T>
+       class T,
+       class Container = std::deque<T>
 
    > class queue;
 
-   The std::queue class is a container adaptor that gives the programmer the
-   functionality of a queue - specifically, a FIFO (first-in, first-out) data
-   structure.
+   The std::queue class is a container adaptor that gives the functionality of a queue
+   - specifically, a FIFO (first-in, first-out) data structure.
 
    The class template acts as a wrapper to the underlying container - only a specific
    set of functions is provided. The queue pushes the elements on the back of the
@@ -21,19 +20,16 @@ std::queue \- std::queue
 
 .SH Template parameters
 
-               The type of the stored elements.
-   T         - The behavior is undefined if T is not the same type as
-               Container::value_type.
-               \fI(since C++17)\fP
+   T         - The type of the stored elements. The program is ill-formed if T is not
+               the same type as Container::value_type.
                The type of the underlying container to use to store the elements. The
                container must satisfy the requirements of SequenceContainer.
                Additionally, it must provide the following functions with the usual
                semantics:
-
-   Container -   * back()
-                 * front()
-                 * push_back()
-                 * pop_front()
+                 * back(), e.g., std::deque::back(),
+   Container -   * front(), e.g. std::list::front(),
+                 * push_back(), e.g., std::deque::push_back(),
+                 * pop_front(), e.g., std::list::pop_front().
 
                The standard containers std::deque and std::list satisfy these
                requirements.
@@ -46,6 +42,12 @@ std::queue \- std::queue
    size_type       Container::size_type
    reference       Container::reference
    const_reference Container::const_reference
+
+.SH Member objects
+
+   Member name Definition
+   Container c the underlying container
+               \fI(protected member object)\fP
 
 .SH Member functions
 
@@ -61,29 +63,28 @@ std::queue \- std::queue
    back          access the last element
                  \fI(public member function)\fP
 .SH Capacity
-   empty         checks whether the underlying container is empty
+   empty         checks whether the container adaptor is empty
                  \fI(public member function)\fP
    size          returns the number of elements
                  \fI(public member function)\fP
 .SH Modifiers
    push          inserts element at the end
                  \fI(public member function)\fP
+   push_range    inserts a range of elements at the end
+   (C++23)       \fI(public member function)\fP
    emplace       constructs element in-place at the end
    \fI(C++11)\fP       \fI(public member function)\fP
    pop           removes the first element
                  \fI(public member function)\fP
    swap          swaps the contents
    \fI(C++11)\fP       \fI(public member function)\fP
-.SH Member objects
-   Container c   the underlying container
-                 \fI(protected member object)\fP
 
 .SH Non-member functions
 
    operator==
    operator!=
    operator<
-   operator<=            lexicographically compares the values in the queue
+   operator<=            lexicographically compares the values of two queues
    operator>             \fI(function template)\fP
    operator>=
    operator<=>
@@ -95,10 +96,77 @@ std::queue \- std::queue
 
    std::uses_allocator<std::queue> specializes the std::uses_allocator type trait
    \fI(C++11)\fP                         \fI(class template specialization)\fP
+   std::formatter<std::queue>      formatting support for std::queue
+   (C++23)                         \fI(class template specialization)\fP
 
-  Deduction guides\fI(since C++17)\fP
+     Deduction guides \fI(since C++17)\fP
+
+.SH Notes
+
+       Feature-test macro       Value    Std                   Feature
+   __cpp_lib_containers_ranges 202202L (C++23) Ranges construction and insertion for
+                                               containers
+
+.SH Example
+
+
+// Run this code
+
+ #include <cassert>
+ #include <iostream>
+ #include <queue>
+
+ int main()
+ {
+     std::queue<int> q;
+
+     q.push(0); // back pushes 0
+     q.push(1); // q = 0 1
+     q.push(2); // q = 0 1 2
+     q.push(3); // q = 0 1 2 3
+
+     assert(q.front() == 0);
+     assert(q.back() == 3);
+     assert(q.size() == 4);
+
+     q.pop(); // removes the front element, 0
+     assert(q.size() == 3);
+
+     // Print and remove all elements. Note that std::queue does not
+     // support begin()/end(), so a range-for-loop cannot be used.
+     std::cout << "q: ";
+     for (; !q.empty(); q.pop())
+         std::cout << q.front() << ' ';
+     std::cout << '\\n';
+     assert(q.size() == 0);
+ }
+
+.SH Output:
+
+ q: 1 2 3
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to      Behavior as published              Correct behavior
+                       std::queue did not support
+   LWG 307  C++98      containers using proxy          supported
+                       reference types^[1] in place of
+                       (const) value_type&
+   LWG 2566 C++98      Missing the requirement for     ill-formed if T is not the same
+                       Container::value_type           type as Container::value_type
+
+    1. ↑ Such as containers similar to std::vector<bool> with additional support of
+       pop_front(). The resolution of this DR
+       added support of std::vector<bool> for std::stack and std::priority_queue. The
+       changes involving std::queue
+       are for maintaining consistency.
 
 .SH See also
 
    deque double-ended queue
+         \fI(class template)\fP
+   list  doubly-linked list
          \fI(class template)\fP

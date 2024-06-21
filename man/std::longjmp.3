@@ -1,4 +1,4 @@
-.TH std::longjmp 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::longjmp 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::longjmp \- std::longjmp
 
@@ -12,17 +12,12 @@ std::longjmp \- std::longjmp
    set up env. That setjmp then returns the value, passed as the status.
 
    If the function that called setjmp has exited, the behavior is undefined (in other
-   words, only long jumps up the call stack are allowed)
-
-   No destructors for automatic objects are called. If replacing of std::longjmp with
-   throw and setjmp with catch would execute a non-trivial destructor for any automatic
-   object, the behavior of such std::longjmp is undefined.
+   words, only long jumps up the call stack are allowed).
 
 .SH Parameters
 
    env    - variable referring to the execution state of the program saved by setjmp
-   status - the value to return from setjmp. If it is equal to 0, 1 is used
-            instead
+   status - the value to return from setjmp. If it is equal to 0, 1 is used instead
 
 .SH Return value
 
@@ -30,44 +25,86 @@ std::longjmp \- std::longjmp
 
 .SH Notes
 
-   longjmp is the mechanism used in C to handle unexpected error conditions where the
-   function cannot return meaningfully. C++ generally uses exception handling for this
-   purpose.
+   std::longjmp is the mechanism used in C to handle unexpected error conditions where
+   the function cannot return meaningfully. C++ generally uses exception handling for
+   this purpose.
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
+ #include <array>
+ #include <cmath>
  #include <csetjmp>
+ #include <cstdlib>
+ #include <format>
+ #include <iostream>
 
- std::jmp_buf my_jump_buffer;
+ std::jmp_buf solver_error_handler;
 
- [[noreturn]] void foo(int count)
+ std::array<double, 2> solve_quadratic_equation(double a, double b, double c)
  {
-     std::cout << "foo(" << count << ") called\\n";
-     std::longjmp(my_jump_buffer, count+1);  // setjmp() will return count+1
+     const double discriminant = b * b - 4.0 * a * c;
+     if (discriminant < 0)
+         std::longjmp(solver_error_handler, true); // Go to error handler
+
+     const double delta = std::sqrt(discriminant) / (2.0 * a);
+     const double argmin = -b / (2.0 * a);
+     return {argmin - delta, argmin + delta};
+ }
+
+ void show_quadratic_equation_solution(double a, double b, double c)
+ {
+     std::cout << std::format("Solving {}x² + {}x + {} = 0...\\n", a, b, c);
+     auto [x_0, x_1] = solve_quadratic_equation(a, b, c);
+     std::cout << std::format("x₁ = {}, x₂ = {}\\n\\n", x_0, x_1);
  }
 
  int main()
  {
-     volatile int count = 0; // modified locals in setjmp scope must be volatile
-     if (setjmp(my_jump_buffer) != 5) { // equality against constant expression in an if
-         count = count + 1; // ++count, count += 1, etc on 'volatile'-qualified
-                            // left operand are deprecated since C++20 (P1152)
-         foo(count); // This will cause setjmp() to exit
+     if (setjmp(solver_error_handler))
+     {
+         // Error handler for solver
+         std::cout << "No real solution\\n";
+         return EXIT_FAILURE;
      }
+
+     for (auto [a, b, c] : {std::array{1, -3, 2}, {2, -3, -2}, {1, 2, 3}})
+         show_quadratic_equation_solution(a, b, c);
+
+     return EXIT_SUCCESS;
  }
 
 .SH Output:
 
- foo\fB(1)\fP called
- foo\fB(2)\fP called
- foo\fB(3)\fP called
- foo\fB(4)\fP called
+ Solving 1x² + -3x + 2 = 0...
+ x₁ = 1, x₂ = 2
+
+ Solving 2x² + -3x + -2 = 0...
+ x₁ = -0.5, x₂ = 2
+
+ Solving 1x² + 2x + 3 = 0...
+ No real solution
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to         Behavior as published              Correct behavior
+   LWG 619 C++98      the wording of the extra restrictions improved the wording
+                      in C++ was vague
+                      the behavior was undefined if         the behavior is only
+                      replacing                             undefined
+   LWG 894 C++98      std::longjmp with throw and setjmp    if a non-trivial destructor
+                      with                                  for
+                      catch would destroy any automatic     any automatic object is
+                      object                                invoked
 
 .SH See also
 
    setjmp saves the context
           \fI(function macro)\fP
+   C documentation for
+   longjmp

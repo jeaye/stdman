@@ -1,4 +1,4 @@
-.TH std::result_of,std::invoke_result 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::result_of,std::invoke_result 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::result_of,std::invoke_result \- std::result_of,std::invoke_result
 
@@ -11,7 +11,7 @@ std::result_of,std::invoke_result \- std::result_of,std::invoke_result
    template< class F, class... ArgTypes >     (removed in C++20)
 
    class result_of<F(ArgTypes...)>;
-   template< class F, class... ArgTypes>  \fB(2)\fP \fI(since C++17)\fP
+   template< class F, class... ArgTypes > \fB(2)\fP \fI(since C++17)\fP
    class invoke_result;
 
    Deduces the return type of an INVOKE expression at compile time.
@@ -22,8 +22,8 @@ std::result_of,std::invoke_result \- std::result_of,std::invoke_result
    F and all types in ArgTypes can be any complete type, array of unknown \fI(since C++14)\fP
    bound, or (possibly cv-qualified) void.
 
-   The behavior of a program that adds specializations for any of the templates
-   described on this page is undefined.
+   If the program adds specializations for any of the templates described on this page,
+   the behavior is undefined.
 
 .SH Member types
 
@@ -39,83 +39,87 @@ std::result_of,std::invoke_result \- std::result_of,std::invoke_result
    template< class T >                                            \fI(since C++14)\fP
    using result_of_t = typename result_of<T>::type;           \fB(1)\fP (deprecated in C++17)
                                                                   (removed in C++20)
-   template< class F, class... ArgTypes>
+   template< class F, class... ArgTypes >
    using invoke_result_t = typename invoke_result<F,          \fB(2)\fP \fI(since C++17)\fP
    ArgTypes...>::type;
 
 .SH Possible implementation
 
- namespace detail {
- template <class T>
- struct is_reference_wrapper : std::false_type {};
- template <class U>
- struct is_reference_wrapper<std::reference_wrapper<U>> : std::true_type {};
-
- template<class T>
- struct invoke_impl {
-     template<class F, class... Args>
-     static auto call(F&& f, Args&&... args)
-         -> decltype(std::forward<F>(f)(std::forward<Args>(args)...));
- };
-
- template<class B, class MT>
- struct invoke_impl<MT B::*> {
-     template<class T, class Td = typename std::decay<T>::type,
-         class = typename std::enable_if<std::is_base_of<B, Td>::value>::type
-     >
-     static auto get(T&& t) -> T&&;
-
-     template<class T, class Td = typename std::decay<T>::type,
-         class = typename std::enable_if<is_reference_wrapper<Td>::value>::type
-     >
-     static auto get(T&& t) -> decltype(t.get());
-
-     template<class T, class Td = typename std::decay<T>::type,
-         class = typename std::enable_if<!std::is_base_of<B, Td>::value>::type,
-         class = typename std::enable_if<!is_reference_wrapper<Td>::value>::type
-     >
-     static auto get(T&& t) -> decltype(*std::forward<T>(t));
-
-     template<class T, class... Args, class MT1,
-         class = typename std::enable_if<std::is_function<MT1>::value>::type
-     >
-     static auto call(MT1 B::*pmf, T&& t, Args&&... args)
-         -> decltype((invoke_impl::get(std::forward<T>(t)).*pmf)(std::forward<Args>(args)...));
+ namespace detail
+ {
+     template<class T>
+     struct is_reference_wrapper : std::false_type {};
+     template<class U>
+     struct is_reference_wrapper<std::reference_wrapper<U>> : std::true_type {};
 
      template<class T>
-     static auto call(MT B::*pmd, T&& t)
-         -> decltype(invoke_impl::get(std::forward<T>(t)).*pmd);
- };
+     struct invoke_impl
+     {
+         template<class F, class... Args>
+         static auto call(F&& f, Args&&... args)
+             -> decltype(std::forward<F>(f)(std::forward<Args>(args)...));
+     };
 
- template<class F, class... Args, class Fd = typename std::decay<F>::type>
- auto INVOKE(F&& f, Args&&... args)
-     -> decltype(invoke_impl<Fd>::call(std::forward<F>(f), std::forward<Args>(args)...));
+     template<class B, class MT>
+     struct invoke_impl<MT B::*>
+     {
+         template<class T, class Td = typename std::decay<T>::type,
+             class = typename std::enable_if<std::is_base_of<B, Td>::value>::type>
+         static auto get(T&& t) -> T&&;
 
+         template<class T, class Td = typename std::decay<T>::type,
+             class = typename std::enable_if<is_reference_wrapper<Td>::value>::type>
+         static auto get(T&& t) -> decltype(t.get());
+
+         template<class T, class Td = typename std::decay<T>::type,
+             class = typename std::enable_if<!std::is_base_of<B, Td>::value>::type,
+             class = typename std::enable_if<!is_reference_wrapper<Td>::value>::type>
+         static auto get(T&& t) -> decltype(*std::forward<T>(t));
+
+         template<class T, class... Args, class MT1,
+             class = typename std::enable_if<std::is_function<MT1>::value>::type>
+         static auto call(MT1 B::*pmf, T&& t, Args&&... args)
+             -> decltype((invoke_impl::get(
+                 std::forward<T>(t)).*pmf)(std::forward<Args>(args)...));
+
+         template<class T>
+         static auto call(MT B::*pmd, T&& t)
+             -> decltype(invoke_impl::get(std::forward<T>(t)).*pmd);
+     };
+
+     template<class F, class... Args, class Fd = typename std::decay<F>::type>
+     auto INVOKE(F&& f, Args&&... args)
+         -> decltype(invoke_impl<Fd>::call(std::forward<F>(f),
+             std::forward<Args>(args)...));
  } // namespace detail
 
  // Minimal C++11 implementation:
- template <class> struct result_of;
- template <class F, class... ArgTypes>
- struct result_of<F(ArgTypes...)> {
+ template<class> struct result_of;
+ template<class F, class... ArgTypes>
+ struct result_of<F(ArgTypes...)>
+ {
      using type = decltype(detail::INVOKE(std::declval<F>(), std::declval<ArgTypes>()...));
  };
 
  // Conforming C++14 implementation (is also a valid C++11 implementation):
- namespace detail {
- template <typename AlwaysVoid, typename, typename...>
- struct invoke_result { };
- template <typename F, typename...Args>
- struct invoke_result<decltype(void(detail::INVOKE(std::declval<F>(), std::declval<Args>()...))),
-                  F, Args...> {
-     using type = decltype(detail::INVOKE(std::declval<F>(), std::declval<Args>()...));
- };
+ namespace detail
+ {
+     template<typename AlwaysVoid, typename, typename...>
+     struct invoke_result {};
+     template<typename F, typename...Args>
+     struct invoke_result<
+         decltype(void(detail::INVOKE(std::declval<F>(), std::declval<Args>()...))),
+             F, Args...>
+     {
+         using type = decltype(detail::INVOKE(std::declval<F>(), std::declval<Args>()...));
+     };
  } // namespace detail
 
- template <class> struct result_of;
- template <class F, class... ArgTypes>
+ template<class> struct result_of;
+ template<class F, class... ArgTypes>
  struct result_of<F(ArgTypes...)> : detail::invoke_result<void, F, ArgTypes...> {};
 
- template <class F, class... ArgTypes>
+ template<class F, class... ArgTypes>
  struct invoke_result : detail::invoke_result<void, F, ArgTypes...> {};
 
 .SH Notes
@@ -145,23 +149,29 @@ std::result_of,std::invoke_result \- std::result_of,std::invoke_result
 
  template<class F, class... Args>
  std::result_of_t<F&&(Args&&...)> // instead of std::result_of_t<F(Args...)>, which is wrong
-   my_invoke(F&& f, Args&&... args) {
-     /* implementation */
- }
+     my_invoke(F&& f, Args&&... args)
+     {
+         /* implementation */
+     }
 
-   Feature-test macro: __cpp_lib_result_of_sfinae
+.SH Notes
+
+       Feature-test macro      Value    Std                  Feature
+   __cpp_lib_result_of_sfinae 201210L \fI(C++14)\fP std::result_of and SFINAE
+   __cpp_lib_is_invocable     201703L \fI(C++17)\fP std::is_invocable, std::invoke_result
 
 .SH Examples
 
 
 // Run this code
 
- #include <type_traits>
  #include <iostream>
+ #include <type_traits>
 
- struct S {
+ struct S
+ {
      double operator()(char, int&);
-     float operator()(int) { return 1.0;}
+     float operator()(int) { return 1.0; }
  };
 
  template<class T>

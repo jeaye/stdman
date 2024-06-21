@@ -1,38 +1,37 @@
-.TH std::iota 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::iota 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::iota \- std::iota
 
 .SH Synopsis
    Defined in header <numeric>
-   template< class ForwardIt, class T >                              \fI(since C++11)\fP
-   void iota( ForwardIt first, ForwardIt last, T value );            \fI(until C++20)\fP
-   template< class ForwardIt, class T >                              \fI(since C++20)\fP
-   constexpr void iota( ForwardIt first, ForwardIt last, T value );
+   template< class ForwardIt, class T >                    \fI(since C++11)\fP
+   void iota( ForwardIt first, ForwardIt last, T value );  (constexpr since C++20)
 
    Fills the range [first, last) with sequentially increasing values, starting with
    value and repetitively evaluating ++value.
 
-   Equivalent operation:
+   Equivalent operation (assuming ++value returns the incremented value):
 
- *(first)   = value;
- *(first+1) = ++value;
- *(first+2) = ++value;
- *(first+3) = ++value;
- ...
+ *first   = value;
+ *++first = ++value;
+ *++first = ++value;
+ *++first = ++value;
+ // repeats until “last” is reached
+
+   If any of the following conditions is satisfied, the program is ill-formed:
+
+     * T is not convertible to the value type of ForwardIt.
+     * The expression ++val is ill-formed, where val is a variable of type T.
 
 .SH Parameters
 
    first, last - the range of elements to fill with sequentially increasing values
                  starting with value
-   value       - initial value to store; the expression ++value must be well-formed
-
-.SH Return value
-
-   \fI(none)\fP
+   value       - initial value to store
 
 .SH Complexity
 
-   Exactly last - first increments and assignments.
+   Exactly std::distance(first, last) increments and assignments.
 
 .SH Possible implementation
 
@@ -40,10 +39,8 @@ std::iota \- std::iota
    constexpr // since C++20
    void iota(ForwardIt first, ForwardIt last, T value)
    {
-       while(first != last) {
-           *first++ = value;
-           ++value;
-       }
+       for (; first != last; ++first, ++value)
+           *first = value;
    }
 
 .SH Notes
@@ -73,7 +70,7 @@ std::iota \- std::iota
      int data[1024]; /* some raw data */
  public:
      explicit BigData(int i = 0) { data[0] = i; /* ... */ }
-     operator int () const { return data[0]; }
+     operator int() const { return data[0]; }
      BigData& operator=(int i) { data[0] = i; return *this; }
      /* ... */
  };
@@ -91,11 +88,13 @@ std::iota \- std::iota
      std::shuffle(v.begin(), v.end(), std::mt19937{std::random_device{}()});
 
      std::cout << "Original contents of the list l:\\t";
-     for(auto const& n: l) std::cout << std::setw(2) << n << ' ';
+     for (const auto& n : l)
+         std::cout << std::setw(2) << n << ' ';
      std::cout << '\\n';
 
      std::cout << "Contents of l, viewed via shuffled v:\\t";
-     for(auto const i: v) std::cout << std::setw(2) << *i << ' ';
+     for (const auto i : v)
+         std::cout << std::setw(2) << *i << ' ';
      std::cout << '\\n';
  }
 

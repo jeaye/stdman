@@ -1,4 +1,4 @@
-.TH std::unordered_multimap::emplace 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::unordered_multimap::emplace 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unordered_multimap::emplace \- std::unordered_multimap::emplace
 
@@ -6,16 +6,19 @@ std::unordered_multimap::emplace \- std::unordered_multimap::emplace
    template< class... Args >            \fI(since C++11)\fP
    iterator emplace( Args&&... args );
 
-   Inserts a new element into the container constructed in-place with the given args .
+   Inserts a new element into the container constructed in-place with the given args.
+
+   The constructor of the new element (i.e. std::pair<const Key, T>) is called with
+   exactly the same arguments as supplied to emplace, forwarded via
+   std::forward<Args>(args)....
 
    Careful use of emplace allows the new element to be constructed while avoiding
-   unnecessary copy or move operations. The constructor of the new element (i.e.
-   std::pair<const Key, T>) is called with exactly the same arguments as supplied to
-   emplace, forwarded via std::forward<Args>(args)....
+   unnecessary copy or move operations.
 
-   If rehashing occurs due to the insertion, all iterators are invalidated. Otherwise
-   iterators are not affected. References are not invalidated. Rehashing occurs only if
-   the new number of elements is greater than max_load_factor()*bucket_count().
+   If after the operation the new number of elements is greater than old
+   max_load_factor() * bucket_count() a rehashing takes place.
+   If rehashing occurs (due to the insertion), all iterators are invalidated. Otherwise
+   (no rehashing), iterators are not invalidated.
 
 .SH Parameters
 
@@ -23,12 +26,12 @@ std::unordered_multimap::emplace \- std::unordered_multimap::emplace
 
 .SH Return value
 
-   Returns an iterator to the inserted element.
+   An iterator to the inserted element.
 
 .SH Exceptions
 
-   If an exception is thrown by any operation, this function has no effect (strong
-   exception guarantee).
+   If an exception is thrown for any reason, this function has no effect (strong
+   exception safety guarantee).
 
 .SH Complexity
 
@@ -40,8 +43,8 @@ std::unordered_multimap::emplace \- std::unordered_multimap::emplace
 // Run this code
 
  #include <iostream>
- #include <utility>
  #include <string>
+ #include <utility>
  #include <unordered_map>
 
  int main()
@@ -57,15 +60,16 @@ std::unordered_multimap::emplace \- std::unordered_multimap::emplace
      // uses pair's template constructor
      m.emplace("d", "ddd");
 
+     // emplace with duplicate key
+     m.emplace("d", "DDD");
+
      // uses pair's piecewise constructor
      m.emplace(std::piecewise_construct,
                std::forward_as_tuple("c"),
                std::forward_as_tuple(10, 'c'));
 
-
-     for (const auto &p : m) {
+     for (const auto& p : m)
          std::cout << p.first << " => " << p.second << '\\n';
-     }
  }
 
 .SH Possible output:
@@ -74,12 +78,16 @@ std::unordered_multimap::emplace \- std::unordered_multimap::emplace
  b => abcd
  c => cccccccccc
  d => ddd
+ d => DDD
 
 .SH See also
 
    emplace_hint constructs elements in-place using a hint
-   \fI(C++11)\fP      \fI(public member function)\fP
+                \fI(public member function)\fP
+                inserts in-place if the key does not exist, does nothing if the key
+   try_emplace  exists
+                \fI(public member function)\fP
                 inserts elements
    insert       or nodes
-   \fI(C++11)\fP      \fI(since C++17)\fP
+                \fI(since C++17)\fP
                 \fI(public member function)\fP

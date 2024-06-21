@@ -1,0 +1,133 @@
+.TH std::basic_format_string,std::format_string,std::wformat_string 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::basic_format_string,std::format_string,std::wformat_string \- std::basic_format_string,std::format_string,std::wformat_string
+
+.SH Synopsis
+   Defined in header <format>
+   template< class CharT, class... Args >                           \fB(1)\fP \fI(since C++20)\fP
+   struct basic_format_string;
+   template< class... Args >
+
+   using format_string =                                            \fB(2)\fP \fI(since C++20)\fP
+
+       basic_format_string<char, std::type_identity_t<Args>...>;
+   template< class... Args >
+
+   using wformat_string =                                           \fB(3)\fP \fI(since C++20)\fP
+
+       basic_format_string<wchar_t, std::type_identity_t<Args>...>;
+
+   Class template std::basic_format_string wraps a std::basic_string_view that will be
+   used by formatting functions.
+
+   The constructor of std::basic_format_string performs compile-time format string
+   checks
+   unless the constructor argument is returned by std::runtime_format
+   (since C++26).
+
+.SH Member functions
+
+                 constructs a basic_format_string, raising compile error if the
+   constructor   argument is not a format string
+                 \fI(public member function)\fP
+   get           returns the wrapped string
+                 \fI(public member function)\fP
+
+std::basic_format_string::basic_format_string
+
+   template< class T >                                                \fB(1)\fP
+   consteval basic_format_string( const T& s );
+   basic_format_string( /* runtime-format-string */<CharT> s )        \fB(2)\fP (since C++26)
+   noexcept;
+
+   1) Constructs a basic_format_string object that stores a view of string s. If the
+   argument is not a compile-time constant, or if it cannot be parsed as a format
+   string for the formatting argument types Args, the construction is ill-formed.
+   This overload participates in overload resolution only if const T& models
+   std::convertible_to<std::basic_string_view<CharT>>.
+   2) Constructs a basic_format_string object that stores a view of string s as
+   returned by std::runtime_format. It does not perform format string checks upon
+   construction.
+
+.SH Parameters
+
+       an object that represents the format string. The format string consists of
+         * ordinary characters (except { and }), which are copied unchanged to the
+           output,
+         * escape sequences {{ and }}, which are replaced with { and } respectively in
+           the output, and
+         * replacement fields.
+
+       Each replacement field has the following format:
+
+       { arg-id (optional) }               \fB(1)\fP
+       { arg-id (optional) : format-spec } \fB(2)\fP
+
+       1) replacement field without a format specification
+       2) replacement field with a format specification
+
+                     specifies the index of the argument in args whose value is to be
+                     used for formatting; if it is omitted, the arguments are used in
+       arg-id      - order.
+
+                     The arg-id s in a format string must all be present or all be
+                     omitted. Mixing manual and automatic indexing is an error.
+   s -               the format specification defined by the std::formatter
+       format-spec - specialization for the corresponding argument. Cannot start with
+                     }.
+
+         * For basic types and standard string types, the format specification is
+           interpreted as standard format specification.
+         * For chrono types, the format specification is interpreted as chrono format
+           specification.
+
+         * For range types, the format specification is interpreted as
+           range format specification.
+         * For std::pair and std::tuple, the format specification is
+           interpreted as tuple format specification.                     (since C++23)
+         * For std::thread::id and std::stacktrace_entry, see thread id
+           format specification and stacktrace entry format
+           specification.
+         * For std::basic_stacktrace, no format specifier is allowed.
+
+         * For std::filesystem::path, see path format specification.   (since C++26)
+
+         * For other formattable types, the format specification is determined by
+           user-defined formatter specializations.
+
+std::basic_format_string::get
+
+   constexpr std::basic_string_view<CharT> get() const noexcept;
+
+   Returns the stored string view.
+
+.SH Notes
+
+   The alias templates format_string and wformat_string use std::type_identity_t to
+   inhibit template argument deduction. Typically, when they appear as a function
+   parameter, their template arguments are deduced from other function arguments.
+
+ template<class... Args>
+ std::string format(std::format_string<Args...> fmt, Args&&... args);
+
+ auto s = format("{} {}", 1.0, 2);
+ // Calls format<double, int>. Args are deduced from 1.0, 2
+ // Due to the use of type_identity_t in format_string, template argument deduction
+ // does not consider the type of the format string.
+
+.SH Example
+
+    This section is incomplete
+    Reason: no example
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to       Behavior as published              Correct behavior
+   P2508R1 C++20      there's no user-visible name for  the name basic_format_string is
+                      this facility                     exposed
+
+.SH Category:
+     * Todo no example

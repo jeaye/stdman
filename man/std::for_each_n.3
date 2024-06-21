@@ -1,52 +1,58 @@
-.TH std::for_each_n 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::for_each_n 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::for_each_n \- std::for_each_n
 
 .SH Synopsis
    Defined in header <algorithm>
-   template< class InputIt, class Size, class UnaryFunction >             \fI(since C++17)\fP
-   InputIt for_each_n( InputIt first, Size n, UnaryFunction f );          \fI(until C++20)\fP
-   template< class InputIt, class Size, class UnaryFunction >
-   constexpr InputIt for_each_n( InputIt first, Size n,                   \fI(since C++20)\fP
-   UnaryFunction f );                                             \fB(1)\fP
-   template< class ExecutionPolicy, class ForwardIt, class Size,
-   class UnaryFunction2 >                                             \fB(2)\fP \fI(since C++17)\fP
-   ForwardIt for_each_n( ExecutionPolicy&& policy, ForwardIt
-   first, Size n, UnaryFunction2 f );
+   template< class InputIt, class Size, class UnaryFunc >       \fI(since C++17)\fP
+   InputIt for_each_n( InputIt first, Size n, UnaryFunc f   \fB(1)\fP (constexpr since C++20)
+   );
+   template< class ExecutionPolicy,
 
-   1) Applies the given function object f to the result of dereferencing every iterator
-   in the range [first, first + n), in order.
-   2) Applies the given function object f to the result of dereferencing every iterator
-   in the range [first, first + n) (not necessarily in order). The algorithm is
-   executed according to policy. This overload does not participate in overload
-   resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+             class ForwardIt, class Size, class UnaryFunc >
+   ForwardIt for_each_n( ExecutionPolicy&& policy,          \fB(2)\fP \fI(since C++17)\fP
 
-   For both overloads, if the iterator type is mutable, f may modify the elements of
-   the range through the dereferenced iterator. If f returns a result, the result is
-   ignored. If n is less than zero, the behavior is undefined.
+                         ForwardIt first, Size n, UnaryFunc
+   f );
+
+   Applies the given function object f to the result of dereferencing every iterator in
+   the range [first, first + n). If f returns a result, the result is ignored.
+
+   1) f is applied in order starting from first.
+   If UnaryFunc is not MoveConstructible, the behavior is undefined.
+   2) f might not be applied in order. The algorithm is executed according to policy.
+   This overload participates in overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
+
+   If UnaryFunc is not CopyConstructible, the behavior is undefined.
+
+   If n >= 0 is not true, the behavior is undefined.
+
+   If the iterator type (InputIt/ForwardIt) is mutable, f may modify the elements of
+   the range through the dereferenced iterator.
 
    Unlike the rest of the parallel algorithms, for_each_n is not allowed to make copies
-   of the elements in the sequence even if they are trivially copyable.
+   of the elements in the sequence even if they are TriviallyCopyable.
 
 .SH Parameters
 
-   first    -  the beginning of the range to apply the function to
-   n        -  the number of elements to apply the function to
-   policy   -  the execution policy to use. See execution policy for details.
-               function object, to be applied to the result of dereferencing every
-               iterator in the range [first, first + n)
+   first  - the beginning of the range to apply the function to
+   n      - the number of elements to apply the function to
+   policy - the execution policy to use. See execution policy for details.
+            function object, to be applied to the result of dereferencing every
+            iterator in the range [first, first + n)
 
-               The signature of the function should be equivalent to the following:
+            The signature of the function should be equivalent to the following:
 
-   f        -  void fun(const Type &a);
+   f      -  void fun(const Type &a);
 
-               The signature does not need to have const &.
-               The type Type must be such that an object of type InputIt can be
-               dereferenced and then implicitly converted to Type.
+            The signature does not need to have const &.
+            The type  Type must be such that an object of type InputIt can be
+            dereferenced and then implicitly converted to  Type.
 
 
 .SH Type requirements
@@ -55,10 +61,7 @@ std::for_each_n \- std::for_each_n
    -
    ForwardIt must meet the requirements of LegacyForwardIterator.
    -
-   UnaryFunction must meet the requirements of MoveConstructible. Does not have to be
-   CopyConstructible
-   -
-   UnaryFunction2 must meet the requirements of CopyConstructible.
+   Size must be convertible to an integral type.
 
 .SH Return value
 
@@ -66,7 +69,7 @@ std::for_each_n \- std::for_each_n
 
 .SH Complexity
 
-   Exactly n applications of f
+   Exactly n applications of f.
 
 .SH Exceptions
 
@@ -82,12 +85,12 @@ std::for_each_n \- std::for_each_n
 
    See also the implementation in libstdc++, libc++ and MSVC stdlib.
 
-   template<class InputIt, class Size, class UnaryFunction>
-   InputIt for_each_n(InputIt first, Size n, UnaryFunction f)
+   template<class InputIt, class Size, class UnaryFunc>
+   InputIt for_each_n(InputIt first, Size n, UnaryFunc f)
    {
-       for (Size i = 0; i < n; ++first, (void) ++i) {
+       for (Size i = 0; i < n; ++first, (void) ++i)
            f(*first);
-       }
+
        return first;
    }
 
@@ -100,20 +103,25 @@ std::for_each_n \- std::for_each_n
  #include <iostream>
  #include <vector>
 
+ void println(auto const& v)
+ {
+     for (auto count{v.size()}; const auto& e : v)
+         std::cout << e << (--count ? ", " : "\\n");
+ }
+
  int main()
  {
-     std::vector<int> ns{1, 2, 3, 4, 5};
-     for (auto n: ns) std::cout << n << ", ";
-     std::cout << '\\n';
-     std::for_each_n(ns.begin(), 3, [](auto& n){ n *= 2; });
-     for (auto n: ns) std::cout << n << ", ";
-     std::cout << '\\n';
+     std::vector<int> vi{1, 2, 3, 4, 5};
+     println(vi);
+
+     std::for_each_n(vi.begin(), 3, [](auto& n) { n *= 2; });
+     println(vi);
  }
 
 .SH Output:
 
- 1, 2, 3, 4, 5,
- 2, 4, 6, 4, 5,
+ 1, 2, 3, 4, 5
+ 2, 4, 6, 4, 5
 
 .SH See also
 
@@ -123,6 +131,6 @@ std::for_each_n \- std::for_each_n
    range-for loop\fI(C++11)\fP executes loop over range
    for_each              applies a function to a range of elements
                          \fI(function template)\fP
-   ranges::for_each_n    applies a function object to the first n elements of a
+   ranges::for_each_n    applies a function object to the first N elements of a
    (C++20)               sequence
                          (niebloid)

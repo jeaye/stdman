@@ -1,4 +1,4 @@
-.TH std::is_unsigned 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_unsigned 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_unsigned \- std::is_unsigned
 
@@ -7,30 +7,33 @@ std::is_unsigned \- std::is_unsigned
    template< class T >              \fI(since C++11)\fP
    struct is_unsigned;
 
-   If T is an integral type, provides the member constant value equal to true if T\fB(0)\fP <
-   T(-1): this results in true for the unsigned integer types and the type bool and in
-   false for the signed integer types and the floating-point types.
+   std::is_unsigned is a UnaryTypeTrait.
+
+   If T is an arithmetic type, provides the member constant value equal to true if T\fB(0)\fP
+   < T(-1): this results in true for the unsigned integer types and the type bool and
+   in false for the signed integer types and the floating-point types.
 
    For any other type, value is false.
 
-   The behavior of a program that adds specializations for is_unsigned
-   or is_unsigned_v
-   \fI(since C++17)\fP is undefined.
+   If the program adds specializations for std::is_unsigned or std::is_unsigned_v, the
+   behavior is undefined.
 
 .SH Template parameters
 
    T - a type to check
 
-  Helper variable template
+   Helper variable template
 
    template< class T >                                           \fI(since C++17)\fP
    inline constexpr bool is_unsigned_v = is_unsigned<T>::value;
+
+
 
 Inherited from std::integral_constant
 
 .SH Member constants
 
-   value    true if T is an unsigned integral type , false otherwise
+   value    true if T is an unsigned integral type, false otherwise
    \fB[static]\fP \fI(public static member constant)\fP
 
 .SH Member functions
@@ -48,12 +51,13 @@ Inherited from std::integral_constant
 
 .SH Possible implementation
 
-   namespace detail {
-   template<typename T,bool = std::is_arithmetic<T>::value>
-   struct is_unsigned : std::integral_constant<bool, T\fB(0)\fP < T(-1)> {};
+   namespace detail
+   {
+       template<typename T,bool = std::is_arithmetic<T>::value>
+       struct is_unsigned : std::integral_constant<bool, T\fB(0)\fP < T(-1)> {};
 
-   template<typename T>
-   struct is_unsigned<T,false> : std::false_type {};
+       template<typename T>
+       struct is_unsigned<T,false> : std::false_type {};
    } // namespace detail
 
    template<typename T>
@@ -68,33 +72,42 @@ Inherited from std::integral_constant
  #include <type_traits>
 
  class A {};
+ static_assert(std::is_unsigned_v<A> == false);
+
  enum B : unsigned {};
+ static_assert(std::is_unsigned_v<B> == false);
+
  enum class C : unsigned {};
+ static_assert(std::is_unsigned_v<C> == false);
+
+ struct S { unsigned p : 1; int q : 1; };
+ static_assert(
+     std::is_unsigned_v<decltype(S::p)> not_eq
+     std::is_unsigned_v<decltype(S::q)>
+ );
+
+ static_assert(
+     std::is_unsigned_v<float> == false &&
+     std::is_unsigned_v<signed int> == false &&
+     std::is_unsigned_v<unsigned int> == true &&
+     std::is_unsigned_v<bool> == true
+ );
 
  int main()
  {
-     std::cout << std::boolalpha;
-     std::cout << std::is_unsigned<A>::value << '\\n';
-     std::cout << std::is_unsigned<float>::value << '\\n';
-     std::cout << std::is_unsigned<signed int>::value << '\\n';
-     std::cout << std::is_unsigned<unsigned int>::value << '\\n';
-     std::cout << std::is_unsigned<B>::value << '\\n';
-     std::cout << std::is_unsigned<C>::value << '\\n';
+     std::cout << std::boolalpha << std::is_unsigned<char>::value << '\\n';
  }
 
-.SH Output:
+.SH Possible output:
 
- false
- false
- false
- true
- false
  false
 
 .SH See also
 
    is_signed     checks if a type is a signed arithmetic type
    \fI(C++11)\fP       \fI(class template)\fP
+   is_signed     identifies signed types
+   \fB[static]\fP      \fI(public static member constant of std::numeric_limits<T>)\fP
    is_arithmetic checks if a type is an arithmetic type
    \fI(C++11)\fP       \fI(class template)\fP
    make_signed   makes the given integral type signed

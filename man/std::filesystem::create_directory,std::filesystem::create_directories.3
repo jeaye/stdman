@@ -1,28 +1,28 @@
-.TH std::filesystem::create_directory,std::filesystem::create_directories 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::create_directory,std::filesystem::create_directories 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::create_directory,std::filesystem::create_directories \- std::filesystem::create_directory,std::filesystem::create_directories
 
 .SH Synopsis
    Defined in header <filesystem>
-   bool create_directory( const std::filesystem::path& p );
-   bool create_directory( const std::filesystem::path& p,             \fB(1)\fP \fI(since C++17)\fP
+   bool create_directory( const std::filesystem::path& p );           \fB(1)\fP \fI(since C++17)\fP
+   bool create_directory( const std::filesystem::path& p,             \fB(2)\fP \fI(since C++17)\fP
    std::error_code& ec ) noexcept;
+   bool create_directory( const std::filesystem::path& p,             \fB(3)\fP \fI(since C++17)\fP
+                          const std::filesystem::path& existing_p );
    bool create_directory( const std::filesystem::path& p,
 
-   const std::filesystem::path& existing_p );
-   bool create_directory( const std::filesystem::path& p,             \fB(2)\fP \fI(since C++17)\fP
-   const std::filesystem::path& existing_p,
+                          const std::filesystem::path& existing_p,    \fB(4)\fP \fI(since C++17)\fP
 
-   std::error_code& ec ) noexcept;
-   bool create_directories( const std::filesystem::path& p );
-   bool create_directories( const std::filesystem::path& p,           \fB(3)\fP \fI(since C++17)\fP
+                          std::error_code& ec ) noexcept;
+   bool create_directories( const std::filesystem::path& p );         \fB(5)\fP \fI(since C++17)\fP
+   bool create_directories( const std::filesystem::path& p,           \fB(6)\fP \fI(since C++17)\fP
    std::error_code& ec );
 
-   1) Creates the directory p as if by POSIX mkdir() with a second argument of
+   1,2) Creates the directory p as if by POSIX mkdir() with a second argument of
    static_cast<int>(std::filesystem::perms::all) (the parent directory must already
    exist). If the function fails because p resolves to an existing directory, no error
    is reported. Otherwise on failure an error is reported.
-   2) Same as \fB(1)\fP, except that the attributes of the new directory are copied from
+   3,4) Same as (1,2), except that the attributes of the new directory are copied from
    existing_p (which must be a directory that exists). It is OS-dependent which
    attributes are copied: on POSIX systems, the attributes are copied as if by
 
@@ -30,7 +30,7 @@ std::filesystem::create_directory,std::filesystem::create_directories \- std::fi
  mkdir(p.c_str(), attributes_stat.st_mode)
 
    On Windows OS, no attributes of existing_p are copied.
-   3) Executes \fB(1)\fP for every element of p that does not already exist. If p already
+   5,6) Executes (1,2) for every element of p that does not already exist. If p already
    exists, the function does nothing (this condition is not treated as an error).
 
 .SH Parameters
@@ -41,51 +41,62 @@ std::filesystem::create_directory,std::filesystem::create_directories \- std::fi
 
 .SH Return value
 
-   true if a directory was created for the directory p resolves to, false otherwise.
+   true if a directory was newly created for the directory p resolves to, false
+   otherwise.
 
 .SH Exceptions
 
-   1,3) The overload that does not take a std::error_code& parameter throws
-   filesystem::filesystem_error on underlying OS API errors, constructed with p as the
-   first path argument and the OS error code as the error code argument. The overload
-   taking a std::error_code& parameter sets it to the OS API error code if an OS API
-   call fails, and executes ec.clear() if no errors occur. Any overload not marked
-   noexcept may throw std::bad_alloc if memory allocation fails.
-   2) The overload that does not take a std::error_code& parameter throws
-   filesystem::filesystem_error on underlying OS API errors, constructed with p as the
-   first path argument, existing_p as the second path argument, and the OS error code
-   as the error code argument. The overload taking a std::error_code& parameter sets it
-   to the OS API error code if an OS API call fails, and executes ec.clear() if no
-   errors occur. Any overload not marked noexcept may throw std::bad_alloc if memory
-   allocation fails.
+   Any overload not marked noexcept may throw std::bad_alloc if memory allocation
+   fails.
+
+   1,5) Throws std::filesystem::filesystem_error on underlying OS API errors,
+   constructed with p as the first path argument and the OS error code as the error
+   code argument.
+   2,6) Sets a std::error_code& parameter to the OS API error code if an OS API call
+   fails, and executes ec.clear() if no errors occur.
+   3) Throws std::filesystem::filesystem_error on underlying OS API errors, constructed
+   with p as the first path argument, existing_p as the second path argument, and the
+   OS error code as the error code argument.
+   4) Sets a std::error_code& parameter to the OS API error code if an OS API call
+   fails, and executes ec.clear() if no errors occur.
 
 .SH Notes
 
-   The attribute-preserving overload \fB(2)\fP is implicitly invoked by copy() when
+   The attribute-preserving overload (3,4) is implicitly invoked by copy() when
    recursively copying directories. Its equivalent in boost.filesystem is
-   copy_directory (with argument order reversed)
+   copy_directory (with argument order reversed).
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
- #include <fstream>
+ #include <cassert>
  #include <cstdlib>
  #include <filesystem>
- namespace fs = std::filesystem;
 
  int main()
  {
-     fs::current_path(fs::temp_directory_path());
-     fs::create_directories("sandbox/1/2/a");
-     fs::create_directory("sandbox/1/2/b");
-     fs::permissions("sandbox/1/2/b", fs::perms::others_all, fs::perm_options::remove);
-     fs::create_directory("sandbox/1/2/c", "sandbox/1/2/b");
+     std::filesystem::current_path(std::filesystem::temp_directory_path());
+
+     // Basic usage
+     std::filesystem::create_directories("sandbox/1/2/a");
+     std::filesystem::create_directory("sandbox/1/2/b");
+
+     // Directory already exists (false returned, no error)
+     assert(!std::filesystem::create_directory("sandbox/1/2/b"));
+
+     // Permissions copying usage
+     std::filesystem::permissions(
+         "sandbox/1/2/b",
+         std::filesystem::perms::others_all,
+         std::filesystem::perm_options::remove
+     );
+     std::filesystem::create_directory("sandbox/1/2/c", "sandbox/1/2/b");
+
      std::system("ls -l sandbox/1/2");
      std::system("tree sandbox");
-     fs::remove_all("sandbox");
+     std::filesystem::remove_all("sandbox");
  }
 
 .SH Possible output:
@@ -100,13 +111,13 @@ std::filesystem::create_directory,std::filesystem::create_directories \- std::fi
          ├── b
          └── c
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
       DR    Applied to              Behavior as published              Correct behavior
-   LWG 2935 C++17      error if target already exists but isn't a      not error
+   LWG 2935 C++17      error if target already exists but is not a     not error
                        directory
    LWG 3014 C++17      error_code overload of create_directories       noexcept removed
                        marked noexcept but can allocate memory

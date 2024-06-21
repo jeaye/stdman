@@ -1,14 +1,13 @@
-.TH std::map::emplace_hint 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::map::emplace_hint 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::map::emplace_hint \- std::map::emplace_hint
 
 .SH Synopsis
-   template <class... Args>                                       \fI(since C++11)\fP
+   template< class... Args >                                      \fI(since C++11)\fP
    iterator emplace_hint( const_iterator hint, Args&&... args );
 
-   Inserts a new element to the container as close as possible to the position just
-   before hint. The element is constructed in-place, i.e. no copy or move operations
-   are performed.
+   Inserts a new element into the container as close as possible to the position just
+   before hint.
 
    The constructor of the element type (value_type, that is, std::pair<const Key, T>)
    is called with exactly the same arguments as supplied to the function, forwarded
@@ -23,15 +22,12 @@ std::map::emplace_hint \- std::map::emplace_hint
 
 .SH Return value
 
-   Returns an iterator to the newly inserted element.
-
-   If the insertion failed because the element already exists, returns an iterator to
-   the already existing element with the equivalent key.
+   An iterator to the inserted element, or to the element that prevented the insertion.
 
 .SH Exceptions
 
-   If an exception is thrown by any operation, this function has no effect (strong
-   exception guarantee).
+   If an exception is thrown for any reason, this function has no effect (strong
+   exception safety guarantee).
 
 .SH Complexity
 
@@ -44,87 +40,98 @@ std::map::emplace_hint \- std::map::emplace_hint
 // Run this code
 
  #include <chrono>
+ #include <cstddef>
  #include <functional>
  #include <iomanip>
  #include <iostream>
  #include <map>
 
- const int n_operations = 100500;
+ const int n_operations = 100'500'0;
 
- std::size_t map_emplace() {
+ std::size_t map_emplace()
+ {
      std::map<int, char> map;
-     for (int i = 0; i < n_operations; ++i) {
+     for (int i = 0; i < n_operations; ++i)
          map.emplace(i, 'a');
-     }
      return map.size();
  }
 
- std::size_t map_emplace_hint() {
+ std::size_t map_emplace_hint()
+ {
      std::map<int, char> map;
      auto it = map.begin();
-     for (int i = 0; i < n_operations; ++i) {
+     for (int i = 0; i < n_operations; ++i)
+     {
          map.emplace_hint(it, i, 'b');
          it = map.end();
      }
      return map.size();
  }
 
- std::size_t map_emplace_hint_wrong() {
+ std::size_t map_emplace_hint_wrong()
+ {
      std::map<int, char> map;
      auto it = map.begin();
-     for (int i = n_operations; i > 0; --i) {
+     for (int i = n_operations; i > 0; --i)
+     {
          map.emplace_hint(it, i, 'c');
          it = map.end();
      }
      return map.size();
  }
 
- std::size_t map_emplace_hint_corrected() {
+ std::size_t map_emplace_hint_corrected()
+ {
      std::map<int, char> map;
      auto it = map.begin();
-     for (int i = n_operations; i > 0; --i) {
+     for (int i = n_operations; i > 0; --i)
+     {
          map.emplace_hint(it, i, 'd');
          it = map.begin();
      }
      return map.size();
  }
 
- std::size_t map_emplace_hint_closest() {
+ std::size_t map_emplace_hint_closest()
+ {
      std::map<int, char> map;
      auto it = map.begin();
-     for (int i = 0; i < n_operations; ++i) {
+     for (int i = 0; i < n_operations; ++i)
          it = map.emplace_hint(it, i, 'e');
-     }
      return map.size();
  }
 
- void timeit(std::function<std::size_t()> map_test, std::string what = "") {
-     auto start = std::chrono::system_clock::now();
-     std::size_t mapsize = map_test();
-     auto stop = std::chrono::system_clock::now();
+ double time_it(std::function<std::size_t()> map_test,
+                std::string what = "", double ratio = 0.0)
+ {
+     const auto start = std::chrono::system_clock::now();
+     const std::size_t map_size = map_test();
+     const auto stop = std::chrono::system_clock::now();
      std::chrono::duration<double, std::milli> time = stop - start;
-     if (what.size() > 0 && mapsize > 0) {
-         std::cout << std::setw(5) << time.count() << "  ms for " << what << '\\n';
-     }
+     if (what.size() && map_size)
+         std::cout << std::setw(8) << time << " for " << what << " (ratio: "
+                   << (ratio == 0.0 ? 1.0 : ratio / time.count()) << ")\\n";
+     return time.count();
  }
 
- int main() {
+ int main()
+ {
      std::cout << std::fixed << std::setprecision(2);
-     timeit(map_emplace); // stack warmup
-     timeit(map_emplace, "plain emplace");
-     timeit(map_emplace_hint, "emplace with correct hint");
-     timeit(map_emplace_hint_wrong, "emplace with wrong hint");
-     timeit(map_emplace_hint_corrected, "corrected emplace");
-     timeit(map_emplace_hint_closest, "emplace using returned iterator");
+     time_it(map_emplace); // cache warmup
+     const auto x = time_it(map_emplace, "plain emplace");
+     time_it(map_emplace_hint, "emplace with correct hint", x);
+     time_it(map_emplace_hint_wrong, "emplace with wrong hint", x);
+     time_it(map_emplace_hint_corrected, "corrected emplace", x);
+     time_it(map_emplace_hint_closest, "emplace using returned iterator", x);
  }
 
 .SH Possible output:
 
- 22.64  ms for plain emplace
-  8.81  ms for emplace with correct hint
- 22.27  ms for emplace with wrong hint
-  7.76  ms for corrected emplace
-  8.30  ms for emplace using returned iterator
+ 365.08ms for plain emplace (ratio: 1.00)
+  96.54ms for emplace with correct hint (ratio: 3.78)
+ 409.40ms for emplace with wrong hint (ratio: 0.89)
+  85.57ms for corrected emplace (ratio: 4.27)
+  84.31ms for emplace using returned iterator (ratio: 4.33)
 
 .SH See also
 

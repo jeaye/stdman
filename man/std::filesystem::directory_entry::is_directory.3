@@ -1,14 +1,15 @@
-.TH std::filesystem::directory_entry::is_directory 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::directory_entry::is_directory 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::directory_entry::is_directory \- std::filesystem::directory_entry::is_directory
 
 .SH Synopsis
-   bool is_directory() const;                                \fI(since C++17)\fP
-   bool is_directory( std::error_code& ec ) const noexcept;
+   bool is_directory() const;                               \fB(1)\fP \fI(since C++17)\fP
+   bool is_directory( std::error_code& ec ) const noexcept; \fB(2)\fP \fI(since C++17)\fP
 
-   Checks whether the pointed-to object is a directory. Effectively returns
-   std::filesystem::is_directory(status()) or
-   std::filesystem::is_directory(status(ec)), respectively.
+   Checks whether the pointed-to object is a directory. Effectively returns:
+
+   1) std::filesystem::is_directory(status()),
+   2) std::filesystem::is_directory(status(ec)).
 
 .SH Parameters
 
@@ -20,22 +21,29 @@ std::filesystem::directory_entry::is_directory \- std::filesystem::directory_ent
 
 .SH Exceptions
 
-   The overload that does not take a std::error_code& parameter throws
-   filesystem::filesystem_error on underlying OS API errors, constructed with p as the
-   first path argument and the OS error code as the error code argument. The overload
-   taking a std::error_code& parameter sets it to the OS API error code if an OS API
-   call fails, and executes ec.clear() if no errors occur. Any overload not marked
-   noexcept may throw std::bad_alloc if memory allocation fails.
+   Any overload not marked noexcept may throw std::bad_alloc if memory allocation
+   fails.
+
+   1) Throws std::filesystem::filesystem_error on underlying OS API errors, constructed
+   with p as the first path argument and the OS error code as the error code argument.
+   2) Sets a std::error_code& parameter to the OS API error code if an OS API call
+   fails, and executes ec.clear() if no errors occur.
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
  #include <filesystem>
+ #include <iostream>
+ #include <string_view>
 
  namespace fs = std::filesystem;
+
+ void check_directory(fs::directory_entry const& d, std::string_view rem = "")
+ {
+     std::cout << "is_directory(" << d << "): " << d.is_directory() << rem << '\\n';
+ }
 
  int main()
  {
@@ -43,26 +51,26 @@ std::filesystem::directory_entry::is_directory \- std::filesystem::directory_ent
      fs::directory_entry d2("file.txt");
      fs::directory_entry d3("new_dir");
 
-     std::cout << std::boolalpha
-               << ". d1 " << d1.is_directory() << '\\n'
-               << "file.txt d2 " << d2.is_directory() << '\\n'
-               // false because it has not been created
-               << "new_dir d3 " << d3.is_directory() << '\\n';
+     std::cout << std::boolalpha;
 
-     fs::create_directory("new_dir");
+     check_directory(d1);
+     check_directory(d2);
+     check_directory(d3, " (has not been created yet).");
 
-     std::cout << "new_dir d3 before refresh " << d3.is_directory() << '\\n';
+     std::filesystem::create_directory("new_dir");
+
+     check_directory(d3, " (before refresh).");
      d3.refresh();
-     std::cout << "new_dir d3 after refresh " << d3.is_directory() << '\\n';
+     check_directory(d3, " (after refresh).");
  }
 
 .SH Possible output:
 
- . d1 true
- file.txt d2 false
- new_dir d3 false
- new_dir d3 before refresh false
- new_dir d3 after refresh true
+ is_directory("."): true
+ is_directory("file.txt"): false
+ is_directory("new_dir"): false (has not been created yet).
+ is_directory("new_dir"): false (before refresh).
+ is_directory("new_dir"): true (after refresh).
 
 .SH See also
 

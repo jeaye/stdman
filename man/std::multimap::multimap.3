@@ -1,57 +1,80 @@
-.TH std::multimap::multimap 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::multimap::multimap 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::multimap::multimap \- std::multimap::multimap
 
 .SH Synopsis
-   multimap();                                                \fB(1)\fP
-   explicit multimap( const Compare& comp,                    \fB(2)\fP
-   const Allocator& alloc = Allocator() );
-   explicit multimap( const Allocator& alloc );               \fB(3)\fP  \fI(since C++11)\fP
+   multimap();                                                            \fI(until C++11)\fP
+   multimap()                                                             \fI(since C++11)\fP
+       : multimap(Compare()) {}
+   explicit multimap( const Compare& comp,                           \fB(2)\fP
+                      const Allocator& alloc = Allocator() );
+   explicit multimap( const Allocator& alloc );                      \fB(3)\fP  \fI(since C++11)\fP
    template< class InputIt >
 
-   multimap( InputIt first, InputIt last,                     \fB(4)\fP
-   const Compare& comp = Compare(),
+   multimap( InputIt first, InputIt last,                            \fB(4)\fP
+             const Compare& comp = Compare(),
 
-   const Allocator& alloc = Allocator() );
+             const Allocator& alloc = Allocator() );
    template< class InputIt >
 
-   multimap( InputIt first, InputIt last,                     \fB(5)\fP  \fI(since C++14)\fP
+   multimap( InputIt first, InputIt last,                            \fB(5)\fP  \fI(since C++14)\fP
+             const Allocator& alloc )
 
-   const Allocator& alloc );
-   multimap( const multimap& other );                         \fB(6)\fP
-   multimap( const multimap& other, const Allocator& alloc ); \fB(7)\fP  \fI(since C++11)\fP
-   multimap( multimap&& other );                              \fB(8)\fP  \fI(since C++11)\fP
-   multimap( multimap&& other, const Allocator& alloc );      \fB(9)\fP  \fI(since C++11)\fP
+       : multimap(first, last, Compare(), alloc) {}
+   multimap( const multimap& other );                                \fB(6)\fP
+   multimap( const multimap& other, const Allocator& alloc );        \fB(7)\fP  \fI(since C++11)\fP
+   multimap( multimap&& other );                                     \fB(8)\fP  \fI(since C++11)\fP
+   multimap( multimap&& other, const Allocator& alloc );             \fB(9)\fP  \fI(since C++11)\fP
+   multimap( std::initializer_list<value_type> init,             \fB(1)\fP
+
+             const Compare& comp = Compare(),                        \fB(10)\fP \fI(since C++11)\fP
+
+             const Allocator& alloc = Allocator() );
    multimap( std::initializer_list<value_type> init,
 
-   const Compare& comp = Compare(),                           \fB(10)\fP \fI(since C++11)\fP
+             const Allocator& alloc )                                \fB(11)\fP \fI(since C++14)\fP
 
-   const Allocator& alloc = Allocator() );
-   multimap( std::initializer_list<value_type> init,          \fB(11)\fP \fI(since C++14)\fP
-   const Allocator& );
+       : multimap(init, Compare(), alloc) {}
+   template< container-compatible-range<value_type> R >
+
+   multimap( std::from_range_t, R&& rg,                              \fB(12)\fP (since C++23)
+             const Compare& comp = Compare(),
+
+             const Allocator& alloc = Allocator() );
+   template< container-compatible-range<value_type> R >
+
+   multimap( std::from_range_t, R&& rg,
+             const Allocator& alloc )                                \fB(13)\fP (since C++23)
+
+       : multimap(std::from_range, std::forward<R>(rg),
+   Compare(), alloc) {}
 
    Constructs new container from a variety of data sources and optionally using user
    supplied allocator alloc or comparison function object comp.
 
    1-3) Constructs an empty container.
-   4-5) Constructs the container with the contents of the range [first, last).
-   6-7) Copy constructor. Constructs the container with the copy of the contents of
+   4,5) Constructs the container with the contents of the range [first, last).
+   If [first, last) is not a valid range, the behavior is undefined.
+   6,7) Copy constructor. Constructs the container with the copy of the contents of
    other.
 
    If alloc is not provided, allocator is obtained by calling                    (since
-   std::allocator_traits<allocator_type>::select_on_container_copy_construction( C++11)
-   other.get_allocator()).
-   The template parameter Allocator is only deduced from the first argument      (since
-   while used in class template argument deduction.                              C++23)
+   std::allocator_traits<allocator_type>::                                       C++11)
+       select_on_container_copy_construction(other.get_allocator()).
+   During class template argument deduction, only the first argument contributes (since
+   to the deduction of the container's Allocator template parameter.             C++23)
 
-   8-9) Move constructor. Constructs the container with the contents of other using
+   8,9) Move constructor. Constructs the container with the contents of other using
    move semantics. If alloc is not provided, allocator is obtained by move-construction
    from the allocator belonging to other.
 
-   The template parameter Allocator is only deduced from the first        (since C++23)
-   argument while used in class template argument deduction.
+   During class template argument deduction, only the first argument
+   contributes to the deduction of the container's Allocator template     (since C++23)
+   parameter.
 
-   10-11) Constructs the container with the contents of the initializer list init.
+   10,11) Initializer-list constructor. Constructs the container with the contents of
+   the initializer list init.
+   12,13) Constructs the container with the contents of rg.
 
 .SH Parameters
 
@@ -61,6 +84,8 @@ std::multimap::multimap \- std::multimap::multimap
    other       - another container to be used as source to initialize the elements of
                  the container with
    init        - initializer list to initialize the elements of the container with
+   rg          - a container compatible range, that is, an input_range whose elements
+                 are convertible to value_type
 .SH Type requirements
    -
    InputIt must meet the requirements of LegacyInputIterator.
@@ -71,12 +96,17 @@ std::multimap::multimap \- std::multimap::multimap
 
 .SH Complexity
 
-   1-3) Constant
-   4-5) N log(N) where N = std::distance(first, last) in general, linear in N if the
-   range is already sorted by value_comp().
-   6-7) Linear in size of other
-   8-9) Constant. If alloc is given and alloc != other.get_allocator(), then linear.
-   10-11) N log(N) where N = init.size() in general, linear in N if init is already
+   1-3) Constant.
+   4,5) \\(\\scriptsize N \\cdot log(N)\\)N·log(N) where \\(\\scriptsize N\\)N is
+   std::distance(first, last) in general, linear in \\(\\scriptsize N\\)N if [first, last)
+   is already sorted by value_comp().
+   6,7) Linear in size of other.
+   8,9) Constant. If alloc is given and alloc != other.get_allocator(), then linear.
+   10,11) \\(\\scriptsize N \\cdot log(N)\\)N·log(N) where \\(\\scriptsize N\\)N is
+   init.size() in general, linear in \\(\\scriptsize N\\)N if init is already sorted by
+   value_comp().
+   12,13) \\(\\scriptsize N \\cdot log(N)\\)N·log(N) where \\(\\scriptsize N\\)N is
+   ranges::distance(rg) in general, linear in \\(\\scriptsize N\\)N if rg is already
    sorted by value_comp().
 
 .SH Exceptions
@@ -85,14 +115,18 @@ std::multimap::multimap \- std::multimap::multimap
 
 .SH Notes
 
-   After container move construction (overload (8-9)), references, pointers, and
+   After container move construction (overload (8,9)), references, pointers, and
    iterators (other than the end iterator) to other remain valid, but refer to elements
    that are now in *this. The current standard makes this guarantee via the blanket
-   statement in [container.requirements.general]/12, and a more direct guarantee is
-   under consideration via LWG 2321.
+   statement in [container.reqmts]/67, and a more direct guarantee is under
+   consideration via LWG issue 2321.
 
    Although not formally required until C++23, some implementations has already put the
    template parameter Allocator into non-deduced contexts in earlier modes.
+
+       Feature-test macro       Value    Std                   Feature
+   __cpp_lib_containers_ranges 202202L (C++23) Ranges-aware construction and insertion;
+                                               overloads (12,13)
 
 .SH Example
 
@@ -101,55 +135,77 @@ std::multimap::multimap \- std::multimap::multimap
 
  #include <iostream>
  #include <map>
+ #include <utility>
 
  struct Point { double x, y; };
- struct PointCmp {
-     bool operator()(const Point& lhs, const Point& rhs) const {
+
+ struct PointCmp
+ {
+     bool operator()(const Point& lhs, const Point& rhs) const
+     {
          return lhs.x < rhs.x; // NB. ignores y on purpose
      }
  };
 
- int main() {
-     std::multimap<int, int> m = {{1,1},{2,2},{3,3},{4,4},{5,5},{4,4},{3,3},{2,2},{1,1}};
-     for(auto& p: m) std::cout << p.first << ' ' << p.second << '\\n';
+ template <typename Key, typename Value, typename Cmp>
+ void println(auto rem, std::multimap<Key, Value, Cmp> const& map)
+ {
+     std::cout << rem << "{ ";
+     for (auto n{map.size()}; auto const& p : map)
+         std::cout << '[' << p.first << ":" << p.second << (--n ? "], " : "]");
+     std::cout << " }\\n";
+ }
 
-     // custom comparison
-     std::multimap<Point, double, PointCmp> mag{
-         { {5, 12}, 13 },
-         { {3, 4}, 5 },
-         { {8, 15}, 17 },
-         { {3, -3}, -1 },
+ int main()
+ {
+     std::multimap<int, int> m1 =
+     {
+         {1, 1}, {2, 2}, {3, 3}, {4, 4}, {4, 4}, {3, 3}, {2, 2}, {1, 1}
      };
+     println("m1 = ", m1);
 
-   for(auto p : mag)
-       std::cout << "The magnitude of (" << p.first.x
-                 << ", " << p.first.y << ") is "
-                 << p.second << '\\n';
+     // Custom comparison
+     std::multimap<Point, double, PointCmp> mag
+     {
+         {{5, 12}, 13},
+         {{3, 4}, 5},
+         {{8, 15}, 17},
+         {{3, -3}, -1}
+     };
+     for (auto p : mag)
+         std::cout << "The magnitude of (" << p.first.x << ", " << p.first.y << ")"
+                      " is " << p.second << '\\n';
+
+     std::cout << "Construction from a range:\\n";
+     using PS = std::pair<int, std::string>;
+     const auto rg = {PS{3, "Earth"}, {2, "Venus"}, {1, "Mercury"}, {3, "Moon"}};
+ #if __cpp_lib_containers_ranges
+     std::multimap<int, std::string> m2(std::from_range, rg); // overload (12)
+ #else
+     std::multimap<int, std::string> m2(rg.begin(), rg.end()); // fallback to (4)
+ #endif
+     println("m2 = ", m2);
  }
 
 .SH Output:
 
- 1 1
- 1 1
- 2 2
- 2 2
- 3 3
- 3 3
- 4 4
- 4 4
- 5 5
+ m1 = { [1:1], [1:1], [2:2], [2:2], [3:3], [3:3], [4:4], [4:4] }
  The magnitude of (3, 4) is 5
  The magnitude of (3, -3) is -1
  The magnitude of (5, 12) is 13
  The magnitude of (8, 15) is 17
+ Construction from a range:
+ m2 = { [1:Mercury], [2:Venus], [3:Earth], [3:Moon] }
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to        Behavior as published        Correct behavior
-   LWG 2193 C++11      the default constructor is explicit made non-explicit
+      DR    Applied to             Behavior as published              Correct behavior
+   LWG 2076 C++11      overload \fB(4)\fP conditionally required Keyand T   not required
+                       to be CopyInsertable into *this
+   LWG 2193 C++11      the default constructor was explicit           made non-explicit
 
 .SH See also
 

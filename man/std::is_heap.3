@@ -1,57 +1,60 @@
-.TH std::is_heap 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_heap 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_heap \- std::is_heap
 
 .SH Synopsis
    Defined in header <algorithm>
-   template< class RandomIt >                               \fI(since C++11)\fP
-   bool is_heap( RandomIt first, RandomIt last );           \fI(until C++20)\fP
-   template< class RandomIt >
-   constexpr bool is_heap( RandomIt first, RandomIt         \fI(since C++20)\fP
-   last );
-   template< class ExecutionPolicy, class RandomIt
-   >                                                    \fB(2)\fP \fI(since C++17)\fP
-   bool is_heap( ExecutionPolicy&& policy, RandomIt
-   first, RandomIt last );
-   template< class RandomIt, class Compare >        \fB(1)\fP                   \fI(since C++11)\fP
-   bool is_heap( RandomIt first, RandomIt last,                           \fI(until C++20)\fP
-   Compare comp );
-   template< class RandomIt, class Compare >
-   constexpr bool is_heap( RandomIt first, RandomIt     \fB(3)\fP               \fI(since C++20)\fP
-   last, Compare comp );
-   template< class ExecutionPolicy, class RandomIt,
-   class Compare >                                          \fB(4)\fP           \fI(since C++17)\fP
-   bool is_heap( ExecutionPolicy&& policy, RandomIt
-   first, RandomIt last, Compare comp );
+   template< class RandomIt >                               \fB(1)\fP \fI(since C++11)\fP
+   bool is_heap( RandomIt first, RandomIt last );               (constexpr since C++20)
+   template< class ExecutionPolicy, class RandomIt >
 
-   Checks whether the elements in range [first, last) are a max heap.
+   bool is_heap( ExecutionPolicy&& policy,                  \fB(2)\fP \fI(since C++17)\fP
 
-   1) Elements are compared using operator<.
-   3) Elements are compared using the given binary comparison function comp.
-   2,4) Same as (1,3), but executed according to policy. These overloads do not
-   participate in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
+                 RandomIt first, RandomIt last );
+   template< class RandomIt, class Compare >                    \fI(since C++11)\fP
+   bool is_heap( RandomIt first, RandomIt last, Compare     \fB(3)\fP (constexpr since C++20)
+   comp );
+   template< class ExecutionPolicy, class RandomIt, class
+   Compare >
+
+   bool is_heap( ExecutionPolicy&& policy,                  \fB(4)\fP \fI(since C++17)\fP
+
+                 RandomIt first, RandomIt last, Compare
+   comp );
+
+   Checks whether [first, last) is a heap.
+
+   1) The heap property to be checked is with respect to
+   operator<
    \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+   std::less{}
+   \fI(since C++20)\fP.
+   3) The heap property to be checked is with respect to comp.
+   2,4) Same as (1,3), but executed according to policy.
+   These overloads participate in overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
 
 .SH Parameters
 
-   first, last -  the range of elements to examine
+   first, last -  the range to be checked
    policy      -  the execution policy to use. See execution policy for details.
                   comparison function object (i.e. an object that satisfies the
-                  requirements of Compare) which returns true if the first argument
-                  is less than the second.
+                  requirements of Compare) which returns true if the first argument is
+                  less than the second.
 
                   The signature of the comparison function should be equivalent to the
                   following:
 
-                  bool cmp(const Type1 &a, const Type2 &b);
+                  bool cmp(const Type1& a, const Type2& b);
    comp        -
-                  While the signature does not need to have const &, the function must
+                  While the signature does not need to have const&, the function must
                   not modify the objects passed to it and must be able to accept all
                   values of type (possibly const) Type1 and Type2 regardless of value
-                  category (thus, Type1 & is not allowed
+                  category (thus, Type1& is not allowed
                   , nor is Type1 unless for Type1 a move is equivalent to a copy
                   \fI(since C++11)\fP).
                   The types Type1 and Type2 must be such that an object of type
@@ -60,14 +63,24 @@ std::is_heap \- std::is_heap
 .SH Type requirements
    -
    RandomIt must meet the requirements of LegacyRandomAccessIterator.
+   -
+   Compare must meet the requirements of Compare.
 
 .SH Return value
 
-   true if the range is max heap, false otherwise.
+   true if the range is a heap with respect to the corresponding comparator, false
+   otherwise.
 
 .SH Complexity
 
-   Linear in the distance between first and last.
+   Given \\(\\scriptsize N\\)N as std::distance(first, last):
+
+   1,2) \\(\\scriptsize O(N)\\)O(N) comparisons using
+   operator<
+   \fI(until C++20)\fP
+   std::less{}
+   \fI(since C++20)\fP.
+   3,4) \\(\\scriptsize O(N)\\)O(N) applications of the comparison function comp.
 
 .SH Exceptions
 
@@ -78,17 +91,6 @@ std::is_heap \- std::is_heap
        and ExecutionPolicy is one of the standard policies, std::terminate is called.
        For any other ExecutionPolicy, the behavior is implementation-defined.
      * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
-
-.SH Notes
-
-   A max heap is a range of elements [f,l) that has the following properties:
-
-              * With N = l-f, for all 0 < i < N, f[(i-1)/2] does not compare less than
-                f[i].
-              * A new element can be added using std::push_heap, in \\(\\scriptsize
-                \\mathcal{O}(\\log N)\\)𝓞(log N) time.
-              * The first element can be removed using std::pop_heap, in \\(\\scriptsize
-                \\mathcal{O}(\\log N)\\)𝓞(log N) time.
 
 .SH Example
 
@@ -102,20 +104,22 @@ std::is_heap \- std::is_heap
 
  int main()
  {
-     std::vector<int> v { 3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9 };
+     std::vector<int> v{3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9};
 
      std::cout << "initially, v:\\n";
-     for (auto i : v) std::cout << i << ' ';
+     for (const auto& i : v)
+         std::cout << i << ' ';
      std::cout << '\\n';
 
-     if (!std::is_heap(v.begin(), v.end())) {
+     if (!std::is_heap(v.begin(), v.end()))
+     {
          std::cout << "making heap...\\n";
          std::make_heap(v.begin(), v.end());
      }
 
      std::cout << "after make_heap, v:\\n";
-     for (auto t{1U}; auto i : v)
-         std::cout << i << (std::has_single_bit(++t) ? " │ " : " ");
+     for (auto t{1U}; const auto& i : v)
+         std::cout << i << (std::has_single_bit(++t) ? " | " : " ");
      std::cout << '\\n';
  }
 
@@ -125,7 +129,7 @@ std::is_heap \- std::is_heap
  3 1 4 1 5 9 2 6 5 3 5 8 9 7 9
  making heap...
  after make_heap, v:
- 9 │ 6 9 │ 5 5 9 7 │ 1 1 3 5 8 3 4 2 │
+ 9 | 6 9 | 5 5 9 7 | 1 1 3 5 8 3 4 2 |
 
 .SH See also
 

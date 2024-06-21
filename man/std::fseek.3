@@ -1,4 +1,4 @@
-.TH std::fseek 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::fseek 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::fseek \- std::fseek
 
@@ -21,7 +21,7 @@ std::fseek \- std::fseek
 
    If the stream is wide-oriented, the restrictions of both text and binary streams
    apply (result of std::ftell is allowed with SEEK_SET and zero offset is allowed from
-   SEEK_SET and SEEK_CUR, but not SEEK_END)
+   SEEK_SET and SEEK_CUR, but not SEEK_END).
 
    In addition to changing the file position indicator, fseek undoes the effects of
    std::ungetc and clears the end-of-file status, if applicable.
@@ -52,41 +52,44 @@ std::fseek \- std::fseek
 
    POSIX also requires that fseek first performs fflush if there are any unwritten data
    (but whether the shift state is restored is implementation-defined). The standard
-   C++ file streams guarantee both flushing and unshifting: std::basic_filebuf::seekoff
+   C++ file streams guarantee both flushing and unshifting:
+   std::basic_filebuf::seekoff.
+
+   POSIX specifies, that fseek should return -1 on error, and set errno to indicate the
+   error.
 
 .SH Example
 
 
 // Run this code
 
+ #include <cassert>
  #include <cstdio>
  #include <cstdint>
- #include <vector>
  #include <fstream>
- #include <cassert>
+ #include <vector>
 
  int main()
  {
-     std::ofstream("dummy.nfo") << "sample data\\n";
-
+     std::ofstream("dummy.nfo") << "8 bytes\\n"; // create the file
 
      std::FILE* fp = std::fopen("dummy.nfo", "rb");
      assert(fp);
 
      std::fseek(fp, 0, SEEK_END); // seek to end
-     std::size_t filesize = std::ftell(fp);
+     const std::size_t filesize = std::ftell(fp);
+     std::vector<std::uint8_t> buffer(filesize);
 
      std::fseek(fp, 0, SEEK_SET); // seek to start
-     std::vector<uint8_t> buffer(filesize);
-     std::fread(buffer.data(), sizeof(uint8_t), buffer.size(), fp);
+     std::fread(buffer.data(), sizeof(std::uint8_t), buffer.size(), fp);
 
      std::fclose(fp);
-     std::printf("i've read %zi bytes\\n", filesize);
+     std::printf("I've read %zi bytes\\n", filesize);
  }
 
-.SH Output:
+.SH Possible output:
 
- i've read 12 bytes
+ I've read 8 bytes
 
 .SH See also
 
@@ -98,3 +101,5 @@ std::fseek \- std::fseek
            \fI(function)\fP
    rewind  moves the file position indicator to the beginning in a file
            \fI(function)\fP
+   C documentation for
+   fseek

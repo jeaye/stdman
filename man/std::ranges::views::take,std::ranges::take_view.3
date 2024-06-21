@@ -1,68 +1,68 @@
-.TH std::ranges::views::take,std::ranges::take_view 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::views::take,std::ranges::take_view 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::views::take,std::ranges::take_view \- std::ranges::views::take,std::ranges::take_view
 
 .SH Synopsis
    Defined in header <ranges>
-   template< ranges::view V >                                         \fB(1)\fP \fI(since C++20)\fP
-   class take_view : public ranges::view_interface<take_view<V>>
+   template< ranges::view V >
+
+   class take_view                                                    \fB(1)\fP \fI(since C++20)\fP
+
+       : public ranges::view_interface<take_view<V>>
    namespace views {
 
-   inline constexpr /*unspecified*/ take = /*unspecified*/;           \fB(2)\fP \fI(since C++20)\fP
+       inline constexpr /* unspecified */ take = /* unspecified */;   \fB(2)\fP \fI(since C++20)\fP
 
    }
    Call signature
-   template< ranges::viewable_range R, class DifferenceType >
+   template< ranges::viewable_range R >
 
-   requires /* see below */                                               \fI(since C++20)\fP
+       requires /* see below */                                           \fI(since C++20)\fP
+   constexpr ranges::view auto
 
-   constexpr ranges::view auto take( R&& r, DifferenceType&& count );
+       take( R&& r, ranges::range_difference_t<R> count );
    template< class DifferenceType >
-   constexpr /*range adaptor closure*/ take( DifferenceType&& count       \fI(since C++20)\fP
+   constexpr /* range adaptor closure */ take( DifferenceType&& count     \fI(since C++20)\fP
    );
 
    1) A range adaptor that represents view of the elements from an underlying sequence,
    starting at the beginning and ending at a given bound.
-   2) views::take is a range adaptor object. The expression views::take(e, f) results
-   in a view that represents the first f elements from e. The result is not necessarily
-   a take_view.
+   2) views::take is a RangeAdaptorObject. The expression views::take(e, f) results in
+   a view that represents the first f elements from e. The result is not necessarily a
+   take_view.
 
-   It is expression-equivalent to (where T is std::remove_cvref_t<decltype((e))> and D
-   is ranges::range_difference_t<decltype((e))>):
+   views::take(e, f) is expression-equivalent to (where T is
+   std::remove_cvref_t<decltype((e))> and D is
+   ranges::range_difference_t<decltype((e))>):
 
-     * ((void)f, static_cast<T>(e)), if T is a ranges::empty_view, except that the
+     * ((void)f, decay-copy(e)), if T is a ranges::empty_view, except that the
        evaluations of e and f are indeterminately sequenced;
      * U(ranges::begin(e), ranges::begin(e) + std::min<D>(ranges::distance(e), f)), if
        T is a specialization of std::span, std::basic_string_view, or ranges::subrange
        that models both random_access_range and sized_range, where U is
 
-              * std::span<typename T::element_type>, if T is a specialization of
-                std::span;
-              * T, if T is a specialization of std::basic_string_view;
-              * ranges::subrange<ranges::iterator_t<T>>, if T is a specialization of
-                ranges::subrange;
+     * std::span<typename T::element_type>, if T is a specialization of std::span;
+     * T, if T is a specialization of std::basic_string_view;
+     * ranges::subrange<ranges::iterator_t<T>>, if T is a specialization of
+       ranges::subrange;
+     * ranges::iota_view(*ranges::begin(e),
+                         *(ranges::begin(e) + std::min<D>(ranges::distance(e), f))), if
+       T is a specialization of ranges::iota_view that models both random_access_range
+       and sized_range;
 
-     * ranges::iota_view(*ranges::begin(e), *(ranges::begin(e) +
-       std::min<D>(ranges::distance(e), f))), if T is a specialization of
-       ranges::iota_view that models both random_access_range and sized_range;
+     * otherwise, if T is a specialization of ranges::repeat_view:
+
+     * views::repeat(*e.value_, std::min<D>(ranges::distance(e), f)), if  (since C++23)
+       T models sized_range; is such case e is evaluated only once;
+     * views::repeat(*e.value_, static_cast<D>(e)) otherwise;
+
      * otherwise, take_view(e, f).
-
    In all cases, decltype((f)) must model std::convertible_to<D>.
 
    take_view models the concepts contiguous_range, random_access_range,
    bidirectional_range, forward_range, input_range, and sized_range when the underlying
    view V models respective concepts. It models common_range when the underlying view V
    models both random_access_range and sized_range.
-
-  Expression-equivalent
-
-   Expression e is expression-equivalent to expression f, if
-
-     * e and f have the same effects, and
-     * either both are constant subexpressions or else neither is a constant
-       subexpression, and
-     * either both are potentially-throwing or else neither is potentially-throwing
-       (i.e. noexcept(e) == noexcept(f)).
 
 .SH Member functions
 
@@ -78,40 +78,44 @@ std::ranges::views::take,std::ranges::take_view \- std::ranges::views::take,std:
    (C++20)       (adapted) range satisfies sized_range.
                  \fI(public member function)\fP
          Inherited from std::ranges::view_interface
-   empty         Returns whether the derived view is empty. Provided if it satisfies
+   empty         returns whether the derived view is empty. Provided if it satisfies
    (C++20)       sized_range or forward_range.
                  \fI(public member function of std::ranges::view_interface<D>)\fP
-   operator bool Returns whether the derived view is not empty. Provided if
+   cbegin        returns a constant iterator to the beginning of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   cend          returns a sentinel for the constant iterator of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator bool returns whether the derived view is not empty. Provided if
    (C++20)       ranges::empty is applicable to it.
                  \fI(public member function of std::ranges::view_interface<D>)\fP
-   data          Gets the address of derived view's data. Provided if its iterator type
+   data          gets the address of derived view's data. Provided if its iterator type
    (C++20)       satisfies contiguous_iterator.
                  \fI(public member function of std::ranges::view_interface<D>)\fP
-   front         Returns the first element in the derived view. Provided if it
+   front         returns the first element in the derived view. Provided if it
    (C++20)       satisfies forward_range.
                  \fI(public member function of std::ranges::view_interface<D>)\fP
-   back          Returns the last element in the derived view. Provided if it satisfies
+   back          returns the last element in the derived view. Provided if it satisfies
    (C++20)       bidirectional_range and common_range.
                  \fI(public member function of std::ranges::view_interface<D>)\fP
-   operator[]    Returns the nth element in the derived view. Provided if it satisfies
+   operator[]    returns the n^th element in the derived view. Provided if it satisfies
    (C++20)       random_access_range.
                  \fI(public member function of std::ranges::view_interface<D>)\fP
 
-  Deduction guides
+   Deduction guides
 
-  Nested classes
+   Nested classes
 
    sentinel the sentinel type
-   (C++20)  (exposition-only member class template)
+   (C++20)  (exposition-only member class template*)
 
-  Helper templates
+   Helper templates
 
-   template<class T>
+   template< class T >
 
    inline constexpr bool                                                  \fI(since C++20)\fP
    enable_borrowed_range<std::ranges::take_view<T>> =
 
-   std::ranges::enable_borrowed_range<T>;
+       std::ranges::enable_borrowed_range<T>;
 
    This specialization of std::ranges::enable_borrowed_range makes take_view satisfy
    borrowed_range when the underlying view satisfies it.
@@ -125,16 +129,18 @@ std::ranges::views::take,std::ranges::take_view \- std::ranges::views::take,std:
  #include <iostream>
  #include <ranges>
 
- auto print = [](char x) { std::cout << x; };
+ auto print = [](char x){ std::cout << x; };
 
  int main()
  {
-     constexpr char pi[] { '3', '.', '1', '4', '1', '5', '9', '2' };
+     constexpr char pi[]{'3', '.', '1', '4', '1', '5', '9', '2'};
 
      std::ranges::for_each(pi | std::ranges::views::take(6), print);
      std::cout << '\\n';
 
-     std::ranges::for_each(std::ranges::take_view{pi, 42}, print); // safely takes only 8 chars
+     // safely takes 8 chars only, i.e. min(pi.size(), 42)
+     std::ranges::for_each(std::ranges::take_view{pi, 42}, print);
+
      std::cout << '\\n';
  }
 
@@ -143,17 +149,18 @@ std::ranges::views::take,std::ranges::take_view \- std::ranges::views::take,std:
  3.1415
  3.141592
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
       DR    Applied to    Behavior as published              Correct behavior
+                       views::take sometimes failed
+   LWG 3407 C++20      to                           the result type is adjusted so
+                       construct a sized random     that construction is always valid
+                       access range
    LWG 3494 C++20      take_view was never a        it is a borrowed_range if its
                        borrowed_range               underlying view is
-                       views::take sometimes fails  the result type is adjusted so that
-   LWG 3407 C++20      to construct                 construction is always valid
-                       a sized random access range
 
 .SH See also
 

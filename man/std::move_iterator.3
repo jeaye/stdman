@@ -1,4 +1,4 @@
-.TH std::move_iterator 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::move_iterator 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::move_iterator \- std::move_iterator
 
@@ -8,44 +8,13 @@ std::move_iterator \- std::move_iterator
    class move_iterator;
 
    std::move_iterator is an iterator adaptor which behaves exactly like the underlying
-   iterator (which must be at least an LegacyInputIterator
+   iterator (which must be at least a LegacyInputIterator
    or model input_iterator
-   \fI(since C++20)\fP), except that dereferencing converts the value returned by the
+   \fI(since C++20)\fP
+   , or stronger iterator concept
+   (since C++23)), except that dereferencing converts the value returned by the
    underlying iterator into an rvalue. If this iterator is used as an input iterator,
    the effect is that the values are moved from, rather than copied from.
-
-.SH Member types
-
-   Member type             Definition
-   iterator_type           Iter
-                           std::iterator_traits<Iter>::iterator_category           (until
-                                                                                   C++20)
-                           If std::iterator_traits<Iter>::iterator_category is
-                           valid and denotes a type:
-
-                             * if std::iterator_traits<Iter>::iterator_category
-                               models
-   iterator_category           std::derived_from<std::random_access_iterator_tag>, (since
-                               member iterator_category is                         C++20)
-                               std::random_access_iterator_tag.
-                             * Otherwise, member iterator_category is the same
-                               type as
-                               std::iterator_traits<Iter>::iterator_category.
-
-                           Otherwise, there is no member iterator_category.
-   iterator_concept(C++20) std::input_iterator_tag
-   value_type              std::iterator_traits<Iter>::value_type \fI(until C++20)\fP
-                           std::iter_value_t<Iter>                \fI(since C++20)\fP
-   difference_type         std::iterator_traits<Iter>::difference_type \fI(until C++20)\fP
-                           std::iter_difference_t<Iter>                \fI(since C++20)\fP
-   pointer                 Iter
-                           If std::iterator_traits<Iter>::reference is a
-                           reference, this is the rvalue reference version of the  (until
-                           same type. Otherwise (such as if the wrapped iterator   C++20)
-   reference               returns by value), this is
-                           std::iterator_traits<Iter>::reference unchanged
-                           std::iter_rvalue_reference_t<Iter>                      (since
-                                                                                   C++20)
 
 .SH Member functions
 
@@ -70,13 +39,6 @@ std::move_iterator \- std::move_iterator
    operator-=
    operator-
    \fI(C++11)\fP
-
-.SH Member objects
-
-   Member name       Definition
-                     the underlying iterator from which base() copies
-   current (private) or moves
-                     \fI(since C++20)\fP, the name is for exposition only
 
 .SH Non-member functions
 
@@ -114,45 +76,69 @@ std::move_iterator \- std::move_iterator
    \fI(C++11)\fP                        the argument
                                   \fI(function template)\fP
 
+   Helper templates
+
+   template< class Iterator1, class Iterator2 >
+
+       requires (!std::sized_sentinel_for<Iterator1, Iterator2>)
+   constexpr bool disable_sized_sentinel_for<                     \fI(since C++20)\fP
+       std::move_iterator<Iterator1>,
+
+       std::move_iterator<Iterator2>> = true;
+
+   This partial specialization of std::disable_sized_sentinel_for prevents
+   specializations of move_iterator from satisfying sized_sentinel_for if their
+   underlying iterators do not satisfy the concept.
+
+.SH Notes
+
+         Feature-test macro         Value    Std                 Feature
+   __cpp_lib_move_iterator_concept 202207L (C++23) Make std::move_iterator<T*> a random
+                                                   access iterator
+
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
- #include <iomanip>
  #include <algorithm>
- #include <vector>
+ #include <iomanip>
+ #include <iostream>
  #include <iterator>
- #include <numeric>
+ #include <ranges>
  #include <string>
+ #include <string_view>
+ #include <vector>
+
+ void print(const std::string_view rem, const auto& v)
+ {
+     std::cout << rem;
+     for (const auto& s : v)
+         std::cout << std::quoted(s) << ' ';
+     std::cout << '\\n';
+ };
 
  int main()
  {
      std::vector<std::string> v{"this", "_", "is", "_", "an", "_", "example"};
+     print("Old contents of the vector: ", v);
+     std::string concat;
+     for (auto begin = std::make_move_iterator(v.begin()),
+               end = std::make_move_iterator(v.end());
+          begin != end; ++begin)
+     {
+         std::string temp{*begin}; // moves the contents of *begin to temp
+         concat += temp;
+     }
 
-     auto print_v = [&](auto const rem) {
-         std::cout << rem;
-         for (const auto& s : v)
-             std::cout << std::quoted(s) << ' ';
-         std::cout << '\\n';
-     };
+     // Starting from C++17, which introduced class template argument deduction,
+     // the constructor of std::move_iterator can be used directly:
+     // std::string concat = std::accumulate(std::move_iterator(v.begin()),
+     //                                      std::move_iterator(v.end()),
+     //                                      std::string());
 
-     print_v("Old contents of the vector: ");
-
-     std::string concat = std::accumulate(std::make_move_iterator(v.begin()),
-                                          std::make_move_iterator(v.end()),
-                                          std::string());
-
-     /* An alternative that uses std::move_iterator directly could be:
-     using moviter_t = std::move_iterator<std::vector<std::string>::iterator>;
-     std::string concat = std::accumulate(moviter_t(v.begin()),
-                                          moviter_t(v.end()),
-                                          std::string()); */
-
-     print_v("New contents of the vector: ");
-
-     std::cout << "Concatenated as string: " << quoted(concat) << '\\n';
+     print("New contents of the vector: ", v);
+     print("Concatenated as string: ", std::ranges::single_view(concat));
  }
 
 .SH Possible output:
@@ -161,25 +147,23 @@ std::move_iterator \- std::move_iterator
  New contents of the vector: "" "" "" "" "" "" ""
  Concatenated as string: "this_is_an_example"
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied    Behavior as                     Correct behavior
-              to        published
-                    dereferencing a
-                    move_iterator
-                    could return a
-                    dangling reference
-   LWG 2106 C++11   if the             returns the object instead
-                    dereferencing the
-                    underlying
-                    iterator returns a
-                    prvalue
-                    member             defined only if
-   P2259R1  C++20   iterator_category  std::iterator_traits<Iter>::iterator_category
-                    is always defined  exists
+      DR    Applied               Behavior as published               Correct behavior
+              to
+                    dereferencing a move_iterator could return a
+   LWG 2106 C++11   dangling reference                                returns the
+                    if the dereferencing the underlying iterator      object instead
+                    returns a prvalue
+   LWG 3736 C++20   move_iterator was missing                         added
+                    disable_sized_sentinel_for specialization
+                    member iterator_category was defined even if      iterator_category
+   P2259R1  C++20   std::iterator_traits<Iter>::iterator_category is  is
+                    not defined                                       not defined in
+                                                                      this case
 
 .SH See also
 

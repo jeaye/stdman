@@ -1,27 +1,20 @@
-.TH std::extent 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::extent 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::extent \- std::extent
 
 .SH Synopsis
    Defined in header <type_traits>
-   template< class T, unsigned N = 0>  \fI(since C++11)\fP
+   template< class T, unsigned N = 0 >  \fI(since C++11)\fP
    struct extent;
 
    If T is an array type, provides the member constant value equal to the number of
-   elements along the Nth dimension of the array, if N is in [0, std::rank<T>::value).
+   elements along the N^th dimension of the array, if N is in [0, std::rank<T>::value).
    For any other type, or if T is an array of unknown bound along its first dimension
    and N is 0, value is 0.
 
-   The behavior of a program that adds specializations for extent
-   or extent_v
-   \fI(since C++17)\fP is undefined.
-
-  Helper variable template
-
-   template< class T, unsigned N = 0 >                           \fI(since C++17)\fP
-   inline constexpr std::size_t extent_v = extent<T, N>::value;
-
-Inherited from std::integral_constant
+   If the program adds specializations for std::extent
+   or std::extent_v
+   \fI(since C++17)\fP, the behavior is undefined.
 
 .SH Member constants
 
@@ -50,13 +43,13 @@ Inherited from std::integral_constant
    struct extent<T[], 0> : std::integral_constant<std::size_t, 0> {};
 
    template<class T, unsigned N>
-   struct extent<T[], N> : std::extent<T, N-1> {};
+   struct extent<T[], N> : std::extent<T, N - 1> {};
 
    template<class T, std::size_t I>
    struct extent<T[I], 0> : std::integral_constant<std::size_t, I> {};
 
    template<class T, std::size_t I, unsigned N>
-   struct extent<T[I], N> : std::extent<T, N-1> {};
+   struct extent<T[I], N> : std::extent<T, N - 1> {};
 
 .SH Example
 
@@ -68,39 +61,34 @@ Inherited from std::integral_constant
 
  int main()
  {
-     std::cout << std::extent<int[3]>::value << '\\n'; //< default dimension is 0
-     std::cout << std::extent<int[3][4], 0>::value << '\\n';
-     std::cout << std::extent<int[3][4], 1>::value << '\\n';
-     std::cout << std::extent<int[3][4], 2>::value << '\\n';
-     std::cout << std::extent<int[]>::value << '\\n';
+     static_assert(
+         std::extent_v<int[3]> == 3 && //< default dimension is 0
+         std::extent_v<int[3], 0> == 3 && //< the same as above
+         std::extent_v<int[3][4], 0> == 3 &&
+         std::extent_v<int[3][4], 1> == 4 &&
+         std::extent_v<int[3][4], 2> == 0 &&
+         std::extent_v<int[]> == 0
+     );
 
-     const auto ext = std::extent<int[9]>{};
+     const auto ext = std::extent<int['*']>{};
      std::cout << ext << '\\n'; //< implicit conversion to std::size_t
 
-     const int ints[] = {1,2,3,4};
-     std::cout << std::extent<decltype(ints)>::value << '\\n'; //< array size
+     const int ints[]{1, 2, 3, 4};
+     static_assert(std::extent_v<decltype(ints)> == 4); //< array size
 
-     [[maybe_unused]] int ary[][3]={ {1,2,3} };
+     [[maybe_unused]] int ary[][3] = {{1, 2, 3}};
 
      // ary[0] is type of reference of 'int[3]', so, extent
      // cannot calculate correctly and return 0
      static_assert(std::is_same_v<decltype(ary[0]), int(&)[3]>);
-     std::cout << std::extent<decltype(ary[0])>::value << '\\n';
+     static_assert(std::extent_v<decltype(ary[0])> == 0);
      // removing reference will give correct extent value 3
-     std::cout << std::extent<std::remove_cvref_t<decltype(ary[0])>>::value << '\\n';
+     static_assert(std::extent_v<std::remove_cvref_t<decltype(ary[0])>> == 3);
  }
 
 .SH Output:
 
- 3
- 3
- 4
- 0
- 0
- 9
- 4
- 0
- 3
+ 42
 
 .SH See also
 

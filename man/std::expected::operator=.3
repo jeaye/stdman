@@ -1,0 +1,169 @@
+.TH std::expected::operator= 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::expected::operator= \- std::expected::operator=
+
+.SH Synopsis
+   constexpr expected& operator=( const expected& other );       \fB(1)\fP (since C++23)
+   constexpr expected& operator=( expected&& other )             \fB(2)\fP (since C++23)
+   noexcept(/*see below*/);
+   template< class U = T >                                       \fB(3)\fP (since C++23)
+   constexpr expected& operator=( U&& v );                           (T is not cv void)
+   template< class G >                                           \fB(4)\fP (since C++23)
+   constexpr expected& operator=( const unexpected<G>& other );
+   template< class G >                                           \fB(5)\fP (since C++23)
+   constexpr expected& operator=( unexpected<G>&& other );
+
+   Assigns a new value to an existing expected object.
+
+   1,2) Assigns the state of other.
+     * If this->has_value() equals other.has_value(), assigns the value contained in
+       other. Does nothing if T is (possibly cv-qualified) void and other.has_value()
+       is true.
+     * Otherwise, destroys the currently contained value (does nothing if
+       this->has_value() is true and T is (possibly cv-qualified) void), and makes
+       *this contain a copy of the value contained in other.
+
+   If other.has_value() is true and T is (possibly cv-qualified) void, does not
+   construct the new value. Otherwise, the new value is copy-constructed \fB(1)\fP or
+   move-constructed \fB(2)\fP from *other or other.error(), as appropriate. If an exception
+   is thrown, the old value is retained; *this does not become valueless.
+
+   If no exception was thrown, after assignment, has_value() is equal to
+   other.has_value().
+
+     * Overload \fB(1)\fP is defined as deleted unless
+          * either T is (possibly cv-qualified) void or std::is_copy_assignable_v<T> is
+            true, and
+          * either T is (possibly cv-qualified) void or std::is_copy_constructible_v<T>
+            is true, and
+          * std::is_copy_assignable_v<E> is true, and
+          * std::is_copy_constructible_v<E> is true, and
+          * at least one of the following is true:
+               * T is (possibly cv-qualified) void
+               * std::is_nothrow_move_constructible_v<T>
+               * std::is_nothrow_move_constructible_v<E>
+     * Overload \fB(2)\fP participates in overload resolution only if
+          * either T is (possibly cv-qualified) void or std::is_move_assignable_v<T> is
+            true, and
+          * either T is (possibly cv-qualified) void or std::is_move_constructible_v<T>
+            is true, and
+          * std::is_move_assignable_v<E> is true, and
+          * std::is_move_constructible_v<E> is true, and
+          * at least one of the following is true:
+               * T is (possibly cv-qualified) void
+               * std::is_nothrow_move_constructible_v<T>
+               * std::is_nothrow_move_constructible_v<E>
+   3) Assigns from expected value.
+     * If this->has_value() is true, equivalent to **this = std::forward<U>(v).
+     * Otherwise, destroys the value contained in *this, and makes *this contain a
+       value initialized from std::forward<U>(v). If an exception is thrown, the old
+       value is retained; *this does not become valueless.
+
+   If no exception was thrown, after assignment, this->has_value() is true.
+
+     * This overload participates in overload resolution only if
+          * std::is_same_v<expected, std::remove_cvref_t<U>> is false, and
+          * std::remove_cvref_t<U> is not a specialization of std::unexpected, and
+          * std::is_constructible_v<T, U> is true, and
+          * std::is_assignable_v<T&, U> is true, and
+          * at least one of the following is true:
+               * std::is_nothrow_constructible_v<T, U>
+               * std::is_nothrow_move_constructible_v<T>
+               * std::is_nothrow_move_constructible_v<E>
+   4,5) Assigns from unexpected value.
+
+   Let GF be const G& for overload \fB(4)\fP, and G for overload \fB(5)\fP.
+
+     * If this->has_value() is true, destroys the value contained in *this (does
+       nothing if T is (possibly cv-qualified) void), and makes *this contain a value
+       initialized from std::forward<GF>(e.error()). If an exception is thrown, the old
+       value is retained; *this does not become valueless.
+     * Otherwise, equivalent to this->error() = std::forward<GF>(e.error()).
+
+   If no exception was thrown, after assignment, this->has_value() is false.
+
+     * This overload participates in overload resolution only if
+          * std::is_constructible_v<E, GF> is true, and
+          * std::is_assignable_v<E&, GF> is true, and
+          * at least one of the following is true:
+               * T is (possibly cv-qualified) void
+               * std::is_nothrow_constructible_v<E, GF>
+               * std::is_nothrow_move_constructible_v<T>
+               * std::is_nothrow_move_constructible_v<E>
+
+   In all cases, if T is not (possibly cv-qualified) void, the destruction of old value
+   and construction of new value is performed as if by the following exposition-only
+   function reinit_expected.
+
+ template<class NewType, class OldType, class... Args>
+ constexpr void reinit_expected(NewType& new_val, OldType& old_val, Args&&... args)
+ {
+     if constexpr (std::is_nothrow_constructible_v<NewType, Args...>)
+     {
+         std::destroy_at(std::addressof(old_val));
+         std::construct_at(std::addressof(new_val), std::forward<Args>(args)...);
+     }
+     else if constexpr (std::is_nothrow_move_constructible_v<NewType>)
+     {
+         NewType temp(std::forward<Args>(args)...);
+         std::destroy_at(std::addressof(old_val));
+         std::construct_at(std::addressof(new_val), std::move(temp));
+     }
+     else
+     {
+         OldType temp(std::move(old_val));
+         std::destroy_at(std::addressof(old_val));
+         try
+         {
+             std::construct_at(std::addressof(new_val), std::forward<Args>(args)...);
+         }
+         catch (...)
+         {
+             std::construct_at(std::addressof(old_val), std::move(temp));
+             throw;
+         }
+     }
+ }
+
+.SH Parameters
+
+   other - another expected object whose contained value to assign
+   value - value to assign to the contained value
+   e     - std::unexpected object whose contained value to assign
+
+.SH Return value
+
+   *this
+
+.SH Exceptions
+
+   1) Throws any exception thrown by the copy constructor or copy assignment operator
+   of T or E.
+   2) If T is (possibly cv-qualified) void,
+   noexcept specification:
+   noexcept(std::is_nothrow_move_constructible_v<E> &&
+   std::is_nothrow_move_assignable_v<E>)
+   Otherwise,
+   noexcept specification:
+   noexcept(
+
+       std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_assignable_v<T>
+   &&
+
+       std::is_nothrow_move_constructible_v<E> && std::is_nothrow_move_assignable_v<E>)
+   3) Throws any exception thrown by the constructor or assignment operator of T.
+   4,5) Throws any exception thrown by the constructor or assignment operator of E.
+
+.SH Example
+
+    This section is incomplete
+    Reason: no example
+
+.SH See also
+
+   emplace constructs the expected value in-place
+           \fI(public member function)\fP
+
+.SH Categories:
+     * conditionally noexcept
+     * Todo no example

@@ -1,4 +1,4 @@
-.TH std::uninitialized_copy 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_copy 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_copy \- std::uninitialized_copy
 
@@ -8,45 +8,45 @@ std::uninitialized_copy \- std::uninitialized_copy
 
    NoThrowForwardIt uninitialized_copy( InputIt first, InputIt last,  \fB(1)\fP
 
-   NoThrowForwardIt d_first );
+                                        NoThrowForwardIt d_first );
    template< class ExecutionPolicy, class ForwardIt, class
    NoThrowForwardIt >
 
    NoThrowForwardIt uninitialized_copy( ExecutionPolicy&& policy,     \fB(2)\fP \fI(since C++17)\fP
-   ForwardIt first, ForwardIt last,
+                                        ForwardIt first, ForwardIt
+   last,
 
-   NoThrowForwardIt d_first );
+                                        NoThrowForwardIt d_first );
 
    1) Copies elements from the range [first, last) to an uninitialized memory area
-   beginning at d_first as if by
+   beginning at d_first as if by for (; first != last; ++d_first, (void) ++first)
+       ::new (/* VOIDIFY */(*d_first))
+           typename std::iterator_traits<NoThrowForwardIt>::value_type(*first);
+   where /* VOIDIFY */(e) is:
 
- for (; first != last; ++d_first, (void) ++first)
-    ::new (/*VOIDIFY*/(*d_first))
-       typename std::iterator_traits<NoThrowForwardIt>::value_type(*first);
-
-   where /*VOIDIFY*/(e) is:
-
-      static_cast<void*>(&e)                                              \fI(until C++11)\fP
-      static_cast<void*>(std::addressof(e))                               \fI(since C++11)\fP
-                                                                          \fI(until C++20)\fP
-      const_cast<void*>(static_cast<const volatile                        \fI(since C++20)\fP
-      void*>(std::addressof(e)))
+   static_cast<void*>(&e)                \fI(until C++11)\fP
+   static_cast<void*>(std::addressof(e)) \fI(since C++11)\fP
 
    If an exception is thrown during the initialization, the objects already constructed
    are destroyed in an unspecified order.
-   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
-   in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+
+   If d_first + [0, std::distance(first, last)) overlaps with             \fI(since C++20)\fP
+   [first, last), the behavior is undefined.
+
+   2) Same as \fB(1)\fP, but executed according to policy. This overload participates in
+   overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
 
 .SH Parameters
 
-   first, last            -        the range of the elements to copy
-   d_first                -        the beginning of the destination range
-   policy                 -        the execution policy to use. See execution policy
-                                   for details.
+   first, last           -        the range of the elements to copy
+   d_first               -        the beginning of the destination range
+   policy                -        the execution policy to use. See execution policy for
+                                  details.
 .SH Type requirements
    -
    InputIt must meet the requirements of LegacyInputIterator.
@@ -85,16 +85,16 @@ NoThrowForwardIt uninitialized_copy(InputIt first, InputIt last, NoThrowForwardI
 {
     using T = typename std::iterator_traits<NoThrowForwardIt>::value_type;
     NoThrowForwardIt current = d_first;
-    try {
-        for (; first != last; ++first, (void) ++current) {
-            ::new (const_cast<void*>(static_cast<const volatile void*>(
-                std::addressof(*current)))) T(*first);
-        }
+    try
+    {
+        for (; first != last; ++first, (void) ++current)
+            ::new (static_cast<void*>(std::addressof(*current))) T(*first);
         return current;
-    } catch (...) {
-        for (; d_first != current; ++d_first) {
+    }
+    catch (...)
+    {
+        for (; d_first != current; ++d_first)
             d_first->~T();
-        }
         throw;
     }
 }
@@ -104,9 +104,9 @@ NoThrowForwardIt uninitialized_copy(InputIt first, InputIt last, NoThrowForwardI
 
 // Run this code
 
+ #include <cstdlib>
  #include <iostream>
  #include <memory>
- #include <cstdlib>
  #include <string>
 
  int main()
@@ -115,7 +115,7 @@ NoThrowForwardIt uninitialized_copy(InputIt first, InputIt last, NoThrowForwardI
 
      auto sz = std::size(v);
 
-     if(void *pbuf = std::aligned_alloc(alignof(std::string), sizeof(std::string) * sz))
+     if (void *pbuf = std::aligned_alloc(alignof(std::string), sizeof(std::string) * sz))
      {
          try
          {
@@ -128,7 +128,7 @@ NoThrowForwardIt uninitialized_copy(InputIt first, InputIt last, NoThrowForwardI
 
              std::destroy(first, last);
          }
-         catch(...) {}
+         catch (...) {}
          std::free(pbuf);
      }
  }
@@ -136,6 +136,27 @@ NoThrowForwardIt uninitialized_copy(InputIt first, InputIt last, NoThrowForwardI
 .SH Output:
 
  This_is_an_example_
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to          Behavior as published              Correct behavior
+                       given T as the value type of
+   LWG 866  C++98      NoThrowForwardIt, if                    uses global replacement-
+                       T::operator new exists, the program     new instead
+                       might be ill-formed
+                       the effect description used a for loop
+                       with the iteration                      discards the value
+   LWG 2133 C++98      expression ++d_first, ++first, which    of one operand
+                       results                                 to disable that ADL
+                       in an argument-dependent lookup of
+                       operator,
+   LWG 2433 C++11      this algorithm might be hijacked by     uses std::addressof
+                       overloaded operator&
+   LWG 3870 C++20      this algorithm might create objects on  kept disallowed
+                       a const storage
 
 .SH See also
 

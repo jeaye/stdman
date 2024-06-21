@@ -1,0 +1,132 @@
+.TH std::ranges::shuffle 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::shuffle \- std::ranges::shuffle
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< std::random_access_iterator I, std::sentinel_for<I> S, class
+   Gen >
+                                                                                (since
+   requires std::permutable<I> &&                                           \fB(1)\fP C++20)
+            std::uniform_random_bit_generator<std::remove_reference_t<Gen>>
+
+       I shuffle( I first, S last, Gen&& gen );
+   template< ranges::random_access_range R, class Gen >
+
+   requires std::permutable<ranges::iterator_t<R>> &&                           (since
+            std::uniform_random_bit_generator<std::remove_reference_t<Gen>> \fB(2)\fP C++20)
+   ranges::borrowed_iterator_t<R>
+
+       shuffle( R&& r, Gen&& gen );
+
+   1) Reorders the elements in the given range [first, last) such that each possible
+   permutation of those elements has equal probability of appearance.
+   2) Same as \fB(1)\fP, but uses r as the range, as if using ranges::begin(r) as first and
+   ranges::end(r) as last.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first, last - the range of elements to shuffle randomly
+   r           - the range of elements to shuffle randomly
+   gen         - the random number generator
+
+.SH Return value
+
+   An iterator equal to last.
+
+.SH Complexity
+
+   Exactly (last - first) - 1 swaps.
+
+.SH Possible implementation
+
+   struct shuffle_fn
+   {
+       template<std::random_access_iterator I, std::sentinel_for<I> S, class Gen>
+       requires std::permutable<I> &&
+                std::uniform_random_bit_generator<std::remove_reference_t<Gen>>
+       I operator()(I first, S last, Gen&& gen) const
+       {
+           using diff_t = std::iter_difference_t<I>;
+           using distr_t = std::uniform_int_distribution<diff_t>;
+           using param_t = typename distr_t::param_type;
+           distr_t D;
+           const auto n {last - first};
+           for (diff_t i {1}; i < n; ++i)
+               ranges::iter_swap(first + i, first + D(gen, param_t(0, i)));
+           return ranges::next(first, last);
+       }
+
+       template<ranges::random_access_range R, class Gen>
+       requires std::permutable<ranges::iterator_t<R>> &&
+                std::uniform_random_bit_generator<std::remove_reference_t<Gen>>
+       ranges::borrowed_iterator_t<R> operator()(R&& r, Gen&& gen) const
+       {
+           return (*this)(ranges::begin(r), ranges::end(r), std::forward<Gen>(gen));
+       }
+   };
+
+   inline constexpr shuffle_fn shuffle {};
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <array>
+ #include <iostream>
+ #include <random>
+
+ void print(const auto& a)
+ {
+     for (const auto e : a)
+         std::cout << e << ' ';
+     std::cout << '\\n';
+ }
+
+ int main()
+ {
+     std::array a {'A', 'B', 'C', 'D', 'E', 'F'};
+     print(a);
+
+     std::random_device rd;
+     std::mt19937 gen {rd()};
+
+     for (int i {}; i != 3; ++i)
+     {
+         std::ranges::shuffle(a, gen);
+         print(a);
+     }
+ }
+
+.SH Possible output:
+
+ A B C D E F
+ F E A C D B
+ E C B F A D
+ B A E C F D
+
+.SH See also
+
+   ranges::next_permutation generates the next greater lexicographic permutation of a
+   (C++20)                  range of elements
+                            (niebloid)
+   ranges::prev_permutation generates the next smaller lexicographic permutation of a
+   (C++20)                  range of elements
+                            (niebloid)
+   random_shuffle
+   shuffle                  randomly re-orders elements in a range
+   \fI(until C++17)\fP            \fI(function template)\fP
+   \fI(C++11)\fP

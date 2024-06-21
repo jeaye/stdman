@@ -1,4 +1,4 @@
-.TH std::filesystem::perms 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::perms 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::perms \- std::filesystem::perms
 
@@ -6,9 +6,12 @@ std::filesystem::perms \- std::filesystem::perms
    Defined in header <filesystem>
    enum class perms;               \fI(since C++17)\fP
 
-   This type represents file access permissions. perms satisfies the requirements of
-   BitmaskType (which means the bitwise operators operator&, operator|, operator^,
-   operator~, operator&=, operator|=, and operator^= are defined for this type)
+   This type represents file access permissions.
+
+   perms satisfies the requirements of BitmaskType (which means the bitwise operators
+   operator&, operator|, operator^, operator~, operator&=, operator|=, and operator^=
+   are defined for this type). none represents the empty bitmask; every other
+   enumerator represents a distinct bitmask element.
 
    Access permissions model POSIX permission bits, and any individual file permissions
    (as reported by filesystem::status) are a combination of some of the following bits:
@@ -16,7 +19,7 @@ std::filesystem::perms \- std::filesystem::perms
 .SH Member constants
 
    Member constant Value (octal) POSIX equivalent                Meaning
-   none            0                        no permission bits are set
+   none            0                              No permission bits are set
    owner_read      0400          S_IRUSR          File owner has read permission
    owner_write     0200          S_IWUSR          File owner has write permission
    owner_exec      0100          S_IXUSR          File owner has execute/search
@@ -79,47 +82,53 @@ std::filesystem::perms \- std::filesystem::perms
 
    Some permission bits may be ignored on some systems, and changing some bits may
    automatically change others (e.g. on platforms without owner/group/all distinction,
-   setting any of the three write bits set all three)
+   setting any of the three write bits set all three).
 
 .SH Example
 
 
 // Run this code
 
- #include <fstream>
- #include <bitset>
- #include <iostream>
  #include <filesystem>
- namespace fs = std::filesystem;
+ #include <fstream>
+ #include <iostream>
 
- void demo_perms(fs::perms p)
+ void demo_perms(std::filesystem::perms p)
  {
-     std::cout << ((p & fs::perms::owner_read) != fs::perms::none ? "r" : "-")
-               << ((p & fs::perms::owner_write) != fs::perms::none ? "w" : "-")
-               << ((p & fs::perms::owner_exec) != fs::perms::none ? "x" : "-")
-               << ((p & fs::perms::group_read) != fs::perms::none ? "r" : "-")
-               << ((p & fs::perms::group_write) != fs::perms::none ? "w" : "-")
-               << ((p & fs::perms::group_exec) != fs::perms::none ? "x" : "-")
-               << ((p & fs::perms::others_read) != fs::perms::none ? "r" : "-")
-               << ((p & fs::perms::others_write) != fs::perms::none ? "w" : "-")
-               << ((p & fs::perms::others_exec) != fs::perms::none ? "x" : "-")
-               << '\\n';
+     using std::filesystem::perms;
+     auto show = [=](char op, perms perm)
+     {
+         std::cout << (perms::none == (perm & p) ? '-' : op);
+     };
+     show('r', perms::owner_read);
+     show('w', perms::owner_write);
+     show('x', perms::owner_exec);
+     show('r', perms::group_read);
+     show('w', perms::group_write);
+     show('x', perms::group_exec);
+     show('r', perms::others_read);
+     show('w', perms::others_write);
+     show('x', perms::others_exec);
+     std::cout << '\\n';
  }
+
  int main()
  {
      std::ofstream("test.txt"); // create file
 
      std::cout << "Created file with permissions: ";
-     demo_perms(fs::status("test.txt").permissions());
+     demo_perms(std::filesystem::status("test.txt").permissions());
 
-     fs::permissions("test.txt",
-                     fs::perms::owner_all | fs::perms::group_all,
-                     fs::perm_options::add);
+     std::filesystem::permissions(
+         "test.txt",
+         std::filesystem::perms::owner_all | std::filesystem::perms::group_all,
+         std::filesystem::perm_options::add
+     );
 
      std::cout << "After adding u+rwx and g+rwx:  ";
-     demo_perms(fs::status("test.txt").permissions());
+     demo_perms(std::filesystem::status("test.txt").permissions());
 
-     fs::remove("test.txt");
+     std::filesystem::remove("test.txt");
  }
 
 .SH Possible output:

@@ -1,0 +1,227 @@
+.TH std::ranges::push_heap 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::push_heap \- std::ranges::push_heap
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< std::random_access_iterator I, std::sentinel_for<I> S,
+
+             class Comp = ranges::less, class Proj = std::identity >
+   requires std::sortable<I, Comp, Proj>                              \fB(1)\fP \fI(since C++20)\fP
+   constexpr I
+
+       push_heap( I first, S last, Comp comp = {}, Proj proj = {} );
+   template< ranges::random_access_range R, class Comp =
+   ranges::less,
+
+             class Proj = std::identity >                             \fB(2)\fP \fI(since C++20)\fP
+   requires std::sortable<ranges::iterator_t<R>, Comp, Proj>
+   constexpr ranges::borrowed_iterator_t<R>
+
+       push_heap( R&& r, Comp comp = {}, Proj proj = {} );
+
+   Inserts the element at the position last - 1 into the max heap defined by the range
+   [first, last - 1).
+
+   1) Elements are compared using the given binary comparison function comp and
+   projection object proj.
+   2) Same as \fB(1)\fP, but uses r as the range, as if using ranges::begin(r) as first and
+   ranges::end(r) as last.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first, last - the range of elements defining the heap to modify
+   r           - the range of elements defining the heap to modify
+   pred        - predicate to apply to the projected elements
+   proj        - projection to apply to the elements
+
+.SH Return value
+
+   An iterator equal to last.
+
+.SH Complexity
+
+   Given N = ranges::distance(first, last), at most \\(\\scriptsize \\log{(N)}\\)log(N)
+   comparisons and \\(\\scriptsize 2\\log{(N)}\\)2log(N) projections.
+
+.SH Notes
+
+   A max heap is a range of elements [f, l), arranged with respect to comparator comp
+   and projection proj, that has the following properties:
+
+     * With N = l - f, p = f[(i - 1) / 2], and q = f[i], for all 0 < i < N, the
+       expression std::invoke(comp, std::invoke(proj, p), std::invoke(proj, q))
+       evaluates to false.
+     * A new element can be added using ranges::push_heap, in \\(\\scriptsize
+       \\mathcal{O}(\\log N)\\)𝓞(log N) time.
+     * The first element can be removed using ranges::pop_heap, in \\(\\scriptsize
+       \\mathcal{O}(\\log N)\\)𝓞(log N) time.
+
+.SH Possible implementation
+
+struct push_heap_fn
+{
+    template<std::random_access_iterator I, std::sentinel_for<I> S,
+             class Comp = ranges::less, class Proj = std::identity>
+    requires std::sortable<I, Comp, Proj>
+    constexpr I
+        operator()(I first, S last, Comp comp = {}, Proj proj = {}) const
+    {
+        const auto n{ranges::distance(first, last)};
+        const auto length{n};
+        if (n > 1)
+        {
+            I last{first + n};
+            n = (n - 2) / 2;
+            I i{first + n};
+            if (std::invoke(comp, std::invoke(proj, *i), std::invoke(proj, *--last)))
+            {
+                std::iter_value_t<I> v {ranges::iter_move(last)};
+                do
+                {
+                    *last = ranges::iter_move(i);
+                    last = i;
+                    if (n == 0)
+                        break;
+                    n = (n - 1) / 2;
+                    i = first + n;
+                }
+                while (std::invoke(comp, std::invoke(proj, *i), std::invoke(proj, v)));
+                *last = std::move(v);
+            }
+        }
+        return first + length;
+    }
+
+    template<ranges::random_access_range R, class Comp = ranges::less,
+             class Proj = std::identity>
+    requires std::sortable<ranges::iterator_t<R>, Comp, Proj>
+    constexpr ranges::borrowed_iterator_t<R>
+        operator()(R&& r, Comp comp = {}, Proj proj = {}) const
+    {
+        return (*this)(ranges::begin(r), ranges::end(r), std::move(comp), std::move(proj));
+    }
+};
+
+inline constexpr push_heap_fn push_heap {};
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <cmath>
+ #include <iostream>
+ #include <vector>
+
+ void out(const auto& what, int n = 1)
+ {
+     while (n-- > 0)
+         std::cout << what;
+ }
+
+ void print(auto rem, auto const& v)
+ {
+     out(rem);
+     for (auto e : v)
+         out(e), out(' ');
+     out('\\n');
+ }
+
+ void draw_heap(auto const& v)
+ {
+     auto bails = [](int n, int w)
+     {
+         auto b = [](int w) { out("┌"), out("─", w), out("┴"), out("─", w), out("┐"); };
+         if (!(n /= 2))
+             return;
+         for (out(' ', w); n-- > 0;)
+             b(w), out(' ', w + w + 1);
+         out('\\n');
+     };
+     auto data = [](int n, int w, auto& first, auto last)
+     {
+         for (out(' ', w); n-- > 0 && first != last; ++first)
+             out(*first), out(' ', w + w + 1);
+         out('\\n');
+     };
+     auto tier = [&](int t, int m, auto& first, auto last)
+     {
+         const int n{1 << t};
+         const int w{(1 << (m - t - 1)) - 1};
+         bails(n, w), data(n, w, first, last);
+     };
+     const int m{static_cast<int>(std::ceil(std::log2(1 + v.size())))};
+     auto first{v.cbegin()};
+     for (int i{}; i != m; ++i)
+         tier(i, m, first, v.cend());
+ }
+
+ int main()
+ {
+     std::vector<int> v{1, 6, 1, 8, 0, 3,};
+     print("source vector v: ", v);
+
+     std::ranges::make_heap(v);
+     print("after make_heap: ", v);
+     draw_heap(v);
+
+     v.push_back(9);
+
+     print("before push_heap: ", v);
+     draw_heap(v);
+
+     std::ranges::push_heap(v);
+     print("after push_heap: ", v);
+     draw_heap(v);
+ }
+
+.SH Output:
+
+ source vector v: 1 6 1 8 0 3
+ after make_heap: 8 6 3 1 0 1
+    8
+  ┌─┴─┐
+  6   3
+ ┌┴┐ ┌┴┐
+ 1 0 1
+ before push_heap: 8 6 3 1 0 1 9
+    8
+  ┌─┴─┐
+  6   3
+ ┌┴┐ ┌┴┐
+ 1 0 1 9
+ after push_heap: 9 6 8 1 0 1 3
+    9
+  ┌─┴─┐
+  6   8
+ ┌┴┐ ┌┴┐
+ 1 0 1 3
+
+.SH See also
+
+   ranges::is_heap       checks if the given range is a max heap
+   (C++20)               (niebloid)
+   ranges::is_heap_until finds the largest subrange that is a max heap
+   (C++20)               (niebloid)
+   ranges::make_heap     creates a max heap out of a range of elements
+   (C++20)               (niebloid)
+   ranges::pop_heap      removes the largest element from a max heap
+   (C++20)               (niebloid)
+   ranges::sort_heap     turns a max heap into a range of elements sorted in ascending
+   (C++20)               order
+                         (niebloid)
+   push_heap             adds an element to a max heap
+                         \fI(function template)\fP

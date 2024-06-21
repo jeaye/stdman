@@ -1,0 +1,72 @@
+.TH std::variant::visit 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::variant::visit \- std::variant::visit
+
+.SH Synopsis
+   template< class Self, class Visitor >                              \fB(1)\fP (since C++26)
+   constexpr decltype(auto) visit( this Self&& self, Visitor&& vis );
+   template< class R, class Self, class Visitor >                     \fB(2)\fP (since C++26)
+   constexpr R visit( this Self&& self, Visitor&& vis );
+
+   Applies the visitor vis (a Callable that can be called with any combination of types
+   from the variant) to the variant held by self.
+
+   Given type V as decltype(std::forward_like<Self>(std::declval<variant>())), the
+   equivalent call is:
+
+   1) return std::visit(std::forward<Visitor>(vis), (V) self);.
+   2) return std::visit<R>(std::forward<Visitor>(vis), (V) self);.
+
+.SH Parameters
+
+   vis  - a Callable that accepts every possible alternative from the variant
+   self - variant to pass to the visitor
+
+.SH Return value
+
+   1) The result of the std::visit invocation.
+   2) Nothing if R is (possibly cv-qualified) void; otherwise the result of the
+   std::visit<R> invocation.
+
+.SH Exceptions
+
+   Only throws if the call to std::visit throws.
+
+.SH Notes
+
+   Feature-test macro  Value    Std     Feature
+   __cpp_lib_variant  202306L (C++26) member visit
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <string>
+ #include <variant>
+
+ // helper type for the visitor
+ template<class... Ts>
+ struct overloads : Ts... { using Ts::operator()...; };
+
+ int main()
+ {
+     std::variant<int, std::string> var1{42}, var2{"abc"};
+
+     auto use_int = [](int i){ std::cout << "int = " << i << '\\n'; };
+     auto use_str = [](std::string s){ std::cout << "string = " << s << '\\n'; };
+
+ #if (__cpp_lib_variant >= 202306L)
+     var1.visit(overloads{use_int, use_str});
+     var2.visit(overloads{use_int, use_str});
+ #else
+     std::visit(overloads{use_int, use_str}, var1);
+     std::visit(overloads{use_int, use_str}, var2);
+ #endif
+ }
+
+.SH Output:
+
+ int = 42
+ string = abc

@@ -1,4 +1,4 @@
-.TH std::uninitialized_fill 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_fill 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_fill \- std::uninitialized_fill
 
@@ -8,32 +8,30 @@ std::uninitialized_fill \- std::uninitialized_fill
    void uninitialized_fill( ForwardIt first, ForwardIt last, const T& \fB(1)\fP
    value );
    template< class ExecutionPolicy, class ForwardIt, class T >
-   void uninitialized_fill( ExecutionPolicy&& policy, ForwardIt       \fB(2)\fP \fI(since C++17)\fP
-   first, ForwardIt last, const T& value );
+
+   void uninitialized_fill( ExecutionPolicy&& policy,                 \fB(2)\fP \fI(since C++17)\fP
+
+                            ForwardIt first, ForwardIt last, const T&
+   value );
 
    1) Copies the given value to an uninitialized memory area, defined by the range
-   [first, last) as if by
+   [first, last) as if by for (; first != last; ++first)
+       ::new (/* VOIDIFY */(*first))
+           typename std::iterator_traits<ForwardIt>::value_type(value);
+   where /* VOIDIFY */(e) is:
 
- for (; first != last; ++first)
-     ::new (/*VOIDIFY*/(*first))
-         typename std::iterator_traits<ForwardIt>::value_type(value);
-
-   where /*VOIDIFY*/(e) is:
-
-      static_cast<void*>(&e)                                              \fI(until C++11)\fP
-      static_cast<void*>(std::addressof(e))                               \fI(since C++11)\fP
-                                                                          \fI(until C++20)\fP
-      const_cast<void*>(static_cast<const volatile                        \fI(since C++20)\fP
-      void*>(std::addressof(e)))
+   static_cast<void*>(&e)                \fI(until C++11)\fP
+   static_cast<void*>(std::addressof(e)) \fI(since C++11)\fP
 
    If an exception is thrown during the initialization, the objects already constructed
    are destroyed in an unspecified order.
-   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
-   in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+   2) Same as \fB(1)\fP, but executed according to policy. This overload participates in
+   overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
 
 .SH Parameters
 
@@ -75,15 +73,15 @@ std::uninitialized_fill \- std::uninitialized_fill
    {
        using V = typename std::iterator_traits<ForwardIt>::value_type;
        ForwardIt current = first;
-       try {
-           for (; current != last; ++current) {
-               ::new (const_cast<void*>(static_cast<const volatile void*>(
-                   std::addressof(*current)))) V(value);
-           }
-       }  catch (...) {
-           for (; first != current; ++first) {
+       try
+       {
+           for (; current != last; ++current)
+               ::new (static_cast<void*>(std::addressof(*current))) V(value);
+       }
+       catch (...)
+       {
+           for (; first != current; ++first)
                first->~V();
-           }
            throw;
        }
    }
@@ -97,21 +95,22 @@ std::uninitialized_fill \- std::uninitialized_fill
  #include <iostream>
  #include <memory>
  #include <string>
- #include <tuple>
 
  int main()
  {
-     std::string* p;
-     std::size_t sz;
-     std::tie(p, sz) = std::get_temporary_buffer<std::string>(4);
+     const std::size_t sz = 4;
+     std::allocator<std::string> alloc;
+     std::string* p = alloc.allocate(sz);
 
-     std::uninitialized_fill(p, p+sz, "Example");
+     std::uninitialized_fill(p, p + sz, "Example");
 
-     for (std::string* i = p; i != p+sz; ++i) {
+     for (std::string* i = p; i != p + sz; ++i)
+     {
          std::cout << *i << '\\n';
          i->~basic_string<char>();
      }
-     std::return_temporary_buffer(p);
+
+     alloc.deallocate(p, sz);
  }
 
 .SH Output:
@@ -120,6 +119,21 @@ std::uninitialized_fill \- std::uninitialized_fill
 .SH Example
 .SH Example
 .SH Example
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to          Behavior as published              Correct behavior
+                       given T as the value type of ForwardIt,
+   LWG 866  C++98      if                                      uses global replacement-
+                       T::operator new exists, the program     new instead
+                       might be ill-formed
+   LWG 2433 C++11      this algorithm might be hijacked by     uses std::addressof
+                       overloaded operator&
+   LWG 3870 C++20      this algorithm might create objects on  kept disallowed
+                       a const storage
 
 .SH See also
 

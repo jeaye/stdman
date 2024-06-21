@@ -1,70 +1,83 @@
-.TH std::equal_range 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::equal_range 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::equal_range \- std::equal_range
 
 .SH Synopsis
    Defined in header <algorithm>
    template< class ForwardIt, class T >
+                                                      (constexpr since
+   std::pair<ForwardIt, ForwardIt>                    C++20)
+                                                      (until C++26)
+       equal_range( ForwardIt first,
+   ForwardIt last, const T& value );
+   template< class ForwardIt, class T =
+   typename std::iterator_traits
 
-   std::pair<ForwardIt,ForwardIt>                           \fI(until C++20)\fP
-   equal_range( ForwardIt first, ForwardIt last,
 
-   const T& value );
-   template< class ForwardIt, class T >
+    <ForwardIt>::value_type >                         (since C++26)
+   constexpr std::pair<ForwardIt, ForwardIt>
 
-   constexpr std::pair<ForwardIt,ForwardIt>                 \fI(since C++20)\fP
-   equal_range( ForwardIt first, ForwardIt last,
-
-   const T& value );
-   template< class ForwardIt, class T, class        \fB(1)\fP
-   Compare >
-
-   std::pair<ForwardIt,ForwardIt>                                         \fI(until C++20)\fP
-   equal_range( ForwardIt first, ForwardIt last,
-
-   const T& value, Compare comp );                      \fB(2)\fP
+       equal_range( ForwardIt first,
+   ForwardIt last, const T& value );
    template< class ForwardIt, class T, class
    Compare >
+                                              \fB(1)\fP
+   std::pair<ForwardIt, ForwardIt>                                     (constexpr since
+       equal_range( ForwardIt first,                                   C++20)
+   ForwardIt last,                                                     (until C++26)
 
-   constexpr std::pair<ForwardIt,ForwardIt>                               \fI(since C++20)\fP
-   equal_range( ForwardIt first, ForwardIt last,
+                    const T& value, Compare
+   comp );
+   template< class ForwardIt, class T =
+   typename std::iterator_traits                  \fB(2)\fP
 
-   const T& value, Compare comp );
 
-   Returns a range containing all elements equivalent to value in the range [first,
-   last).
+    <ForwardIt>::value_type,
+             class Compare >                                           (since C++26)
+   constexpr std::pair<ForwardIt, ForwardIt>
+       equal_range( ForwardIt first,
+   ForwardIt last,
 
-   The range [first, last) must be at least partially ordered with respect to value,
-   i.e. it must satisfy all of the following requirements:
+                    const T& value, Compare
+   comp );
 
-     * partitioned with respect to element < value or comp(element, value) (that is,
-       all elements for which the expression is true precedes all elements for which
-       the expression is false)
-     * partitioned with respect to !(value < element) or !comp(value, element)
-     * for all elements, if element < value or comp(element, value) is true then
-       !(value < element) or !comp(value, element) is also true
+   Returns a range containing all elements equivalent to value in the partitioned range
+   [first, last).
 
-   A fully-sorted range meets these criteria.
+   1) The equivalence is checked using operator<:
 
-   The returned range is defined by two iterators, one pointing to the first element
-   that is not less than value and another pointing to the first element greater than
-   value. The first iterator may be alternatively obtained with std::lower_bound(), the
-   second - with std::upper_bound().
+   Returns the results of std::lower_bound(first, last, value) and
+   std::upper_bound(first, last, value).
 
-   The first version uses operator< to compare the elements, the second version uses
-   the given comparison function comp.
+   If any of the following conditions is satisfied, the behavior is
+   undefined:                                                             \fI(until C++20)\fP
+
+     * For any element elem of [first, last), bool(elem < value) does not
+       imply !bool(value < elem).
+     * The elements elem of [first, last) are not partitioned with
+       respect to expressions bool(elem < value) and !bool(value < elem).
+   Equivalent to std::equal_range(first, last, value, std::less{}).       \fI(since C++20)\fP
+
+   2) The equivalence is checked using comp:
+   Returns the results of std::lower_bound(first, last, value, comp) and
+   std::upper_bound(first, last, value, comp).
+   If any of the following conditions is satisfied, the behavior is undefined:
+     * For any element elem of [first, last), bool(comp(elem, value)) does not imply
+       !bool(comp(value, elem)).
+     * The elements elem of [first, last) are not partitioned with respect to
+       expressions bool(comp(elem, value)) and !bool(comp(value, elem)).
 
 .SH Parameters
 
-   first, last - the range of elements to examine
+   first, last - the partitioned range of elements to examine
    value       - value to compare the elements to
-                 binary predicate which returns true if the first argument is less
-                 than (i.e. is ordered before) the second.
+                 binary predicate which returns true if the first argument is ordered
+                 before the second.
 
                  The signature of the predicate function should be equivalent to the
                  following:
 
-                 bool pred(const Type1 &a, const Type2 &b);
+                  bool pred(const Type1 &a, const Type2 &b);
 
    comp        - While the signature does not need to have const &, the function must
                  not modify the objects passed to it and must be able to accept all
@@ -80,44 +93,71 @@ std::equal_range \- std::equal_range
    -
    ForwardIt must meet the requirements of LegacyForwardIterator.
    -
-   Compare must meet the requirements of BinaryPredicate. it is not required to satisfy
-   Compare
+   Compare must meet the requirements of BinaryPredicate. It is not required to satisfy
+   Compare.
 
 .SH Return value
 
-   std::pair containing a pair of iterators defining the wanted range, the first
-   pointing to the first element that is not less than value and the second pointing to
-   the first element greater than value.
+   A std::pair containing a pair of iterators, where
 
-   If there are no elements not less than value, last is returned as the first element.
-   Similarly if there are no elements greater than value, last is returned as the
-   second element
+     * first is an iterator to the first element of the range [first, last) not ordered
+       before value (or last if no such element is found), and
+     * second is an iterator to the first element of the range [first, last) ordered
+       after value (or last if no such element is found).
 
 .SH Complexity
 
-   The number of comparisons performed is logarithmic in the distance between first and
-   last (At most 2 * log
-   2(last - first) + O(1) comparisons). However, for non-LegacyRandomAccessIterators,
-   the number of iterator increments is linear. Notably, std::set and std::multiset
+   Given \\(\\scriptsize N\\)N as std::distance(first, last):
+
+   1) At most \\(\\scriptsize 2\\log_{2}(N)+O(1)\\)2log
+   2(N)+O(1) comparisons with value using
+   operator<
+   \fI(until C++20)\fP
+   std::less{}
+   \fI(since C++20)\fP.
+   2) At most \\(\\scriptsize 2\\log_{2}(N)+O(1)\\)2log
+   2(N)+O(1) applications of the comparator comp.
+
+   However, if ForwardIt is not a LegacyRandomAccessIterator, the number of iterator
+   increments is linear in \\(\\scriptsize N\\)N. Notably, std::set and std::multiset
    iterators are not random access, and so their member functions std::set::equal_range
    (resp. std::multiset::equal_range) should be preferred.
 
+.SH Notes
+
+   Although std::equal_range only requires [first, last) to be partitioned, this
+   algorithm is usually used in the case where [first, last) is sorted, so that the
+   binary search is valid for any value.
+
+   On top of the requirements of std::lower_bound and std::upper_bound,
+   std::equal_range also requires operator< or comp to be asymmetric (i.e., a < b and b
+   < a always have different results).
+
+   Therefore, the intermediate results of binary search can be shared by
+   std::lower_bound and std::upper_bound. For example, the result of the
+   std::lower_bound call can be used as the argument of first in the std::upper_bound
+   call.
+
+             Feature-test macro           Value    Std              Feature
+   __cpp_lib_algorithm_default_value_type 202403 (C++26) List-initialization for
+                                                         algorithms (1,2)
+
 .SH Possible implementation
 
-.SH First version
-   template<class ForwardIt, class T>
-   std::pair<ForwardIt,ForwardIt>
-       equal_range(ForwardIt first, ForwardIt last,
-                   const T& value)
+                                  equal_range \fB(1)\fP
+   template<class ForwardIt,
+            class T = typename std::iterator_traits<ForwardIt>::value_type>
+   constexpr std::pair<ForwardIt, ForwardIt>
+       equal_range(ForwardIt first, ForwardIt last, const T& value)
    {
-       return std::make_pair(std::lower_bound(first, last, value),
-                             std::upper_bound(first, last, value));
+       return std::equal_range(first, last, value, std::less{});
    }
-.SH Second version
-   template<class ForwardIt, class T, class Compare>
-   std::pair<ForwardIt,ForwardIt>
-       equal_range(ForwardIt first, ForwardIt last,
-                   const T& value, Compare comp)
+                                  equal_range \fB(2)\fP
+   template<class ForwardIt,
+            class T = typename std::iterator_traits<ForwardIt>::value_type,
+            class Compare>
+   constexpr std::pair<ForwardIt, ForwardIt>
+       equal_range(ForwardIt first, ForwardIt last, const T& value, Compare comp)
    {
        return std::make_pair(std::lower_bound(first, last, value, comp),
                              std::upper_bound(first, last, value, comp));
@@ -129,57 +169,83 @@ std::equal_range \- std::equal_range
 // Run this code
 
  #include <algorithm>
- #include <vector>
+ #include <complex>
  #include <iostream>
+ #include <vector>
 
  struct S
  {
      int number;
      char name;
      // note: name is ignored by this comparison operator
-     bool operator< ( const S& s ) const { return number < s.number; }
+     bool operator<(const S& s) const { return number < s.number; }
+ };
+
+ struct Comp
+ {
+     bool operator()(const S& s, int i) const { return s.number < i; }
+     bool operator()(int i, const S& s) const { return i < s.number; }
  };
 
  int main()
  {
      // note: not ordered, only partitioned w.r.t. S defined below
-     const std::vector<S> vec = { {1,'A'}, {2,'B'}, {2,'C'}, {2,'D'}, {4,'G'}, {3,'F'} };
-
-     const S value = {2, '?'};
+     const std::vector<S> vec{{1, 'A'}, {2, 'B'}, {2, 'C'},
+                              {2, 'D'}, {4, 'G'}, {3, 'F'}};
+     const S value{2, '?'};
 
      std::cout << "Compare using S::operator<(): ";
      const auto p = std::equal_range(vec.begin(), vec.end(), value);
 
-     for ( auto i = p.first; i != p.second; ++i )
-         std::cout << i->name << ' ';
+     for (auto it = p.first; it != p.second; ++it)
+         std::cout << it->name << ' ';
+     std::cout << '\\n';
 
+     std::cout << "Using heterogeneous comparison: ";
+     const auto p2 = std::equal_range(vec.begin(), vec.end(), 2, Comp{});
 
-     std::cout << "\\n" "Using heterogeneous comparison: ";
-     struct Comp
-     {
-         bool operator() ( const S& s, int i ) const { return s.number < i; }
-         bool operator() ( int i, const S& s ) const { return i < s.number; }
-     };
+     for (auto it = p2.first; it != p2.second; ++it)
+         std::cout << it->name << ' ';
+     std::cout << '\\n';
 
-     const auto p2 = std::equal_range(vec.begin(),vec.end(), 2, Comp{});
+     using CD = std::complex<double>;
+     std::vector<CD> nums{{1, 0}, {2, 2}, {2, 1}, {3, 0}, {3, 1}};
+     auto cmpz = [](CD x, CD y) { return x.real() < y.real(); };
+     #ifdef __cpp_lib_algorithm_default_value_type
+         auto p3 = std::equal_range(nums.cbegin(), nums.cend(), {2, 0}, cmpz);
+     #else
+         auto p3 = std::equal_range(nums.cbegin(), nums.cend(), CD{2, 0}, cmpz);
+     #endif
 
-     for ( auto i = p2.first; i != p2.second; ++i )
-         std::cout << i->name << ' ';
+     for (auto it = p3.first; it != p3.second; ++it)
+         std::cout << *it << ' ';
+     std::cout << '\\n';
  }
 
 .SH Output:
 
  Compare using S::operator<(): B C D
  Using heterogeneous comparison: B C D
+ (2,2) (2, 1)
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-     DR    Applied to    Behavior as published               Correct behavior
-   LWG 270 C++98      Compare was required to be a only a partitioning is needed;
-                      strict weak ordering         heterogeneous comparisons permitted
+     DR    Applied to      Behavior as published               Correct behavior
+                      Compare was required to satisfy  only a partitioning is required;
+   LWG 270 C++98      Compare and T was required       heterogeneous comparisons
+                      to be LessThanComparable (strict permitted
+                      weak ordering required)
+                      at most \\(\\scriptsize
+                      2\\log_{2}(N)+1\\)2log             corrected to \\(\\scriptsize
+   LWG 384 C++98      2(N)+1 comparisons               2\\log_{2}(N)+O(1)\\)2log
+                      were allowed, which is not       2(N)+O(1)
+                      implementable^[1]
+
+    1. ↑ Applying equal_range to a single-element range requires 2 comparisons, but at
+       most 1 comparison is allowed by the complexity requirement.
 
 .SH See also
 
@@ -195,9 +261,11 @@ std::equal_range \- std::equal_range
                        \fI(function template)\fP
    equal               determines if two sets of elements are the same
                        \fI(function template)\fP
-   equal_range         returns range of elements matching a specific key
-                       \fI(public member function of std::set<Key,Compare,Allocator>)\fP
-   equal_range         returns range of elements matching a specific key
-                       \fI(public member function of std::multiset<Key,Compare,Allocator>)\fP
+                       returns range of elements matching a specific key
+   equal_range         \fI(public member function of std::set<Key,Compare,Allocator>)\fP
+
+                       returns range of elements matching a specific key
+   equal_range         \fI(public member function of std::multiset<Key,Compare,Allocator>)\fP
+
    ranges::equal_range returns range of elements matching a specific key
    (C++20)             (niebloid)

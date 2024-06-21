@@ -1,0 +1,193 @@
+.TH std::ranges::views::adjacent_transform,std::ranges::adjacent_transform_view, 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::views::adjacent_transform,std::ranges::adjacent_transform_view, \- std::ranges::views::adjacent_transform,std::ranges::adjacent_transform_view,
+
+.SH Synopsis
+
+   Defined in header <ranges>
+   template< ranges::forward_range V, std::move_constructible F,
+   std::size_t N >
+
+     requires ranges::view<V> && (N > 0) && std::is_object_v<F> &&
+              std::regular_invocable<F&,                                        (since
+                  /*REPEAT*/(ranges::range_reference_t<V>, N)...> &&        \fB(1)\fP C++23)
+              /*can-reference*/<std::invoke_result_t<F&,
+                  /*REPEAT*/(ranges::range_reference_t<V>, N)...>>
+   class adjacent_transform_view
+
+       : public ranges::view_interface<adjacent_transform_view<V, F, N>>
+   namespace views {
+
+   template< std::size_t N >                                                    (since
+       inline constexpr /* unspecified */ adjacent_transform = /*           \fB(2)\fP C++23)
+   unspecified */;
+
+   }
+   namespace views {
+                                                                                (since
+       inline constexpr auto pairwise_transform = adjacent_transform<2>;    \fB(3)\fP C++23)
+
+   }
+   Call signature
+   template< ranges::viewable_range R, class F >
+                                                                                (since
+       requires /* see below */                                                 C++23)
+
+   constexpr ranges::view auto adjacent_transform<N>( R&& r, F&& fun );
+   template< class F >                                                          (since
+   constexpr /*range adaptor closure*/ adjacent_transform<N>( F&& fun );        C++23)
+
+   1) adjacent_transform_view is a range adaptor that takes a view and an invocable
+   object fun, and produces a view whose i^th element is a value that is the result of
+   applying fun to each element in [i, i + N) of the original view. F always has arity
+   N.
+   Let S be the size of the original view. Then the size of produced view is:
+     * S - N + 1, if S >= N,
+     * 0 otherwise, and the resulting view is empty.
+   2) The name views::adjacent_transform<N> denotes a RangeAdaptorObject. Given
+   subexpressions e and f, and a constant expression N, the expression
+   views::adjacent_transform<N>(e, f) is expression-equivalent to:
+     * ((void)e, views::zip_transform(f)), if N is equal to 0 (except that the
+       evaluations of e and f are indeterminately sequenced),
+     * adjacent_transform_view<views::all_t<decltype((e))>,
+       std::decay_t<decltype((f))>, N>(e, f) otherwise.
+   3) The name views::pairwise_transform denotes a RangeAdaptorObject that behaves
+   exactly as views::adjacent_transform<2>. In particular, the arity of F is also 2 and
+   fun is a binary invocable object.
+
+   adjacent_transform_view always models forward_range, and models bidirectional_range,
+   random_access_range, or sized_range, if adapted view type models the corresponding
+   concept.
+
+.SH Member functions
+
+   constructor   constructs a adjacent_transform_view
+   (C++23)       \fI(public member function)\fP
+   begin         returns an iterator to the beginning
+   (C++23)       \fI(public member function)\fP
+   end           returns an iterator or a sentinel to the end
+   (C++23)       \fI(public member function)\fP
+   size          returns the number of elements. Provided only if the underlying
+   (C++23)       (adapted) range satisfies sized_range.
+                 \fI(public member function)\fP
+         Inherited from std::ranges::view_interface
+   empty         returns whether the derived view is empty. Provided if it satisfies
+   (C++20)       sized_range or forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   cbegin        returns a constant iterator to the beginning of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   cend          returns a sentinel for the constant iterator of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator bool returns whether the derived view is not empty. Provided if
+   (C++20)       ranges::empty is applicable to it.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   front         returns the first element in the derived view. Provided if it
+   (C++20)       satisfies forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   back          returns the last element in the derived view. Provided if it satisfies
+   (C++20)       bidirectional_range and common_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator[]    returns the n^th element in the derived view. Provided if it satisfies
+   (C++20)       random_access_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+
+   Deduction guides
+
+   \fI(none)\fP
+
+.SH Member types
+
+   Member type              Definition
+   InnerView (private)      ranges::adjacent_view<V, N>.
+                            (exposition-only member type*)
+                              * ranges::iterator_t<const InnerView>, if Const is true.
+   inner_iterator (private)     Otherwise,
+                              * ranges::iterator_t<InnerView>.
+                                (exposition-only member type*)
+                              * ranges::sentinel_t<const InnerView>, if Const is true.
+   inner_sentinel (private)     Otherwise,
+                              * ranges::sentinel_t<InnerView>.
+                                (exposition-only member type*)
+
+   Data members
+
+   Member object    Definition
+   fun_ (private)   /*movable-box*/<F>
+                    (exposition-only member object*)
+   inner_ (private) ranges::adjacent_view<V,N>
+                    (exposition-only member object*)
+
+   Nested classes
+
+   iterator the iterator type
+   (C++23)  (exposition-only member class template*)
+   sentinel the sentinel type used when adjacent_transform_view is not a common_range
+   (C++23)  (exposition-only member class template*)
+
+.SH Notes
+
+    Feature-test macro   Value    Std                 Feature
+                                        std::ranges::zip_view,
+   __cpp_lib_ranges_zip 202110L (C++23) std::ranges::zip_transform_view,
+                                        std::ranges::adjacent_view,
+                                        std::ranges::adjacent_transform_view
+
+.SH Example
+
+
+// Run this code
+
+ #include <array>
+ #include <iostream>
+ #include <ranges>
+
+ int main()
+ {
+     constexpr static std::array data{1, 2, 3, 4, 5, 6};
+     constexpr int window{3};
+
+     auto Fun = [](auto... ints) { return (... + ints); };
+     // Alternatively, the Fun could be any ternary (if window == 3) callable, e.g.:
+     // auto Fun = [](int x, int y, int z) { return x + y + z; };
+
+     constexpr auto view = data | std::views::adjacent_transform<window>(Fun);
+
+     static_assert(
+         view.size() == (data.size() - window + 1)
+         && std::array{6, 9, 12, 15}
+         == std::array{view[0], view[1], view[2], view[3]}
+         && view[0] == Fun(data[0], data[1], data[2])
+         && view[1] == Fun(data[1], data[2], data[3])
+         && view[2] == Fun(data[2], data[3], data[4])
+         && view[3] == Fun(data[3], data[4], data[5])
+     );
+
+     for (int x : view)
+         std::cout << x << ' ';
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ 6 9 12 15
+
+.SH References
+
+     * C++23 standard (ISO/IEC 14882:2023):
+
+     * 26.7.27 Adjacent transform view [range.adjacent.transform]
+
+.SH See also
+
+   ranges::adjacent_view      a view consisting of tuples of references to adjacent
+   views::adjacent            elements of the adapted view
+   (C++23)                    \fI(class template)\fP (range adaptor object)
+   ranges::transform_view     a view of a sequence that applies a transformation
+   views::transform           function to each element
+   (C++20)                    \fI(class template)\fP (range adaptor object)
+   ranges::zip_transform_view a view consisting of tuples of results of application of
+   views::zip_transform       a transformation function to corresponding elements of
+   (C++23)                    the adapted views
+                              \fI(class template)\fP (customization point object)
+   ranges::transform          applies a function to a range of elements
+   (C++20)                    (niebloid)

@@ -1,4 +1,4 @@
-.TH std::stop_source 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::stop_source 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::stop_source \- std::stop_source
 
@@ -44,7 +44,7 @@ std::stop_source \- std::stop_source
    swap(std::stop_source) specializes the std::swap algorithm
    (C++20)                \fI(function)\fP
 
-  Helper constants
+   Helper constants
 
    nostopstate a std::nostopstate_t instance for use in stop_source constructor
    (C++20)     (constant)
@@ -65,9 +65,76 @@ std::stop_source \- std::stop_source
    For other uses, however, a stop_source can be constructed separately using the
    default constructor, which creates new stop-state.
 
-   Feature-test macro: __cpp_lib_jthread
+   Feature-test macro  Value    Std              Feature
+   __cpp_lib_jthread  201911L (C++20) Stop token and joining thread
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <chrono>
+ #include <iostream>
+ #include <stop_token>
+ #include <thread>
+
+ using namespace std::chrono_literals;
+
+ void worker_fun(int id, std::stop_source stop_source)
+ {
+     std::stop_token stoken = stop_source.get_token();
+     for (int i = 10; i; --i)
+     {
+         std::this_thread::sleep_for(300ms);
+         if (stoken.stop_requested())
+         {
+             std::printf("  worker%d is requested to stop\\n", id);
+             return;
+         }
+         std::printf("  worker%d goes back to sleep\\n", id);
+     }
+ }
+
+ int main()
+ {
+     std::jthread threads[4];
+     std::cout << std::boolalpha;
+     auto print = [](const std::stop_source& source)
+     {
+         std::printf("stop_source stop_possible = %s, stop_requested = %s\\n",
+                     source.stop_possible() ? "true" : "false",
+                     source.stop_requested() ? "true" : "false");
+     };
+
+     // Common source
+     std::stop_source stop_source;
+
+     print(stop_source);
+
+     // Create worker threads
+     for (int i = 0; i < 4; ++i)
+         threads[i] = std::jthread(worker_fun, i + 1, stop_source);
+
+     std::this_thread::sleep_for(500ms);
+
+     std::puts("Request stop");
+     stop_source.request_stop();
+
+     print(stop_source);
+
+     // Note: destructor of jthreads will call join so no need for explicit calls
+ }
+
+.SH Possible output:
+
+ stop_source stop_possible = true, stop_requested = false
+   worker2 goes back to sleep
+   worker3 goes back to sleep
+   worker1 goes back to sleep
+   worker4 goes back to sleep
+ Request stop
+ stop_source stop_possible = true, stop_requested = true
+   worker3 is requested to stop
+   worker1 is requested to stop
+   worker2 is requested to stop
+   worker4 is requested to stop

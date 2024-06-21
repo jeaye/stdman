@@ -1,23 +1,23 @@
-.TH std::basic_ios::copyfmt 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_ios::copyfmt 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_ios::copyfmt \- std::basic_ios::copyfmt
 
 .SH Synopsis
-   basic_ios& copyfmt(const basic_ios& other);
+   basic_ios& copyfmt( const basic_ios& other );
 
    If other refers to the same object as *this, has no effects. Otherwise, copies the
    state of the stream other into *this. This is done in the following sequence:
 
    1) Calls every callback registered by register_callback() passing erase_event as
-   parameter
+   parameter.
    2) Copies all member objects from other to *this except for rdstate(), the exception
    mask, and rdbuf(). In particular, makes copies of the locale, the formatting flags,
    the contents of the arrays std::ios_base::iword and std::ios_base::pword (but not
    the iword and pword pointers themselves), the callbacks, and the tied stream.
    3) Calls every callback registered by register_callback() passing copyfmt_event as
-   parameter
+   parameter.
    4) Copies the exception mask from other to *this as if by calling
-   exceptions(other.exceptions())
+   exceptions(other.exceptions()).
 
 .SH Parameters
 
@@ -30,21 +30,23 @@ std::basic_ios::copyfmt \- std::basic_ios::copyfmt
 .SH Notes
 
    The second pass through the callbacks may be used to deep-copy the user-defined
-   objects pointed to by the pointers in std::ios_base::pword
+   objects pointed to by the pointers in std::ios_base::pword.
 
    copyfmt() may be used to save and restore the state of a stream. Boost provides a
    more fine-grained I/O state savers library for the same purpose.
 
 .SH Example
 
-   makes the std::ofstream object "out" behave exactly like std::cout, including
+   Makes the std::ofstream object "out" behave exactly like std::cout, including
    formatting, tie() to std::cin, etc.
 
 
 // Run this code
 
- #include <iostream>
+ #include <bitset>
+ #include <climits>
  #include <fstream>
+ #include <iostream>
 
  int main()
  {
@@ -55,8 +57,38 @@ std::basic_ios::copyfmt \- std::basic_ios::copyfmt
      out.basic_ios<char>::rdbuf(std::cout.rdbuf()); // share the buffer
 
      out << "Hello, world\\n";
+
+     auto bin = [](std::ios_base::fmtflags f)
+     {
+         return std::bitset<sizeof(std::ios_base::fmtflags) * CHAR_BIT>
+             { static_cast<unsigned long long>(f) };
+     };
+     std::ofstream out2;
+     std::cout << "1) out2.flags(): " << bin(out2.flags()) << '\\n';
+     std::cout << "2) cout.flags(): " << bin(std::cout.flags()) << '\\n';
+     std::cout.setf(std::ios::hex | std::ios::fixed | std::ios::boolalpha);
+     std::cout << "3) cout.flags(): " << bin(std::cout.flags()) << '\\n';
+     out2.copyfmt(std::cout); // copy everything except rdstate and rdbuf
+     std::cout << "4) out2.flags(): " << bin(out2.flags()) << '\\n';
  }
 
-.SH Output:
+.SH Possible output:
 
  Hello, world
+ 1) out2.flags(): 00000000000000000001000000000010
+ 2) cout.flags(): 00000000000000000001000000000010
+ 3) cout.flags(): 00000000000000000001000000001111
+ 4) out2.flags(): 00000000000000000001000000001111
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to              Behavior as published               Correct behavior
+   LWG 256 C++98      step 3 called the registered callbacks with the  corrected to
+                      event type copy_event, which is not defined      copyfmt_event
+                      if other refers to the same object as *this, the
+   LWG 292 C++98      member objects                                   do nothing
+                      were still copied and the registered callbacks   in this case
+                      were still called

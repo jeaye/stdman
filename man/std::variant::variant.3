@@ -1,4 +1,4 @@
-.TH std::variant::variant 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::variant::variant 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::variant::variant \- std::variant::variant
 
@@ -10,86 +10,78 @@ std::variant::variant \- std::variant::variant
    constexpr variant( T&& t ) noexcept(/* see below */);
    template< class T,
 
-   class... Args >                                                 \fB(5)\fP \fI(since C++17)\fP
+             class... Args >                                       \fB(5)\fP \fI(since C++17)\fP
    constexpr explicit variant( std::in_place_type_t<T>,
 
-   Args&&... args );
+                               Args&&... args );
    template< class T,
 
-   class U,
-   class... Args >                                                 \fB(6)\fP \fI(since C++17)\fP
+             class U,
+             class... Args >                                       \fB(6)\fP \fI(since C++17)\fP
    constexpr explicit variant( std::in_place_type_t<T>,
-   std::initializer_list<U> il,
+                               std::initializer_list<U> il,
 
-   Args&&... args );
+                               Args&&... args );
    template< std::size_t I,
 
-   class... Args >                                                 \fB(7)\fP \fI(since C++17)\fP
+             class... Args >                                       \fB(7)\fP \fI(since C++17)\fP
    constexpr explicit variant( std::in_place_index_t<I>,
 
-   Args&&... args );
+                               Args&&... args );
    template< std::size_t I,
 
-   class U,
-   class... Args >                                                 \fB(8)\fP \fI(since C++17)\fP
+             class U,
+             class... Args >                                       \fB(8)\fP \fI(since C++17)\fP
    constexpr explicit variant( std::in_place_index_t<I>,
-   std::initializer_list<U> il,
+                               std::initializer_list<U> il,
 
-   Args&&... args );
+                               Args&&... args );
 
    Constructs a new variant object.
 
    1) Default constructor. Constructs a variant holding the value-initialized value of
    the first alternative (index() is zero).
-
      * This constructor is constexpr if and only if the value initialization of the
        alternative type T_0 would satisfy the requirements for a constexpr function.
      * This overload participates in overload resolution only if
        std::is_default_constructible_v<T_0> is true.
-
    2) Copy constructor. If other is not valueless_by_exception, constructs a variant
    holding the same alternative as other and direct-initializes the contained value
-   with std::get<other.index()>(other). Otherwise, initializes a valueless_by_exception
-   variant.
-
+   with *std::get_if<other.index()>(std::addressof(other)). Otherwise, initializes a
+   valueless_by_exception variant.
      * This constructor is defined as deleted unless std::is_copy_constructible_v<T_i>
        is true for all T_i in Types....
      * It is trivial if std::is_trivially_copy_constructible_v<T_i> is true for all T_i
        in Types....
-
    3) Move constructor. If other is not valueless_by_exception, constructs a variant
    holding the same alternative as other and direct-initializes the contained value
-   with std::get<other.index()>(std::move(other)). Otherwise, initializes a
-   valueless_by_exception variant.
-
+   with std::move(*std::get_if<other.index()>(std::addressof(other))). Otherwise,
+   initializes a valueless_by_exception variant.
      * This overload participates in overload resolution only if
        std::is_move_constructible_v<T_i> is true for all T_i in Types....
      * It is trivial if std::is_trivially_move_constructible_v<T_i> is true for all T_i
        in Types....
-
    4) Converting constructor. Constructs a variant holding the alternative type T_j
    that would be selected by overload resolution for the expression
-   F(std::forward<T>(t)) if there was an overload of imaginary function F(T_i) for
-   every T_i from Types... in scope at the same time, except that:
+   F(std::forward<T>(t)) if there was an overload of imaginary function F(T_i) for each
+   T_i in Types..., except that narrowing conversions aren't considered.
 
-              * An overload F(T_i) is only considered if the declaration T_i x[] = {
-                std::forward<T>(t) }; is valid for some invented variable x;
+   Formally:
 
+     * An overload F(T_i) is only considered if the declaration T_i x[] = {
+       std::forward<T>(t) }; is valid for some invented variable x.
    Direct-initializes the contained value as if by direct non-list-initialization from
    std::forward<T>(t).
-
      * This overload participates in overload resolution only if
-
           * sizeof...(Types) > 0,
-          * std::decay_t<U>
+          * std::decay_t<T>
             \fI(until C++20)\fP
-            std::remove_cvref_t<U>
+            std::remove_cvref_t<T>
             \fI(since C++20)\fP is neither the same type as variant, nor a specialization of
             std::in_place_type_t, nor a specialization of std::in_place_index_t,
           * std::is_constructible_v<T_j, T> is true,
           * and the expression F(std::forward<T>(t)) (with F being the above-mentioned
             set of imaginary functions) is well formed.
-
      * This constructor is a constexpr constructor if T_j's selected constructor is a
        constexpr constructor.
 
@@ -102,32 +94,25 @@ std::variant::variant \- std::variant::variant
 
    5) Constructs a variant with the specified alternative T and initializes the
    contained value with the arguments std::forward<Args>(args)....
-
      * If T's selected constructor is a constexpr constructor, this constructor is also
        a constexpr constructor.
      * This overload participates in overload resolution only if there is exactly one
        occurrence of T in Types... and std::is_constructible_v<T, Args...> is true.
-
    6) Constructs a variant with the specified alternative T and initializes the
    contained value with the arguments il, std::forward<Args>(args)....
-
      * If T's selected constructor is a constexpr constructor, this constructor is also
        a constexpr constructor.
      * This overload participates in overload resolution only if there is exactly one
        occurrence of T in Types... and std::is_constructible_v<T, initializer_list<U>&,
        Args...> is true.
-
    7) Constructs a variant with the alternative T_i specified by the index I and
    initializes the contained value with the arguments std::forward<Args>(args)....
-
      * If T_i's selected constructor is a constexpr constructor, this constructor is
        also a constexpr constructor.
      * This overload participates in overload resolution only if I < sizeof...(Types)
        and std::is_constructible_v<T_i, Args...> is true.
-
    8) Constructs a variant with the alternative T_i specified by the index I and
    initializes the contained value with the arguments il, std::forward<Args>(args)....
-
      * If T_i's selected constructor is a constexpr constructor, this constructor is
        also a constexpr constructor.
      * This overload participates in overload resolution only if I < sizeof...(Types)
@@ -146,16 +131,16 @@ std::variant::variant \- std::variant::variant
    alternative.
    noexcept specification:
    noexcept(std::is_nothrow_default_constructible_v<T_0>)
-   2) May throw any exception thrown by direct-initializing any T_i in Types...
+   2) May throw any exception thrown by direct-initializing any T_i in Types....
    3) May throw any exception thrown by move-constructing any T_i in Types....
    noexcept specification:
-   noexcept( (std::is_nothrow_move_constructible_v<Types> && ...))
+   noexcept((std::is_nothrow_move_constructible_v<Types> && ...))
    4) May throw any exception thrown by the initialization of the selected alternative
    T_j.
    noexcept specification:
    noexcept(std::is_nothrow_constructible_v<T_j, T>)
    5-8) May throw any exception thrown by calling the selected constructor of the
-   selected alternative
+   selected alternative.
 
 .SH Example
 
@@ -168,59 +153,59 @@ std::variant::variant \- std::variant::variant
  #include <variant>
  #include <vector>
 
- template <class Os> Os& operator<< (Os& os, const std::vector<int>& v) {
-     os << "{ ";
-     for (int e: v) { std::cout << e << ' '; }
-     return os << "}";
+ using vector_t = std::vector<int>;
+
+ auto& operator<<(auto& out, const vector_t& v)
+ {
+     out << "{ ";
+     for (int e : v)
+         out << e << ' ';
+     return out << '}';
  }
 
  int main()
  {
+     // value-initializes first alternative
+     std::variant<int, std::string> var0;
+     assert(std::holds_alternative<int>(var0) and
+            var0.index() == 0 and
+            std::get<int>(var0) == 0);
+
+     // initializes first alternative with std::string{"STR"};
+     std::variant<std::string, int> var1{"STR"};
+     assert(var1.index() == 0);
+     std::cout << "1) " << std::get<std::string>(var1) << '\\n';
+
+     // initializes second alternative with int == 42;
+     std::variant<std::string, int> var2{42};
+     assert(std::holds_alternative<int>(var2));
+     std::cout << "2) " << std::get<int>(var2) << '\\n';
+
+     // initializes first alternative with std::string{4, 'A'};
+     std::variant<std::string, vector_t, float> var3
      {
-         std::variant<int, std::string> var; // value-initializes first alternative
-         assert(std::holds_alternative<int>(var) && var.index() == 0 &&
-                std::get<int>(var) == 0);
-     }
+         std::in_place_type<std::string>, 4, 'A'
+     };
+     assert(var3.index() == 0);
+     std::cout << "3) " << std::get<std::string>(var3) << '\\n';
+
+     // initializes second alternative with std::vector{1,2,3,4,5};
+     std::variant<std::string, vector_t, char> var4
      {
-         std::variant<std::string, int> var{"STR"};
-             // initializes first alternative with std::string{"STR"};
-         assert(var.index() == 0);
-         std::cout << "1) " << std::get<std::string>(var) << '\\n';
-     }
-     {
-         std::variant<std::string, int> var{42};
-             // initializes second alternative with int = 42;
-         assert(std::holds_alternative<int>(var));
-         std::cout << "2) " << std::get<int>(var) << '\\n';
-     }
-     {
-         std::variant<std::string, std::vector<int>, float> var{
-             std::in_place_type<std::string>, 4, 'A'};
-             // initializes first alternative with std::string{4, 'A'};
-         assert(var.index() == 0);
-         std::cout << "3) " << std::get<std::string>(var) << '\\n';
-     }
-     {
-         std::variant<std::string, std::vector<int>, char> var{
-             std::in_place_type<std::vector<int>>, {1,2,3,4,5} };
-             // initializes second alternative with std::vector{1,2,3,4,5};
-         assert(var.index() == 1);
-         std::cout << "4) " << std::get<std::vector<int>>(var) << '\\n';
-     }
-     {
-         std::variant<std::string, std::vector<int>, bool> var{
-             std::in_place_index<0>, "ABCDE", 3};
-             // initializes first alternative with std::string{"ABCDE", 3};
-         assert(var.index() == 0);
-         std::cout << "5) " << std::get<std::string>(var) << '\\n';
-     }
-     {
-         std::variant<std::string, std::vector<int>, char> var{
-             std::in_place_index<1>, 4, 42};
-             // initializes second alternative with std::vector(4, 42);
-         assert(std::holds_alternative<std::vector<int>>(var));
-         std::cout << "6) " << std::get<std::vector<int>>(var) << '\\n';
-     }
+         std::in_place_type<vector_t>, {1, 2, 3, 4, 5}
+     };
+     assert(var4.index() == 1);
+     std::cout << "4) " << std::get<vector_t>(var4) << '\\n';
+
+     // initializes first alternative with std::string{"ABCDE", 3};
+     std::variant<std::string, vector_t, bool> var5 {std::in_place_index<0>, "ABCDE", 3};
+     assert(var5.index() == 0);
+     std::cout << "5) " << std::get<std::string>(var5) << '\\n';
+
+     // initializes second alternative with std::vector(4, 42);
+     std::variant<std::string, vector_t, char> var6 {std::in_place_index<1>, 4, 42};
+     assert(std::holds_alternative<vector_t>(var6));
+     std::cout << "6) " << std::get<vector_t>(var6) << '\\n';
  }
 
 .SH Output:
@@ -232,7 +217,7 @@ std::variant::variant \- std::variant::variant
  5) ABC
  6) { 42 42 42 42 }
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
@@ -262,3 +247,6 @@ std::variant::variant \- std::variant::variant
    P1957R2  C++17      not allow                            converting constructor has
                        implicit conversion                  no
                                                             exception for bool
+
+.SH Category:
+     * conditionally noexcept

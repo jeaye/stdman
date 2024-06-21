@@ -1,30 +1,43 @@
-.TH std::sinh,std::sinhf,std::sinhl 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::sinh,std::sinhf,std::sinhl 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::sinh,std::sinhf,std::sinhl \- std::sinh,std::sinhf,std::sinhl
 
 .SH Synopsis
    Defined in header <cmath>
-   float sinh ( float arg );
-   float sinhf( float arg );                     \fI(since C++11)\fP
-   double sinh ( double arg );           \fB(1)\fP \fB(2)\fP
-   long double sinh ( long double arg );
-   long double sinhl( long double arg );     \fB(3)\fP               \fI(since C++11)\fP
-   double sinh ( IntegralType arg );             \fB(4)\fP           \fI(since C++11)\fP
+   float       sinh ( float num );
 
-   1-3) Computes the hyperbolic sine of arg
-   4) A set of overloads or a function template accepting an argument of any integral
-   type. Equivalent to 2) (the argument is cast to double).
+   double      sinh ( double num );                            (until C++23)
+
+   long double sinh ( long double num );
+   /* floating-point-type */                                   (since C++23)
+               sinh ( /* floating-point-type */ num );         (constexpr since C++26)
+   float       sinhf( float num );                     \fB(1)\fP \fB(2)\fP \fI(since C++11)\fP
+                                                               (constexpr since C++26)
+   long double sinhl( long double num );                   \fB(3)\fP \fI(since C++11)\fP
+                                                               (constexpr since C++26)
+   Additional overloads \fI(since C++11)\fP
+   Defined in header <cmath>
+   template< class Integer >                               (A) (constexpr since C++26)
+   double      sinh ( Integer num );
+
+   1-3) Computes the hyperbolic sine of num.
+   The library provides overloads of std::sinh for all cv-unqualified floating-point
+   types as the type of the parameter.
+   (since C++23)
+
+   A) Additional overloads are provided for all integer types, which are  \fI(since C++11)\fP
+   treated as double.
 
 .SH Parameters
 
-   arg - value of a floating-point or Integral type
+   num - floating-point or integer value
 
 .SH Return value
 
-   If no errors occur, the hyperbolic sine of arg (sinh(arg), or
+   If no errors occur, the hyperbolic sine of num (sinh(num), or
 
-   earg
-   -e-arg
+   enum
+   -e-num
    2
 
    ) is returned.
@@ -41,40 +54,50 @@ std::sinh,std::sinhf,std::sinhl \- std::sinh,std::sinhf,std::sinhl
 
    If the implementation supports IEEE floating-point arithmetic (IEC 60559),
 
-     * if the argument is ±0 or ±∞, it is returned unmodified
-     * if the argument is NaN, NaN is returned
+     * if the argument is ±0 or ±∞, it is returned unmodified.
+     * if the argument is NaN, NaN is returned.
 
 .SH Notes
 
-   POSIX specifies that in case of underflow, arg is returned unmodified, and if that
+   POSIX specifies that in case of underflow, num is returned unmodified, and if that
    is not supported, and implementation-defined value no greater than DBL_MIN, FLT_MIN,
    and LDBL_MIN is returned.
+
+   The additional overloads are not required to be provided exactly as (A). They only
+   need to be sufficient to ensure that for their argument num of integer type,
+   std::sinh(num) has the same effect as std::sinh(static_cast<double>(num)).
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
- #include <cmath>
  #include <cerrno>
- #include <cstring>
  #include <cfenv>
+ #include <cmath>
+ #include <cstring>
+ #include <iostream>
+ // #pragma STDC FENV_ACCESS ON
 
- #pragma STDC FENV_ACCESS ON
  int main()
  {
+     const double x = 42;
+
      std::cout << "sinh(1) = " << std::sinh(1) << '\\n'
                << "sinh(-1) = " << std::sinh(-1) << '\\n'
-               << "log(sinh(1)+cosh(1)) = "
-               << std::log(std::sinh(1)+std::cosh(1)) << '\\n';
+               << "log(sinh(" << x << ")+cosh(" << x << ")) = "
+               << std::log(std::sinh(x) + std::cosh(x)) << '\\n';
+
      // special values
      std::cout << "sinh(+0) = " << std::sinh(0.0) << '\\n'
                << "sinh(-0) = " << std::sinh(-0.0) << '\\n';
+
      // error handling
      errno = 0;
      std::feclearexcept(FE_ALL_EXCEPT);
+
      std::cout << "sinh(710.5) = " << std::sinh(710.5) << '\\n';
+
      if (errno == ERANGE)
          std::cout << "    errno == ERANGE: " << std::strerror(errno) << '\\n';
      if (std::fetestexcept(FE_OVERFLOW))
@@ -85,7 +108,7 @@ std::sinh,std::sinhf,std::sinhl \- std::sinh,std::sinhf,std::sinhl
 
  sinh\fB(1)\fP = 1.1752
  sinh(-1) = -1.1752
- log(sinh\fB(1)\fP+cosh(1)) = 1
+ log(sinh\fB(42)\fP+cosh(42)) = 42
  sinh(+0) = 0
  sinh(-0) = -0
  sinh(710.5) = inf
@@ -95,23 +118,25 @@ std::sinh,std::sinhf,std::sinhl \- std::sinh,std::sinhf,std::sinhl
 .SH See also
 
    cosh
-   coshf               computes hyperbolic cosine (\\({\\small\\cosh{x} }\\)cosh(x))
+   coshf               computes hyperbolic cosine (\\({\\small\\cosh{x}}\\)cosh(x))
    coshl               \fI(function)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
    tanh
-   tanhf               computes hyperbolic tangent (\\({\\small\\tanh{x} }\\)tanh(x))
+   tanhf               computes hyperbolic tangent (\\({\\small\\tanh{x}}\\)tanh(x))
    tanhl               \fI(function)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
    asinh
    asinhf              computes the inverse hyperbolic sine
-   asinhl              (\\({\\small\\operatorname{arsinh}{x} }\\)arsinh(x))
+   asinhl              (\\({\\small\\operatorname{arsinh}{x}}\\)arsinh(x))
    \fI(C++11)\fP             \fI(function)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
-                       computes hyperbolic sine of a complex number (\\({\\small\\sinh{z}
-   sinh(std::complex)  }\\)sinh(z))
+                       computes hyperbolic sine of a complex number
+   sinh(std::complex)  (\\({\\small\\sinh{z}}\\)sinh(z))
                        \fI(function template)\fP
    sinh(std::valarray) applies the function std::sinh to each element of valarray
                        \fI(function template)\fP
+   C documentation for
+   sinh

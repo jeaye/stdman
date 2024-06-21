@@ -1,0 +1,188 @@
+.TH std::ranges::views::as_const,std::ranges::as_const_view 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::views::as_const,std::ranges::as_const_view \- std::ranges::views::as_const,std::ranges::as_const_view
+
+.SH Synopsis
+   Defined in header <ranges>
+   template< ranges::view V >
+
+       requires ranges::input_range<V>                                \fB(1)\fP (since C++23)
+   class as_const_view
+
+       : public ranges::view_interface<as_const_view<V>>
+   namespace views {
+
+       inline constexpr /* unspecified */ as_const = /* unspecified   \fB(2)\fP (since C++23)
+   */;
+
+   }
+   Call signature
+   template< ranges::viewable_range R >
+
+       requires /* see below */                                           (since C++23)
+
+   constexpr ranges::view auto as_const( R&& r );
+
+   1) A range adaptor that represents a view of underlying view that is also a
+   constant_range. An as_const_view always has read-only elements (if not empty).
+   2) RangeAdaptorObject. Let e be a subexpression, let T be decltype((e)), and let U
+   be std::remove_cvref_t<T>. Then the expression views::as_const(e) is
+   expression-equivalent to:
+     * views::all(e), if it is a well-formed expression and views::all_t<T> models
+       constant_range;
+     * otherwise, std::span<const X, Extent>(e) for some type X and some extent Extent
+       if U denotes std::span<X, Extent>;
+     * otherwise, ranges::ref_view(static_cast<const X&>(e.base())) if U denotes
+       ranges::ref_view<X> for some type X and const X models constant_range;
+     * otherwise, ranges::ref_view(static_cast<const U&>(e)) if e is an lvalue, const U
+       models constant_range, and U does not model view.
+     * otherwise, as_const_view{e}.
+
+   as_const_view always models constant_range, and it models the contiguous_range,
+   random_access_range, bidirectional_range, forward_range, borrowed_range,
+   common_range, and sized_range when the underlying view V models respective concepts.
+
+.SH Member functions
+
+   constructor   constructs an as_const_view
+                 \fI(public member function)\fP
+   base          returns the underlying view V
+                 \fI(public member function)\fP
+   begin         returns the beginning iterator of the as_const_view
+                 \fI(public member function)\fP
+   end           returns the end iterator of the as_const_view
+                 \fI(public member function)\fP
+   size          returns the size of the view if it is bounded
+                 \fI(public member function)\fP
+         Inherited from std::ranges::view_interface
+   empty         returns whether the derived view is empty. Provided if it satisfies
+   (C++20)       sized_range or forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   cbegin        returns a constant iterator to the beginning of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   cend          returns a sentinel for the constant iterator of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator bool returns whether the derived view is not empty. Provided if
+   (C++20)       ranges::empty is applicable to it.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   data          gets the address of derived view's data. Provided if its iterator type
+   (C++20)       satisfies contiguous_iterator.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   front         returns the first element in the derived view. Provided if it
+   (C++20)       satisfies forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   back          returns the last element in the derived view. Provided if it satisfies
+   (C++20)       bidirectional_range and common_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator[]    returns the n^th element in the derived view. Provided if it satisfies
+   (C++20)       random_access_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+
+std::ranges::as_const_view::as_const_view
+
+   as_const_view() requires std::default_initializable<V> = default; \fB(1)\fP (since C++23)
+   constexpr explicit as_const_view( V base );                       \fB(2)\fP (since C++23)
+
+   1) Value-initializes base_ via its default member initializer (= V()).
+   2) Initializes base_ with std::move(base).
+
+.SH Parameters
+
+   base - a view
+
+std::ranges::as_const_view::base
+
+   constexpr V base() const& requires std::copy_constructible<V>; \fB(1)\fP (since C++23)
+   constexpr V base() &&;                                         \fB(2)\fP (since C++23)
+
+   Returns the underlying view.
+
+   1) Copy-constructs the result from the underlying view. Equivalent to return base_;.
+   2) Move-constructs the result from the underlying view. Equivalent to return
+   std::move(base_);.
+
+std::ranges::as_const_view::begin
+
+   constexpr auto begin() requires (!__simple_view<V>);          \fB(1)\fP (since C++23)
+   constexpr auto begin() const requires ranges::range<const V>; \fB(2)\fP (since C++23)
+
+   Returns the constant iterator of the view.
+
+   1,2) Equivalent to return ranges::cbegin(base_);
+
+std::ranges::as_const_view::end
+
+   constexpr auto end() requires (!__simple_view<V>);          \fB(1)\fP (since C++23)
+   constexpr auto end() const requires ranges::range<const V>; \fB(2)\fP (since C++23)
+
+   Returns the constant sentinel of the view.
+
+   1,2) Equivalent to return ranges::cend(base_);
+
+std::ranges::as_const_view::size
+
+   constexpr auto size() requires ranges::sized_range<V>;             \fB(1)\fP (since C++23)
+   constexpr auto size() const requires ranges::sized_range<const V>; \fB(2)\fP (since C++23)
+
+   Returns the size of the view if the view is bounded.
+
+   1,2) Equivalent to return ranges::size(base_);
+
+   Deduction guides
+
+   template< class R >                                      (since C++23)
+   as_const_view( R&& ) -> as_const_view<views::all_t<R>>;
+
+   Helper templates
+
+   template< class T >
+
+   inline constexpr bool enable_borrowed_range<std::ranges::as_const_view<T>>   (since
+   =                                                                            C++23)
+
+       std::ranges::enable_borrowed_range<T>;
+
+   This specialization of std::ranges::enable_borrowed_range makes as_const_view
+   satisfy borrowed_range when the underlying view satisfies it.
+
+.SH Notes
+
+      Feature-test macro      Value    Std                    Feature
+   __cpp_lib_ranges_as_const 202207L (C++23) std::ranges::as_const_view,
+                                             std::const_iterator
+
+.SH Example
+
+
+// Run this code
+
+ #include <cassert>
+ #include <ranges>
+
+ int main()
+ {
+     int x[]{1, 2, 3, 4, 5};
+
+     auto v1 = x | std::views::drop(2);
+     assert(v1.back() == 5);
+     v1[0]++; // OK, can modify non-const element
+
+     auto v2 = x | std::views::drop(2) | std::views::as_const;
+     assert(v2.back() == 5);
+     // v2[0]++; // Compile-time error, cannot modify read-only element
+ }
+
+.SH See also
+
+   ranges::as_rvalue_view a view of a sequence that casts each element to an rvalue
+   views::as_rvalue       \fI(class template)\fP (range adaptor object)
+   (C++23)
+   ranges::cbegin         returns an iterator to the beginning of a read-only range
+   (C++20)                (customization point object)
+   ranges::cend           returns a sentinel indicating the end of a read-only range
+   (C++20)                (customization point object)
+   as_const               obtains a reference to const to its argument
+   \fI(C++17)\fP                \fI(function template)\fP
+   basic_const_iterator   iterator adaptor that converts an iterator into a constant
+   (C++23)                iterator
+                          \fI(class template)\fP

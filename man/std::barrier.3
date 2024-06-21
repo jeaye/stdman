@@ -1,40 +1,33 @@
-.TH std::barrier 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::barrier 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::barrier \- std::barrier
 
 .SH Synopsis
    Defined in header <barrier>
-   template<class CompletionFunction = /* see below */>  \fI(since C++20)\fP
+   template< class CompletionFunction = /* see below */ >  \fI(since C++20)\fP
    class barrier;
 
-   The class template std::barrier provides a thread-coordination mechanism that allows
-   at most an expected number of threads to block until the expected number of threads
-   arrive at the barrier. Unlike std::latch, barriers are reusable: once the arriving
-   threads are unblocked from a barrier phase's synchronization point, the same barrier
-   can be reused.
+   The class template std::barrier provides a thread-coordination mechanism that blocks
+   a group of threads of known size until all threads in that group have reached the
+   barrier. Unlike std::latch, barriers are reusable: once a group of arriving threads
+   are unblocked, the barrier can be reused. Unlike std::latch, barriers execute a
+   possibly empty callable before unblocking threads.
 
-   A barrier object's lifetime consists of a sequence of barrier phases. Each phase
-   defines a phase synchronization point. Threads that arrive at the barrier during the
-   phase can block on the phase synchronization point by calling wait, and will be
-   unblocked when the phase completion step is run.
+   A barrier object's lifetime consists of one or more phases. Each phase defines a
+   phase synchronization point where waiting threads block. Threads can arrive at the
+   barrier, but defer waiting on the phase synchronization point by calling arrive.
+   Such threads can later block on the phase synchronization point by calling wait.
 
-   A barrier phase consists following steps:
+   A barrier phase consists of the following steps:
 
     1. The expected count is decremented by each call to arrive or arrive_and_drop.
-    2. When the expected count reaches zero, the phase completion step is run. The
-       completion step invokes the completion function object, and unblocks all threads
-       blocked on the phase synchronization point. The end of the completion step
-       strongly happens-before the returns from all calls that were unblocked by the
-       completion step.
-
-          * For the specialization std::barrier<> (using the default template
-            argument), the completion step is run as part of the call to arrive or
-            arrive_and_drop that caused the expected count to reach zero.
-          * For other specializations, the completion step is run on one of the threads
-            that arrived at the barrier during the phase. And the behavior is undefined
-            if any of the barrier object's member functions other than wait are called
-            during the completion step.
-
+    2. When the expected count reaches zero, the phase completion step is run, meaning
+       that the completion is invoked, and all threads blocked on the phase
+       synchronization point are unblocked. The end of the completion step strongly
+       happens-before all calls that were unblocked by the completion step return.
+       Exactly once after the expected count reaches zero, a thread executes the
+       completion step during its call to arrive, arrive_and_drop, or wait, except that
+       it is implementation-defined whether the step executes if no thread calls wait.
     3. When the completion step finishes, the expected count is reset to the value
        specified at construction less the number of calls to arrive_and_drop since, and
        the next barrier phase begins.
@@ -50,12 +43,15 @@ std::barrier \- std::barrier
    std::is_nothrow_invocable_v<CompletionFunction&> must be true.
 
    The default template argument of CompletionFunction is an unspecified function
-   object type that addtionally meets the requirements of DefaultConstructible. Calling
-   an lvalue of it with no arguments has no effects.
+   object type that additionally meets the requirements of DefaultConstructible.
+   Calling an lvalue of it with no arguments has no effects.
 
-   Every barrier object behaves as if it holds an exposition-only non-static data
-   member completion_ of type CompletionFunction and calls it by completion_() on every
-   phase completion step.
+.SH Member objects
+
+   Name                 Definition
+                        A completion function object of type CompletionFunction which
+   completion (private) is called on every phase completion step.
+                        (exposition-only member object*)
 
 .SH Member types
 
@@ -88,7 +84,10 @@ std::barrier \- std::barrier
 
 .SH Notes
 
-   Feature-test macro: __cpp_lib_barrier
+   Feature-test macro  Value    Std                   Feature
+                      201907L (C++20) std::barrier
+   __cpp_lib_barrier  202302L (C++20) Relaxed guarantees for phase completion
+                              (DR)
 
 .SH Example
 
@@ -98,52 +97,65 @@ std::barrier \- std::barrier
  #include <barrier>
  #include <iostream>
  #include <string>
+ #include <syncstream>
  #include <thread>
  #include <vector>
 
- int main() {
-   const auto workers = { "anil", "busara", "carl" };
+ int main()
+ {
+     const auto workers = {"Anil", "Busara", "Carl"};
 
-   auto on_completion = []() noexcept {
-     // locking not needed here
-     static auto phase = "... done\\n" "Cleaning up...\\n";
-     std::cout << phase;
-     phase = "... done\\n";
-   };
-   std::barrier sync_point(std::ssize(workers), on_completion);
+     auto on_completion = []() noexcept
+     {
+         // locking not needed here
+         static auto phase =
+             "... done\\n"
+             "Cleaning up...\\n";
+         std::cout << phase;
+         phase = "... done\\n";
+     };
 
-   auto work = [&](std::string name) {
-     std::string product = "  " + name + " worked\\n";
-     std::cout << product;  // ok, op<< call is atomic
-     sync_point.arrive_and_wait();
+     std::barrier sync_point(std::ssize(workers), on_completion);
 
-     product = "  " + name + " cleaned\\n";
-     std::cout << product;
-     sync_point.arrive_and_wait();
-   };
+     auto work = [&](std::string name)
+     {
+         std::string product = "  " + name + " worked\\n";
+         std::osyncstream(std::cout) << product;  // ok, op<< call is atomic
+         sync_point.arrive_and_wait();
 
-   std::cout << "Starting...\\n";
-   std::vector<std::thread> threads;
-   for (auto const& worker : workers) {
-     threads.emplace_back(work, worker);
-   }
-   for (auto& thread : threads) {
-     thread.join();
-   }
+         product = "  " + name + " cleaned\\n";
+         std::osyncstream(std::cout) << product;
+         sync_point.arrive_and_wait();
+     };
+
+     std::cout << "Starting...\\n";
+     std::vector<std::jthread> threads;
+     threads.reserve(std::size(workers));
+     for (auto const& worker : workers)
+         threads.emplace_back(work, worker);
  }
 
 .SH Possible output:
 
  Starting...
-   anil worked
-   carl worked
-   busara worked
+   Anil worked
+   Carl worked
+   Busara worked
  ... done
  Cleaning up...
-   busara cleaned
-   carl cleaned
-   anil cleaned
+   Busara cleaned
+   Carl cleaned
+   Anil cleaned
  ... done
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to              Behavior as published               Correct behavior
+   P2588R3 C++20      old phase completion guarantees might prevent    relaxed
+                      hardware acceleration
 
 .SH See also
 

@@ -1,0 +1,105 @@
+.TH std::iter_move(std::reverse_iterator) 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::iter_move(std::reverse_iterator) \- std::iter_move(std::reverse_iterator)
+
+.SH Synopsis
+   friend constexpr std::iter_rvalue_reference_t<Iter>
+       iter_move( const std::reverse_iterator& i ) noexcept(/* see below  \fI(since C++20)\fP
+   */);
+
+   Casts the result of dereferencing the adjusted underlying iterator to its associated
+   rvalue reference type.
+
+   The function body is equivalent to:
+
+ auto tmp = i.base();
+ return std::ranges::iter_move(--tmp);
+
+   This function template is not visible to ordinary unqualified or qualified lookup,
+   and can only be found by argument-dependent lookup when std::reverse_iterator<Iter>
+   is an associated class of the arguments.
+
+.SH Parameters
+
+   i - a source reverse iterator
+
+.SH Return value
+
+   An rvalue reference or a prvalue temporary.
+
+.SH Complexity
+
+   Constant.
+
+.SH Exceptions
+
+   noexcept specification:
+   noexcept(
+
+       std::is_nothrow_copy_constructible_v<Iter> &&
+       noexcept(std::ranges::iter_move(--std::declval<Iter&>()))
+
+   )
+
+.SH Example
+
+
+// Run this code
+
+ #include <iomanip>
+ #include <iostream>
+ #include <iterator>
+ #include <string>
+ #include <vector>
+
+ void print(auto const& rem, auto const& v)
+ {
+     std::cout << rem << '[' << size(v) << "] {";
+     for (char comma[]{0, 0}; auto const& s : v)
+         std::cout << comma << ' ' << std::quoted(s), comma[0] = ',';
+     std::cout << " }\\n";
+ }
+
+ int main()
+ {
+     std::vector<std::string> p{"Alpha", "Bravo", "Charlie"}, q;
+
+     print("p", p), print("q", q);
+
+     using RI = std::reverse_iterator<std::vector<std::string>::iterator>;
+
+     for (RI iter{p.rbegin()}, rend{p.rend()}; iter != rend; ++iter)
+         q.emplace_back(/* ADL */ iter_move(iter));
+
+     print("p", p), print("q", q);
+ }
+
+.SH Possible output:
+
+ p[3] { "Alpha", "Bravo", "Charlie" }
+ q[0] { }
+ p[3] { "", "", "" }
+ q[3] { "Charlie", "Bravo", "Alpha" }
+
+.SH See also
+
+   iter_move             casts the result of dereferencing an object to its associated
+   (C++20)               rvalue reference type
+                         (customization point object)
+   iter_move             casts the result of dereferencing the underlying iterator to
+   (C++20)               its associated rvalue reference type
+                         \fI(function)\fP
+   move                  obtains an rvalue reference
+   \fI(C++11)\fP               \fI(function template)\fP
+   move_if_noexcept      obtains an rvalue reference if the move constructor does not
+   \fI(C++11)\fP               throw
+                         \fI(function template)\fP
+   forward               forwards a function argument
+   \fI(C++11)\fP               \fI(function template)\fP
+   ranges::move          moves a range of elements to a new location
+   (C++20)               (niebloid)
+   ranges::move_backward moves a range of elements to a new location in backwards order
+   (C++20)               (niebloid)
+
+.SH Category:
+     * conditionally noexcept

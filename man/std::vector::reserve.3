@@ -1,10 +1,9 @@
-.TH std::vector::reserve 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::vector::reserve 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::vector::reserve \- std::vector::reserve
 
 .SH Synopsis
-   void reserve( size_type new_cap );            \fI(until C++20)\fP
-   constexpr void reserve( size_type new_cap );  \fI(since C++20)\fP
+   void reserve( size_type new_cap );  (constexpr since C++20)
 
    Increase the capacity of the vector (the total number of elements that the vector
    can hold without requiring reallocation) to a value that's greater or equal to
@@ -13,16 +12,19 @@ std::vector::reserve \- std::vector::reserve
 
    reserve() does not change the size of the vector.
 
-   If new_cap is greater than capacity(), all iterators, including the past-the-end
-   iterator, and all references to the elements are invalidated. Otherwise, no
-   iterators or references are invalidated.
+   If new_cap is greater than capacity(), all iterators, including the end() iterator,
+   and all references to the elements are invalidated. Otherwise, no iterators or
+   references are invalidated.
+
+   After a call to reserve(), insertions will not trigger reallocation unless the
+   insertion would make the size of the vector greater than the value of capacity().
 
 .SH Parameters
 
-   new_cap - new capacity of the vector, in number of elements
+   new_cap      -     new capacity of the vector, in number of elements
 .SH Type requirements
    -
-   T must meet the requirements of MoveInsertable.
+   T must meet the requirements of MoveInsertable into *this. \fI(since C++11)\fP
 
 .SH Return value
 
@@ -31,7 +33,7 @@ std::vector::reserve \- std::vector::reserve
 .SH Exceptions
 
      * std::length_error if new_cap > max_size().
-     * any exception thrown by Allocator::allocate() (typically std::bad_alloc)
+     * Any exception thrown by Allocator::allocate() (typically std::bad_alloc).
 
    If an exception is thrown, this function has no effect \fI(strong exception guarantee)\fP.
 
@@ -71,11 +73,14 @@ std::vector::reserve \- std::vector::reserve
  #include <vector>
 
  // minimal C++11 allocator with debug output
- template <class Tp>
- struct NAlloc {
+ template<class Tp>
+ struct NAlloc
+ {
      typedef Tp value_type;
+
      NAlloc() = default;
-     template <class T> NAlloc(const NAlloc<T>&) {}
+     template<class T>
+     NAlloc(const NAlloc<T>&) {}
 
      Tp* allocate(std::size_t n)
      {
@@ -87,13 +92,15 @@ std::vector::reserve \- std::vector::reserve
 
      void deallocate(Tp* p, std::size_t n)
      {
-         std::cout << "deallocating " << n*sizeof*p << " bytes @ " << p << "\\n\\n";
+         std::cout << "deallocating " << n * sizeof *p << " bytes @ " << p << "\\n\\n";
          ::operator delete(p);
      }
  };
- template <class T, class U>
+
+ template<class T, class U>
  bool operator==(const NAlloc<T>&, const NAlloc<U>&) { return true; }
- template <class T, class U>
+
+ template<class T, class U>
  bool operator!=(const NAlloc<T>&, const NAlloc<U>&) { return false; }
 
  int main()
@@ -103,9 +110,9 @@ std::vector::reserve \- std::vector::reserve
      std::cout << "using reserve: \\n";
      {
          std::vector<int, NAlloc<int>> v1;
-         v1.reserve( max_elements ); // reserves at least max_elements * sizeof(int) bytes
+         v1.reserve(max_elements); // reserves at least max_elements * sizeof(int) bytes
 
-         for(int n = 0; n < max_elements; ++n)
+         for (int n = 0; n < max_elements; ++n)
              v1.push_back(n);
      }
 
@@ -113,10 +120,10 @@ std::vector::reserve \- std::vector::reserve
      {
          std::vector<int, NAlloc<int>> v1;
 
-         for(int n = 0; n < max_elements; ++n) {
-             if(v1.size() == v1.capacity()) {
+         for (int n = 0; n < max_elements; ++n)
+         {
+             if (v1.size() == v1.capacity())
                  std::cout << "size() == capacity() == " << v1.size() << '\\n';
-             }
              v1.push_back(n);
          }
      }
@@ -154,6 +161,21 @@ std::vector::reserve \- std::vector::reserve
 
  deallocating 128 bytes @ 0xa6f900
 
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to         Behavior as published              Correct behavior
+                       reallocation might be triggered if an
+                       insertion                              only triggers if the size
+   LWG 329  C++98      makes the size of the vector greater   of the vector becomes
+                       than the size                          greater than capacity()
+                       specified in the most recent call to
+                       reserve()
+   LWG 2033 C++11      T was not required to be               required
+                       MoveInsertable
+
 .SH See also
 
                  returns the number of elements that can be held in currently allocated
@@ -164,4 +186,4 @@ std::vector::reserve \- std::vector::reserve
    resize        changes the number of elements stored
                  \fI(public member function)\fP
    shrink_to_fit reduces memory usage by freeing unused memory
-   \fI(C++11)\fP       \fI(public member function)\fP
+   (DR*)         \fI(public member function)\fP

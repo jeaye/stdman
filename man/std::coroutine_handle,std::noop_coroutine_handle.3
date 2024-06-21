@@ -1,14 +1,17 @@
-.TH std::coroutine_handle,std::noop_coroutine_handle 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::coroutine_handle,std::noop_coroutine_handle 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::noop_coroutine_handle
 
 .SH Synopsis
    Defined in header <coroutine>
-   template< class Promise = void > struct coroutine_handle;        \fB(1)\fP \fI(since C++20)\fP
-   template<> struct coroutine_handle<void>;                        \fB(2)\fP \fI(since C++20)\fP
-   template<> struct coroutine_handle<std::noop_coroutine_promise>; \fB(3)\fP \fI(since C++20)\fP
-   using noop_coroutine_handle =                                    \fB(4)\fP \fI(since C++20)\fP
-   std::coroutine_handle<std::noop_coroutine_promise>;
+   template< class Promise = void >                        \fB(1)\fP \fI(since C++20)\fP
+   struct coroutine_handle;
+   template<>                                              \fB(2)\fP \fI(since C++20)\fP
+   struct coroutine_handle<void>;
+   template<>                                              \fB(3)\fP \fI(since C++20)\fP
+   struct coroutine_handle<std::noop_coroutine_promise>;
+   using noop_coroutine_handle =                           \fB(4)\fP \fI(since C++20)\fP
+       std::coroutine_handle<std::noop_coroutine_promise>;
 
    The class template coroutine_handle can be used to refer to a suspended or executing
    coroutine. Every specialization of coroutine_handle is a LiteralType.
@@ -20,10 +23,9 @@ std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::n
    coroutines. It cannot be created from a promise object.
 
    On typical implementations, every specialization of std::coroutine_handle is
-   TriviallyCopyable, and holds a pointer to the coroutine state as its only non-static
-   data member.
+   TriviallyCopyable.
 
-   The behavior of a program that adds specializations for coroutine_handle is
+   If the program adds specializations for std::coroutine_handle, the behavior is
    undefined.
 
 .SH Member functions
@@ -85,28 +87,32 @@ std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::n
  #include <optional>
 
  template<std::movable T>
- class Generator {
+ class Generator
+ {
  public:
-     struct promise_type {
-         Generator<T> get_return_object() {
+     struct promise_type
+     {
+         Generator<T> get_return_object()
+         {
              return Generator{Handle::from_promise(*this)};
          }
-         static std::suspend_always initial_suspend() noexcept {
+         static std::suspend_always initial_suspend() noexcept
+         {
              return {};
          }
-         static std::suspend_always final_suspend() noexcept {
+         static std::suspend_always final_suspend() noexcept
+         {
              return {};
          }
-         std::suspend_always yield_value(T value) noexcept {
+         std::suspend_always yield_value(T value) noexcept
+         {
              current_value = std::move(value);
              return {};
          }
          // Disallow co_await in generator coroutines.
          void await_transform() = delete;
          [[noreturn]]
-         static void unhandled_exception() {
-             throw;
-         }
+         static void unhandled_exception() { throw; }
 
          std::optional<T> current_value;
      };
@@ -118,10 +124,10 @@ std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::n
      {}
 
      Generator() = default;
-     ~Generator() {
-         if (m_coroutine) {
+     ~Generator()
+     {
+         if (m_coroutine)
              m_coroutine.destroy();
-         }
      }
 
      Generator(const Generator&) = delete;
@@ -132,11 +138,12 @@ std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::n
      {
          other.m_coroutine = {};
      }
-     Generator& operator=(Generator&& other) noexcept {
-         if (this != &other) {
-             if (m_coroutine) {
+     Generator& operator=(Generator&& other) noexcept
+     {
+         if (this != &other)
+         {
+             if (m_coroutine)
                  m_coroutine.destroy();
-             }
              m_coroutine = other.m_coroutine;
              other.m_coroutine = {};
          }
@@ -144,15 +151,19 @@ std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::n
      }
 
      // Range-based for loop support.
-     class Iter {
+     class Iter
+     {
      public:
-         void operator++() {
+         void operator++()
+         {
              m_coroutine.resume();
          }
-         const T& operator*() const {
+         const T& operator*() const
+         {
              return *m_coroutine.promise().current_value;
          }
-         bool operator==(std::default_sentinel_t) const {
+         bool operator==(std::default_sentinel_t) const
+         {
              return !m_coroutine || m_coroutine.done();
          }
 
@@ -164,31 +175,30 @@ std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::n
          Handle m_coroutine;
      };
 
-     Iter begin() {
-         if (m_coroutine) {
+     Iter begin()
+     {
+         if (m_coroutine)
              m_coroutine.resume();
-         }
          return Iter{m_coroutine};
      }
-     std::default_sentinel_t end() {
-         return {};
-     }
+
+     std::default_sentinel_t end() { return {}; }
 
  private:
      Handle m_coroutine;
  };
 
  template<std::integral T>
- Generator<T> range(T first, const T last) {
-     while (first < last) {
+ Generator<T> range(T first, const T last)
+ {
+     while (first < last)
          co_yield first++;
-     }
  }
 
- int main() {
-     for (const char i : range(65, 91)) {
+ int main()
+ {
+     for (const char i : range(65, 91))
          std::cout << i << ' ';
-     }
      std::cout << '\\n';
  }
 
@@ -196,7 +206,7 @@ std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::n
 
  A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
@@ -204,3 +214,8 @@ std::coroutine_handle,std::noop_coroutine_handle \- std::coroutine_handle,std::n
       DR    Applied to            Behavior as published              Correct behavior
    LWG 3460 C++20      the public base class of coroutine_handle    inheritance removed
                        could leave it in an undesired state
+
+.SH See also
+
+   generator A view that represents synchronous coroutine generator
+   (C++23)   \fI(class template)\fP

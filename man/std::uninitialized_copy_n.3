@@ -1,41 +1,41 @@
-.TH std::uninitialized_copy_n 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_copy_n 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_copy_n \- std::uninitialized_copy_n
 
 .SH Synopsis
    Defined in header <memory>
    template< class InputIt, class Size, class NoThrowForwardIt >
+
    NoThrowForwardIt uninitialized_copy_n( InputIt first, Size count,  \fB(1)\fP \fI(since C++11)\fP
-   NoThrowForwardIt d_first );
-   template< class ExecutionPolicy, class ForwardIt, class Size,
-   class NoThrowForwardIt >
 
+                                          NoThrowForwardIt d_first );
+   template< class ExecutionPolicy, class ForwardIt,
+
+             class Size, class NoThrowForwardIt >
    NoThrowForwardIt uninitialized_copy_n( ExecutionPolicy&& policy,   \fB(2)\fP \fI(since C++17)\fP
-   ForwardIt first, Size count,
+                                          ForwardIt first, Size
+   count,
 
-   NoThrowForwardIt d_first );
+                                          NoThrowForwardIt d_first );
 
    1) Copies count elements from a range beginning at first to an uninitialized memory
    area beginning at d_first as if by
-
- for ( ; n > 0; ++d_first, (void) ++first, --n)
-    ::new (/*VOIDIFY*/(*d_first))
-       typename std::iterator_traits<NoThrowForwardIt>::value_type(*first);
-
-   where /*VOIDIFY*/(e) is:
-
-      static_cast<void*>(std::addressof(e))                               \fI(until C++20)\fP
-      const_cast<void*>(static_cast<const volatile                        \fI(since C++20)\fP
-      void*>(std::addressof(e)))
-
+   for (; n > 0; ++d_first, (void) ++first, --n)
+        ::new (static_cast<void*>(std::addressof(*d_first)))
+           typename std::iterator_traits<NoThrowForwardIt>::value_type(*first);
    If an exception is thrown during the initialization, the objects already constructed
    are destroyed in an unspecified order.
-   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
-   in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+
+   If d_first + [0, n) overlaps with first + [0, n), the behavior is      \fI(since C++20)\fP
+   undefined.
+
+   2) Same as \fB(1)\fP, but executed according to policy. This overload participates in
+   overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
 
 .SH Parameters
 
@@ -80,15 +80,15 @@ NoThrowForwardIt uninitialized_copy_n(InputIt first, Size count, NoThrowForwardI
 {
     using T = typename std::iterator_traits<NoThrowForwardIt>::value_type;
     NoThrowForwardIt current = d_first;
-    try {
-        for (; count > 0; ++first, (void) ++current, --count) {
-            ::new (const_cast<void*>(static_cast<const volatile void*>(
-                std::addressof(*current)))) T(*first);
-        }
-    } catch (...) {
-        for (; d_first != current; ++d_first) {
+    try
+    {
+        for (; count > 0; ++first, (void) ++current, --count)
+            ::new (static_cast<void*>(std::addressof(*current))) T(*first);
+    }
+    catch (...)
+    {
+        for (; d_first != current; ++d_first)
             d_first->~T();
-        }
         throw;
     }
     return current;
@@ -117,16 +117,35 @@ NoThrowForwardIt uninitialized_copy_n(InputIt first, Size count, NoThrowForwardI
 
      std::uninitialized_copy_n(v.begin(), sz, p);
 
-     for (std::string* i = p; i != p+sz; ++i) {
+     for (std::string* i = p; i != p + sz; ++i)
+     {
          std::cout << *i << ' ';
          i->~basic_string<char>();
      }
+     std::cout << '\\n';
+
      std::return_temporary_buffer(p);
  }
 
-.SH Output:
+.SH Possible output:
 
  This is an example
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to            Behavior as published              Correct behavior
+                       the effect description used a for loop with
+                       the iteration                                discards the value
+   LWG 2133 C++98      expression ++d_first, ++first, --n, which    of one operand to
+                       results                                      disable those ADLs
+                       in argument-dependent lookups of operator,
+   LWG 2433 C++11      this algorithm might be hijacked by          uses std::addressof
+                       overloaded operator&
+   LWG 3870 C++20      this algorithm might create objects on a     kept disallowed
+                       const storage
 
 .SH See also
 

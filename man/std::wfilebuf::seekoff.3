@@ -1,4 +1,4 @@
-.TH std::basic_filebuf::seekoff 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_filebuf::seekoff 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_filebuf::seekoff \- std::basic_filebuf::seekoff
 
@@ -6,26 +6,27 @@ std::basic_filebuf::seekoff \- std::basic_filebuf::seekoff
    protected:
 
    virtual pos_type seekoff( off_type off,
-   std::ios_base::seekdir dir,
+                             std::ios_base::seekdir dir,
 
-   std::ios_base::openmode which = std::ios_base::in | std::ios_base::out );
+                             std::ios_base::openmode which = std::ios_base::in |
+   std::ios_base::out );
 
    Repositions the file pointer, if possible, to the position that corresponds to
    exactly off characters from beginning, end, or current position of the file
    (depending on the value of dir).
 
-   If the associated file is not open (is_open()==false), fails immediately.
+   If the associated file is not open (is_open() == false), fails immediately.
 
    If the multibyte character encoding is state-dependent (codecvt::encoding() returned
-   -1) or variable-length (codecvt::encoding() returned 0) and the offset off is
-   not 0, fails immediately: this function cannot determine the number of bytes
-   that correspond to off characters.
+   -1) or variable-length (codecvt::encoding() returned 0) and the offset off is not 0,
+   fails immediately: this function cannot determine the number of bytes that
+   correspond to off characters.
 
-   If dir is not std::basic_ios::cur or the offset off is not 0, and the most
-   resent operation done on this filebuf object was output (that is, either the put
-   buffer is not empty, or the most recently called function was overflow()), then
-   calls std::codecvt::unshift to determine the unshift sequence necessary, and writes
-   that sequence to the file by calling overflow().
+   If dir is not std::basic_ios::cur or the offset off is not 0, and the most recent
+   operation done on this filebuf object was output (that is, either the put buffer is
+   not empty, or the most recently called function was overflow()), then calls
+   std::codecvt::unshift to determine the unshift sequence necessary, and writes that
+   sequence to the file by calling overflow().
 
    Then converts the argument dir to a value whence of type int as follows:
 
@@ -45,7 +46,7 @@ std::basic_filebuf::seekoff \- std::basic_filebuf::seekoff
 
 .SH Parameters
 
-   off   - relative position to set the position indicator to.
+   off   - relative position to set the position indicator to
            defines base position to apply the relative offset to. It can be one of the
            following constants:
 
@@ -69,37 +70,47 @@ std::basic_filebuf::seekoff \- std::basic_filebuf::seekoff
 
    seekoff() is called by std::basic_streambuf::pubseekoff, which is called by
    std::basic_istream::seekg, std::basic_ostream::seekp, std::basic_istream::tellg, and
-   std::basic_ostream::tellp
+   std::basic_ostream::tellp.
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
  #include <fstream>
+ #include <iostream>
  #include <locale>
+
+ template<typename CharT>
+ int get_encoding(const std::basic_istream<CharT>& stream)
+ {
+     using Facet = std::codecvt<CharT, char, std::mbstate_t>;
+     return std::use_facet<Facet>(stream.getloc()).encoding();
+ }
+
  int main()
  {
-     // prepare a 10-byte file holding 4 characters in UTF8
-     std::ofstream("text.txt") << u8"z\\u00df\\u6c34\\U0001d10b"; // or u8"zß水𝄋"
-                                            // or "\\x7a\\xc3\\x9f\\xe6\\xb0\\xb4\\xf0\\x9d\\x84\\x8b";
+     // prepare a 10-byte file holding 4 characters ("zß水𝄋") in UTF-8
+     std::ofstream("text.txt") << "\\x7a\\xc3\\x9f\\xe6\\xb0\\xb4\\xf0\\x9d\\x84\\x8b";
 
      // open using a non-converting encoding
      std::ifstream f1("text.txt");
      std::cout << "f1's locale's encoding() returns "
-               << std::use_facet<std::codecvt<char, char, std::mbstate_t>>(f1.getloc()).encoding() << '\\n'
-               << "pubseekoff(3, beg) returns " << f1.rdbuf()->pubseekoff(3, std::ios_base::beg) << '\\n'
-               << "pubseekoff(0, end) returns " << f1.rdbuf()->pubseekoff(0, std::ios_base::end) << '\\n';;
+               << get_encoding(f1) << '\\n'
+               << "pubseekoff(3, beg) returns "
+               << f1.rdbuf()->pubseekoff(3, std::ios_base::beg) << '\\n'
+               << "pubseekoff(0, end) returns "
+               << f1.rdbuf()->pubseekoff(0, std::ios_base::end) << '\\n';
 
      // open using UTF-8
      std::wifstream f2("text.txt");
      f2.imbue(std::locale("en_US.UTF-8"));
      std::cout << "f2's locale's encoding() returns "
-               << std::use_facet<std::codecvt<wchar_t, char, std::mbstate_t>>(f2.getloc()).encoding() << '\\n'
-               << "pubseekoff(3, beg) returns " << f2.rdbuf()->pubseekoff(3, std::ios_base::beg) << '\\n'
-               << "pubseekoff(0, end) returns " << f2.rdbuf()->pubseekoff(0, std::ios_base::end) << '\\n';
-
+               << get_encoding(f2) << '\\n'
+               << "pubseekoff(3, beg) returns "
+               << f2.rdbuf()->pubseekoff(3, std::ios_base::beg) << '\\n'
+               << "pubseekoff(0, end) returns "
+               << f2.rdbuf()->pubseekoff(0, std::ios_base::end) << '\\n';
  }
 
 .SH Output:
@@ -110,6 +121,15 @@ std::basic_filebuf::seekoff \- std::basic_filebuf::seekoff
  f2's locale's encoding() returns 0
  pubseekoff(3, beg) returns -1
  pubseekoff(0, end) returns 10
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR   Applied to       Behavior as published           Correct behavior
+   LWG 55 C++98      seekoff returned an undefined      pos_type(off_type(-1))
+                     invalid stream position on failure is returned on failure
 
 .SH See also
 

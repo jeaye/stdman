@@ -1,19 +1,19 @@
-.TH std::partition_point 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::partition_point 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::partition_point \- std::partition_point
 
 .SH Synopsis
    Defined in header <algorithm>
-   template< class ForwardIt, class UnaryPredicate >                      \fI(since C++11)\fP
-   ForwardIt partition_point( ForwardIt first, ForwardIt last,            \fI(until C++20)\fP
-   UnaryPredicate p );
-   template< class ForwardIt, class UnaryPredicate >
-   constexpr ForwardIt partition_point( ForwardIt first, ForwardIt last,  \fI(since C++20)\fP
-   UnaryPredicate p );
+   template< class ForwardIt, class UnaryPred >                 \fI(since C++11)\fP
+   ForwardIt partition_point( ForwardIt first, ForwardIt last,  (constexpr since C++20)
+   UnaryPred p );
 
-   Examines the partitioned (as if by std::partition) range [first, last) and locates
-   the end of the first partition, that is, the first element that does not satisfy p
-   or last if all elements satisfy p.
+   Examines the partitioned range [first, last) and locates the end of the first
+   partition, that is, the first element that does not satisfy p or last if all
+   elements satisfy p.
+
+   If the elements elem of [first, last) are not partitioned with respect to the
+   expression bool(p(elem)), the behavior is undefined.
 
 .SH Parameters
 
@@ -31,7 +31,7 @@ std::partition_point \- std::partition_point
    -
    ForwardIt must meet the requirements of LegacyForwardIterator.
    -
-   UnaryPredicate must meet the requirements of Predicate.
+   UnaryPred must meet the requirements of Predicate.
 
 .SH Return value
 
@@ -40,17 +40,36 @@ std::partition_point \- std::partition_point
 
 .SH Complexity
 
-   Given N = std::distance(first, last), performs O(log N) applications of the
-   predicate p.
-
-   However, for non-LegacyRandomAccessIterators, the number of iterator increments is
-   O(N).
+   Given \\(\\scriptsize N\\)N as std::distance(first, last), performs \\(\\scriptsize
+   O(log(N))\\)O(log(N)) applications of the predicate p.
 
 .SH Notes
 
    This algorithm is a more general form of std::lower_bound, which can be expressed in
-   terms of std::partition_point with the predicate [&](auto const& e) { return e <
+   terms of std::partition_point with the predicate [&](const auto& e) { return e <
    value; });.
+
+.SH Possible implementation
+
+   template<class ForwardIt, class UnaryPred>
+   constexpr //< since C++20
+   ForwardIt partition_point(ForwardIt first, ForwardIt last, UnaryPred p)
+   {
+       for (auto length = std::distance(first, last); 0 < length; )
+       {
+           auto half = length / 2;
+           auto middle = std::next(first, half);
+           if (p(*middle))
+           {
+               first = std::next(middle);
+               length -= (half + 1);
+           }
+           else
+               length = half;
+       }
+
+       return first;
+   }
 
 .SH Example
 
@@ -62,16 +81,17 @@ std::partition_point \- std::partition_point
  #include <iostream>
  #include <iterator>
 
- auto print_seq = [](auto rem, auto first, auto last) {
+ auto print_seq = [](auto rem, auto first, auto last)
+ {
      for (std::cout << rem; first != last; std::cout << *first++ << ' ') {}
      std::cout << '\\n';
  };
 
  int main()
  {
-     std::array v = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+     std::array v{1, 2, 3, 4, 5, 6, 7, 8, 9};
 
-     auto is_even = [](int i){ return i % 2 == 0; };
+     auto is_even = [](int i) { return i % 2 == 0; };
 
      std::partition(v.begin(), v.end(), is_even);
      print_seq("After partitioning, v: ", v.cbegin(), v.cend());

@@ -1,24 +1,26 @@
-.TH std::vformat 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::vformat 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::vformat \- std::vformat
 
 .SH Synopsis
    Defined in header <format>
-   std::string vformat(std::string_view fmt, std::format_args args);  \fB(1)\fP \fI(since C++20)\fP
-   std::wstring vformat(std::wstring_view fmt, std::wformat_args      \fB(2)\fP \fI(since C++20)\fP
-   args);
-   std::string vformat(const std::locale& loc, std::string_view fmt,  \fB(3)\fP \fI(since C++20)\fP
-   std::format_args args);
-   std::wstring vformat(const std::locale& loc, std::wstring_view     \fB(4)\fP \fI(since C++20)\fP
-   fmt, std::wformat_args args);
+   std::string vformat( std::string_view fmt, std::format_args args   \fB(1)\fP \fI(since C++20)\fP
+   );
+   std::wstring vformat( std::wstring_view fmt, std::wformat_args     \fB(2)\fP \fI(since C++20)\fP
+   args );
+   std::string vformat( const std::locale& loc,
+                        std::string_view fmt, std::format_args args   \fB(3)\fP \fI(since C++20)\fP
+   );
+   std::wstring vformat( const std::locale& loc,
+                         std::wstring_view fmt, std::wformat_args     \fB(4)\fP \fI(since C++20)\fP
+   args );
 
    Format arguments held by args according to the format string fmt, and return the
    result as a string. If present, loc is used for locale-specific formatting.
 
 .SH Parameters
 
-          string view representing the format string. The format string consists of
-
+          an object that represents the format string. The format string consists of
             * ordinary characters (except { and }), which are copied unchanged to the
               output,
             * escape sequences {{ and }}, which are replaced with { and } respectively
@@ -32,20 +34,33 @@ std::vformat \- std::vformat
 
           1) replacement field without a format specification
           2) replacement field with a format specification
-   fmt  -
+
                         specifies the index of the argument in args whose value is to
                         be used for formatting; if it is omitted, the arguments are
           arg-id      - used in order.
 
-                        The arg-ids in a format string must all be present or all be
+                        The arg-id s in a format string must all be present or all be
                         omitted. Mixing manual and automatic indexing is an error.
-          format-spec - the format specification defined by the std::formatter
-                        specialization for the corresponding argument.
+   fmt  -               the format specification defined by the std::formatter
+          format-spec - specialization for the corresponding argument. Cannot start
+                        with }.
 
             * For basic types and standard string types, the format specification is
               interpreted as standard format specification.
             * For chrono types, the format specification is interpreted as chrono
               format specification.
+
+            * For range types, the format specification is interpreted as
+              range format specification.
+            * For std::pair and std::tuple, the format specification is
+              interpreted as tuple format specification.                  (since C++23)
+            * For std::thread::id and std::stacktrace_entry, see thread
+              id format specification and stacktrace entry format
+              specification.
+            * For std::basic_stacktrace, no format specifier is allowed.
+
+            * For std::filesystem::path, see path format specification.   (since C++26)
+
             * For other formattable types, the format specification is determined by
               user-defined formatter specializations.
    args - arguments to be formatted
@@ -63,7 +78,25 @@ std::vformat \- std::vformat
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <format>
+ #include <iostream>
+
+ template<typename... Args>
+ inline void println(const std::format_string<Args...> fmt, Args&&... args)
+ {
+     std::cout << std::vformat(fmt.get(), std::make_format_args(args...)) << '\\n';
+ }
+
+ int main()
+ {
+     println("{}{} {}{}", "Hello", ',', "C++", -1 + 2 * 3 * 4);
+ }
+
+.SH Output:
+
+ Hello, C++23
 
 .SH See also

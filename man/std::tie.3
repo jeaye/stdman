@@ -1,13 +1,11 @@
-.TH std::tie 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::tie 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::tie \- std::tie
 
 .SH Synopsis
    Defined in header <tuple>
-   template< class... Types >                                       \fI(since C++11)\fP
-   std::tuple<Types&...> tie( Types&... args ) noexcept;            \fI(until C++14)\fP
-   template< class... Types >                                       \fI(since C++14)\fP
-   constexpr std::tuple<Types&...> tie( Types&... args ) noexcept;
+   template< class... Types >                             \fI(since C++11)\fP
+   std::tuple<Types&...> tie( Types&... args ) noexcept;  (constexpr since C++14)
 
    Creates a tuple of lvalue references to its arguments or instances of std::ignore.
 
@@ -23,7 +21,8 @@ std::tie \- std::tie
 
    template <typename... Args>
    constexpr // since C++14
-   std::tuple<Args&...> tie(Args&... args) noexcept {
+   std::tuple<Args&...> tie(Args&... args) noexcept
+   {
        return {args...};
    }
 
@@ -37,48 +36,64 @@ std::tie \- std::tie
 
 .SH Example
 
-   std::tie can be used to introduce lexicographical comparison to a struct or to
-   unpack a tuple:
+   1) std::tie can be used to introduce lexicographical comparison to a struct or to
+   unpack a tuple;
+   2) std::tie can work with structured bindings:
 
 
 // Run this code
 
+ #include <cassert>
  #include <iostream>
- #include <string>
  #include <set>
+ #include <string>
  #include <tuple>
 
- struct S {
+ struct S
+ {
      int n;
      std::string s;
      float d;
-     bool operator<(const S& rhs) const
+
+     friend bool operator<(const S& lhs, const S& rhs) noexcept
      {
-         // compares n to rhs.n,
-         // then s to rhs.s,
-         // then d to rhs.d
-         return std::tie(n, s, d) < std::tie(rhs.n, rhs.s, rhs.d);
+         // compares lhs.n to rhs.n,
+         // then lhs.s to rhs.s,
+         // then lhs.d to rhs.d
+         // in that order, first non-equal result is returned
+         // or false if all elements are equal
+         return std::tie(lhs.n, lhs.s, lhs.d) < std::tie(rhs.n, rhs.s, rhs.d);
      }
  };
 
  int main()
  {
-     std::set<S> set_of_s; // S is LessThanComparable
+     // Lexicographical comparison demo:
+     std::set<S> set_of_s;
 
      S value{42, "Test", 3.14};
      std::set<S>::iterator iter;
-     bool inserted;
+     bool is_inserted;
 
-     // unpacks the return value of insert into iter and inserted
-     std::tie(iter, inserted) = set_of_s.insert(value);
+     // Unpack a pair:
+     std::tie(iter, is_inserted) = set_of_s.insert(value);
+     assert(is_inserted);
 
-     if (inserted)
-         std::cout << "Value was inserted successfully\\n";
+
+     // std::tie and structured bindings:
+     auto position = [](int w) { return std::tuple(1 * w, 2 * w); };
+
+     auto [x, y] = position(1);
+     assert(x == 1 && y == 2);
+     std::tie(x, y) = position(2); // reuse x, y with tie
+     assert(x == 2 && y == 4);
+
+
+     // Implicit conversions are permitted:
+     std::tuple<char, short> coordinates(6, 9);
+     std::tie(x, y) = coordinates;
+     assert(x == 6 && y == 9);
  }
-
-.SH Output:
-
- Value was inserted successfully
 
 .SH See also
 

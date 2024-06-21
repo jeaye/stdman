@@ -1,47 +1,53 @@
-.TH std::clamp 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::clamp 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::clamp \- std::clamp
 
 .SH Synopsis
    Defined in header <algorithm>
-   template<class T>                                                  \fB(1)\fP \fI(since C++17)\fP
+   template< class T >                                               \fB(1)\fP \fI(since C++17)\fP
    constexpr const T& clamp( const T& v, const T& lo, const T& hi );
-   template<class T, class Compare>
-   constexpr const T& clamp( const T& v, const T& lo, const T& hi,    \fB(2)\fP \fI(since C++17)\fP
-   Compare comp );
+   template< class T, class Compare >
 
-   1) If v compares less than lo, returns lo; otherwise if hi compares less than v,
-   returns hi; otherwise returns v.
-   Uses operator< to compare the values.
-   2) Same as \fB(1)\fP, but uses comp to compare the values.
+   constexpr const T& clamp( const T& v, const T& lo, const T& hi,   \fB(2)\fP \fI(since C++17)\fP
 
-   The behavior is undefined if the value of lo is greater than hi.
+                             Compare comp );
+
+   If the value of v is within [lo, hi], returns v; otherwise returns the nearest
+   boundary.
+
+   1) Uses
+   operator<
+   \fI(until C++20)\fP
+   std::less{}
+   \fI(since C++20)\fP to compare the values.
+   If T is not LessThanComparable, the behavior is undefined.^[1]
+   2) Uses the comparison function comp to compare the values.
+
+   If lo is greater than hi, the behavior is undefined.
+
+    1. ↑ If NaN is avoided, T can be a floating-point type.
 
 .SH Parameters
 
-   v     - the value to clamp
-   lo,hi - the boundaries to clamp v to
-           comparison function object (i.e. an object that satisfies the requirements
-           of Compare) which returns true if the first argument is less than the
-           second.
+   v      - the value to clamp
+   lo, hi - the boundaries to clamp v to
+            comparison function object (i.e. an object that satisfies the requirements
+            of Compare) which returns true if the first argument is less than the
+            second.
 
-           The signature of the comparison function should be equivalent to the
-           following:
+            The signature of the comparison function should be equivalent to the
+            following:
 
-           bool cmp(const Type1 &a, const Type2 &b);
-   comp  -
-           While the signature does not need to have const &, the function must not
-           modify the objects passed to it and must be able to accept all values of
-           type (possibly const) Type1 and Type2 regardless of value category (thus,
-           Type1 & is not allowed
-           , nor is Type1 unless for Type1 a move is equivalent to a copy
-           \fI(since C++11)\fP).
-           The types Type1 and Type2 must be such that an object of type T can be
-           implicitly converted to both of them.
-.SH Type requirements
-   -
-   T must meet the requirements of LessThanComparable in order to use overloads \fB(1)\fP.
-   However, if NaN is avoided, T can be a floating-point type.
+            bool cmp(const Type1& a, const Type2& b);
+   comp   -
+            While the signature does not need to have const&, the function must not
+            modify the objects passed to it and must be able to accept all values of
+            type (possibly const) Type1 and Type2 regardless of value category (thus,
+            Type1& is not allowed
+            , nor is Type1 unless for Type1 a move is equivalent to a copy
+            \fI(since C++11)\fP).
+            The types Type1 and Type2 must be such that an object of type T can be
+            implicitly converted to both of them.
 
 .SH Return value
 
@@ -50,68 +56,76 @@ std::clamp \- std::clamp
 
 .SH Complexity
 
-   At most two comparisons.
+   1) At most two comparisons using
+   operator<
+   \fI(until C++20)\fP
+   std::less{}
+   \fI(since C++20)\fP.
+   2) At most two applications of the comparison function comp.
 
 .SH Possible implementation
 
-.SH First version
+                                    clamp \fB(1)\fP
    template<class T>
-   constexpr const T& clamp( const T& v, const T& lo, const T& hi )
+   constexpr const T& clamp(const T& v, const T& lo, const T& hi)
    {
        return clamp(v, lo, hi, less{});
    }
-.SH Second version
+                                    clamp \fB(2)\fP
    template<class T, class Compare>
-   constexpr const T& clamp( const T& v, const T& lo, const T& hi, Compare comp )
+   constexpr const T& clamp(const T& v, const T& lo, const T& hi, Compare comp)
    {
        return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
    }
 
 .SH Notes
 
+
    Capturing the result of std::clamp by reference produces a dangling reference if one
    of the parameters is a temporary and that parameter is returned:
 
  int n = -1;
- const int& r = std::clamp(n, 0, 255);
- // r is dangling
+ const int& r = std::clamp(n, 0, 255); // r is dangling
 
    If v compares equivalent to either bound, returns a reference to v, not the bound.
 
-   Feature-test macro: __cpp_lib_clamp
+   Feature-test macro  Value    Std    Feature
+   __cpp_lib_clamp    201603L \fI(C++17)\fP std::clamp
 
 .SH Example
 
 
 // Run this code
 
- #include <cstdint>
  #include <algorithm>
- #include <iostream>
+ #include <cstdint>
  #include <iomanip>
+ #include <iostream>
 
  int main()
  {
-     std::cout << " raw   clamped to int8_t   clamped to uint8_t\\n";
-     for(int const v: {-129, -128, -1, 0, 42, 127, 128, 255, 256}) {
-         std::cout << std::setw(04) << v
-                   << std::setw(20) << std::clamp(v, INT8_MIN, INT8_MAX)
-                   << std::setw(21) << std::clamp(v, 0, UINT8_MAX) << '\\n';
-     }
+     std::cout << "[raw] "
+                  "[" << INT8_MIN << ',' << INT8_MAX << "] "
+                  "[0," << UINT8_MAX << "]\\n";
+
+     for (const int v : {-129, -128, -1, 0, 42, 127, 128, 255, 256})
+         std::cout << std::setw(4) << v
+                   << std::setw(11) << std::clamp(v, INT8_MIN, INT8_MAX)
+                   << std::setw(8) << std::clamp(v, 0, UINT8_MAX) << '\\n';
  }
 
 .SH Output:
 
-  raw   clamped to int8_t   clamped to uint8_t
- -129                -128                    0
- -128                -128                    0
-   -1                  -1                    0
-    0                   0                    0
-   42                  42                   42
-  127                 127                  127
-  128                 127                  128
-  255                 127                  255
-  256                 127                  255
+ [raw] [-128,127] [0,255]
+ -129       -128       0
+ -128       -128       0
+   -1         -1       0
+    0          0       0
+   42         42      42
+  127        127     127
+  128        127     128
+  255        127     255
+  256        127     255
 
 .SH See also
 

@@ -1,4 +1,4 @@
-.TH std::ranges::advance 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::advance 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::advance \- std::ranges::advance
 
@@ -26,10 +26,10 @@ std::ranges::advance \- std::ranges::advance
 
    The function-like entities described on this page are niebloids, that is:
 
-     * Explicit template argument lists may not be specified when calling any of them.
-     * None of them is visible to argument-dependent lookup.
-     * When one of them is found by normal unqualified lookup for the name to the left
-       of the function-call operator, it inhibits argument-dependent lookup.
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
 
    In practice, they may be implemented as function objects, or with special compiler
    extensions.
@@ -61,123 +61,124 @@ std::ranges::advance \- std::ranges::advance
 
 .SH Possible implementation
 
-   struct advance_fn {
-     template<std::input_or_output_iterator I>
-     constexpr void operator()(I& i, std::iter_difference_t<I> n) const
-     {
-       if constexpr (std::random_access_iterator<I>) {
-           i += n;
-       }
-       else {
-           while (n > 0) {
-               --n;
-               ++i;
-           }
-           if constexpr (std::bidirectional_iterator<I>) {
-               while (n < 0) {
-                   ++n;
-                   --i;
-               }
-           }
-       }
-     }
+  struct advance_fn
+  {
+      template<std::input_or_output_iterator I>
+      constexpr void operator()(I& i, std::iter_difference_t<I> n) const
+      {
+          if constexpr (std::random_access_iterator<I>)
+              i += n;
+          else
+          {
+              while (n > 0)
+              {
+                  --n;
+                  ++i;
+              }
 
-     template<std::input_or_output_iterator I, std::sentinel_for<I> S>
-     constexpr void operator()(I& i, S bound) const
-     {
-       if constexpr (std::assignable_from<I&, S>) {
-           i = std::move(bound);
-       }
-       else if constexpr (std::sized_sentinel_for<S, I>) {
-           (*this)(i, bound - i);
-       }
-       else {
-           while (i != bound) {
-               ++i;
-           }
-       }
-     }
+              if constexpr (std::bidirectional_iterator<I>)
+              {
+                  while (n < 0)
+                  {
+                      ++n;
+                      --i;
+                  }
+              }
+          }
+      }
 
-     template<std::input_or_output_iterator I, std::sentinel_for<I> S>
-     constexpr std::iter_difference_t<I>
-     operator()(I& i, std::iter_difference_t<I> n, S bound) const
-     {
-       if constexpr (std::sized_sentinel_for<S, I>) {
-           // std::abs isn't constexpr until C++23
-           auto abs = [](const std::iter_difference_t<I> x) { return x < 0 ? -x : x; };
+      template<std::input_or_output_iterator I, std::sentinel_for<I> S>
+      constexpr void operator()(I& i, S bound) const
+      {
+          if constexpr (std::assignable_from<I&, S>)
+              i = std::move(bound);
+          else if constexpr (std::sized_sentinel_for<S, I>)
+              (*this)(i, bound - i);
+          else
+              while (i != bound)
+                  ++i;
+      }
 
-           const auto dist = abs(n) - abs(bound - i);
-           if (dist < 0) {
-               (*this)(i, bound);
-               return -dist;
-           }
+      template<std::input_or_output_iterator I, std::sentinel_for<I> S>
+      constexpr std::iter_difference_t<I>
+      operator()(I& i, std::iter_difference_t<I> n, S bound) const
+      {
+          if constexpr (std::sized_sentinel_for<S, I>)
+          {
+              // std::abs is not constexpr until C++23
+              auto abs = [](const std::iter_difference_t<I> x) { return x < 0 ? -x : x; };
 
-           (*this)(i, n);
-           return 0;
-       }
-       else {
-           while (n > 0 && i != bound) {
-               --n;
-               ++i;
-           }
+              if (const auto dist = abs(n) - abs(bound - i); dist < 0)
+              {
+                  (*this)(i, bound);
+                  return -dist;
+              }
 
-           if constexpr (std::bidirectional_iterator<I>) {
-               while (n < 0 && i != bound) {
-                   ++n;
-                   --i;
-               }
-           }
+              (*this)(i, n);
+              return 0;
+          }
+          else
+          {
+              while (n > 0 && i != bound)
+              {
+                  --n;
+                  ++i;
+              }
 
-           return n;
-       }
-     }
-   };
+              if constexpr (std::bidirectional_iterator<I>)
+              {
+                  while (n < 0 && i != bound)
+                  {
+                      ++n;
+                      --i;
+                  }
+              }
 
-   inline constexpr auto advance = advance_fn();
+              return n;
+          }
+      }
+  };
+
+  inline constexpr auto advance = advance_fn();
 
 .SH Example
 
 
 // Run this code
 
- #include <iomanip>
  #include <iostream>
  #include <iterator>
  #include <vector>
 
  int main()
  {
-     std::vector<int> v{ 3, 1, 4 };
+     std::vector<int> v {3, 1, 4};
 
      auto vi = v.begin();
 
      std::ranges::advance(vi, 2);
-     std::cout << "value: " << *vi << '\\n';
+     std::cout << "1) value: " << *vi << '\\n' << std::boolalpha;
 
-     {
-         std::ranges::advance(vi, v.end());
-         std::cout << std::boolalpha;
-         std::cout << "vi == v.end(): " << (vi == v.end()) << '\\n';
+     std::ranges::advance(vi, v.end());
+     std::cout << "2) vi == v.end(): " << (vi == v.end()) << '\\n';
 
-         std::ranges::advance(vi, -3);
-         std::cout << "value: " << *vi << '\\n';
+     std::ranges::advance(vi, -3);
+     std::cout << "3) value: " << *vi << '\\n';
 
-         std::cout << "diff: " << std::ranges::advance(vi, 2, v.end()) << ", ";
-         std::cout << "value: " << *vi << '\\n';
+     std::cout << "4) diff: " << std::ranges::advance(vi, 2, v.end())
+               << ", value: " << *vi << '\\n';
 
-         std::cout << "diff: " << std::ranges::advance(vi, 4, v.end()) << ", ";
-         std::cout << "vi == v.end(): " << (vi == v.end()) << '\\n';
-         std::cout << std::noboolalpha;
-     }
+     std::cout << "5) diff: " << std::ranges::advance(vi, 4, v.end())
+               << ", vi == v.end(): " << (vi == v.end()) << '\\n';
  }
 
 .SH Output:
 
- value: 4
- vi == v.end(): true
- value: 3
- diff: 0, value: 4
- diff: 3, vi == v.end(): true
+ 1) value: 4
+ 2) vi == v.end(): true
+ 3) value: 3
+ 4) diff: 0, value: 4
+ 5) diff: 3, vi == v.end(): true
 
 .SH See also
 

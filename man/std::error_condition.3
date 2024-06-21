@@ -1,4 +1,4 @@
-.TH std::error_condition 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::error_condition 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::error_condition \- std::error_condition
 
@@ -6,9 +6,10 @@ std::error_condition \- std::error_condition
    Defined in header <system_error>
    class error_condition;            \fI(since C++11)\fP
 
-   std::error_condition is a platform-independent error code. Like std::error_code, it
-   is uniquely identified by an integer value and a std::error_category, but unlike
-   std::error_code, the value is not platform-dependent.
+   std::error_condition holds a platform-independent value identifying an error
+   condition. Like std::error_code, it is uniquely identified by an integer value and a
+   std::error_category, but unlike std::error_code, the value is not
+   platform-dependent.
 
    A typical implementation holds one integer data member (the value) and a pointer to
    an std::error_category.
@@ -49,11 +50,47 @@ std::error_condition \- std::error_condition
    std::hash<std::error_condition> hash support for std::error_condition
    \fI(C++17)\fP                         \fI(class template specialization)\fP
 
+.SH Notes
+
+   The comparison between a std::error_code and a std::error_condition is defined by
+   their error categories. Notably, an error condition of std::generic_category may
+   compare equal to an error code of a specific category (e.g. std::system_category),
+   if they represent the same kind of error.
+
+   A std::errc value can be compared to an error code via implicit conversion to
+   std::error_condition.
+
+
+// Run this code
+
+ #include <cerrno>
+ #include <iostream>
+ #include <system_error>
+ #include <Windows.h>
+
+ int main()
+ {
+     std::error_code ec{ERROR_FILE_EXISTS, std::system_category()};
+     std::error_condition econd{EEXIST, std::generic_category()};
+
+     std::cout.setf(std::ios::boolalpha);
+     std::cout << (ec == econd) << '\\n'; // typically true
+     std::cout << (ec == std::errc::file_exists) << '\\n'; // ditto
+     std::cout << (ec == make_error_code(std::errc::file_exists)) << '\\n'; // false:
+                                                                      // different category
+ }
+
+.SH Possible output:
+
+ true
+ true
+ false
+
 .SH See also
 
    error_code                      holds a platform-dependent error code
    \fI(C++11)\fP                         \fI(class)\fP
    error_category                  base class for error categories
    \fI(C++11)\fP                         \fI(class)\fP
-   make_error_condition(std::errc) constructs an std::errc error condition
+   make_error_condition(std::errc) creates an error condition for an errc value e
    \fI(C++11)\fP                         \fI(function)\fP

@@ -1,0 +1,159 @@
+.TH std::ranges::in_out_out_result 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::in_out_out_result \- std::ranges::in_out_out_result
+
+.SH Synopsis
+   Defined in header <algorithm>
+   template< class I, class O1, class O2 >  \fI(since C++20)\fP
+   struct in_out_out_result;
+
+   ranges::in_out_out_result is a class template that provides a way to store three
+   iterators as a single unit.
+
+   This class template has no base classes or declared members other than those shown
+   below. Thus it is suitable for use with structured bindings.
+
+   All special member functions of this class template are implicitly declared, which
+   makes specializations be aggregate classes, and propagate triviality,
+   potentially-throwing-ness, and constexpr-ness of corresponding operations on data
+   members.
+
+.SH Template parameters
+
+   I, O1, O2 - the types of the objects that the ranges::in_out_out_result stores.
+
+   Data members
+
+   Member name Definition
+   in          a value (that is supposed to be an iterator) of type I.
+               \fI(public member object)\fP
+   out1        a value (that is supposed to be an iterator) of type O1.
+               \fI(public member object)\fP
+   out2        a value (that is supposed to be an iterator) of type O2.
+               \fI(public member object)\fP
+
+   All these members are declared with [[no_unique_address]] attribute.
+
+.SH Member functions
+
+std::ranges::in_out_out_result::operator in_out_out_result<II, OO1, OO2>
+
+   template<class II, class OO1, class OO2>
+
+   requires std::convertible_to<const I&, II> &&
+            std::convertible_to<const O1&, OO1> &&               \fB(1)\fP
+            std::convertible_to<const O2&, OO2>
+
+   constexpr operator in_out_out_result<II, OO1, OO2>() const &;
+   template<class II, class OO1, class OO2>
+
+   requires std::convertible_to<I, II> &&
+            std::convertible_to<O1, OO1> &&                      \fB(2)\fP
+            std::convertible_to<O2, OO2>
+
+   constexpr operator in_out_out_result<II, OO1, OO2>() &&;
+
+   Converts *this to the result by constructing every data member of the result from
+   the corresponding member of *this.
+
+   1) Equivalent to return {in, out1, out2};.
+   2) Equivalent to return {std::move(in), std::move(out1), std::move(out2)};.
+
+.SH Standard library
+
+   The following standard library functions use ranges::in_out_out_result as the return
+   type:
+
+         Algorithm functions
+   ranges::partition_copy copies a range dividing the elements into two groups
+   (C++20)                (niebloid)
+
+.SH Synopsis
+
+ namespace std::ranges
+ {
+     template<class I, class O1, class O2>
+     struct in_out_out_result
+     {
+         [[no_unique_address]] I  in;
+         [[no_unique_address]] O1 out1;
+         [[no_unique_address]] O2 out2;
+
+         template<class II, class OO1, class OO2>
+         requires std::convertible_to<const I&, II> &&
+                  std::convertible_to<const O1&, OO1> &&
+                  std::convertible_to<const O2&, OO2>
+         constexpr operator in_out_out_result<II, OO1, OO2>() const &
+         {
+             return {in, out1, out2};
+         }
+
+         template<class II, class OO1, class OO2>
+         requires std::convertible_to<I, II> &&
+                  std::convertible_to<O1, OO1> &&
+                  std::convertible_to<O2, OO2>
+         constexpr operator in_out_out_result<II, OO1, OO2>() &&
+         {
+             return {std::move(in), std::move(out1), std::move(out2)};
+         }
+     };
+ }
+
+.SH Notes
+
+   Each standard library algorithm that uses this family of return types declares a new
+   alias type, e.g. using merge_result = in_in_out_result<I1, I2, O>;.
+
+   The names for such aliases are formed by adding the suffix "_result" to the
+   algorithm's name. So, the return type of std::ranges::merge can be named as
+   std::ranges::merge_result.
+
+   Unlike std::pair and std::tuple, this class template has data members of meaningful
+   names.
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <array>
+ #include <cctype>
+ #include <iostream>
+ #include <iterator>
+ #include <ranges>
+ #include <string_view>
+
+ void print(std::string_view rem, auto first, auto last)
+ {
+     for (std::cout << rem << ": { "; first != last; ++first)
+         std::cout << *first << ' ';
+     std::cout << "}\\n";
+ }
+
+ int main()
+ {
+     constexpr std::string_view in {"TvEeNcStOoRr"};
+     std::array<char, in.size()> o1, o2;
+
+     const auto result = std::ranges::partition_copy(in, o1.begin(), o2.begin(),
+         [](char c) { return std::isupper(c); });
+
+     print("in", in.begin(), result.in);
+     print("o1", o1.begin(), result.out1);
+     print("o2", o2.begin(), result.out2);
+ }
+
+.SH Output:
+
+ in: { T v E e N c S t O o R r }
+ o1: { T E N S O R }
+ o2: { v e c t o r }
+
+.SH See also
+
+   pair    implements binary tuple, i.e. a pair of values
+           \fI(class template)\fP
+   tuple   implements fixed size container, which holds elements of possibly different
+   \fI(C++11)\fP types
+           \fI(class template)\fP

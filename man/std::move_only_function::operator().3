@@ -1,0 +1,85 @@
+.TH std::move_only_function::operator() 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::move_only_function::operator() \- std::move_only_function::operator()
+
+.SH Synopsis
+   R operator()( Args... args ) /*cv*/ /*ref*/ noexcept(/*noex*/);  (since C++23)
+
+   Invokes the stored callable target with the parameters args. The /*cv*/, /*ref*/,
+   and /*noex*/ parts of operator() are identical to those of the template parameter of
+   std::move_only_function.
+
+   Equivalent to return std::invoke_r<R>(/*cv-ref-cast*/(f),
+   std::forward<Args>(args)...);, where f is a cv-unqualified lvalue that denotes the
+   target object of *this, and /*cv-ref-cast*/(f) is equivalent to:
+
+     * f if cv ref is either empty or &, or
+     * std::as_const(f) if cv ref is either const or const &, or
+     * std::move(f) if cv ref is &&, or
+     * std::move(std::as_const(f)) if cv ref is const &&.
+
+   The behavior is undefined if *this is empty.
+
+.SH Parameters
+
+   args - parameters to pass to the stored callable target
+
+.SH Return value
+
+   std::invoke_r<R>(/*cv-ref-cast*/(f), std::forward<Args>(args)...).
+
+.SH Exceptions
+
+   Propagates the exception thrown by the underlying function call.
+
+.SH Example
+
+   The following example shows how std::move_only_function can passed to other
+   functions by value. Also, it shows how std::move_only_function can store lambdas.
+
+
+// Run this code
+
+ #include <iostream>
+ #include <functional>
+
+ void call(std::move_only_function<int() const> f)  // can be passed by value
+ {
+     std::cout << f() << '\\n';
+ }
+
+ int normal_function()
+ {
+     return 42;
+ }
+
+ int main()
+ {
+     int n = 1;
+     auto lambda = [&n](){ return n; };
+     std::move_only_function<int() const> f = lambda;
+     call(std::move(f));
+
+     n = 2;
+     call(lambda);
+
+     f = normal_function;
+     call(std::move(f));
+ }
+
+.SH Output:
+
+ 1
+ 2
+ 42
+
+.SH See also
+
+   operator() invokes the target
+              \fI(public member function of std::function<R(Args...)>)\fP
+   operator() calls the stored function
+              \fI(public member function of std::reference_wrapper<T>)\fP
+   invoke     invokes any Callable object with given arguments
+   invoke_r   and possibility to specify return type
+   \fI(C++17)\fP    (since C++23)
+   (C++23)    \fI(function template)\fP

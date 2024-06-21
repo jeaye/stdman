@@ -1,16 +1,22 @@
-.TH std::basic_string::substr 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_string::substr 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_string::substr \- std::basic_string::substr
 
 .SH Synopsis
-   basic_string substr( size_type pos = 0, size_type count = npos )       \fI(until C++20)\fP
-   const;
-   constexpr basic_string substr( size_type pos = 0, size_type count =    \fI(since C++20)\fP
-   npos ) const;
+   basic_string substr( size_type pos = 0, size_type            (until C++23)
+   count = npos ) const;                                        (constexpr since C++20)
+   constexpr basic_string
+       substr( size_type pos = 0, size_type count =     \fB(1)\fP     (since C++23)
+   npos ) const&;
+   constexpr basic_string substr( size_type pos = 0,        \fB(2)\fP (since C++23)
+   size_type count = npos ) &&;
 
-   Returns a substring [pos, pos+count). If the requested substring extends past the
+   Returns a substring [pos, pos + count). If the requested substring extends past the
    end of the string, i.e. the count is greater than size() - pos (e.g. if count ==
    npos), the returned substring is [pos, size()).
+
+   1) Equivalent to return basic_string(*this, pos, count);.
+   2) Equivalent to return basic_string(std::move(*this), pos, count);.
 
 .SH Parameters
 
@@ -19,29 +25,31 @@ std::basic_string::substr \- std::basic_string::substr
 
 .SH Return value
 
-   String containing the substring [pos, pos+count) or [pos, size()).
+   String containing the substring [pos, pos + count) or [pos, size()).
 
 .SH Exceptions
 
-   std::out_of_range if pos > size()
+   std::out_of_range if pos > size().
+
+   If an exception is thrown for any reason, these functions have no effect (strong
+   exception safety guarantee).
 
 .SH Complexity
 
-   Linear in count
+   Linear in count.
 
 .SH Notes
 
-   The returned string is constructed as if by basic_string(data()+pos, count), which
-   implies that the returned string's allocator will be default-constructed — the new
-   allocator might not be a copy of this->get_allocator().
+   The allocator of the returned string is default-constructed: the new allocator might
+   not be a copy of get_allocator().
 
 .SH Example
 
 
 // Run this code
 
- #include <string>
  #include <iostream>
+ #include <string>
 
  int main()
  {
@@ -51,33 +59,45 @@ std::basic_string::substr \- std::basic_string::substr
      std::string sub1 = a.substr(10);
      std::cout << sub1 << '\\n';
 
-     // both pos and pos+count are within bounds, returns [pos, pos+count)
+     // both pos and pos + count are within bounds, returns [pos, pos + count)
      std::string sub2 = a.substr(5, 3);
      std::cout << sub2 << '\\n';
 
-     // pos is within bounds, pos+count is not, returns [pos, size())
-     std::string sub4 = a.substr(a.size()-3, 50);
+     // pos is within bounds, pos + count is not, returns [pos, size())
+     std::string sub4 = a.substr(a.size() - 3, 50);
      // this is effectively equivalent to
      // std::string sub4 = a.substr(17, 3);
-     // since a.size() == 20, pos == a.size()-3 == 17, and a.size()-pos == 3
+     // since a.size() == 20, pos == a.size() - 3 == 17, and a.size() - pos == 3
 
      std::cout << sub4 << '\\n';
 
-     try {
+     try
+     {
          // pos is out of bounds, throws
-         std::string sub5 = a.substr(a.size()+3, 50);
+         std::string sub5 = a.substr(a.size() + 3, 50);
          std::cout << sub5 << '\\n';
-     } catch(const std::out_of_range& e) {
-         std::cout << "pos exceeds string size\\n";
+     }
+     catch (const std::out_of_range& ex)
+     {
+         std::cout << ex.what() << '\\n';
      }
  }
 
-.SH Output:
+.SH Possible output:
 
  abcdefghij
  567
  hij
- pos exceeds string size
+ basic_string::substr: __pos (which is 23) > this->size() (which is 20)
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to        Behavior as published              Correct behavior
+   LWG 847 C++98      there was no exception safety       added strong exception safety
+                      guarantee                           guarantee
 
 .SH See also
 
@@ -85,7 +105,9 @@ std::basic_string::substr \- std::basic_string::substr
             \fI(public member function)\fP
    size     returns the number of characters
    length   \fI(public member function)\fP
-   find     find characters in the string
+   find     finds the first occurrence of the given substring
             \fI(public member function)\fP
    npos     special value. The exact meaning depends on the context
    \fB[static]\fP \fI(public static member constant)\fP
+   substr   returns a substring
+            \fI(public member function of std::basic_string_view<CharT,Traits>)\fP

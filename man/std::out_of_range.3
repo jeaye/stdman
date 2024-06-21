@@ -1,4 +1,4 @@
-.TH std::out_of_range 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::out_of_range 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::out_of_range \- std::out_of_range
 
@@ -23,22 +23,20 @@ std::out_of_range \- std::out_of_range
                  \fI(public member function)\fP
    operator=     replaces the out_of_range object
                  \fI(public member function)\fP
-   what          returns the explanatory string
-                 \fI(public member function)\fP
 
 std::out_of_range::out_of_range
 
-   out_of_range( const std::string& what_arg );        \fB(1)\fP
-   out_of_range( const char* what_arg );               \fB(2)\fP \fI(since C++11)\fP
-   out_of_range( const out_of_range& other );          \fB(3)\fP               \fI(until C++11)\fP
-   out_of_range( const out_of_range& other ) noexcept;                   \fI(since C++11)\fP
+   out_of_range( const std::string& what_arg ); \fB(1)\fP
+   out_of_range( const char* what_arg );        \fB(2)\fP
+   out_of_range( const out_of_range& other );   \fB(3)\fP (noexcept since C++11)
 
-   1-2) Constructs the exception object with what_arg as explanatory string that can be
-   accessed through what().
-   3) Copy constructor.
-   If *this and other both have dynamic type std::out_of_range then std::strcmp(what(),
-   other.what()) == 0.
-   \fI(since C++11)\fP
+   1) Constructs the exception object with what_arg as explanatory string. After
+   construction, std::strcmp(what(), what_arg.c_str()) == 0.
+   2) Constructs the exception object with what_arg as explanatory string. After
+   construction, std::strcmp(what(), what_arg) == 0.
+   3) Copy constructor. If *this and other both have dynamic type std::out_of_range
+   then std::strcmp(what(), other.what()) == 0. No exception can be thrown from the
+   copy constructor.
 
 .SH Parameters
 
@@ -47,7 +45,7 @@ std::out_of_range::out_of_range
 
 .SH Exceptions
 
-   1-2) May throw std::bad_alloc
+   1,2) May throw std::bad_alloc.
 
 .SH Notes
 
@@ -56,15 +54,22 @@ std::out_of_range::out_of_range
    This is also why there is no constructor taking std::string&&: it would have to copy
    the content anyway.
 
+   Before the resolution of LWG issue 254, the non-copy constructor can only accept
+   std::string. It makes dynamic allocation mandatory in order to construct a
+   std::string object.
+
+   After the resolution of LWG issue 471, a derived standard exception class must have
+   a publicly accessible copy constructor. It can be implicitly defined as long as the
+   explanatory strings obtained by what() are the same for the original object and the
+   copied object.
+
 std::out_of_range::operator=
 
-   out_of_range& operator=( const out_of_range& other );           \fI(until C++11)\fP
-   out_of_range& operator=( const out_of_range& other ) noexcept;  \fI(since C++11)\fP
+   out_of_range& operator=( const out_of_range& other );  (noexcept since C++11)
 
-   Assigns the contents with those of other.
-   If *this and other both have dynamic type std::out_of_range then std::strcmp(what(),
-   other.what()) == 0 after assignment.
-   \fI(since C++11)\fP
+   Assigns the contents with those of other. If *this and other both have dynamic type
+   std::out_of_range then std::strcmp(what(), other.what()) == 0 after assignment. No
+   exception can be thrown from the copy assignment operator.
 
 .SH Parameters
 
@@ -74,28 +79,12 @@ std::out_of_range::operator=
 
    *this
 
-std::out_of_range::what
-
-   virtual const char* what() const throw();   \fI(until C++11)\fP
-   virtual const char* what() const noexcept;  \fI(since C++11)\fP
-
-   Returns the explanatory string.
-
-.SH Parameters
-
-   \fI(none)\fP
-
-.SH Return value
-
-   Pointer to a null-terminated string with explanatory information. The string is
-   suitable for conversion and display as a std::wstring. The pointer is guaranteed to
-   be valid at least until the exception object from which it is obtained is destroyed,
-   or until a non-const member function (e.g. copy assignment operator) on the
-   exception object is called.
-
 .SH Notes
 
-   Implementations are allowed but not required to override what().
+   After the resolution of LWG issue 471, a derived standard exception class must have
+   a publicly accessible copy assignment operator. It can be implicitly defined as long
+   as the explanatory strings obtained by what() are the same for the original object
+   and the copied object.
 
 Inherited from std::logic_error
 
@@ -114,15 +103,35 @@ Inherited from std::exception
    condition where the result, rather than the input, is out of range, and is more
    closely related to std::range_error and ERANGE.
 
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to         Behavior as published               Correct behavior
+   LWG 254 C++98      the constructor accepting const char*  added
+                      was missing
+                      the explanatory strings of             they are the same as that
+   LWG 471 C++98      std::out_of_range's                    of the
+                      copies were implementation-defined     original std::out_of_range
+                                                             object
+
 .SH See also
 
    at      accesses the specified character with bounds checking
            \fI(public member function of std::basic_string<CharT,Traits,Allocator>)\fP
    at      accesses the specified character with bounds checking
-   \fI(C++17)\fP \fI(public member function of std::basic_string_view<CharT,Traits>)\fP
+           \fI(public member function of std::basic_string_view<CharT,Traits>)\fP
    at      access specified element with bounds checking
            \fI(public member function of std::deque<T,Allocator>)\fP
    at      access specified element with bounds checking
+           \fI(public member function of std::map<Key,T,Compare,Allocator>)\fP
+           access specified element with bounds checking
+   at      \fI\fI(public member\fP function of\fP
+           std::unordered_map<Key,T,Hash,KeyEqual,Allocator>)
+   at      access specified element with bounds checking
            \fI(public member function of std::vector<T,Allocator>)\fP
    at      access specified element with bounds checking
-   \fI(C++11)\fP \fI(public member function of std::array<T,N>)\fP
+           \fI(public member function of std::array<T,N>)\fP
+   at      access specified element with bounds checking
+   (C++26) \fI(public member function of std::span<T,Extent>)\fP

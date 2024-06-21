@@ -1,19 +1,27 @@
-.TH std::basic_format_parse_context 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_format_parse_context 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_format_parse_context \- std::basic_format_parse_context
 
 .SH Synopsis
    Defined in header <format>
-   template<class CharT>                                              \fB(1)\fP \fI(since C++20)\fP
+   template< class CharT >            \fI(since C++20)\fP
    class basic_format_parse_context;
-   using format_parse_context = basic_format_parse_context<char>;     \fB(2)\fP \fI(since C++20)\fP
-   using wformat_parse_context = basic_format_parse_context<wchar_t>; \fB(3)\fP \fI(since C++20)\fP
 
    Provides access to the format string parsing state consisting of the format string
    range being parsed and the argument counter for automatic indexing.
 
-   A basic_format_parse_context instance is passed to Formatter when parsing the format
-   specification.
+   A std::basic_format_parse_context instance is passed to Formatter when parsing the
+   format specification.
+
+   A program that declares an explicit or partial specialization of
+   std::basic_format_parse_context is ill-formed, no diagnostic required.
+
+   Several typedefs for common character types are provided:
+
+   Defined in header <format>
+   Type                       Definition
+   std::format_parse_context  std::basic_format_parse_context<char>
+   std::wformat_parse_context std::basic_format_parse_context<wchar_t>
 
 .SH Member types
 
@@ -24,32 +32,61 @@ std::basic_format_parse_context \- std::basic_format_parse_context
 
 .SH Member functions
 
-                 constructs a std::basic_format_parse_context instance from format
-   constructor   string and argument count
-                 \fI(public member function)\fP
-   operator=     std::basic_format_parse_context is not copyable
-   [deleted]     \fI(public member function)\fP
-   begin         returns an iterator to the beginning of the format string range
-                 \fI(public member function)\fP
-   end           returns an iterator to the end of the format string range
-                 \fI(public member function)\fP
-   advance_to    advances the begin iterator to the given position
-                 \fI(public member function)\fP
-   next_arg_id   enters automatic indexing mode, and returns the next argument index
-                 \fI(public member function)\fP
-                 enters manual indexing mode, checks if the given argument index is in
-   check_arg_id  range
-                 \fI(public member function)\fP
+                               constructs a std::basic_format_parse_context instance
+   constructor                 from format string and argument count
+                               \fI(public member function)\fP
+   operator=                   std::basic_format_parse_context is not copyable
+   [deleted]                   \fI(public member function)\fP
+                               returns an iterator to the beginning of the format
+   begin                       string range
+                               \fI(public member function)\fP
+                               returns an iterator to the end of the format string
+   end                         range
+                               \fI(public member function)\fP
+   advance_to                  advances the begin iterator to the given position
+                               \fI(public member function)\fP
+                               enters automatic indexing mode, and returns the next
+   next_arg_id                 argument index
+                               \fI(public member function)\fP
+                               enters manual indexing mode, checks if the given
+   check_arg_id                argument index is in range
+                               \fI(public member function)\fP
+                               checks if the type of the corresponding format argument
+   check_dynamic_spec          with the given argument index is in the given type
+   (C++26)                     template arguments
+                               \fI(public member function)\fP
+   check_dynamic_spec_integral checks if the type of the corresponding format argument
+   (C++26)                     with the given argument index is an integral type
+                               \fI(public member function)\fP
+   check_dynamic_spec_string   checks if the type of the corresponding format argument
+   (C++26)                     with the given argument index is a string type
+                               \fI(public member function)\fP
 
 std::basic_format_parse_context::basic_format_parse_context
 
-   constexpr explicit basic_format_parse_context(std::basic_string_view<CharT>
-   fmt,                                                                            \fB(1)\fP
-   std::size_t num_args = 0) noexcept;
-   basic_format_parse_context(const basic_format_parse_context&) = delete;         \fB(2)\fP
+   constexpr explicit
+
+   basic_format_parse_context( std::basic_string_view<CharT> fmt,         (until C++26)
+
+                               std::size_t num_args = 0 )
+   noexcept;                                                      \fB(1)\fP
+   constexpr explicit
+   basic_format_parse_context( std::basic_string_view<CharT> fmt          (since C++26)
+   ) noexcept;
+   basic_format_parse_context( const basic_format_parse_context&      \fB(2)\fP
+   ) = delete;
 
    1) Constructs a std::basic_format_parse_context instance. Initializes the format
-   string range to [fmt.begin(), fmt.end()), and the argument count to num_args.
+   string range to [fmt.begin(), fmt.end()), and the argument count to
+   num_args
+   (until C++26)
+   0
+   (since C++26).
+
+   Any call to next_arg_id, check_arg_id, or check_dynamic_spec on an
+   instance of std::basic_format_parse_context initialized using this     (since C++26)
+   constructor is not a core constant expression.
+
    2) The copy constructor is deleted. std::basic_format_parse_context is not copyable.
 
 std::basic_format_parse_context::begin
@@ -66,9 +103,9 @@ std::basic_format_parse_context::end
 
 std::basic_format_parse_context::advance_to
 
-   constexpr void advance_to(const_iterator it);
+   constexpr void advance_to( const_iterator it );
 
-   Sets the beginning of the format string range to it. After a call to advance_to,
+   Sets the beginning of the format string range to it. After a call to advance_to(),
    subsequent calls to begin() will return a copy of it.
 
    The behavior is undefined if end() is not reachable from it.
@@ -83,21 +120,67 @@ std::basic_format_parse_context::next_arg_id
    If *this has already entered manual argument indexing mode, throws
    std::format_error.
 
+   If the next argument index is larger than or equal to the num_args provided in the
+   constructor, the call is not a core constant expression.
+
 std::basic_format_parse_context::check_arg_id
 
-   constexpr void check_arg_id(std::size_t id);
+   constexpr void check_arg_id( std::size_t id );
 
    Enters manual argument indexing mode.
 
    If *this has already entered automatic argument indexing mode, throws
    std::format_error.
 
-   If id is larger than or equal to the argument count provided in the constructor, the
-   call is not a constant expression.
+   If id is larger than or equal to the num_args provided in the constructor, the call
+   is not a core constant expression.
+
+std::basic_format_parse_context::check_dynamic_spec
+
+   template< class... Ts >                                        (since C++26)
+   constexpr void check_dynamic_spec( std::size_t id ) noexcept;
+
+   If id is larger than or equal to the num_args provided in the constructor or the
+   type of the corresponding format argument (after conversion to
+   std::basic_format_arg) is not one of the types in Ts..., the call is not a core
+   constant expression. A call to check_dynamic_spec has no effect at runtime.
+
+     * This overload participates in overload resolution only if the types in Ts... are
+       unique and each type is one of bool, char_type, int, unsigned int, long long
+       int, unsigned long long int, float, double, long double, const char_type*,
+       std::basic_string_view<char_type>, or const void*.
+
+std::basic_format_parse_context::check_dynamic_spec_integral
+
+   constexpr void check_dynamic_spec_integral( std::size_t id )           (since C++26)
+   noexcept;
+
+   Equivalent to call check_dynamic_spec<int, unsigned int, long long int, unsigned
+   long long int>(id). A call to check_dynamic_spec_integral has no effect at runtime.
+
+std::basic_format_parse_context::check_dynamic_spec_string
+
+   constexpr void check_dynamic_spec_string( std::size_t id ) noexcept;  (since C++26)
+
+   Equivalent to call check_dynamic_spec<const char_type*,
+   std::basic_string_view<char_type>>(id). A call to check_dynamic_spec_string has no
+   effect at runtime.
 
 .SH Example
 
     This section is incomplete
     Reason: no example
 
-.SH See also
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 3825 C++20      check_arg_id has a compile-time argument        added
+                       id check, but next_arg_id did not have
+   LWG 3975 C++20      user specialization of                          disallowed
+                       basic_format_parse_context was allowed
+
+.SH Category:
+     * Todo no example

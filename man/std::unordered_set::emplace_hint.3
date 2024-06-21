@@ -1,21 +1,21 @@
-.TH std::unordered_set::emplace_hint 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::unordered_set::emplace_hint 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unordered_set::emplace_hint \- std::unordered_set::emplace_hint
 
 .SH Synopsis
-   template <class... Args>                                       \fI(since C++11)\fP
+   template< class... Args >                                      \fI(since C++11)\fP
    iterator emplace_hint( const_iterator hint, Args&&... args );
 
-   Inserts a new element to the container, using hint as a suggestion where the element
-   should go. The element is constructed in-place, i.e. no copy or move operations are
-   performed.
+   Inserts a new element into the container, using hint as a suggestion where the
+   element should go.
 
-   The constructor of the element is called with exactly the same arguments as supplied
-   to the function, forwarded with std::forward<Args>(args)....
+   The constructors of the key and mapped value are called with exactly the same
+   arguments as supplied to the function, forwarded with std::forward<Args>(args)....
 
-   If rehashing occurs due to the insertion, all iterators are invalidated. Otherwise
-   iterators are not affected. References are not invalidated. Rehashing occurs only if
-   the new number of elements is greater than max_load_factor()*bucket_count().
+   If after the operation the new number of elements is greater than old
+   max_load_factor() * bucket_count() a rehashing takes place.
+   If rehashing occurs (due to the insertion), all iterators are invalidated. Otherwise
+   (no rehashing), iterators are not invalidated.
 
 .SH Parameters
 
@@ -24,15 +24,12 @@ std::unordered_set::emplace_hint \- std::unordered_set::emplace_hint
 
 .SH Return value
 
-   Returns an iterator to the newly inserted element.
-
-   If the insertion failed because the element already exists, returns an iterator to
-   the already existing element with the equivalent key.
+   An iterator to the inserted element, or to the element that prevented the insertion.
 
 .SH Exceptions
 
-   If an exception is thrown by any operation, this function has no effect (strong
-   exception guarantee).
+   If an exception is thrown for any reason, this function has no effect (strong
+   exception safety guarantee).
 
 .SH Complexity
 
@@ -40,14 +37,109 @@ std::unordered_set::emplace_hint \- std::unordered_set::emplace_hint
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <chrono>
+ #include <cstddef>
+ #include <functional>
+ #include <iomanip>
+ #include <iostream>
+ #include <unordered_set>
+
+ const int n_operations = 100'500'0;
+
+ std::size_t set_emplace()
+ {
+     std::unordered_set<int> set;
+     for (int i = 0; i < n_operations; ++i)
+         set.emplace(i);
+     return set.size();
+ }
+
+ std::size_t set_emplace_hint()
+ {
+     std::unordered_set<int> set;
+     auto it = set.begin();
+     for (int i = 0; i < n_operations; ++i)
+     {
+         set.emplace_hint(it, i);
+         it = set.end();
+     }
+     return set.size();
+ }
+
+ std::size_t set_emplace_hint_wrong()
+ {
+     std::unordered_set<int> set;
+     auto it = set.begin();
+     for (int i = n_operations; i > 0; --i)
+     {
+         set.emplace_hint(it, i);
+         it = set.end();
+     }
+     return set.size();
+ }
+
+ std::size_t set_emplace_hint_corrected()
+ {
+     std::unordered_set<int> set;
+     auto it = set.begin();
+     for (int i = n_operations; i > 0; --i)
+     {
+         set.emplace_hint(it, i);
+         it = set.begin();
+     }
+     return set.size();
+ }
+
+ std::size_t set_emplace_hint_closest()
+ {
+     std::unordered_set<int> set;
+     auto it = set.begin();
+     for (int i = 0; i < n_operations; ++i)
+         it = set.emplace_hint(it, i);
+     return set.size();
+ }
+
+ double time_it(std::function<std::size_t()> set_test,
+                const char* what = nullptr,
+                double ratio = 0.0)
+ {
+     const auto start = std::chrono::system_clock::now();
+     const std::size_t setsize = set_test();
+     const auto stop = std::chrono::system_clock::now();
+     const std::chrono::duration<double, std::milli> time = stop - start;
+     if (what != nullptr && setsize > 0)
+         std::cout << std::setw(8) << time << " for " << what << " (ratio: "
+                   << (ratio == 0.0 ? 1.0 : ratio / time.count()) << ")\\n";
+     return time.count();
+ }
+
+ int main()
+ {
+     std::cout << std::fixed << std::setprecision(2);
+     time_it(set_emplace); // cache warmup
+     const auto x = time_it(set_emplace, "plain emplace");
+     time_it(set_emplace_hint, "emplace with correct hint", x);
+     time_it(set_emplace_hint_wrong, "emplace with wrong hint", x);
+     time_it(set_emplace_hint_corrected, "corrected emplace", x);
+     time_it(set_emplace_hint_closest, "emplace using returned iterator", x);
+ }
+
+.SH Possible output:
+
+ 146.88ms for plain emplace (ratio: 1.00)
+ 168.20ms for emplace with correct hint (ratio: 0.87)
+ 168.78ms for emplace with wrong hint (ratio: 0.87)
+ 166.58ms for corrected emplace (ratio: 0.88)
+ 168.27ms for emplace using returned iterator (ratio: 0.87)
 
 .SH See also
 
    emplace constructs element in-place
-   \fI(C++11)\fP \fI(public member function)\fP
+           \fI(public member function)\fP
            inserts elements
    insert  or nodes
-   \fI(C++11)\fP \fI(since C++17)\fP
+           \fI(since C++17)\fP
            \fI(public member function)\fP

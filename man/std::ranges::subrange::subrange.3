@@ -1,0 +1,104 @@
+.TH std::ranges::subrange::subrange 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::subrange::subrange \- std::ranges::subrange::subrange
+
+.SH Synopsis
+   subrange() requires std::default_initializable<I> = default;             \fB(1)\fP (since
+                                                                                C++20)
+   constexpr subrange( /*convertible-to-non-slicing*/<I> auto i, S s )      \fB(2)\fP (since
+     requires (!/*store-size*/);                                                C++20)
+   constexpr subrange( /*convertible-to-non-slicing*/<I> auto i, S s,
+
+                       /*make-unsigned-like-t*/<std::iter_difference_t<I>>  \fB(3)\fP (since
+   n )                                                                          C++20)
+
+     requires (K == ranges::subrange_kind::sized);
+   template< /*different-from*/<subrange> R >
+
+     requires ranges::borrowed_range<R> &&
+              /*convertible-to-non-slicing*/<ranges::iterator_t<R>, I> &&   \fB(4)\fP (since
+              std::convertible_to<ranges::sentinel_t<R>, S>                     C++20)
+
+   constexpr subrange( R&& r ) requires (!/*store-size*/ ||
+   ranges::sized_range<R>);
+   template< ranges::borrowed_range R>
+
+     requires /*convertible-to-non-slicing*/<ranges::iterator_t<R>, I> &&
+              std::convertible_to<ranges::sentinel_t<R>, S>
+     constexpr subrange( R&& r,                                             \fB(5)\fP (since
+   /*make-unsigned-like-t*/<std::iter_difference_t<I>> n )                      C++20)
+       requires (K == ranges::subrange_kind::sized)
+         : subrange{ranges::begin(r), ranges::end(r), n}
+
+     {}
+
+   Constructs a subrange.
+
+   If K == ranges::subrange_kind::sized && !std::sized_sentinel_for<S, I>, the size of
+   the range is stored into the subrange, as if stored by a member subobject of type
+   /*make-unsigned-like-t*/<std::iter_difference_t<I>>, where make-unsigned-like-t is
+   an exposition-only alias template that maps each integer-like type to its
+   corresponding unsigned version. Otherwise, the size is not stored. The constant
+   store-size is true if the size is stored, false otherwise.
+
+   1) Default constructor. Value-initializes the stored iterator and sentinel as if by
+   default member initializers = I() and = S(), respectively. If the size is stored, it
+   is initialized with 0 as if by the default member initializer = 0.
+   2) Constructs a subrange from an iterator-sentinel pair. Initializes the stored
+   iterator and sentinel with std::move(i) and s respectively. The behavior is
+   undefined if [i, s) is not a valid range.
+   3) Constructs a subrange from an iterator-sentinel pair and a size hint. Initializes
+   the stored iterator and sentinel with std::move(i) and s respectively. If the size
+   is stored, it is initialized with n. The behavior is undefined if [i, s) is not a
+   valid range, or n is not equal to ranges::distance(i, s) explicitly converted to its
+   type.
+   4) Constructs a subrange from a range. Equivalent to subrange(r,
+   static_cast</*make-unsigned-like-t*/<std::iter_difference_t<I>>>(ranges::size(r)))
+   if the size is stored. Otherwise, equivalent to subrange(ranges::begin(r),
+   ranges::end(r)).
+   5) Constructs a subrange from a range and a size hint. The behavior is undefined if
+   n is not equal to ranges::distance(ranges::begin(r), ranges::end(r)) explicitly
+   converted to its type.
+
+   The exposition only concept different-from is modeled by types T and U if and only
+   if std::decay_t<T> and std::decay_t<U> are different types.
+
+   The exposition only concept convertible-to-non-slicing is satisfied or modeled by
+   From and To if and only if std::convertible_to<From, To> is satisfied or modeled
+   respectively, and any of following conditions is satisfied:
+
+     * either std::decay_t<From> or std::decay_t<To> is not a pointer type,
+     * std::remove_pointer_t<From>(*)[] is implicitly convertible to
+       std::remove_pointer_t<To>(*)[], i.e., the conversion from From to To is at most
+       a qualification conversion.
+
+.SH Parameters
+
+   i - iterator that denotes the beginning of the range
+   s - sentinel that denotes the end of the range
+   r - range
+   n - size hint, must be equal to the size of the range
+
+.SH Notes
+
+   The exposition-only concept convertible-to-non-slicing forbids the conversion from
+   the pointer to derived class to the pointer to base class.
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 3470 C++20      convertible-to-non-slicing rejected some valid  made accepted
+                       qualification conversions
+   P2393R1  C++20      implicit conversion to an integer-class type    made explicit
+                       might be invalid
+
+.SH Example
+
+    This section is incomplete
+    Reason: no example
+
+.SH Category:
+     * Todo no example

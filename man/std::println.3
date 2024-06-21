@@ -1,0 +1,141 @@
+.TH std::println 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::println \- std::println
+
+.SH Synopsis
+   Defined in header <print>
+   template< class... Args >                                        \fB(1)\fP (since C++23)
+   void println( std::format_string<Args...> fmt, Args&&... args );
+   template< class... Args >
+
+   void println( std::FILE* stream,                                 \fB(2)\fP (since C++23)
+
+                 std::format_string<Args...> fmt, Args&&... args );
+   void println();                                                  \fB(3)\fP (since C++26)
+   void println( std::FILE* stream );                               \fB(4)\fP (since C++26)
+
+   Format args according to the format string fmt with appended '\\n' (which means that
+   each output ends with a new-line), and print the result to a stream.
+
+   1) Equivalent to std::println(stdout, fmt, std::forward<Args>(args)...).
+   2) Equivalent to std::print(stream, std::runtime_format(std::string(fmt.get()) +
+   '\\n'),
+              std::forward<Args>(args)...).
+   3) Equivalent to std::println(stdout).
+   4) Equivalent to std::print(stream, "\\n").
+
+   The behavior is undefined if std::formatter<Ti, char> does not meet the
+   BasicFormatter requirements for any Ti in Args (as required by
+   std::make_format_args).
+
+.SH Parameters
+
+   stream  - output file stream to write to
+
+             an object that represents the format string. The format string consists of
+               * ordinary characters (except { and }), which are copied unchanged to
+                 the output,
+               * escape sequences {{ and }}, which are replaced with { and }
+                 respectively in the output, and
+               * replacement fields.
+
+             Each replacement field has the following format:
+
+             { arg-id (optional) }               \fB(1)\fP
+             { arg-id (optional) : format-spec } \fB(2)\fP
+
+             1) replacement field without a format specification
+             2) replacement field with a format specification
+
+                           specifies the index of the argument in args whose value is
+                           to be used for formatting; if it is omitted, the arguments
+                           are used in order.
+             arg-id      -
+                           The arg-id s in a format string must all be present or all
+                           be omitted. Mixing manual and automatic indexing is an
+                           error.
+   fmt     -               the format specification defined by the std::formatter
+             format-spec - specialization for the corresponding argument. Cannot start
+                           with }.
+
+               * For basic types and standard string types, the format specification is
+                 interpreted as standard format specification.
+               * For chrono types, the format specification is interpreted as chrono
+                 format specification.
+
+               * For range types, the format specification is interpreted
+                 as range format specification.
+               * For std::pair and std::tuple, the format specification
+                 is interpreted as tuple format specification.
+               * For std::thread::id and std::stacktrace_entry, see       (since C++23)
+                 thread id format specification and stacktrace entry
+                 format specification.
+               * For std::basic_stacktrace, no format specifier is
+                 allowed.
+
+               * For std::filesystem::path, see path format               (since C++26)
+                 specification.
+
+               * For other formattable types, the format specification is determined by
+                 user-defined formatter specializations.
+   args... - arguments to be formatted
+
+.SH Exceptions
+
+     * std::bad_alloc on allocation failure.
+     * std::system_error, if writing to the stream fails.
+     * Propagates any exception thrown by used formatters, e.g. std::format_error.
+
+.SH Notes
+
+   Although overloads (3,4) are added in C++26, all known implementations make them
+   available in C++23 mode.
+
+   Feature-test macro  Value    Std                 Feature
+                      202207L (C++23) Formatted output
+   __cpp_lib_print    202403L (C++26) Formatted output with stream locking
+                              (DR23)
+   __cpp_lib_format   202207L (C++23) Exposing std::basic_format_string
+
+.SH Example
+
+
+// Run this code
+
+ #include <print>
+
+ int main()
+ {
+     // Each call to std::println ends with new-line
+     std::println("Please"); // overload (1)
+     std::println("enter"); // (1)
+
+     std::print("pass");
+     std::print("word");
+
+     std::println(); // (3); valid since C++26; same effect as std::print("\\n");
+ }
+
+.SH Output:
+
+ Please
+ enter
+ password
+
+
+.SH See also
+
+   print                 prints to stdout or a file stream using formatted
+   (C++23)               representation of the arguments
+                         \fI(function template)\fP
+   println(std::ostream) outputs formatted representation of the arguments with
+   (C++23)               appended '\\n'
+                         \fI(function template)\fP
+   format                stores formatted representation of the arguments in a new
+   (C++20)               string
+                         \fI(function template)\fP
+   printf
+   fprintf               prints formatted output to stdout, a file stream or a buffer
+   sprintf               \fI(function)\fP
+   snprintf
+   \fI(C++11)\fP

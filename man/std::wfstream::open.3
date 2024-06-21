@@ -1,42 +1,53 @@
-.TH std::basic_fstream::open 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_fstream::open 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_fstream::open \- std::basic_fstream::open
 
 .SH Synopsis
-   void open( const char *filename,                              \fB(1)\fP
-   ios_base::openmode mode = ios_base::in|ios_base::out );
-   void open( const std::filesystem::path::value_type *filename, \fB(2)\fP \fI(since C++17)\fP
-   ios_base::openmode mode = ios_base::in|ios_base::out );
-   void open( const std::string &filename,                       \fB(3)\fP \fI(since C++11)\fP
-   ios_base::openmode mode = ios_base::in|ios_base::out );
-   void open( const std::filesystem::path &filename,             \fB(4)\fP \fI(since C++17)\fP
-   ios_base::openmode mode = ios_base::in|ios_base::out );
+   void open( const char* filename,
+
+              std::ios_base::openmode mode                       \fB(1)\fP
+
+                  = std::ios_base::in | std::ios_base::out );
+   void open( const std::filesystem::path::value_type* filename,
+
+              std::ios_base::openmode mode                       \fB(2)\fP \fI(since C++17)\fP
+
+                  = std::ios_base::in | std::ios_base::out );
+   void open( const std::string& filename,
+
+              std::ios_base::openmode mode                       \fB(3)\fP \fI(since C++11)\fP
+
+                  = std::ios_base::in | std::ios_base::out );
+   void open( const std::filesystem::path& filename,
+
+              std::ios_base::openmode mode                       \fB(4)\fP \fI(since C++17)\fP
+
+                  = std::ios_base::in | std::ios_base::out );
 
    Opens and associates the file with name filename with the file stream.
 
-   Calls setstate(failbit) on failure.
+   Calls clear() on success. Calls setstate(failbit) on failure.
 
-   Calls clear() on success. \fI(since C++11)\fP
-
-   1-2) Effectively calls rdbuf()->open(filename, mode). (see std::basic_filebuf::open
+   1,2) Effectively calls rdbuf()->open(filename, mode) (see std::basic_filebuf::open
    for the details on the effects of that call).
    Overload \fB(2)\fP is only provided if std::filesystem::path::value_type is not char.
    \fI(since C++17)\fP
-   3-4) Effectively calls (1-2) as if by open(filename.c_str(), mode).
+   3,4) Effectively calls (1,2) as if by open(filename.c_str(), mode).
 
 .SH Parameters
 
    filename - the name of the file to be opened
-              specifies stream open mode. It is bitmask type, the following constants
+              specifies stream open mode. It is a BitmaskType, the following constants
               are defined:
 
-              Constant Explanation
-   mode     - app      seek to the end of stream before each write
-              binary   open in binary mode
-              in       open for reading
-              out      open for writing
-              trunc    discard the contents of the stream when opening
-              ate      seek to the end of stream immediately after open
+              Constant          Explanation
+              app               seek to the end of stream before each write
+   mode     - binary            open in binary mode
+              in                open for reading
+              out               open for writing
+              trunc             discard the contents of the stream when opening
+              ate               seek to the end of stream immediately after open
+              noreplace (C++23) open in exclusive mode
 
 .SH Return value
 
@@ -47,30 +58,44 @@ std::basic_fstream::open \- std::basic_fstream::open
 
 // Run this code
 
- #include <string>
  #include <fstream>
  #include <iostream>
+ #include <string>
 
  int main()
  {
      std::string filename = "example.123";
 
      std::fstream fs;
-
      fs.open(filename);
 
-     if(!fs.is_open())
+     if (!fs.is_open())
      {
-        fs.clear();
-        fs.open(filename, std::ios::out); //Create file.
-        fs.close();
-        fs.open(filename);
+         fs.clear();
+         fs.open(filename, std::ios::out); // create file
+         fs.close();
+         fs.open(filename);
      }
 
      std::cout << std::boolalpha;
      std::cout << "fs.is_open() = " << fs.is_open() << '\\n';
      std::cout << "fs.good() = " << fs.good() << '\\n';
  }
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to             Behavior as published               Correct behavior
+   LWG 22  C++98      it was unclear how error state changes upon a  the error state is
+                      successful open                                unchanged
+   LWG 409 C++98      the error state was unchanged upon a           it is cleared^[1]
+                      successful open
+   LWG 460 C++98      the default argument of mode in overload (1)   added
+                      was missing (it is present in the synopsis)
+
+    1. ↑ The resolution of LWG issue #22 is overriden.
 
 .SH See also
 

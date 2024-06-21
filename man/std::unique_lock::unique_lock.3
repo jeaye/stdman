@@ -1,24 +1,26 @@
-.TH std::unique_lock::unique_lock 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::unique_lock::unique_lock 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unique_lock::unique_lock \- std::unique_lock::unique_lock
 
 .SH Synopsis
-   unique_lock() noexcept;                                        \fB(1)\fP \fI(since C++11)\fP
-   unique_lock( unique_lock&& other ) noexcept;                   \fB(2)\fP \fI(since C++11)\fP
-   explicit unique_lock( mutex_type& m );                         \fB(3)\fP \fI(since C++11)\fP
-   unique_lock( mutex_type& m, std::defer_lock_t t ) noexcept;    \fB(4)\fP \fI(since C++11)\fP
-   unique_lock( mutex_type& m, std::try_to_lock_t t );            \fB(5)\fP \fI(since C++11)\fP
-   unique_lock( mutex_type& m, std::adopt_lock_t t );             \fB(6)\fP \fI(since C++11)\fP
+   unique_lock() noexcept;                                            \fB(1)\fP \fI(since C++11)\fP
+   unique_lock( unique_lock&& other ) noexcept;                       \fB(2)\fP \fI(since C++11)\fP
+   explicit unique_lock( mutex_type& m );                             \fB(3)\fP \fI(since C++11)\fP
+   unique_lock( mutex_type& m, std::defer_lock_t t ) noexcept;        \fB(4)\fP \fI(since C++11)\fP
+   unique_lock( mutex_type& m, std::try_to_lock_t t );                \fB(5)\fP \fI(since C++11)\fP
+   unique_lock( mutex_type& m, std::adopt_lock_t t );                 \fB(6)\fP \fI(since C++11)\fP
    template< class Rep, class Period >
 
-   unique_lock( mutex_type& m,                                    \fB(7)\fP \fI(since C++11)\fP
+   unique_lock( mutex_type& m,                                        \fB(7)\fP \fI(since C++11)\fP
 
-   const std::chrono::duration<Rep,Period>& timeout_duration );
+                const std::chrono::duration<Rep, Period>&
+   timeout_duration );
    template< class Clock, class Duration >
 
-   unique_lock( mutex_type& m,                                    \fB(8)\fP \fI(since C++11)\fP
+   unique_lock( mutex_type& m,                                        \fB(8)\fP \fI(since C++11)\fP
 
-   const std::chrono::time_point<Clock,Duration>& timeout_time );
+                const std::chrono::time_point<Clock, Duration>&
+   timeout_time );
 
    Constructs a unique_lock, optionally locking the supplied mutex.
 
@@ -30,9 +32,9 @@ std::unique_lock::unique_lock \- std::unique_lock::unique_lock
    4) Does not lock the associated mutex.
    5) Tries to lock the associated mutex without blocking by calling m.try_lock(). The
    behavior is undefined if Mutex does not satisfy Lockable.
-   6) Assumes the calling thread already holds an non-shared lock (i.e., a lock
-   acquired by lock, try_lock, try_lock_for, or try_lock_until) on m. The behavior is
-   undefined if not so.
+   6) Assumes the calling thread already holds a non-shared lock (i.e., a lock acquired
+   by lock, try_lock, try_lock_for, or try_lock_until) on m. The behavior is undefined
+   if not so.
    7) Tries to lock the associated mutex by calling m.try_lock_for(timeout_duration).
    Blocks until specified timeout_duration has elapsed or the lock is acquired,
    whichever comes first. May block for longer than timeout_duration. The behavior is
@@ -58,37 +60,40 @@ std::unique_lock::unique_lock \- std::unique_lock::unique_lock
 // Run this code
 
  #include <iostream>
- #include <thread>
- #include <vector>
  #include <mutex>
+ #include <thread>
+ #include <utility>
+ #include <vector>
+
  std::mutex m_a, m_b, m_c;
  int a, b, c = 1;
+
  void update()
  {
      {   // Note: std::lock_guard or atomic<int> can be used instead
          std::unique_lock<std::mutex> lk(m_a);
-         a++;
+         ++a;
      }
 
-     { // Note: see std::lock and std::scoped_lock for details and alternatives
-       std::unique_lock<std::mutex> lk_b(m_b, std::defer_lock);
-       std::unique_lock<std::mutex> lk_c(m_c, std::defer_lock);
-       std::lock(lk_b, lk_c);
-       b = std::exchange(c, b+c);
-    }
+     {   // Note: see std::lock and std::scoped_lock for details and alternatives
+         std::unique_lock<std::mutex> lk_b(m_b, std::defer_lock);
+         std::unique_lock<std::mutex> lk_c(m_c, std::defer_lock);
+         std::lock(lk_b, lk_c);
+         b = std::exchange(c, b + c);
+     }
  }
 
  int main()
  {
-   std::vector<std::thread> threads;
-   for (unsigned i = 0; i < 12; ++i)
-     threads.emplace_back(update);
+     std::vector<std::thread> threads;
+     for (unsigned i = 0; i < 12; ++i)
+         threads.emplace_back(update);
 
-   for (auto& i: threads)
-     i.join();
+     for (auto& i : threads)
+         i.join();
 
-   std::cout << a << "'th and " << a+1 << "'th Fibonacci numbers: "
-             << b << " and " << c << '\\n';
+     std::cout << a << "'th and " << a + 1 << "'th Fibonacci numbers: "
+               << b << " and " << c << '\\n';
  }
 
 .SH Output:

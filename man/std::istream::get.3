@@ -1,4 +1,4 @@
-.TH std::basic_istream::get 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_istream::get 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_istream::get \- std::basic_istream::get
 
@@ -21,41 +21,29 @@ std::basic_istream::get \- std::basic_istream::get
    unmodified and sets failbit and eofbit. Note that this function is not overloaded on
    the types signed char and unsigned char, unlike the formatted character input
    operator>>.
-   3) Same as get(s, count, widen('\\n')), that is, reads at most count-1 characters and
-   stores them into character string pointed to by s until '\\n' is found.
+   3) Same as get(s, count, widen('\\n')), that is, reads at most std::max(0, count - 1)
+   characters and stores them into character string pointed to by s until '\\n' is
+   found.
    4) Reads characters and stores them into the successive locations of the character
    array whose first element is pointed to by s. Characters are extracted and stored
    until any of the following occurs:
-
-                           * count-1 characters have been stored
-
-                           * end of file condition occurs in the input sequence
-                             (setstate(eofbit) is called)
-
-                           * the next available input character c equals delim, as
-                             determined by Traits::eq(c, delim). This character is not
-                             extracted (unlike basic_istream::getline())
-
-   If no characters were extracted, calls setstate(failbit). In any case, if count>0, a
-   null character (CharT() is stored in the next successive location of the array.
-   5) same as get(strbuf, widen('\\n')), that is, reads available characters and inserts
+     * count is less than 1 or count - 1 characters have been stored.
+     * end of file condition occurs in the input sequence (setstate(eofbit) is called).
+     * the next available input character c equals delim, as determined by
+       Traits::eq(c, delim). This character is not extracted (unlike getline()).
+   In any case, if count > 0, a null character (CharT() is stored in the next
+   successive location of the array.
+   5) Same as get(strbuf, widen('\\n')), that is, reads available characters and inserts
    them to the given basic_streambuf object until '\\n' is found.
-   6) reads characters and inserts them to the output sequence controlled by the given
+   6) Reads characters and inserts them to the output sequence controlled by the given
    basic_streambuf object. Characters are extracted and inserted into strbuf until any
    of the following occurs:
-
-                           * end of file condition occurs in the input sequence
-
-                           * inserting into the output sequence fails (in which case
-                             the character that could not be inserted, is not
-                             extracted)
-
-                           * the next available input character c equals delim, as
-                             determined by Traits::eq(c, delim). This character is not
-                             extracted.
-
-                           * an exception occurs (in which case the exception is caught
-                             and not rethrown)
+     * end of file condition occurs in the input sequence.
+     * inserting into the output sequence fails (in which case the character that could
+       not be inserted, is not extracted).
+     * the next available input character c equals delim, as determined by
+       Traits::eq(c, delim). This character is not extracted.
+     * an exception occurs (in which case the exception is caught and not rethrown).
 
    If no characters were extracted, calls setstate(failbit).
 
@@ -67,15 +55,16 @@ std::basic_istream::get \- std::basic_istream::get
    s      - pointer to the character string to store the characters to
    count  - size of character string pointed to by s
    delim  - delimiting character to stop the extraction at. It is not extracted and not
-            stored.
+            stored
    strbuf - stream buffer to read the content to
 
 .SH Return value
 
-   1) the extracted character or Traits::eof()
+   1) The extracted character or Traits::eof().
    2-6) *this
 
 .SH Exceptions
+
 
    failure if an error occurred (the error state flag is not goodbit) and exceptions()
    is set to throw for that state.
@@ -88,19 +77,21 @@ std::basic_istream::get \- std::basic_istream::get
 
 // Run this code
 
- #include <sstream>
  #include <iostream>
+ #include <sstream>
 
  int main()
  {
      std::istringstream s1("Hello, world.");
      char c1 = s1.get(); // reads 'H'
      std::cout << "after reading " << c1 << ", gcount() == " <<  s1.gcount() << '\\n';
+
      char c2;
      s1.get(c2);         // reads 'e'
      char str[5];
      s1.get(str, 5);     // reads "llo,"
      std::cout << "after reading " << str << ", gcount() == " <<  s1.gcount() << '\\n';
+
      std::cout << c1 << c2 << str;
      s1.get(*std::cout.rdbuf()); // reads the rest, not including '\\n'
      std::cout << "\\nAfter the last get(), gcount() == " << s1.gcount() << '\\n';
@@ -112,6 +103,18 @@ std::basic_istream::get \- std::basic_istream::get
  after reading llo,, gcount() == 4
  Hello, world.
  After the last get(), gcount() == 7
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to          Behavior as published               Correct behavior
+                      the effect of overload \fB(5)\fP was get(s,    corrected to
+   LWG 370 C++98      count, widen('\\n')),                     get(strbuf, widen('\\n'))
+                      which is the effect of overload \fB(3)\fP
+   LWG 531 C++98      overloads (3,4) could not handle the     no character is
+                      case where count is non-positive         extracted in this case
 
 .SH See also
 

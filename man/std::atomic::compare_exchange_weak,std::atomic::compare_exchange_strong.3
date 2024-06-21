@@ -1,94 +1,89 @@
-.TH std::atomic::compare_exchange_weak,std::atomic::compare_exchange_strong 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::atomic::compare_exchange_weak,std::atomic::compare_exchange_strong 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::atomic::compare_exchange_weak,std::atomic::compare_exchange_strong \- std::atomic::compare_exchange_weak,std::atomic::compare_exchange_strong
 
 .SH Synopsis
-   bool compare_exchange_weak( T&
-   expected, T desired,
+   bool compare_exchange_weak( T& expected, T desired,
 
-   std::memory_order success,
+                               std::memory_order success,             \fB(1)\fP \fI(since C++11)\fP
 
-   std::memory_order failure )
+                               std::memory_order failure ) noexcept;
+   bool compare_exchange_weak( T& expected, T desired,
+
+                               std::memory_order success,             \fB(2)\fP \fI(since C++11)\fP
+
+                               std::memory_order failure ) volatile
    noexcept;
-   bool compare_exchange_weak( T&
-   expected, T desired,
+   bool compare_exchange_weak( T& expected, T desired,
 
-   std::memory_order success,
+                               std::memory_order order =              \fB(3)\fP \fI(since C++11)\fP
 
-   std::memory_order failure )
+                                   std::memory_order_seq_cst )
+   noexcept;
+   bool compare_exchange_weak( T& expected, T desired,
+
+                               std::memory_order order =              \fB(4)\fP \fI(since C++11)\fP
+
+                                   std::memory_order_seq_cst )
    volatile noexcept;
-   bool compare_exchange_weak( T&
-   expected, T desired,
+   bool compare_exchange_strong( T& expected, T desired,
 
-   std::memory_order order =
+                                 std::memory_order success,           \fB(5)\fP \fI(since C++11)\fP
 
-   std::memory_order_seq_cst )
+                                 std::memory_order failure )
    noexcept;
-   bool compare_exchange_weak( T&
-   expected, T desired,
+   bool compare_exchange_strong( T& expected, T desired,
 
-   std::memory_order order =
+                                 std::memory_order success,           \fB(6)\fP \fI(since C++11)\fP
 
-   std::memory_order_seq_cst )
-   volatile noexcept;                 \fB(1)\fP (since
-   bool compare_exchange_strong( T&       C++11)
-   expected, T desired,
+                                 std::memory_order failure ) volatile
+   noexcept;
+   bool compare_exchange_strong( T& expected, T desired,
 
-   std::memory_order success,
+                                 std::memory_order order =            \fB(7)\fP \fI(since C++11)\fP
 
-   std::memory_order failure )
-   noexcept;                                      \fB(2)\fP (since
-   bool compare_exchange_strong( T&                   C++11)
-   expected, T desired,
+                                     std::memory_order_seq_cst )
+   noexcept;
+   bool compare_exchange_strong
 
-   std::memory_order success,
+       ( T& expected, T desired,                                      \fB(8)\fP \fI(since C++11)\fP
 
-   std::memory_order failure )
-   volatile noexcept;                                         \fB(3)\fP (since
-   bool compare_exchange_strong( T&                               C++11)
-   expected, T desired,
-
-   std::memory_order order =
-
-   std::memory_order_seq_cst )
-   noexcept;                                                              \fB(4)\fP (since
-   bool compare_exchange_strong( T&                                           C++11)
-   expected, T desired,
-
-   std::memory_order order =
-
-   std::memory_order_seq_cst )
+         std::memory_order order = std::memory_order_seq_cst )
    volatile noexcept;
 
    Atomically compares the
    object representation
    \fI(until C++20)\fP
    value representation
-   \fI(since C++20)\fP of *this with that of expected, and if those are bitwise-equal,
-   replaces the former with desired (performs read-modify-write operation). Otherwise,
-   loads the actual value stored in *this into expected (performs load operation).
+   \fI(since C++20)\fP of *this with that of expected. If those are bitwise-equal, replaces
+   the former with desired (performs read-modify-write operation). Otherwise, loads the
+   actual value stored in *this into expected (performs load operation).
 
-   The memory models for the read-modify-write and load operations are success and
-   failure respectively. In the \fB(2)\fP and \fB(4)\fP versions order is used for both
-   read-modify-write and load operations, except that std::memory_order_acquire and
-   std::memory_order_relaxed are used for the load operation if order ==
-   std::memory_order_acq_rel, or order == std::memory_order_release respectively.
+      Overloads                            Memory model for
+                  read‑modify‑write operation              load operation
+     (1,2,5,6)   success                       failure
+                                                 * std::memory_order_acquire if
+                                                   order is std::memory_order_acq_rel
+     (3,4,7,8)   order                           * std::memory_order_relaxed if
+                                                   order is std::memory_order_release
+                                                 * otherwise order
 
-   The volatile-qualified versions are deprecated if                      \fI(since C++20)\fP
-   std::atomic<T>::is_always_lock_free is false.
+   If failure
+   is stronger than success or
+   \fI(until C++17)\fP is one of std::memory_order_release and std::memory_order_acq_rel, the
+   behavior is undefined.
+
+   It is deprecated if std::atomic<T>::is_always_lock_free is false and   \fI(since C++20)\fP
+   any volatile overload participates in overload resolution.
 
 .SH Parameters
 
-   expected - reference to the value expected to be found in the atomic object. Gets
-              stored with the actual value of *this if the comparison fails.
+   expected - reference to the value expected to be found in the atomic object
    desired  - the value to store in the atomic object if it is as expected
    success  - the memory synchronization ordering for the read-modify-write operation
-              if the comparison succeeds. All values are permitted.
-              the memory synchronization ordering for the load operation if the
-              comparison fails. Cannot be std::memory_order_release or
-   failure  - std::memory_order_acq_rel
-              and cannot specify stronger ordering than success
-              \fI(until C++17)\fP
+              if the comparison succeeds
+   failure  - the memory synchronization ordering for the load operation if the
+              comparison fails
    order    - the memory synchronization ordering for both operations
 
 .SH Return value
@@ -100,15 +95,16 @@ std::atomic::compare_exchange_weak,std::atomic::compare_exchange_strong \- std::
    The comparison and copying are bitwise (similar to std::memcmp and std::memcpy); no
    constructor, assignment operator, or comparison operator are used.
 
-   The weak forms (1-2) of the functions are allowed to fail spuriously, that is, act
-   as if *this != expected even if they are equal. When a compare-and-exchange is in a
-   loop, the weak version will yield better performance on some platforms.
+   compare_exchange_weak is allowed to fail spuriously, that is, acts as if *this !=
+   expected even if they are equal. When a compare-and-exchange is in a loop,
+   compare_exchange_weak will yield better performance on some platforms.
 
-   When a weak compare-and-exchange would require a loop and a strong one would not,
-   the strong one is preferable unless the object representation of T may include
+   When compare_exchange_weak would require a loop and compare_exchange_strong would
+   not, compare_exchange_strong is preferable unless the object representation of T may
+   include
    padding bits,
    \fI(until C++20)\fP trap bits, or offers multiple object representations for the same
-   value (e.g. floating-point NaN). In those cases, weak compare-and-exchange typically
+   value (e.g. floating-point NaN). In those cases, compare_exchange_weak typically
    works because it quickly converges on some stable object representation.
 
    For a union with bits that participate in the value representations of some members
@@ -121,13 +117,14 @@ std::atomic::compare_exchange_weak,std::atomic::compare_exchange_strong \- std::
 
 .SH Example
 
-   Compare-and-exchange operations are often used as basic building blocks of lockfree
-   data structures
+   Compare-and-exchange operations are often used as basic building blocks of lock-free
+   data structures.
 
 
 // Run this code
 
  #include <atomic>
+
  template<typename T>
  struct node
  {
@@ -140,34 +137,37 @@ std::atomic::compare_exchange_weak,std::atomic::compare_exchange_strong \- std::
  class stack
  {
      std::atomic<node<T>*> head;
-  public:
+ public:
      void push(const T& data)
      {
-       node<T>* new_node = new node<T>(data);
+         node<T>* new_node = new node<T>(data);
 
-       // put the current value of head into new_node->next
-       new_node->next = head.load(std::memory_order_relaxed);
+         // put the current value of head into new_node->next
+         new_node->next = head.load(std::memory_order_relaxed);
 
-       // now make new_node the new head, but if the head
-       // is no longer what's stored in new_node->next
-       // (some other thread must have inserted a node just now)
-       // then put that new head into new_node->next and try again
-       while(!head.compare_exchange_weak(new_node->next, new_node,
-                                         std::memory_order_release,
-                                         std::memory_order_relaxed))
-           ; // the body of the loop is empty
+         // now make new_node the new head, but if the head
+         // is no longer what's stored in new_node->next
+         // (some other thread must have inserted a node just now)
+         // then put that new head into new_node->next and try again
+         while (!head.compare_exchange_weak(new_node->next, new_node,
+                                            std::memory_order_release,
+                                            std::memory_order_relaxed))
+             ; // the body of the loop is empty
 
  // Note: the above use is not thread-safe in at least
  // GCC prior to 4.8.3 (bug 60272), clang prior to 2014-05-05 (bug 18899)
  // MSVC prior to 2014-03-17 (bug 819819). The following is a workaround:
  //      node<T>* old_head = head.load(std::memory_order_relaxed);
- //      do {
+ //      do
+ //      {
  //          new_node->next = old_head;
- //       } while(!head.compare_exchange_weak(old_head, new_node,
- //                                           std::memory_order_release,
- //                                           std::memory_order_relaxed));
+ //      }
+ //      while (!head.compare_exchange_weak(old_head, new_node,
+ //                                         std::memory_order_release,
+ //                                         std::memory_order_relaxed));
      }
  };
+
  int main()
  {
      stack<int> s;
@@ -176,7 +176,7 @@ std::atomic::compare_exchange_weak,std::atomic::compare_exchange_strong \- std::
      s.push(3);
  }
 
-   Demonstrates how compare_exchange_strong either changes the value of the atomic
+   Demonstrates how std::compare_exchange_strong either changes the value of the atomic
    variable or the variable used for comparison.
 
     This section is incomplete
@@ -189,40 +189,40 @@ std::atomic::compare_exchange_weak,std::atomic::compare_exchange_strong \- std::
  #include <atomic>
  #include <iostream>
 
- std::atomic<int>  ai;
+ std::atomic<int> ai;
 
- int  tst_val= 4;
- int  new_val= 5;
- bool exchanged= false;
+ int tst_val = 4;
+ int new_val = 5;
+ bool exchanged = false;
 
  void valsout()
  {
-     std::cout << "ai= " << ai
-               << "  tst_val= " << tst_val
-               << "  new_val= " << new_val
-               << "  exchanged= " << std::boolalpha << exchanged
-               << "\\n";
+     std::cout << "ai = " << ai
+               << "  tst_val = " << tst_val
+               << "  new_val = " << new_val
+               << "  exchanged = " << std::boolalpha << exchanged
+               << '\\n';
  }
 
  int main()
  {
-     ai= 3;
+     ai = 3;
      valsout();
 
      // tst_val != ai   ==>  tst_val is modified
-     exchanged= ai.compare_exchange_strong( tst_val, new_val );
+     exchanged = ai.compare_exchange_strong(tst_val, new_val);
      valsout();
 
      // tst_val == ai   ==>  ai is modified
-     exchanged= ai.compare_exchange_strong( tst_val, new_val );
+     exchanged = ai.compare_exchange_strong(tst_val, new_val);
      valsout();
  }
 
 .SH Output:
 
- ai= 3  tst_val= 4  new_val= 5  exchanged= false
- ai= 3  tst_val= 3  new_val= 5  exchanged= false
- ai= 5  tst_val= 3  new_val= 5  exchanged= true
+ ai = 3  tst_val = 4  new_val = 5  exchanged = false
+ ai = 3  tst_val = 3  new_val = 5  exchanged = false
+ ai = 5  tst_val = 3  new_val = 5  exchanged = true
 
 .SH See also
 
@@ -234,3 +234,6 @@ std::atomic::compare_exchange_weak,std::atomic::compare_exchange_strong \- std::
    \fI(C++11)\fP                                 \fI(function template)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
+
+.SH Category:
+     * Todo with reason

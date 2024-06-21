@@ -1,4 +1,4 @@
-.TH std::money_get 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::money_get 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::money_get \- std::money_get
 
@@ -6,8 +6,8 @@ std::money_get \- std::money_get
    Defined in header <locale>
    template<
 
-   class CharT,
-   class InputIt = std::istreambuf_iterator<CharT>
+       class CharT,
+       class InputIt = std::istreambuf_iterator<CharT>
 
    > class money_get;
 
@@ -19,28 +19,29 @@ std::money_get \- std::money_get
 
                                    Inheritance diagram
 
-.SH Type requirements
-
-   -
-   InputIt must meet the requirements of LegacyInputIterator.
+   If a std::money_get specialization is not guaranteed to be provided by the standard
+   library (see below), the behaviors of its get() and do_get() are not guaranteed as
+   specified.
 
 .SH Specializations
 
-   Two standalone (locale-independent) full specializations and two partial
-   specializations are provided by the standard library:
+   The standard library is guaranteed to provide the following specializations (they
+   are required to be implemented by any locale object):
 
    Defined in header <locale>
-   std::money_get<char>             parses narrow string representations of monetary
-                                    values
-   std::money_get<wchar_t>          parses wide string representations of monetary
-                                    values
-   std::money_get<char, InputIt>    parses narrow string representations of monetary
-                                    values using custom input iterator
-   std::money_get<wchar_t, InputIt> parses wide string representations of monetary
-                                    values using custom input iterator
+   std::money_get<char>    parses narrow string representations of monetary values
+   std::money_get<wchar_t> parses wide string representations of monetary values
 
-   In addition, every locale object constructed in a C++ program implements its own
-   (locale-specific) versions of these specializations.
+   In addition, the standard library is also guaranteed to provide every specialization
+   that satisfies the following type requirements:
+
+     * CharT is one of
+          * char,
+          * wchar_t, and
+          * any other implementation-defined character container type that meets the
+            requirements for a character on which any of the iostream components can be
+            instantiated; and
+     * InputIt must meet the requirements of LegacyInputIterator.
 
 .SH Member types
 
@@ -53,15 +54,15 @@ std::money_get \- std::money_get
 
    constructor   constructs a new money_get facet
                  \fI(public member function)\fP
-   destructor    destructs a money_get facet
-                 \fI(protected member function)\fP
    get           invokes do_get
                  \fI(public member function)\fP
 
 .SH Protected member functions
 
-   do_get    parses a monetary value from an input stream
-   \fB[virtual]\fP \fI(virtual protected member function)\fP
+   destructor   destructs a money_get facet
+                \fI(protected member function)\fP
+   do_get       parses a monetary value from an input stream
+   \fB[virtual]\fP    \fI(virtual protected member function)\fP
 
 .SH Member objects
 
@@ -73,39 +74,60 @@ std::money_get \- std::money_get
 
 // Run this code
 
- #include <iostream>
- #include <sstream>
- #include <locale>
  #include <iomanip>
+ #include <iostream>
  #include <iterator>
+ #include <locale>
+ #include <sstream>
+
  int main()
  {
      std::string str = "$1.11 $2.22 $3.33";
      std::cout << std::fixed << std::setprecision(2);
 
-     std::cout << '"' << str << "\\" parsed with the I/O manipulator: ";
+     std::cout << '\\"' << str << "\\" parsed with the I/O manipulator: ";
      std::istringstream s1(str);
      s1.imbue(std::locale("en_US.UTF-8"));
+
      long double val;
-     while(s1 >> std::get_money(val))
-         std::cout << val/100 << ' ';
+     while (s1 >> std::get_money(val))
+         std::cout << val / 100 << ' ';
      std::cout << '\\n';
 
      str = "USD  1,234.56";
-     std::cout << '"' << str << "\\" parsed with the facet directly: ";
+     std::cout << '\\"' << str << "\\" parsed with the facet directly: ";
      std::istringstream s2(str);
      s2.imbue(std::locale("en_US.UTF-8"));
+
      auto& f = std::use_facet<std::money_get<char>>(s2.getloc());
      std::ios_base::iostate err;
      std::istreambuf_iterator<char> beg(s2), end;
      f.get(beg, end, true, s2, err, val);
-     std::cout << val/100 << '\\n';
+
+     std::cout << val / 100 << '\\n';
  }
 
 .SH Output:
 
  "$1.11 $2.22 $3.33" parsed with the I/O manipulator: 1.11 2.22 3.33
  "USD  1,234.56" parsed with the facet directly: 1234.56
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to        Behavior as published              Correct behavior
+                       money_get was guaranteed to accept   only guarantees to accept
+                       any CharT that                       char,
+   LWG 427  C++98      meets the requirements for a         wchar_t and other
+                       character on which                   implementation-
+                       any of the iostream components can   defined character types
+                       be instantiated
+                       only character type CharT could be   can guarantee to accept
+   LWG 2392 C++98      guaranteed to be accepted by         implementation-
+                       money_get                            defined character container
+                                                            types
 
 .SH See also
 

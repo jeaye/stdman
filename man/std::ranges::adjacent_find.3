@@ -1,4 +1,4 @@
-.TH std::ranges::adjacent_find 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::adjacent_find 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::adjacent_find \- std::ranges::adjacent_find
 
@@ -8,21 +8,22 @@ std::ranges::adjacent_find \- std::ranges::adjacent_find
    template< std::forward_iterator I, std::sentinel_for<I> S, class
    Proj = std::identity,
 
-   std::indirect_binary_predicate<
-   std::projected<I, Proj>,                                           \fB(1)\fP \fI(since C++20)\fP
-   std::projected<I, Proj>> Pred = ranges::equal_to >
+             std::indirect_binary_predicate<
+                 std::projected<I, Proj>,                             \fB(1)\fP \fI(since C++20)\fP
+                 std::projected<I, Proj>> Pred = ranges::equal_to >
+   constexpr I
 
-   constexpr I adjacent_find( I first, S last, Pred pred = {}, Proj
-   proj = {} );
+       adjacent_find( I first, S last, Pred pred = {}, Proj proj = {}
+   );
    template< ranges::forward_range R, class Proj = std::identity,
 
-   std::indirect_binary_predicate<
-   std::projected<ranges::iterator_t<R>, Proj>,
-   std::projected<ranges::iterator_t<R>, Proj>> Pred =                \fB(2)\fP \fI(since C++20)\fP
+             std::indirect_binary_predicate<
+                 std::projected<ranges::iterator_t<R>, Proj>,
+                 std::projected<ranges::iterator_t<R>, Proj>> Pred =  \fB(2)\fP \fI(since C++20)\fP
    ranges::equal_to >
    constexpr ranges::borrowed_iterator_t<R>
 
-   adjacent_find( R&& r, Pred pred = {}, Proj proj = {} );
+       adjacent_find( R&& r, Pred pred = {}, Proj proj = {} );
 
    Searches the range [first, last) for two consecutive equal elements.
 
@@ -32,10 +33,10 @@ std::ranges::adjacent_find \- std::ranges::adjacent_find
 
    The function-like entities described on this page are niebloids, that is:
 
-     * Explicit template argument lists may not be specified when calling any of them.
-     * None of them is visible to argument-dependent lookup.
-     * When one of them is found by normal unqualified lookup for the name to the left
-       of the function-call operator, it inhibits argument-dependent lookup.
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
 
    In practice, they may be implemented as function objects, or with special compiler
    extensions.
@@ -57,42 +58,40 @@ std::ranges::adjacent_find \- std::ranges::adjacent_find
 
 .SH Complexity
 
-   Exactly min((result-first)+1, (last-first)-1) applications of the predicate and
-   projection where result is the return value.
+   Exactly min((result - first) + 1, (last - first) - 1) applications of the predicate
+   and projection where result is the return value.
 
 .SH Possible implementation
 
-  struct adjacent_find_fn {
-    template< std::forward_iterator I, std::sentinel_for<I> S, class Proj = std::identity,
+ struct adjacent_find_fn
+ {
+     template<std::forward_iterator I, std::sentinel_for<I> S, class Proj = std::identity,
               std::indirect_binary_predicate<
                   std::projected<I, Proj>,
-                  std::projected<I, Proj>> Pred = ranges::equal_to >
-    constexpr I operator()( I first, S last, Pred pred = {}, Proj proj = {} ) const
-    {
-        if (first == last) {
-            return first;
-        }
-        auto next = ranges::next(first);
-        for (; next != last; ++next, ++first) {
-            if (std::invoke(pred, std::invoke(proj, *first), std::invoke(proj, *next))) {
-                return first;
-            }
-        }
-        return first;
-    }
+                  std::projected<I, Proj>> Pred = ranges::equal_to>
+     constexpr I operator()(I first, S last, Pred pred = {}, Proj proj = {}) const
+     {
+         if (first == last)
+             return first;
+         auto next = ranges::next(first);
+         for (; next != last; ++next, ++first)
+             if (std::invoke(pred, std::invoke(proj, *first), std::invoke(proj, *next)))
+                 return first;
+         return next;
+     }
 
-    template< ranges::forward_range R, class Proj = std::identity,
+     template<ranges::forward_range R, class Proj = std::identity,
               std::indirect_binary_predicate<
                   std::projected<ranges::iterator_t<R>, Proj>,
-                  std::projected<ranges::iterator_t<R>, Proj>> Pred = ranges::equal_to >
-    constexpr ranges::borrowed_iterator_t<R>
-      operator()( R&& r, Pred pred = {}, Proj proj = {} ) const
-    {
-      return (*this)(ranges::begin(r), ranges::end(r), std::ref(pred), std::ref(proj));
-    }
-  };
+                  std::projected<ranges::iterator_t<R>, Proj>> Pred = ranges::equal_to>
+     constexpr ranges::borrowed_iterator_t<R>
+         operator()(R&& r, Pred pred = {}, Proj proj = {}) const
+     {
+         return (*this)(ranges::begin(r), ranges::end(r), std::ref(pred), std::ref(proj));
+     }
+ };
 
-  inline constexpr adjacent_find_fn adjacent_find;
+ inline constexpr adjacent_find_fn adjacent_find;
 
 .SH Example
 
@@ -100,31 +99,41 @@ std::ranges::adjacent_find \- std::ranges::adjacent_find
 // Run this code
 
  #include <algorithm>
- #include <iostream>
- #include <vector>
  #include <functional>
+ #include <iostream>
+ #include <ranges>
+
+ constexpr bool some_of(auto&& r, auto&& pred) // some but not all
+ {
+     return std::ranges::cend(r) != std::ranges::adjacent_find(r,
+         [&pred](auto const& x, auto const& y)
+         {
+             return pred(x) != pred(y);
+         });
+ }
+
+ // test some_of
+ constexpr auto a = {0, 0, 0, 0}, b = {1, 1, 1, 0}, c = {1, 1, 1, 1};
+ auto is_one = [](auto x){ return x == 1; };
+ static_assert(!some_of(a, is_one) && some_of(b, is_one) && !some_of(c, is_one));
 
  int main()
  {
-     std::vector<int> v1{0, 1, 2, 3, 40, 40, 41, 41, 5};
-     //                              ^^          ^^
+     const auto v = {0, 1, 2, 3, 40, 40, 41, 41, 5}; /*
+                                 ^^          ^^       */
      namespace ranges = std::ranges;
 
-     auto i1 = ranges::adjacent_find(v1.begin(), v1.end());
-     if (i1 == v1.end()) {
+     if (auto it = ranges::adjacent_find(v.begin(), v.end()); it == v.end())
          std::cout << "No matching adjacent elements\\n";
-     } else {
+     else
          std::cout << "The first adjacent pair of equal elements is at ["
-                   << ranges::distance(v1.begin(), i1) << "] == " << *i1 << '\\n';
-     }
+                   << ranges::distance(v.begin(), it) << "] == " << *it << '\\n';
 
-     auto i2 = ranges::adjacent_find(v1, ranges::greater());
-     if (i2 == v1.end()) {
+     if (auto it = ranges::adjacent_find(v, ranges::greater()); it == v.end())
          std::cout << "The entire vector is sorted in ascending order\\n";
-     } else {
+     else
          std::cout << "The last element in the non-decreasing subsequence is at ["
-                   << ranges::distance(v1.begin(), i2) << "] == " << *i2 << '\\n';
-     }
+                   << ranges::distance(v.begin(), it) << "] == " << *it << '\\n';
  }
 
 .SH Output:

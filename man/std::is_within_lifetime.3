@@ -1,0 +1,74 @@
+.TH std::is_within_lifetime 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::is_within_lifetime \- std::is_within_lifetime
+
+.SH Synopsis
+   Defined in header <type_traits>
+   template< class T >                                          (since C++26)
+   consteval bool is_within_lifetime( const T* ptr ) noexcept;
+
+   Determines whether the pointer ptr points to an object that is within its lifetime.
+
+   During the evaluation of an expression E as a core constant expression, a call to
+   std::is_within_lifetime is ill-formed unless ptr points to an object
+
+     * that is usable in constant expressions, or
+     * whose complete object’s lifetime began within E.
+
+.SH Parameters
+
+   p - pointer to detect
+
+.SH Return value
+
+   true if pointer ptr points to an object that is within its lifetime; otherwise
+   false.
+
+.SH Example
+
+   std::is_within_lifetime can be used to check whether a union member is active:
+
+
+// Run this code
+
+ #include <type_traits>
+
+ // an optional boolean type occupying only one byte,
+ // assuming sizeof(bool) == sizeof(char)
+ struct optional_bool
+ {
+     union { bool b; char c; };
+
+     // assuming the value representations for true and false
+     // are distinct from the value representation for 2
+     constexpr optional_bool() : c(2) {}
+     constexpr optional_bool(bool b) : b(b) {}
+
+     constexpr auto has_value() const -> bool
+     {
+         if consteval
+         {
+             return std::is_within_lifetime(&b); // during constant evaluation,
+                                                 // cannot read from c
+         }
+         else
+         {
+             return c != 2; // during runtime, must read from c
+         }
+     }
+
+     constexpr auto operator*() -> bool&
+     {
+         return b;
+     }
+ };
+
+ int main()
+ {
+     constexpr optional_bool disengaged;
+     constexpr optional_bool engaged(true);
+
+     static_assert(!disengaged.has_value());
+     static_assert(engaged.has_value());
+     static_assert(*engaged);
+ }

@@ -1,4 +1,4 @@
-.TH std::function 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::function 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::function \- std::function
 
@@ -11,9 +11,9 @@ std::function \- std::function
 
    Class template std::function is a general-purpose polymorphic function wrapper.
    Instances of std::function can store, copy, and invoke any CopyConstructible
-   Callable target -- functions, lambda expressions, bind expressions, or other
-   function objects, as well as pointers to member functions and pointers to data
-   members.
+   Callable target -- functions (via pointers thereto), lambda expressions, bind
+   expressions, or other function objects, as well as pointers to member functions and
+   pointers to data members.
 
    The stored callable object is called the target of std::function. If a std::function
    contains no target, it is called empty. Invoking the target of an empty
@@ -67,7 +67,7 @@ std::function \- std::function
    std::uses_allocator<std::function> specializes the std::uses_allocator type trait
    \fI(C++11)\fP \fI(until C++17)\fP              \fI(class template specialization)\fP
 
-  Deduction guides\fI(since C++17)\fP
+   Deduction guides\fI(since C++17)\fP
 
 .SH Notes
 
@@ -80,16 +80,16 @@ std::function \- std::function
    If a std::function returning a reference is initialized from a
    function or function object returning a prvalue (including a lambda
    expression without a trailing-return-type), the program is ill-formed  (since C++23)
-   because binding the returned referenced to a temporary object is
+   because binding the returned reference to a temporary object is
    forbidden.
 
- std::function<const int&()> F([]{ return 42; }); // Error since C++23: can't bind
-                                                  // the returned reference to a temporary
+ std::function<const int&()> F([] { return 42; }); // Error since C++23: can't bind
+                                                   // the returned reference to a temporary
  int x = F(); // Undefined behavior until C++23: the result of F() is a dangling reference
 
- std::function<int&()> G([]()->int& { static int i{0x2A}; return i; }); // OK
+ std::function<int&()> G([]() -> int& { static int i{0x2A}; return i; }); // OK
 
- std::function<const int&()> H([i{052}]->const int& { return i; }); // OK
+ std::function<const int&()> H([i{052}] -> const int& { return i; }); // OK
 
 .SH Example
 
@@ -99,9 +99,10 @@ std::function \- std::function
  #include <functional>
  #include <iostream>
 
- struct Foo {
+ struct Foo
+ {
      Foo(int num) : num_(num) {}
-     void print_add(int i) const { std::cout << num_+i << '\\n'; }
+     void print_add(int i) const { std::cout << num_ + i << '\\n'; }
      int num_;
  };
 
@@ -110,7 +111,8 @@ std::function \- std::function
      std::cout << i << '\\n';
  }
 
- struct PrintNum {
+ struct PrintNum
+ {
      void operator()(int i) const
      {
          std::cout << i << '\\n';
@@ -143,24 +145,27 @@ std::function \- std::function
 
      // store a call to a member function and object
      using std::placeholders::_1;
-     std::function<void(int)> f_add_display2 = std::bind( &Foo::print_add, foo, _1 );
+     std::function<void(int)> f_add_display2 = std::bind(&Foo::print_add, foo, _1);
      f_add_display2(2);
 
      // store a call to a member function and object ptr
-     std::function<void(int)> f_add_display3 = std::bind( &Foo::print_add, &foo, _1 );
+     std::function<void(int)> f_add_display3 = std::bind(&Foo::print_add, &foo, _1);
      f_add_display3(3);
 
      // store a call to a function object
      std::function<void(int)> f_display_obj = PrintNum();
      f_display_obj(18);
 
-     auto factorial = [](int n) {
+     auto factorial = [](int n)
+     {
          // store a lambda object to emulate "recursive lambda"; aware of extra overhead
-         std::function<int(int)> fac = [&](int n){ return (n < 2) ? 1 : n*fac(n-1); };
-         // note that "auto fac = [&](int n){...};" does not work in recursive calls
+         std::function<int(int)> fac = [&](int n) { return (n < 2) ? 1 : n * fac(n - 1); };
+         // note that "auto fac = [&](int n) {...};" does not work in recursive calls
          return fac(n);
      };
-     for (int i{5}; i != 8; ++i) { std::cout << i << "! = " << factorial(i) << ";  "; }
+     for (int i{5}; i != 8; ++i)
+         std::cout << i << "! = " << factorial(i) << ";  ";
+     std::cout << '\\n';
  }
 
 .SH Possible output:
@@ -185,3 +190,5 @@ std::function \- std::function
    \fI(C++11)\fP            \fI(class)\fP
    mem_fn             creates a function object out of a pointer to a member
    \fI(C++11)\fP            \fI(function template)\fP
+   typeid             queries information of a type, returning a std::type_info object
+                      representing the type

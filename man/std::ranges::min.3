@@ -1,4 +1,4 @@
-.TH std::ranges::min 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::min 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::min \- std::ranges::min
 
@@ -7,27 +7,28 @@ std::ranges::min \- std::ranges::min
    Call signature
    template< class T, class Proj = std::identity,
 
-   std::indirect_strict_weak_order<                                             (since
-   std::projected<const T*, Proj>> Comp = ranges::less >                        C++20)
+             std::indirect_strict_weak_order<                                   (since
+                 std::projected<const T*, Proj>> Comp = ranges::less >      \fB(1)\fP C++20)
+   constexpr const T&
 
-   constexpr const T& min( const T& a, const T& b, Comp comp = {}, Proj proj =
-   {} );
+       min( const T& a, const T& b, Comp comp = {}, Proj proj = {} );
    template< std::copyable T, class Proj = std::identity,
 
-   std::indirect_strict_weak_order<                                             (since
-   std::projected<const T*, Proj>> Comp = ranges::less >                        C++20)
+             std::indirect_strict_weak_order<                                   (since
+                 std::projected<const T*, Proj>> Comp = ranges::less >      \fB(2)\fP C++20)
+   constexpr T
 
-   constexpr const T min( std::initializer_list<T> r, Comp comp = {}, Proj
-   proj = {} );
+       min( std::initializer_list<T> r, Comp comp = {}, Proj proj = {} );
    template< ranges::input_range R, class Proj = std::identity,
 
-   std::indirect_strict_weak_order<
-   std::projected<ranges::iterator_t<R>, Proj>> Comp = ranges::less >           (since
+             std::indirect_strict_weak_order<
+                 std::projected<ranges::iterator_t<R>, Proj>> Comp =
+   ranges::less >                                                           \fB(3)\fP (since
    requires std::indirectly_copyable_storable<ranges::iterator_t<R>,            C++20)
-   ranges::range_value_t<R>*>
+                                              ranges::range_value_t<R>*>
+   constexpr ranges::range_value_t<R>
 
-   constexpr ranges::range_value_t<R> min( R&& r, Comp comp = {}, Proj proj =
-   {} );
+       min( R&& r, Comp comp = {}, Proj proj = {} );
 
    Returns the smaller of the given projected elements.
 
@@ -37,10 +38,10 @@ std::ranges::min \- std::ranges::min
 
    The function-like entities described on this page are niebloids, that is:
 
-     * Explicit template argument lists may not be specified when calling any of them.
-     * None of them is visible to argument-dependent lookup.
-     * When one of them is found by normal unqualified lookup for the name to the left
-       of the function-call operator, it inhibits argument-dependent lookup.
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
 
    In practice, they may be implemented as function objects, or with special compiler
    extensions.
@@ -56,72 +57,71 @@ std::ranges::min \- std::ranges::min
 
    1) The smaller of a and b, according to the projection. If they are equivalent,
    returns a.
-   2-3) The smallest element in r, according to the projection. If several values are
+   2,3) The smallest element in r, according to the projection. If several values are
    equivalent to the smallest, returns the leftmost one. If the range is empty (as
    determined by ranges::distance(r)), the behavior is undefined.
 
 .SH Complexity
 
-   1) Exactly one comparison
-   2-3) Exactly ranges::distance(r) - 1 comparisons
+   1) Exactly one comparison.
+   2,3) Exactly ranges::distance(r) - 1 comparisons.
 
 .SH Possible implementation
 
- struct min_fn {
-   template<class T, class Proj = std::identity,
-            std::indirect_strict_weak_order<
-                std::projected<const T*, Proj>> Comp = ranges::less>
-   constexpr
-   const T& operator()(const T& a, const T& b, Comp comp = {}, Proj proj = {}) const
-   {
-       return std::invoke(comp, std::invoke(proj, b), std::invoke(proj, a)) ? b : a;
-   }
+  struct min_fn
+  {
+      template<class T, class Proj = std::identity,
+               std::indirect_strict_weak_order<
+                   std::projected<const T*, Proj>> Comp = ranges::less>
+      constexpr
+      const T& operator()(const T& a, const T& b, Comp comp = {}, Proj proj = {}) const
+      {
+          return std::invoke(comp, std::invoke(proj, b), std::invoke(proj, a)) ? b : a;
+      }
 
-   template<std::copyable T, class Proj = std::identity,
-            std::indirect_strict_weak_order<
-                std::projected<const T*, Proj>> Comp = ranges::less>
-   constexpr
-   const T operator()(std::initializer_list<T> r, Comp comp = {}, Proj proj = {}) const
-   {
-     return *ranges::min_element(r, std::ref(comp), std::ref(proj));
-   }
+      template<std::copyable T, class Proj = std::identity,
+               std::indirect_strict_weak_order<
+                   std::projected<const T*, Proj>> Comp = ranges::less>
+      constexpr
+      T operator()(std::initializer_list<T> r, Comp comp = {}, Proj proj = {}) const
+      {
+          return *ranges::min_element(r, std::ref(comp), std::ref(proj));
+      }
 
-   template<ranges::input_range R, class Proj = std::identity,
-            std::indirect_strict_weak_order<
-                 std::projected<ranges::iterator_t<R>, Proj>> Comp = ranges::less>
-   requires std::indirectly_copyable_storable<ranges::iterator_t<R>,
-                                              ranges::range_value_t<R>*>
-   constexpr
-   ranges::range_value_t<R> operator()(R&& r, Comp comp = {}, Proj proj = {}) const
-   {
-       using V = ranges::range_value_t<R>;
-       if constexpr (ranges::forward_range<R>) {
-           return static_cast<V>(*ranges::min_element(r, std::ref(comp), std::ref(proj)));
-       }
-       else {
-           auto i = ranges::begin(r);
-           auto s = ranges::end(r);
-           V m(*i);
-           while (++i != s) {
-               if (std::invoke(comp, std::invoke(proj, *i), std::invoke(proj, m))) {
-                   m = *i;
-               }
-           }
-           return m;
-       }
-   }
- };
+      template<ranges::input_range R, class Proj = std::identity,
+               std::indirect_strict_weak_order<
+                    std::projected<ranges::iterator_t<R>, Proj>> Comp = ranges::less>
+      requires std::indirectly_copyable_storable<ranges::iterator_t<R>,
+                                                 ranges::range_value_t<R>*>
+      constexpr
+      ranges::range_value_t<R> operator()(R&& r, Comp comp = {}, Proj proj = {}) const
+      {
+          using V = ranges::range_value_t<R>;
+          if constexpr (ranges::forward_range<R>)
+              return
+                  static_cast<V>(*ranges::min_element(r, std::ref(comp), std::ref(proj)));
+          else
+          {
+              auto i = ranges::begin(r);
+              auto s = ranges::end(r);
+              V m(*i);
+              while (++i != s)
+                  if (std::invoke(comp, std::invoke(proj, *i), std::invoke(proj, m)))
+                      m = *i;
+              return m;
+          }
+      }
+  };
 
- inline constexpr min_fn min;
+  inline constexpr min_fn min;
 
 .SH Notes
 
    Capturing the result of std::ranges::min by reference produces a dangling reference
    if one of the parameters is a temporary and that parameter is returned:
 
- int n = 1;
- const int& r = std::ranges::min(n-1, n+1);
- // r is dangling
+ int n = -1;
+ const int& r = std::ranges::min(n + 2, n * 2); // r is dangling
 
 .SH Example
 
@@ -136,10 +136,11 @@ std::ranges::min \- std::ranges::min
  {
      namespace ranges = std::ranges;
      using namespace std::string_view_literals;
+
      std::cout << "smaller of 1 and 9999: " << ranges::min(1, 9999) << '\\n'
                << "smaller of 'a', and 'b': '" << ranges::min('a', 'b') << "'\\n"
                << "shortest of \\"foo\\", \\"bar\\", and \\"hello\\": \\""
-               << ranges::min({ "foo"sv, "bar"sv, "hello"sv }, {},
+               << ranges::min({"foo"sv, "bar"sv, "hello"sv}, {},
                               &std::string_view::size) << "\\"\\n";
  }
 

@@ -1,61 +1,59 @@
-.TH std::rotate 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::rotate 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::rotate \- std::rotate
 
 .SH Synopsis
    Defined in header <algorithm>
    template< class ForwardIt >
-   void rotate( ForwardIt first, ForwardIt n_first, ForwardIt             \fI(until C++11)\fP
-   last );
-   template< class ForwardIt >                                            \fI(since C++11)\fP
-   ForwardIt rotate( ForwardIt first, ForwardIt n_first,                  \fI(until C++20)\fP
+   ForwardIt rotate( ForwardIt first, ForwardIt middle,     \fB(1)\fP (constexpr since C++20)
    ForwardIt last );
-   template< class ForwardIt >                                    \fB(1)\fP
-   constexpr ForwardIt rotate( ForwardIt first, ForwardIt                 \fI(since C++20)\fP
-   n_first, ForwardIt last );
    template< class ExecutionPolicy, class ForwardIt >
 
-   ForwardIt rotate( ExecutionPolicy&& policy,                        \fB(2)\fP \fI(since C++17)\fP
+   ForwardIt rotate( ExecutionPolicy&& policy,              \fB(2)\fP \fI(since C++17)\fP
 
-   ForwardIt first, ForwardIt n_first, ForwardIt last );
+                     ForwardIt first, ForwardIt middle,
+   ForwardIt last );
 
    1) Performs a left rotation on a range of elements.
    Specifically, std::rotate swaps the elements in the range [first, last) in such a
-   way that the element n_first becomes the first element of the new range and n_first
-   - 1 becomes the last element.
-   A precondition of this function is that [first, n_first) and [n_first, last) are
-   valid ranges.
-   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
-   in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+   way that the elements in [first, middle) are placed after the elements in
+   [middle, last) while the orders of the elements in both ranges are preserved.
+   2) Same as \fB(1)\fP, but executed according to policy.
+   This overload participates in overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
+
+   If any of the following conditions is satisfied, the behavior is undefined:
+
+     * [first, middle) or [middle, last) is not a valid range.
+
+     * The type of *first is not Swappable.           \fI(until C++11)\fP
+     * ForwardIt is not ValueSwappable.
+     * The type of *first is not MoveConstructible.   \fI(since C++11)\fP
+     * The type of *first is not MoveAssignable.
 
 .SH Parameters
 
-   first           -       the beginning of the original range
-   n_first         -       the element that should appear at the beginning of the
-                           rotated range
-   last            -       the end of the original range
-   policy          -       the execution policy to use. See execution policy for
-                           details.
+   first   -  the beginning of the original range
+   middle  -  the element that should appear at the beginning of the rotated range
+   last    -  the end of the original range
+   policy  -  the execution policy to use. See execution policy for details.
 .SH Type requirements
    -
-   ForwardIt must meet the requirements of ValueSwappable and LegacyForwardIterator.
-   -
-   The type of dereferenced ForwardIt must meet the requirements of MoveAssignable and
-   MoveConstructible.
+   ForwardIt must meet the requirements of LegacyForwardIterator.
 
 .SH Return value
 
-   \fI(none)\fP                                                                 \fI(until C++11)\fP
-   Iterator to the new location of the element pointed by first. Equal to \fI(since C++11)\fP
-   first + (last - n_first)
+   The iterator to the element originally referenced by *first, i.e. the
+   std::distance(middle, last)
+   th next iterator of first.
 
 .SH Complexity
 
-   Linear in the distance between first and last.
+   At most std::distance(first, last) swaps.
 
 .SH Exceptions
 
@@ -67,40 +65,43 @@ std::rotate \- std::rotate
        For any other ExecutionPolicy, the behavior is implementation-defined.
      * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
-.SH Notes
-
-   std::rotate has better efficiency on common implementations if ForwardIt statisfies
-   LegacyBidirectionalIterator or (better) LegacyRandomAccessIterator.
-
-   Implementations (e.g. MSVC STL) may enable vectorization when the iterator type
-   satisfies LegacyContiguousIterator and swapping its value type calls neither
-   non-trivial special member function nor ADL-found swap.
-
 .SH Possible implementation
 
    See also the implementations in libstdc++, libc++, and MSVC STL.
 
    template<class ForwardIt>
    constexpr // since C++20
-   ForwardIt // void until C++11
-   rotate(ForwardIt first, ForwardIt n_first, ForwardIt last)
+   ForwardIt rotate(ForwardIt first, ForwardIt middle, ForwardIt last)
    {
-      if(first == n_first) return last;
-      if(n_first == last) return first;
+       if (first == middle)
+           return last;
 
-      ForwardIt read      = n_first;
-      ForwardIt write     = first;
-      ForwardIt next_read = first; // read position for when "read" hits "last"
+       if (middle == last)
+           return first;
 
-      while(read != last) {
-         if(write == next_read) next_read = read; // track where "first" went
-         std::iter_swap(write++, read++);
-      }
+       ForwardIt write = first;
+       ForwardIt next_read = first; // read position for when “read” hits “last”
 
-      // rotate the remaining sequence into place
-      (rotate)(write, next_read, last);
-      return write;
+       for (ForwardIt read = middle; read != last; ++write, ++read)
+       {
+           if (write == next_read)
+               next_read = read; // track where “first” went
+           std::iter_swap(write, read);
+       }
+
+       // rotate the remaining sequence into place
+       rotate(write, next_read, last);
+       return write;
    }
+
+.SH Notes
+
+   std::rotate has better efficiency on common implementations if ForwardIt satisfies
+   LegacyBidirectionalIterator or (better) LegacyRandomAccessIterator.
+
+   Implementations (e.g. MSVC STL) may enable vectorization when the iterator type
+   satisfies LegacyContiguousIterator and swapping its value type calls neither
+   non-trivial special member function nor ADL-found swap.
 
 .SH Example
 
@@ -110,13 +111,14 @@ std::rotate \- std::rotate
 
 // Run this code
 
- #include <vector>
- #include <iostream>
  #include <algorithm>
+ #include <iostream>
+ #include <vector>
 
- auto print = [](auto const& remark, auto const& v) {
+ auto print = [](const auto remark, const auto& v)
+ {
      std::cout << remark;
-     for (int n: v)
+     for (auto n : v)
          std::cout << n << ' ';
      std::cout << '\\n';
  };
@@ -124,24 +126,19 @@ std::rotate \- std::rotate
  int main()
  {
      std::vector<int> v{2, 4, 2, 0, 5, 10, 7, 3, 7, 1};
-
      print("before sort:\\t\\t", v);
 
      // insertion sort
-     for (auto i = v.begin(); i != v.end(); ++i) {
-         std::rotate(std::upper_bound(v.begin(), i, *i), i, i+1);
-     }
-
+     for (auto i = v.begin(); i != v.end(); ++i)
+         std::rotate(std::upper_bound(v.begin(), i, *i), i, i + 1);
      print("after sort:\\t\\t", v);
 
      // simple rotation to the left
      std::rotate(v.begin(), v.begin() + 1, v.end());
-
      print("simple rotate left:\\t", v);
 
      // simple rotation to the right
      std::rotate(v.rbegin(), v.rbegin() + 1, v.rend());
-
      print("simple rotate right:\\t", v);
  }
 
@@ -151,6 +148,15 @@ std::rotate \- std::rotate
  after sort:             0 1 2 2 3 4 5 7 7 10
  simple rotate left:     1 2 2 3 4 5 7 7 10 0
  simple rotate right:    0 1 2 2 3 4 5 7 7 10
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to              Behavior as published               Correct behavior
+   LWG 488 C++98      the new location of the element pointed by first returned
+                      was not returned
 
 .SH See also
 

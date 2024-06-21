@@ -1,14 +1,12 @@
-.TH std::filesystem::file_size 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::file_size 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::file_size \- std::filesystem::file_size
 
 .SH Synopsis
    Defined in header <filesystem>
-   std::uintmax_t file_size( const std::filesystem::path& p );
-
-   std::uintmax_t file_size( const std::filesystem::path& p,   \fB(1)\fP \fI(since C++17)\fP
-
-   std::error_code& ec ) noexcept;
+   std::uintmax_t file_size( const std::filesystem::path& p ); \fB(1)\fP \fI(since C++17)\fP
+   std::uintmax_t file_size( const std::filesystem::path& p,   \fB(2)\fP \fI(since C++17)\fP
+                             std::error_code& ec ) noexcept;
 
    If p does not exist, reports an error.
 
@@ -31,12 +29,13 @@ std::filesystem::file_size \- std::filesystem::file_size
 
 .SH Exceptions
 
-   The overload that does not take a std::error_code& parameter throws
-   filesystem::filesystem_error on underlying OS API errors, constructed with p as the
-   first path argument and the OS error code as the error code argument. The overload
-   taking a std::error_code& parameter sets it to the OS API error code if an OS API
-   call fails, and executes ec.clear() if no errors occur. Any overload not marked
-   noexcept may throw std::bad_alloc if memory allocation fails.
+   Any overload not marked noexcept may throw std::bad_alloc if memory allocation
+   fails.
+
+   1) Throws std::filesystem::filesystem_error on underlying OS API errors, constructed
+   with p as the first path argument and the OS error code as the error code argument.
+   2) Sets a std::error_code& parameter to the OS API error code if an OS API call
+   fails, and executes ec.clear() if no errors occur.
 
 .SH Example
 
@@ -49,16 +48,18 @@ std::filesystem::file_size \- std::filesystem::file_size
  #include <iostream>
  namespace fs = std::filesystem;
 
- struct HumanReadable {
+ struct HumanReadable
+ {
      std::uintmax_t size{};
-   private: friend
-     std::ostream& operator<<(std::ostream& os, HumanReadable hr) {
-         int i{};
+
+ private:
+     friend std::ostream& operator<<(std::ostream& os, HumanReadable hr)
+     {
+         int o{};
          double mantissa = hr.size;
-         for (; mantissa >= 1024.; mantissa /= 1024., ++i) { }
-         mantissa = std::ceil(mantissa * 10.) / 10.;
-         os << mantissa << "BKMGTPE"[i];
-         return i == 0 ? os : os << "B (" << hr.size << ')';
+         for (; mantissa >= 1024.; mantissa /= 1024., ++o);
+         os << std::ceil(mantissa * 10.) / 10. << "BKMGTPE"[o];
+         return o ? os << "B (" << hr.size << ')' : os;
      }
  };
 
@@ -73,22 +74,23 @@ std::filesystem::file_size \- std::filesystem::file_size
      p = argv[0];
      std::cout << p << " size = " << HumanReadable{fs::file_size(p)} << '\\n';
 
-     try {
+     try
+     {
          std::cout << "Attempt to get size of a directory:\\n";
-         fs::file_size("/dev");
-     } catch(fs::filesystem_error& e) {
+         [[maybe_unused]] auto x_x = fs::file_size("/dev");
+     }
+     catch (fs::filesystem_error& e)
+     {
          std::cout << e.what() << '\\n';
      }
 
-     std::error_code ec;
-     for (fs::path bin: {"cat", "mouse"}) {
+     for (std::error_code ec; fs::path bin : {"cat", "mouse"})
+     {
          bin = "/bin"/bin;
-         std::uintmax_t size = fs::file_size(bin, ec);
-         if (ec) {
+         if (const std::uintmax_t size = fs::file_size(bin, ec); ec)
              std::cout << bin << " : " << ec.message() << '\\n';
-         } else {
+         else
              std::cout << bin << " size = " << HumanReadable{size} << '\\n';
-         }
      }
  }
 

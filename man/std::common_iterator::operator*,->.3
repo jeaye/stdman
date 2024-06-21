@@ -1,0 +1,105 @@
+.TH std::common_iterator::operator*,-> 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::common_iterator::operator*,-> \- std::common_iterator::operator*,->
+
+.SH Synopsis
+   constexpr decltype(auto) operator*();                         \fB(1)\fP \fI(since C++20)\fP
+   constexpr decltype(auto) operator*() const                    \fB(2)\fP \fI(since C++20)\fP
+       requires /*dereferenceable*/<const I>;
+   constexpr auto operator->() const                             \fB(3)\fP \fI(since C++20)\fP
+       requires /* see description */;
+.SH Helper types
+   class /*proxy*/ {
+
+       std::iter_value_t<I> keep_;
+       constexpr proxy(std::iter_reference_t<I>&& x)
+           : keep_(std::move(x)) {}
+   public:                                                       \fB(4)\fP (exposition only*)
+       constexpr const std::iter_value_t<I>* operator->() const
+   noexcept {
+           return std::addressof(keep_);
+       }
+
+   };
+
+   Returns pointer or reference to the current element, or a proxy holding it.
+
+   The behavior is undefined if the underlying std::variant member object var does not
+   hold an object of type I, i.e. std::holds_alternative<I>(var) is equal to false.
+
+   Let it denote the iterator of type I held by var, that is std::get<I>(var).
+
+   1,2) Returns the result of dereferencing it.
+   3) Returns a pointer or underlying iterator to the current element, or a proxy
+   holding it:
+     * Equivalent to return it;, if I is a pointer type or if the expression
+       it.operator->() is well-formed.
+     * Otherwise, equivalent to auto&& tmp = *it; return std::addressof(tmp);, if
+       std::iter_reference_t<I> is a reference type.
+     * Otherwise, equivalent to return proxy(*it);, where proxy is an exposition only
+       class \fB(4)\fP.
+   The expression in the requires-clause is equivalent to
+   std::indirectly_readable<const I> && (
+
+       requires(const I& i) { i.operator->(); } ||
+       std::is_reference_v<std::iter_reference_t<I>> ||
+       std::constructible_from<std::iter_value_t<I>, std::iter_reference_t<I>>
+
+   ).
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   1,2) Reference to the current element, or prvalue temporary. Equivalent to *it.
+   3) Pointer or iterator to the current element or proxy holding it as described
+   above.
+
+.SH Example
+
+
+// Run this code
+
+ #include <complex>
+ #include <initializer_list>
+ #include <iostream>
+ #include <iterator>
+
+ using std::complex_literals::operator""i;
+
+ int main()
+ {
+     const auto il = {1i, 3.14 + 2i, 3i, 4i, 5i};
+
+     using CI = std::common_iterator<
+         std::counted_iterator<decltype(il)::iterator>,
+         std::default_sentinel_t>;
+
+     CI ci{std::counted_iterator{std::next(begin(il), 1), std::ssize(il) - 1}};
+
+     std::cout << *ci << ' ' << ci->real() << '\\n';
+ }
+
+.SH Output:
+
+ (3.14,2) 3.14
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to            Behavior as published              Correct behavior
+   LWG 3574 C++20      variant was fully constexpr (P2231R1) but   also made constexpr
+                       common_iterator was not
+   LWG 3595 C++20      functions of the proxy type lacked          added
+                       constexpr and noexcept
+   LWG 3672 C++20      operator-> might return by reference in     always returns by
+                       usual cases                                 value
+
+.SH See also
+
+   constructor   constructs a new iterator adaptor
+   (C++20)       \fI(public member function)\fP

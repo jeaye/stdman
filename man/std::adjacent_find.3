@@ -1,61 +1,56 @@
-.TH std::adjacent_find 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::adjacent_find 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::adjacent_find \- std::adjacent_find
 
 .SH Synopsis
    Defined in header <algorithm>
    template< class ForwardIt >
-   ForwardIt adjacent_find( ForwardIt first,                \fI(until C++20)\fP
-   ForwardIt last );
-   template< class ForwardIt >
-   constexpr ForwardIt adjacent_find( ForwardIt             \fI(since C++20)\fP
-   first, ForwardIt last );
-   template< class ExecutionPolicy, class ForwardIt
-   >
+   ForwardIt adjacent_find( ForwardIt first, ForwardIt last \fB(1)\fP (constexpr since C++20)
+   );
+   template< class ExecutionPolicy, class ForwardIt >
 
-   ForwardIt adjacent_find( ExecutionPolicy&&           \fB(2)\fP \fI(since C++17)\fP
-   policy,
+   ForwardIt adjacent_find( ExecutionPolicy&& policy,       \fB(2)\fP \fI(since C++17)\fP
 
-   ForwardIt first, ForwardIt last );
-   template< class ForwardIt, class
-   BinaryPredicate>                                 \fB(1)\fP                   \fI(until C++20)\fP
-   ForwardIt adjacent_find( ForwardIt first,
-   ForwardIt last, BinaryPredicate p );
-   template< class ForwardIt, class
-   BinaryPredicate>                                                       \fI(since C++20)\fP
-   constexpr ForwardIt adjacent_find( ForwardIt
-   first, ForwardIt last, BinaryPredicate p );          \fB(3)\fP
-   template< class ExecutionPolicy, class
-   ForwardIt, class BinaryPredicate>
+                            ForwardIt first, ForwardIt last
+   );
+   template< class ForwardIt, class BinaryPred >
 
-   ForwardIt adjacent_find( ExecutionPolicy&&               \fB(4)\fP           \fI(since C++17)\fP
-   policy,
+   ForwardIt adjacent_find( ForwardIt first, ForwardIt      \fB(3)\fP (constexpr since C++20)
+   last,
 
-   ForwardIt first, ForwardIt last, BinaryPredicate
-   p );
+                            BinaryPred p );
+   template< class ExecutionPolicy, class ForwardIt, class
+   BinaryPred >
+
+   ForwardIt adjacent_find( ExecutionPolicy&& policy,       \fB(4)\fP \fI(since C++17)\fP
+                            ForwardIt first, ForwardIt
+   last,
+
+                            BinaryPred p );
 
    Searches the range [first, last) for two consecutive equal elements.
 
    1) Elements are compared using operator==.
    3) Elements are compared using the given binary predicate p.
-   2,4) Same as (1,3), but executed according to policy. These overloads do not
-   participate in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+   2,4) Same as (1,3), but executed according to policy.
+   These overloads participate in overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
 
 .SH Parameters
 
    first, last - the range of elements to examine
    policy      - the execution policy to use. See execution policy for details.
-                 binary predicate which returns true if the elements should be
-                 treated as equal.
+                 binary predicate which returns true if the elements should be treated
+                 as equal.
 
                  The signature of the predicate function should be equivalent to the
                  following:
 
-                 bool pred(const Type1 &a, const Type2 &b);
+                  bool pred(const Type1 &a, const Type2 &b);
 
    p           - While the signature does not need to have const &, the function must
                  not modify the objects passed to it and must be able to accept all
@@ -69,20 +64,27 @@ std::adjacent_find \- std::adjacent_find
 .SH Type requirements
    -
    ForwardIt must meet the requirements of LegacyForwardIterator.
+   -
+   BinaryPred must meet the requirements of BinaryPredicate.
 
 .SH Return value
 
-   an iterator to the first of the first pair of identical elements, that is, the first
-   iterator it such that *it == *(it+1) for the first version or p(*it, *(it + 1)) !=
-   false for the second version.
+   An iterator to the first of the first pair of identical elements, that is, the first
+   iterator it such that *it == *(it + 1) for (1,2) or p(*it, *(it + 1)) != false for
+   (3,4).
 
-   If no such elements are found, last is returned
+   If no such elements are found, last is returned.
 
 .SH Complexity
 
-   1,3) Exactly min((result-first)+1, (last-first)-1) applications of the predicate
-   where result is the return value.
-   2,4) O(last-first) applications of the corresponding predicate.
+   Given result as the return value of adjacent_find, \\(\\scriptsize M\\)M as
+   std::distance(first, result) and \\(\\scriptsize N\\)N as std::distance(first, last):
+
+   1) Exactly \\(\\scriptsize \\min(M+1,N-1)\\)min(M+1,N-1) comparisons using operator==.
+   2) \\(\\scriptsize O(N)\\)O(N) comparisons using operator==.
+   3) Exactly \\(\\scriptsize \\min(M+1,N-1)\\)min(M+1,N-1) applications of the predicate
+   p.
+   4) \\(\\scriptsize O(N)\\)O(N) applications of the predicate p.
 
 .SH Exceptions
 
@@ -96,37 +98,36 @@ std::adjacent_find \- std::adjacent_find
 
 .SH Possible implementation
 
-.SH First version
+                             adjacent_find \fB(1)\fP
    template<class ForwardIt>
    ForwardIt adjacent_find(ForwardIt first, ForwardIt last)
    {
-       if (first == last) {
+       if (first == last)
            return last;
-       }
+
        ForwardIt next = first;
        ++next;
-       for (; next != last; ++next, ++first) {
-           if (*first == *next) {
+
+       for (; next != last; ++next, ++first)
+           if (*first == *next)
                return first;
-           }
-       }
+
        return last;
    }
-.SH Second version
-   template<class ForwardIt, class BinaryPredicate>
-   ForwardIt adjacent_find(ForwardIt first, ForwardIt last,
-                           BinaryPredicate p)
+                             adjacent_find \fB(3)\fP
+   template<class ForwardIt, class BinaryPred>
+   ForwardIt adjacent_find(ForwardIt first, ForwardIt last, BinaryPred p)
    {
-       if (first == last) {
+       if (first == last)
            return last;
-       }
+
        ForwardIt next = first;
        ++next;
-       for (; next != last; ++next, ++first) {
-           if (p(*first, *next)) {
+
+       for (; next != last; ++next, ++first)
+           if (p(*first, *next))
                return first;
-           }
-       }
+
        return last;
    }
 
@@ -136,9 +137,9 @@ std::adjacent_find \- std::adjacent_find
 // Run this code
 
  #include <algorithm>
+ #include <functional>
  #include <iostream>
  #include <vector>
- #include <functional>
 
  int main()
  {
@@ -146,27 +147,36 @@ std::adjacent_find \- std::adjacent_find
 
      auto i1 = std::adjacent_find(v1.begin(), v1.end());
 
-     if (i1 == v1.end()) {
+     if (i1 == v1.end())
          std::cout << "No matching adjacent elements\\n";
-     } else {
+     else
          std::cout << "The first adjacent pair of equal elements is at "
                    << std::distance(v1.begin(), i1) << ", *i1 = "
                    << *i1 << '\\n';
-     }
 
      auto i2 = std::adjacent_find(v1.begin(), v1.end(), std::greater<int>());
-     if (i2 == v1.end()) {
+     if (i2 == v1.end())
          std::cout << "The entire vector is sorted in ascending order\\n";
-     } else {
+     else
          std::cout << "The last element in the non-decreasing subsequence is at "
                    << std::distance(v1.begin(), i2) << ", *i2 = " << *i2 << '\\n';
-     }
  }
 
 .SH Output:
 
  The first adjacent pair of equal elements is at 4, *i1 = 40
  The last element in the non-decreasing subsequence is at 7, *i2 = 41
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to          Behavior as published              Correct behavior
+                      the predicate was applied std::find     applied std::min(
+   LWG 240 C++98      (first, last, value) - first times      (result - first) + 1,
+                      for (1,3), where value was never        (last - first) - 1) times
+                      defined
 
 .SH See also
 

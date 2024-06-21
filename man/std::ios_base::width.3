@@ -1,4 +1,4 @@
-.TH std::ios_base::width 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ios_base::width 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ios_base::width \- std::ios_base::width
 
@@ -18,13 +18,13 @@ std::ios_base::width \- std::ios_base::width
 
 .SH Return value
 
-   The field width before the call to the function
+   The field width before the call to the function.
 
 .SH Notes
 
    Some I/O functions call width\fB(0)\fP before returning, see std::setw (this results in
    this field having effect on the next I/O function only, and not on any subsequent
-   I/O)
+   I/O).
 
    The exact effects this modifier has on the input and output vary between the
    individual I/O functions and are described at each operator<< and operator>>
@@ -35,105 +35,92 @@ std::ios_base::width \- std::ios_base::width
 
 // Run this code
 
+ #include <algorithm>
  #include <array>
- #include <tuple>
- #include <ctime>
- #include <string>
- #include <iostream>
- #include <sstream>
  #include <iomanip>
+ #include <iostream>
+ #include <span>
+ #include <string_view>
+ using namespace std::string_view_literals;
+
+ constexpr std::array table_header =
+ {
+     "Language"sv, "Author"sv, "Birthdate"sv, "RIP date"sv
+ };
+
+ using row_t = std::array<std::string_view, table_header.size()>;
+ using widths_t = std::array<std::size_t, table_header.size()>;
+
+ constexpr std::array table_body = std::to_array<row_t>
+ ({
+     {"C", "Dennis Ritchie", "1941-09-09", "2011-10-12"},
+     {"C++", "Bjarne Stroustrup", "1950-12-30"},
+     {"C#", "Anders Hejlsberg", "1960-12-02"},
+     {"Python", "Guido van Rossum", "1956-01-31"},
+     {"Javascript", "Brendan Eich", "1961-07-04"}
+ });
+
+ constexpr widths_t calculate_column_widths(std::span<const row_t> table)
+ {
+     widths_t widths{};
+     for (const row_t& row : table)
+         for (size_t i = 0; i != row.size(); ++i)
+             widths[i] = std::max(widths[i], row[i].size());
+     return widths;
+ }
+
+ void print_row(const row_t& row, const widths_t& widths)
+ {
+     std::cout << '|';
+     for (size_t i = 0; i != row.size(); ++i)
+     {
+         std::cout << ' ';
+         std::cout.width(widths[i]);
+         std::cout << row[i] << " |";
+     }
+     std::cout << '\\n';
+ };
+
+ void print_break(const widths_t& widths)
+ {
+     const std::size_t margin = 1;
+     std::cout.put('+').fill('-');
+     for (std::size_t w : widths)
+     {
+         std::cout.width(w + margin * 2);
+         std::cout << '-' << '+';
+     }
+     std::cout.put('\\n').fill(' ');
+ };
 
  int main()
  {
-     auto str_time = [](int year, int mon, int day)
-     {
-         constexpr std::array<const char*, 7> week_day{ {
-             "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
-         } };
-
-         std::tm tm{};
-         tm.tm_year = year - 1900;
-         tm.tm_mon  = mon - 1;
-         tm.tm_mday = day;
-
-         day += mon < 3 ? year-- : year - 2;
-         tm.tm_wday = (23 * mon / 9 + day + 4 + year / 4 - year / 100 + year / 400) % 7;
-
-         std::ostringstream out;
-         out << week_day[tm.tm_wday] << ", " << std::put_time(&tm, "%B %d, %Y");
-         return out.str();
-     };
-
-     constexpr int column_size = 4;
-     using table_t = std::array<std::string, column_size>;
-
-     table_t headers{ { "Name", "Birthdate", "Death date", "Language Created" } };
-
-     std::array<table_t, 5> data{ {
-         { { "Dennis Ritchie", str_time(1941, 9, 9), str_time(2011, 10, 12), "C" } },
-         { { "Bjarne Stroustrup", str_time(1950, 12, 30), "", "C++" } },
-         { { "Anders Hejlsberg", str_time(1960, 12, 2), "", "C#" } },
-         { { "Guido van Rossum", str_time(1956, 1, 31), "", "Python" } },
-         { { "Brendan Eich", str_time(1961, 7, 4), "", "Javascript" } }
-     } };
-
-     constexpr int name_wid  = 20;
-     constexpr int birth_wid = 30;
-     constexpr int death_wid = 30;
-     constexpr int lang_wid  = 18;
-
-     auto print_line = [](table_t const &tbl)
-     {
-
-         auto const &[Name, Birthdate, DeathDate, LanguageCreated] = tbl;
-
-         std::cout.width(name_wid);
-         std::cout << ("| " + Name) << '|';
-
-         std::cout.width(birth_wid);
-         std::cout << (' ' + Birthdate) << '|';
-
-         std::cout.width(death_wid);
-         std::cout << (' ' + DeathDate) << '|';
-
-         std::cout.width(lang_wid);
-         std::cout << (' ' + LanguageCreated) << '|';
-
-         std::cout << '\\n';
-     };
-
-     constexpr int total_wid = name_wid + birth_wid + death_wid + lang_wid + column_size;
-
-     auto print_break = []
-     {
-         std::cout.width(total_wid);
-         std::cout.fill('-');
-         std::cout << '-' << '\\n';
-         std::cout.fill(' ');
-     };
+     constexpr widths_t widths = calculate_column_widths(table_body);
 
      std::cout.setf(std::ios::left, std::ios::adjustfield);
-     print_break();
-     print_line(headers);
-     print_break();
-     for (auto const &entry : data)
-         print_line(entry);
-     print_break();
+     print_break(widths);
+     print_row(table_header, widths);
+     print_break(widths);
+     for (const row_t& row : table_body)
+         print_row(row, widths);
+     print_break(widths);
  }
 
 .SH Output:
 
- ------------------------------------------------------------------------------------------------------
- | Name              | Birthdate                    | Death date                   | Language Created |
- ------------------------------------------------------------------------------------------------------
- | Dennis Ritchie    | Tuesday, September 09, 1941  | Wednesday, October 12, 2011  | C                |
- | Bjarne Stroustrup | Saturday, December 30, 1950  |                              | C++              |
- | Anders Hejlsberg  | Friday, December 02, 1960    |                              | C#               |
- | Guido van Rossum  | Tuesday, January 31, 1956    |                              | Python           |
- | Brendan Eich      | Tuesday, July 04, 1961       |                              | Javascript       |
- ------------------------------------------------------------------------------------------------------
+ +------------+-------------------+------------+------------+
+ | Language   | Author            | Birthdate  | RIP date   |
+ +------------+-------------------+------------+------------+
+ | C          | Dennis Ritchie    | 1941-09-09 | 2011-10-12 |
+ | C++        | Bjarne Stroustrup | 1950-12-30 |            |
+ | C#         | Anders Hejlsberg  | 1960-12-02 |            |
+ | Python     | Guido van Rossum  | 1956-01-31 |            |
+ | Javascript | Brendan Eich      | 1961-07-04 |            |
+ +------------+-------------------+------------+------------+
 
 .SH See also
 
    precision manages decimal precision of floating point operations
              \fI(public member function)\fP
+   setw      changes the width of the next input/output field
+             \fI(function)\fP

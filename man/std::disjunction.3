@@ -1,10 +1,10 @@
-.TH std::disjunction 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::disjunction 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::disjunction \- std::disjunction
 
 .SH Synopsis
    Defined in header <type_traits>
-   template<class... B>             \fI(since C++17)\fP
+   template< class... B >           \fI(since C++17)\fP
    struct disjunction;
 
    Forms the logical disjunction of the type traits B..., effectively performing a
@@ -22,28 +22,28 @@ std::disjunction \- std::disjunction
 
    Disjunction is short-circuiting: if there is a template type argument Bi with
    bool(Bi::value) != false, then instantiating disjunction<B1, ..., BN>::value does
-   not require the instantiation of Bj::value for j > i
+   not require the instantiation of Bj::value for j > i.
 
-   The behavior of a program that adds specializations for disjunction or disjunction_v
-   is undefined.
+   If the program adds specializations for std::disjunction or std::disjunction_v, the
+   behavior is undefined.
 
 .SH Template parameters
 
    B... - every template argument Bi for which Bi::value is instantiated must be usable
           as a base class and define member value that is convertible to bool
 
-  Helper variable template
+   Helper variable template
 
-   template<class... B>                                             \fI(since C++17)\fP
+   template< class... B >                                           \fI(since C++17)\fP
    inline constexpr bool disjunction_v = disjunction<B...>::value;
 
 .SH Possible implementation
 
-   template<class...> struct disjunction : std::false_type { };
-   template<class B1> struct disjunction<B1> : B1 { };
+   template<class...> struct disjunction : std::false_type {};
+   template<class B1> struct disjunction<B1> : B1 {};
    template<class B1, class... Bn>
    struct disjunction<B1, Bn...>
-       : std::conditional_t<bool(B1::value), B1, disjunction<Bn...>>  { };
+       : std::conditional_t<bool(B1::value), B1, disjunction<Bn...>>  {};
 
 .SH Notes
 
@@ -59,37 +59,40 @@ std::disjunction \- std::disjunction
    is particularly useful if the later type is expensive to instantiate or can cause a
    hard error when instantiated with the wrong type.
 
-   Feature-test macro: __cpp_lib_logical_traits
+      Feature-test macro     Value    Std             Feature
+   __cpp_lib_logical_traits 201510L \fI(C++17)\fP Logical operator type traits
 
 .SH Example
 
 
 // Run this code
 
- #include <type_traits>
  #include <cstdint>
  #include <string>
+ #include <type_traits>
 
  // values_equal<a, b, T>::value is true if and only if a == b.
- template <auto V1, decltype(V1) V2, typename T>
- struct values_equal : std::bool_constant<V1 == V2> {
-   using type = T;
+ template<auto V1, decltype(V1) V2, typename T>
+ struct values_equal : std::bool_constant<V1 == V2>
+ {
+     using type = T;
  };
 
  // default_type<T>::value is always true
- template <typename T>
- struct default_type : std::true_type {
-   using type = T;
+ template<typename T>
+ struct default_type : std::true_type
+ {
+     using type = T;
  };
 
  // Now we can use disjunction like a switch statement:
- template <int I>
- using int_of_size = typename std::disjunction<  //
-     values_equal<I, 1, std::int8_t>,            //
-     values_equal<I, 2, std::int16_t>,           //
-     values_equal<I, 4, std::int32_t>,           //
-     values_equal<I, 8, std::int64_t>,           //
-     default_type<void>                          // must be last!
+ template<int I>
+ using int_of_size = typename std::disjunction< //
+     values_equal<I, 1, std::int8_t>,           //
+     values_equal<I, 2, std::int16_t>,          //
+     values_equal<I, 4, std::int32_t>,          //
+     values_equal<I, 8, std::int64_t>,          //
+     default_type<void>                         // must be last!
      >::type;
 
  static_assert(sizeof(int_of_size<1>) == 1);
@@ -98,23 +101,26 @@ std::disjunction \- std::disjunction
  static_assert(sizeof(int_of_size<8>) == 8);
  static_assert(std::is_same_v<int_of_size<13>, void>);
 
-
  // checking if Foo is constructible from double will cause a hard error
- struct Foo {
+ struct Foo
+ {
      template<class T>
      struct sfinae_unfriendly_check { static_assert(!std::is_same_v<T, double>); };
 
      template<class T>
-     Foo(T, sfinae_unfriendly_check<T> = {} );
+     Foo(T, sfinae_unfriendly_check<T> = {});
  };
 
  template<class... Ts>
- struct first_constructible {
+ struct first_constructible
+ {
      template<class T, class...Args>
-     struct is_constructible_x : std::is_constructible<T, Args...> {
+     struct is_constructible_x : std::is_constructible<T, Args...>
+     {
          using type = T;
      };
-     struct fallback {
+     struct fallback
+     {
          static constexpr bool value = true;
          using type = void; // type to return if nothing is found
      };
@@ -133,7 +139,7 @@ std::disjunction \- std::disjunction
                               std::string>);
  static_assert(std::is_same_v<first_constructible<std::string, int>::with<void*>, void>);
 
- int main() { }
+ int main() {}
 
 .SH See also
 

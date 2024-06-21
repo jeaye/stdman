@@ -1,4 +1,4 @@
-.TH std::cerr,std::wcerr 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::cerr,std::wcerr 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::cerr,std::wcerr \- std::cerr,std::wcerr
 
@@ -20,13 +20,13 @@ std::cerr,std::wcerr \- std::cerr,std::wcerr
    concurrently access these objects from multiple threads for both formatted and
    unformatted output.
 
-   Once initialized, (std::cerr.flags() & unitbuf) != 0 (same for wcerr) meaning that
-   any output sent to these stream objects is immediately flushed to the OS (via
+   Once initialized, (std::cerr.flags() & unitbuf) != 0 (same for std::wcerr) meaning
+   that any output sent to these stream objects is immediately flushed to the OS (via
    std::basic_ostream::sentry's destructor).
 
-   In addition, std::cerr.tie() returns &std::cout (same for wcerr and std::wcout),
-   meaning that any output operation on std::cerr first executes std::cout.flush() (via
-   std::basic_ostream::sentry's constructor) \fI(since C++11)\fP.
+   In addition, std::cerr.tie() returns &std::cout (same for std::wcerr and
+   std::wcout), meaning that any output operation on std::cerr first executes
+   std::cout.flush() (via std::basic_ostream::sentry's constructor).
 
 .SH Notes
 
@@ -35,29 +35,30 @@ std::cerr,std::wcerr \- std::cerr,std::wcerr
 
 .SH Example
 
-   output to stderr via std::cerr flushes out the pending output on std::cout, while
+   Output to stderr via std::cerr flushes out the pending output on std::cout, while
    output to stderr via std::clog does not.
 
 
 // Run this code
 
- #include <thread>
- #include <iostream>
  #include <chrono>
+ #include <iostream>
+ #include <thread>
+ using namespace std::chrono_literals;
+
  void f()
  {
      std::cout << "Output from thread...";
-     std::this_thread::sleep_for(std::chrono::seconds(2));
+     std::this_thread::sleep_for(2s);
      std::cout << "...thread calls flush()" << std::endl;
  }
 
  int main()
  {
-     std::thread t1(f);
-     std::this_thread::sleep_for(std::chrono::seconds(1));
+     std::jthread t1{f};
+     std::this_thread::sleep_for(1000ms);
      std::clog << "This output from main is not tie()'d to cout\\n";
      std::cerr << "This output is tie()'d to cout\\n";
-     t1.join();
  }
 
 .SH Possible output:
@@ -65,6 +66,16 @@ std::cerr,std::wcerr \- std::cerr,std::wcerr
  This output from main is not tie()'d to cout
  Output from thread...This output is tie()'d to cout
  ...thread calls flush()
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to         Behavior as published               Correct behavior
+                      std::cerr.tie() and                    they return &std::cout and
+   LWG 455 C++98      std::wcerr.tie() returned null         &std::wcout respectively
+                      pointers
 
 .SH See also
 

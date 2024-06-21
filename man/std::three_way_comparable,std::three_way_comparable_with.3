@@ -1,44 +1,42 @@
-.TH std::three_way_comparable,std::three_way_comparable_with 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::three_way_comparable,std::three_way_comparable_with 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::three_way_comparable,std::three_way_comparable_with \- std::three_way_comparable,std::three_way_comparable_with
 
 .SH Synopsis
    Defined in header <compare>
-   template<class T, class Cat = std::partial_ordering>
+   template< class T, class Cat = std::partial_ordering >
 
    concept three_way_comparable =
-   __WeaklyEqualityComparableWith<T, T> &&
-   __PartiallyOrderedWith<T, T> &&                               \fB(1)\fP \fI(since C++20)\fP
-   requires(const std::remove_reference_t<T>& a,
-   const std::remove_reference_t<T>& b) {
-   { a <=> b } -> __ComparesAs<Cat>;
+       __WeaklyEqualityComparableWith<T, T> &&
+       __PartiallyOrderedWith<T, T> &&                               \fB(1)\fP \fI(since C++20)\fP
+       requires(const std::remove_reference_t<T>& a,
+                const std::remove_reference_t<T>& b) {
+           { a <=> b } -> __ComparesAs<Cat>;
 
-   };
-   template<class T, class U, class Cat = std::partial_ordering>
+       };
+   template< class T, class U, class Cat = std::partial_ordering >
 
    concept three_way_comparable_with =
-   std::three_way_comparable<T, Cat> &&
-   std::three_way_comparable<U, Cat> &&
-   std::common_reference_with<
-   const std::remove_reference_t<T>&,
-   const std::remove_reference_t<U>&> &&
-   std::three_way_comparable<
-   std::common_reference_t<                                      \fB(2)\fP \fI(since C++20)\fP
-   const std::remove_reference_t<T>&,
-   const std::remove_reference_t<U>&>, Cat> &&
-   __WeaklyEqualityComparableWith<T, U> &&
-   __PartiallyOrderedWith<T, U> &&
-   requires(const std::remove_reference_t<T>& t,
-   const std::remove_reference_t<U>& u) {
-   { t <=> u } -> __ComparesAs<Cat>;
-   { u <=> t } -> __ComparesAs<Cat>;
+       std::three_way_comparable<T, Cat> &&
+       std::three_way_comparable<U, Cat> &&
+       __ComparisonCommonTypeWith<T, U> &&
+       std::three_way_comparable<
+           std::common_reference_t<
+               const std::remove_reference_t<T>&,                    \fB(2)\fP \fI(since C++20)\fP
+               const std::remove_reference_t<U>&>, Cat> &&
+       __WeaklyEqualityComparableWith<T, U> &&
+       __PartiallyOrderedWith<T, U> &&
+       requires(const std::remove_reference_t<T>& t,
+                const std::remove_reference_t<U>& u) {
+           { t <=> u } -> __ComparesAs<Cat>;
+           { u <=> t } -> __ComparesAs<Cat>;
 
-   };
-   template<class T, class Cat>
+       };
+   template< class T, class Cat >
+                                                                         (exposition
+   concept __ComparesAs =                                            \fB(3)\fP only*)
 
-   concept __ComparesAs = // exposition only                     \fB(3)\fP \fI(since C++20)\fP
-
-   std::same_as<std::common_comparison_category_t<T, Cat>, Cat>;
+       std::same_as<std::common_comparison_category_t<T, Cat>, Cat>;
 
    1) The concept std::three_way_comparable specifies that the three way comparison
    operator <=> on T yield results consistent with the comparison category implied by
@@ -48,87 +46,9 @@ std::three_way_comparable,std::three_way_comparable_with \- std::three_way_compa
    consistent with the comparison category implied by Cat. Comparing mixed operands
    yields results equivalent to comparing the operands converted to their common type.
 
-   In both definitions, __WeaklyEqualityComparableWith and __PartiallyOrderedWith are
-   exposition-only concepts also used by equality_comparable and totally_ordered,
-   respectively.
-
-  Semantic requirements
-
-   These concepts are modeled only if they are satisified and all concepts they subsume
-   are modeled.
-
-   1) T and Cat model std::three_way_comparable<T, Cat> only if, given lvalues a and b
-   of type const std::remove_reference_t<T>, following are true:
-
-     * (a <=> b == 0) == bool(a == b),
-     * (a <=> b != 0) == bool(a != b),
-     * ((a <=> b) <=> 0) and (0 <=> (b <=> a)) are equal,
-     * bool(a > b) == bool(b < a),
-     * bool(a >= b) == !bool(a < b),
-     * bool(a <= b) == !bool(b < a),
-     * (a <=> b < 0) == bool(a < b),
-     * (a <=> b > 0) == bool(a > b),
-     * (a <=> b <= 0) == bool(a <= b), and
-     * (a <=> b >= 0) == bool(a >= b); and
-     * if Cat is convertible to std::strong_ordering, T models totally_ordered.
-
-   2) T, U, and Cat model std::three_way_comparable_with<T, U, Cat> only if given
-
-     * t, an lvalue of type const std::remove_reference_t<T> and
-     * u, an lvalue of type const std::remove_reference_t<U>,
-
-   Let C be std::common_reference_t<const std::remove_reference_t<T>&, const
-   std::remove_reference_t<U>&>, the following are true:
-
-     * t <=> u and u <=> t have the same domain;
-     * ((t <=> u) <=> 0) and (0 <=> (u <=> t)) are equal;
-     * (t <=> u == 0) == bool(t == u),
-     * (t <=> u != 0) == bool(t != u),
-     * Cat(t <=> u) == Cat(C(t) <=> C(u)),
-     * (t <=> u < 0) == bool(t < u),
-     * (t <=> u > 0) == bool(t > u),
-     * (t <=> u <= 0) == bool(t <= u),
-     * (t <=> u >= 0) == bool(t >= u); and
-     * if Cat is convertible to std::strong_ordering, T and U model
-       std::totally_ordered_with<T, U>.
-
-  Equality preservation
-
-   An expression is equality preserving if it results in equal outputs given equal
-   inputs.
-
-     * The inputs to an expression consist of its operands.
-     * The outputs of an expression consist of its result and all operands modified by
-       the expression (if any).
-
-   In specification of standard concepts, operands are defined as the largest
-   subexpressions that include only:
-
-     * an id-expression, and
-     * invocations of std::move, std::forward, and std::declval.
-
-   The cv-qualification and value category of each operand is determined by assuming
-   that each template type parameter denotes a cv-unqualified complete non-array object
-   type.
-
-   Every expression required to be equality preserving is further required to be
-   stable: two evaluations of such an expression with the same input objects must have
-   equal outputs absent any explicit intervening modification of those input objects.
-
-   Unless noted otherwise, every expression used in a requires-expression is required
-   to be equality preserving and stable, and the evaluation of the expression may
-   modify only its non-constant operands. Operands that are constant must not be
-   modified.
-
-  Implicit expression variations
-
-   A requires-expression that uses an expression that is non-modifying for some
-   constant lvalue operand also implicitly requires additional variations of that
-   expression that accept a non-constant lvalue or (possibly constant) rvalue for the
-   given operand unless such an expression variation is explicitly required with
-   differing semantics. These implicit expression variations must meet the same
-   semantic requirements of the declared expression. The extent to which an
-   implementation validates the syntax of the variations is unspecified.
+   __WeaklyEqualityComparableWith, __PartiallyOrderedWith, and
+   __ComparisonCommonTypeWith are exposition-only concepts. See descriptions of
+   equality_comparable and totally_ordered.
 
 .SH See also
 

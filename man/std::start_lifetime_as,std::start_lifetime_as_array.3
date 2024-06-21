@@ -1,0 +1,127 @@
+.TH std::start_lifetime_as,std::start_lifetime_as_array 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::start_lifetime_as,std::start_lifetime_as_array \- std::start_lifetime_as,std::start_lifetime_as_array
+
+.SH Synopsis
+   Defined in header <memory>
+   start_lifetime_as
+   template< class T >                                                \fB(1)\fP (since C++23)
+   T* start_lifetime_as( void* p ) noexcept;
+   template< class T >                                                \fB(2)\fP (since C++23)
+   const T* start_lifetime_as( const void* p ) noexcept;
+   template< class T >                                                \fB(3)\fP (since C++23)
+   volatile T* start_lifetime_as( volatile void* p ) noexcept;
+   template< class T >
+   const volatile T* start_lifetime_as( const volatile void* p )      \fB(4)\fP (since C++23)
+   noexcept;
+   start_lifetime_as_array
+   template< class T >                                                \fB(5)\fP (since C++23)
+   T* start_lifetime_as_array( void* p, std::size_t n ) noexcept;
+   template< class T >
+
+   const T* start_lifetime_as_array( const void* p,                   \fB(6)\fP (since C++23)
+
+                                     std::size_t n ) noexcept;
+   template< class T >
+
+   volatile T* start_lifetime_as_array( volatile void* p,             \fB(7)\fP (since C++23)
+
+                                        std::size_t n ) noexcept;
+   template< class T >
+
+   const volatile T* start_lifetime_as_array( const volatile void* p, \fB(8)\fP (since C++23)
+
+                                              std::size_t n )
+   noexcept;
+
+   1-4) Implicitly creates a complete object of type T (whose address is p) and objects
+   nested within it. The value of each created object obj of TriviallyCopyable type U
+   is determined in the same manner as for a call to std::bit_cast<U>(E) except that
+   the storage is not actually accessed, where E is the lvalue of type U denoting obj.
+   Otherwise, the values of such created objects are unspecified.
+     * T shall be an ImplicitLifetimeType and shall be a complete type. Otherwise, the
+       program is ill-formed.
+     * The behavior is undefined if:
+
+     * [p, (char*)p + sizeof(T)) does not denote a region of allocated storage that is
+       a subset of the region of storage reachable through p, or
+     * the region is not suitably aligned for the T.
+     * Note that the unspecified value can be indeterminate.
+   5-8) Implicitly creates an array with element type T and length n. To be precise, if
+   n > 0 is true, it is equivalent to std::start_lifetime_as<U>(p) where U is the type
+   "array of n Ts". Otherwise, the function has no effects.
+     * T shall be a complete type. Otherwise, the program is ill-formed.
+     * The behavior is undefined if:
+
+     * Non-null p is not suitably aligned for an array of T, or
+     * n <= std::size_t(-1) / sizeof(T) is false, or
+     * n > 0 and [(char*)p, (char*)p + (n * sizeof(T))) does not denote a region of
+       allocated storage that is a subset of the region of storage reachable through p.
+
+.SH Parameters
+
+   p - the address of the region consisting objects
+   n - the number of the element of the array to be created
+
+.SH Return value
+
+   1-4) A pointer to the complete object as described above.
+   5-8) A pointer to the first element of the created array, if any; otherwise, a
+   pointer that compares equal to p.
+
+.SH Notes
+
+   new (void_ptr) unsigned char[size] or new (void_ptr) std::byte[size] works as an
+   untyped version of std::start_lifetime_as, but it does not keep the object
+   representation.
+
+   std::start_lifetime_as handles non-array types as well as arrays of known bound,
+   while std::start_lifetime_as_array handles arrays of unknown bound.
+
+       Feature-test macro       Value    Std             Feature
+   __cpp_lib_start_lifetime_as 202207L (C++23) Explicit lifetime management
+
+.SH Example
+
+
+// Run this code
+
+ #include <complex>
+ #include <iostream>
+ #include <memory>
+
+ int main()
+ {
+     alignas(std::complex<float>) unsigned char network_data[sizeof(std::complex<float>)]{
+         0xcd, 0xcc, 0xcc, 0x3d, 0xcd, 0xcc, 0x4c, 0x3e
+     };
+
+ //  auto d = *reinterpret_cast<std::complex<float>*>(network_data);
+ //  std::cout << d << '\\n'; // UB: network_data does not point to a complex<float>
+
+ //  auto d = *std::launder(reinterpret_cast<std::complex<float>*>(network_data));
+ //  std::cout << d << '\\n'; // Possible UB, related to CWG1997:
+ //      the implicitly created complex<float> may hold indeterminate value
+
+     auto d = *std::start_lifetime_as<std::complex<float>>(network_data);
+     std::cout << d << '\\n'; // OK
+ }
+
+.SH Possible output:
+
+ (0.1,0.2)
+
+.SH References
+
+     * C++23 standard (ISO/IEC 14882:2023):
+
+     * 20.2.6 Explicit lifetime management [obj.lifetime]
+
+.SH See also
+
+   bit_cast          reinterpret the object representation of one type as that of
+   (C++20)           another
+                     \fI(function template)\fP
+   as_bytes          converts a span into a view of its underlying bytes
+   as_writable_bytes \fI(function template)\fP
+   (C++20)

@@ -1,17 +1,17 @@
-.TH std::ranges::borrowed_range,std::ranges::enable_borrowed_range 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::borrowed_range,std::ranges::enable_borrowed_range 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::borrowed_range,std::ranges::enable_borrowed_range \- std::ranges::borrowed_range,std::ranges::enable_borrowed_range
 
 .SH Synopsis
    Defined in header <ranges>
-   template<class R>
+   template< class R >
 
    concept borrowed_range =
-   ranges::range<R> &&                                     \fB(1)\fP \fI(since C++20)\fP
-   (std::is_lvalue_reference_v<R> ||
+       ranges::range<R> &&                                      \fB(1)\fP \fI(since C++20)\fP
+       (std::is_lvalue_reference_v<R> ||
 
-   ranges::enable_borrowed_range<std::remove_cvref_t<R>>);
-   template<class R>                                       \fB(2)\fP \fI(since C++20)\fP
+        ranges::enable_borrowed_range<std::remove_cvref_t<R>>);
+   template< class R >                                          \fB(2)\fP \fI(since C++20)\fP
    inline constexpr bool enable_borrowed_range = false;
 
    1) The concept borrowed_range defines the requirements of a range such that a
@@ -19,12 +19,6 @@ std::ranges::borrowed_range,std::ranges::enable_borrowed_range \- std::ranges::b
    of dangling.
    2) The enable_borrowed_range variable template is used to indicate whether a range
    is a borrowed_range. The primary template is defined as false.
-
-  Semantic requirements
-
-   Let U be std::remove_reference_t<T> if T is an rvalue reference type, and T
-   otherwise. Given a variable u of type U, T models borrowed_range only if the
-   validity of iterators obtained from u is not tied to the lifetime of that variable.
 
 .SH Specializations
 
@@ -56,9 +50,9 @@ std::ranges::borrowed_range,std::ranges::enable_borrowed_range \- std::ranges::b
    only if (std::ranges::enable_borrowed_range<Vs> && ...) is true, where (since C++23)
    Vs... are all view types it adapts.
 
-   Users may specialize enable_borrowed_range to true for cv-unqualified
+   A program may specialize enable_borrowed_range to true for cv-unqualified
    program-defined types which model borrowed_range, and false for types which do not.
-   Such specializations shall be usable in constant expressions and have type const
+   Such specializations shall be usable in constant expression and have type const
    bool.
 
 .SH Example
@@ -77,16 +71,16 @@ std::ranges::borrowed_range,std::ranges::enable_borrowed_range \- std::ranges::b
  #include <span>
  #include <type_traits>
 
- template <typename T, std::size_t N>
- struct MyRange : std::array<T, N> { };
+ template<typename T, std::size_t N>
+ struct MyRange : std::array<T, N> {};
 
- template <typename T, std::size_t N>
+ template<typename T, std::size_t N>
  inline constexpr bool std::ranges::enable_borrowed_range<MyRange<T, N>> = false;
 
- template <typename T, std::size_t N>
- struct MyBorrowedRange : std::span<T, N> { };
+ template<typename T, std::size_t N>
+ struct MyBorrowedRange : std::span<T, N> {};
 
- template <typename T, std::size_t N>
+ template<typename T, std::size_t N>
  inline constexpr bool std::ranges::enable_borrowed_range<MyBorrowedRange<T, N>> = true;
 
  int main()
@@ -96,17 +90,18 @@ std::ranges::borrowed_range,std::ranges::enable_borrowed_range \- std::ranges::b
      static_assert(std::ranges::range<MyBorrowedRange<int, 8>>);
      static_assert(std::ranges::borrowed_range<MyBorrowedRange<int, 8>> == true);
 
-     auto getMyRangeByValue = [] { return MyRange<int, 4>{ {1, 2, 42, 3} }; };
+     auto getMyRangeByValue = []{ return MyRange<int, 4>{{1, 2, 42, 3}}; };
      auto dangling_iter = std::ranges::max_element(getMyRangeByValue());
      static_assert(std::is_same_v<std::ranges::dangling, decltype(dangling_iter)>);
  //  *dangling_iter; // compilation error (i.e. dangling protection works.)
 
-     auto my = MyRange<int, 4>{ {1, 2, 42, 3} };
+     auto my = MyRange<int, 4>{{1, 2, 42, 3}};
      auto valid_iter = std::ranges::max_element(my);
      std::cout << *valid_iter << ' '; // OK: 42
 
-     auto getMyBorrowedRangeByValue = [] {
-         static int sa[4] {1, 2, 42, 3};
+     auto getMyBorrowedRangeByValue = []
+     {
+         static int sa[4]{1, 2, 42, 3};
          return MyBorrowedRange<int, std::size(sa)>{sa};
      };
      auto valid_iter2 = std::ranges::max_element(getMyBorrowedRangeByValue());

@@ -1,14 +1,16 @@
-.TH std::filesystem::directory_entry::file_size 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::directory_entry::file_size 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::directory_entry::file_size \- std::filesystem::directory_entry::file_size
 
 .SH Synopsis
-   std::uintmax_t file_size() const;                                \fI(since C++17)\fP
-   std::uintmax_t file_size( std::error_code& ec ) const noexcept;
+   std::uintmax_t file_size() const;                               \fB(1)\fP \fI(since C++17)\fP
+   std::uintmax_t file_size( std::error_code& ec ) const noexcept; \fB(2)\fP \fI(since C++17)\fP
 
    If the file size is cached in this directory_entry, returns the cached value.
-   Otherwise, returns std::filesystem::file_size(path()) or
-   std::filesystem::file_size(path(), ec), respectively.
+   Otherwise, returns:
+
+   1) std::filesystem::file_size(path()),
+   2) std::filesystem::file_size(path(), ec).
 
 .SH Parameters
 
@@ -20,12 +22,13 @@ std::filesystem::directory_entry::file_size \- std::filesystem::directory_entry:
 
 .SH Exceptions
 
-   The overload that does not take a std::error_code& parameter throws
-   filesystem::filesystem_error on underlying OS API errors, constructed with p as the
-   first path argument and the OS error code as the error code argument. The overload
-   taking a std::error_code& parameter sets it to the OS API error code if an OS API
-   call fails, and executes ec.clear() if no errors occur. Any overload not marked
-   noexcept may throw std::bad_alloc if memory allocation fails.
+   Any overload not marked noexcept may throw std::bad_alloc if memory allocation
+   fails.
+
+   1) Throws std::filesystem::filesystem_error on underlying OS API errors, constructed
+   with p as the first path argument and the OS error code as the error code argument.
+   2) Sets a std::error_code& parameter to the OS API error code if an OS API call
+   fails, and executes ec.clear() if no errors occur.
 
 .SH Example
 
@@ -35,39 +38,36 @@ std::filesystem::directory_entry::file_size \- std::filesystem::directory_entry:
 
 // Run this code
 
+ #include <cmath>
+ #include <cstdint>
  #include <filesystem>
  #include <iostream>
- #include <cstdint>
- #include <cmath>
 
- struct HumanReadable {
-     std::uintmax_t size {};
+ struct HumanReadable
+ {
+     std::uintmax_t size{};
 
-     template <typename Os> friend Os& operator<< (Os& os, HumanReadable hr)
+     template<typename Os> friend Os& operator<<(Os& os, HumanReadable hr)
      {
          int i{};
          double mantissa = hr.size;
-         for (; mantissa >= 1024.; ++i) {
-             mantissa /= 1024.;
-         }
-         mantissa = std::ceil(mantissa * 10.) / 10.;
-         os << mantissa << "BKMGTPE"[i];
-         return i == 0 ? os : os << "B (" << hr.size << ')';
+         for (; mantissa >= 1024.0; mantissa /= 1024.0, ++i)
+         {}
+         os << std::ceil(mantissa * 10.0) / 10.0 << i["BKMGTPE"];
+         return i ? os << "B (" << hr.size << ')' : os;
      }
  };
 
  int main(int argc, const char* argv[])
  {
-     const auto dir = argc == 2 ? std::filesystem::path{ argv[1] }
+     const auto dir = argc == 2 ? std::filesystem::path{argv[1]}
                                 : std::filesystem::current_path();
 
      for (std::filesystem::directory_entry const& entry :
-          std::filesystem::directory_iterator(dir)) {
-         if (entry.is_regular_file()) {
+          std::filesystem::directory_iterator(dir))
+         if (entry.is_regular_file())
              std::cout << entry.path().filename() << " size: "
                        << HumanReadable{entry.file_size()} << '\\n';
-         }
-     }
  }
 
 .SH Possible output:

@@ -1,19 +1,19 @@
-.TH std::filesystem::exists 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::exists 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::exists \- std::filesystem::exists
 
 .SH Synopsis
    Defined in header <filesystem>
    bool exists( std::filesystem::file_status s ) noexcept;            \fB(1)\fP \fI(since C++17)\fP
-   bool exists( const std::filesystem::path& p );
-   bool exists( const std::filesystem::path& p, std::error_code& ec ) \fB(2)\fP \fI(since C++17)\fP
+   bool exists( const std::filesystem::path& p );                     \fB(2)\fP \fI(since C++17)\fP
+   bool exists( const std::filesystem::path& p, std::error_code& ec ) \fB(3)\fP \fI(since C++17)\fP
    noexcept;
 
    Checks if the given file status or path corresponds to an existing file or
    directory.
 
    1) Equivalent to status_known(s) && s.type() != file_type::not_found.
-   2) Let s be a std::filesystem::file_status determined as if by status(p) or
+   2,3) Let s be a std::filesystem::file_status determined as if by status(p) or
    status(p, ec) (symlinks are followed), respectively. Returns exists(s). The
    non-throwing overload calls ec.clear() if status_known(s).
 
@@ -30,12 +30,15 @@ std::filesystem::exists \- std::filesystem::exists
 
 .SH Exceptions
 
-   2) The overload that does not take a std::error_code& parameter throws
-   filesystem::filesystem_error on underlying OS API errors, constructed with p as the
-   first path argument and the OS error code as the error code argument. The overload
-   taking a std::error_code& parameter sets it to the OS API error code if an OS API
-   call fails, and executes ec.clear() if no errors occur. Any overload not marked
-   noexcept may throw std::bad_alloc if memory allocation fails.
+   Any overload not marked noexcept may throw std::bad_alloc if memory allocation
+   fails.
+
+   2) Throws std::filesystem::filesystem_error on underlying OS API errors, constructed
+   with p as the first path argument and the OS error code as the error code argument.
+   3) Sets a std::error_code& parameter to the OS API error code if an OS API call
+   fails, and executes ec.clear() if no errors occur.
+
+   No filesystem exception is thrown if object does not exist (use return value).
 
 .SH Notes
 
@@ -48,16 +51,16 @@ std::filesystem::exists \- std::filesystem::exists
 
 // Run this code
 
- #include <iostream>
- #include <fstream>
  #include <cstdint>
  #include <filesystem>
+ #include <fstream>
+ #include <iostream>
  namespace fs = std::filesystem;
 
  void demo_exists(const fs::path& p, fs::file_status s = fs::file_status{})
  {
      std::cout << p;
-     if(fs::status_known(s) ? fs::exists(s) : fs::exists(p))
+     if (fs::status_known(s) ? fs::exists(s) : fs::exists(p))
          std::cout << " exists\\n";
      else
          std::cout << " does not exist\\n";

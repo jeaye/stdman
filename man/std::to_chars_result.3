@@ -1,0 +1,71 @@
+.TH std::to_chars_result 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::to_chars_result \- std::to_chars_result
+
+.SH Synopsis
+   Defined in header <charconv>
+   struct to_chars_result;       \fI(since C++17)\fP
+
+   std::to_chars_result is the return type of std::to_chars. It has no base classes,
+   and only has the following members.
+
+.SH Notes
+
+   Feature-test macro  Value    Std                        Feature
+                      201611L \fI(C++17)\fP Elementary string conversions (std::to_chars,
+   __cpp_lib_to_chars                 std::from_chars)
+                      202306L (C++26) Testing for success or failure of <charconv>
+                                      functions
+
+.SH Example
+
+
+// Run this code
+
+ #include <array>
+ #include <charconv>
+ #include <iostream>
+ #include <string_view>
+ #include <system_error>
+
+ void show_to_chars(auto... format_args)
+ {
+     std::array<char, 10> str;
+
+ #if __cpp_lib_to_chars >= 202306L
+     // use C++26 operator bool() for error checking
+     if (auto res = std::to_chars(str.data(), str.data() + str.size(), format_args...))
+         std::cout << std::string_view(str.data(), res.ptr) << '\\n';
+     else
+         std::cout << std::make_error_code(res.ec).message() << '\\n';
+ #else
+     if (auto [ptr, ec]
+             = std::to_chars(str.data(), str.data() + str.size(), format_args...);
+         ec == std::errc())
+         std::cout << std::string_view(str.data(), ptr) << '\\n';
+     else
+         std::cout << std::make_error_code(ec).message() << '\\n';
+ #endif
+ }
+
+ int main()
+ {
+     show_to_chars(42);
+     show_to_chars(+3.14159F);
+     show_to_chars(-3.14159, std::chars_format::fixed);
+     show_to_chars(-3.14159, std::chars_format::scientific, 3);
+     show_to_chars(3.1415926535, std::chars_format::fixed, 10);
+ }
+
+.SH Possible output:
+
+ 42
+ 3.14159
+ -3.14159
+ -3.142e+00
+ Value too large for defined data type
+
+.SH See also
+
+   to_chars converts an integer or floating-point value to a character sequence
+   \fI(C++17)\fP  \fI(function)\fP

@@ -1,29 +1,38 @@
-.TH std::queue::queue 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::queue::queue 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::queue::queue \- std::queue::queue
 
 .SH Synopsis
-   queue() : queue(Container()) { }                     \fB(1)\fP \fI(since C++11)\fP
-   explicit queue( const Container& cont = Container()                    \fI(until C++11)\fP
+   queue() : queue(Container()) {}                     \fB(1)\fP \fI(since C++11)\fP
+   explicit queue( const Container& cont = Container()                   \fI(until C++11)\fP
    );
-   explicit queue( const Container& cont );                               \fI(since C++11)\fP
-   explicit queue( Container&& cont );                      \fB(3)\fP           \fI(since C++11)\fP
-   queue( const queue& other );                             \fB(4)\fP
-   queue( queue&& other );                                  \fB(5)\fP           \fI(since C++11)\fP
-   template< class InputIt >                                \fB(6)\fP           (since C++23)
+   explicit queue( const Container& cont );                              \fI(since C++11)\fP
+   explicit queue( Container&& cont );                     \fB(3)\fP           \fI(since C++11)\fP
+   queue( const queue& other );                            \fB(4)\fP           (implicitly
+                                                                         declared)
+                                                                         \fI(since C++11)\fP
+   queue( queue&& other );                                 \fB(5)\fP           (implicitly
+                                                                         declared)
+   template< class InputIt >                               \fB(6)\fP           (since C++23)
    queue( InputIt first, InputIt last );
-   template< class Alloc >                                  \fB(7)\fP           \fI(since C++11)\fP
+   template< class Alloc >                                 \fB(7)\fP           \fI(since C++11)\fP
    explicit queue( const Alloc& alloc );
-   template< class Alloc >                              \fB(2)\fP \fB(8)\fP           \fI(since C++11)\fP
-   queue( const Container& cont, const Alloc& alloc );
-   template< class Alloc >                                  \fB(9)\fP           \fI(since C++11)\fP
+   template< class Alloc >                                 \fB(8)\fP           \fI(since C++11)\fP
+   queue( const Container& cont, const Alloc& alloc ); \fB(2)\fP
+   template< class Alloc >                                 \fB(9)\fP           \fI(since C++11)\fP
    queue( Container&& cont, const Alloc& alloc );
-   template< class Alloc >                                  \fB(10)\fP          \fI(since C++11)\fP
+   template< class Alloc >                                 \fB(10)\fP          \fI(since C++11)\fP
    queue( const queue& other, const Alloc& alloc );
-   template< class Alloc >                                  \fB(11)\fP          \fI(since C++11)\fP
+   template< class Alloc >                                 \fB(11)\fP          \fI(since C++11)\fP
    queue( queue&& other, const Alloc& alloc );
    template< class InputIt, class Alloc >
-   queue( InputIt first, InputIt last, const Alloc&         \fB(12)\fP          (since C++23)
+   queue( InputIt first, InputIt last, const Alloc&        \fB(12)\fP          (since C++23)
+   alloc );
+   template< container-compatible-range<T> R>              \fB(13)\fP          (since C++23)
+   queue( std::from_range_t, R&& rg );
+   template< container-compatible-range<T> R, class
+   Alloc >                                                 \fB(14)\fP          (since C++23)
+   queue( std::from_range_t, R&& rg, const Alloc&
    alloc );
 
    Constructs new underlying container of the container adaptor from a variety of data
@@ -36,9 +45,9 @@ std::queue::queue \- std::queue::queue
    3) Move-constructs the underlying container c with std::move(cont).
    4) Copy constructor. The adaptor is copy-constructed with the contents of other.c.
    5) Move constructor. The adaptor is constructed with std::move(other.c).
-   6) Constructs the underlying container c with the contents of the range [first,
-   last). This overload participates in overload resolution only if InputIt satisfies
-   LegacyInputIterator.
+   6) Constructs the underlying container c with the contents of the range
+   [first, last). This overload participates in overload resolution only if InputIt
+   satisfies LegacyInputIterator.
    7-12) These constructors participate in overload resolution only if
    std::uses_allocator<Container, Alloc>::value is true, that is, if the underlying
    container is an allocator-aware container (true for all standard library containers
@@ -55,16 +64,22 @@ std::queue::queue \- std::queue::queue
    12) Constructs the underlying container with the contents of the range [first, last)
    using alloc as allocator, as if by c(first, last, alloc). This overload participates
    in overload resolution only if InputIt satisfies LegacyInputIterator.
+   13) Constructs the underlying container with
+   ranges::to<Container>(std::forward<R>(rg)).
+   14) Constructs the underlying container with
+   ranges::to<Container>(std::forward<R>(rg), alloc).
 
 .SH Parameters
 
-   alloc                 -           allocator to use for all memory allocations of the
-                                     underlying container
-   other                 -           another container adaptor to be used as source to
-                                     initialize the underlying container
-   cont                  -           container to be used as source to initialize the
-                                     underlying container
-   first, last           -           range of elements to initialize with
+   alloc                -          allocator to use for all memory allocations of the
+                                   underlying container
+   other                -          another container adaptor to be used as source to
+                                   initialize the underlying container
+   cont                 -          container to be used as source to initialize the
+                                   underlying container
+   first, last          -          range of elements [first, last) to initialize with
+   rg                   -          a container compatible range, that is, an
+                                   input_range whose elements are convertible to T
 .SH Type requirements
    -
    Alloc must meet the requirements of Allocator.
@@ -81,46 +96,70 @@ std::queue::queue \- std::queue::queue
 
 .SH Notes
 
-   Feature-test macro: __cpp_lib_adaptor_iterator_pair_constructor (for overloads \fB(6)\fP
-                       and \fB(12)\fP)
+               Feature-test macro               Value    Std           Feature
+                                                               Iterator pair
+                                                               constructors for
+   __cpp_lib_adaptor_iterator_pair_constructor 202106L (C++23) std::queue and
+                                                               std::stack; overloads
+                                                               \fB(6)\fP and \fB(12)\fP
+                                                               Ranges-aware
+   __cpp_lib_containers_ranges                 202202L (C++23) construction and
+                                                               insertion; overloads
+                                                               \fB(13)\fP and \fB(14)\fP
 
 .SH Example
 
 
 // Run this code
 
- #include <queue>
+ #include <cassert>
  #include <deque>
  #include <iostream>
+ #include <memory>
+ #include <ranges>
+ #include <queue>
 
  int main()
  {
      std::queue<int> c1;
      c1.push(5);
-     std::cout << c1.size() << '\\n';
+     assert(c1.size() == 1);
 
      std::queue<int> c2(c1);
-     std::cout << c2.size() << '\\n';
+     assert(c2.size() == 1);
 
-     std::deque<int> deq {3, 1, 4, 1, 5};
+     std::deque<int> deq{3, 1, 4, 1, 5};
      std::queue<int> c3(deq); // overload (2)
-     std::cout << c3.size() << '\\n';
+     assert(c3.size() == 5);
 
- #   ifdef __cpp_lib_adaptor_iterator_pair_constructor
+ # ifdef __cpp_lib_adaptor_iterator_pair_constructor
      const auto il = {2, 7, 1, 8, 2};
-     std::queue<int> c4 { il.begin(), il.end() }; // overload (6), C++23
-     std::cout << c4.size() << '\\n';
- #   endif
+     std::queue<int> c4{il.begin(), il.end()}; // C++23, (6)
+     assert(c4.size() == 5);
+ # endif
+
+ # if __cpp_lib_containers_ranges >= 202202L
+     // C++23, overload (13)
+     auto c5 = std::queue(std::from_range_t, std::ranges::iota(0, 42));
+     assert(c5.size() == 42);
+
+     // the same effect with pipe syntax, internally uses overload (13)
+     auto c6 = std::ranges::iota(0, 42) | std::ranges::to<std::queue>();
+     assert(c6.size() == 42);
+
+     std::allocator<int> alloc;
+
+     // C++23, overload (14)
+     auto c7 = std::queue(std::from_range_t, std::ranges::iota(0, 42), alloc);
+     assert(c7.size() == 42);
+
+     // the same effect with pipe syntax, internally uses overload (14)
+     auto c8 = std::ranges::iota(0, 42) | std::ranges::to<std::queue>(alloc);
+     assert(c8.size() == 42);
+ # endif
  }
 
-.SH Possible output:
-
- 1
- 1
- 5
- 5
-
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.

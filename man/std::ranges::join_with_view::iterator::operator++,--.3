@@ -1,0 +1,72 @@
+.TH std::ranges::join_with_view::iterator::operator++,-- 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::join_with_view::iterator::operator++,-- \- std::ranges::join_with_view::iterator::operator++,--
+
+.SH Synopsis
+   constexpr /*iterator*/& operator++();                  \fB(1)\fP (since C++23)
+   constexpr void operator++( int );                      \fB(2)\fP (since C++23)
+   constexpr /*iterator*/ operator++( int )
+
+     requires std::is_reference_v<InnerBase> &&           \fB(3)\fP (since C++23)
+              ranges::forward_range<Base> &&
+
+              ranges::forward_range<InnerBase>;
+   constexpr /*iterator*/& operator--()
+
+     requires std::is_reference_v<InnerBase> &&
+              ranges::bidirectional_range<Base> &&
+              ranges::bidirectional_range<InnerBase> &&   \fB(4)\fP (since C++23)
+              ranges::common_range<InnerBase> &&
+              ranges::bidirectional_range<PatternBase> &&
+
+              ranges::common_range<PatternBase>;
+   constexpr /*iterator*/ operator--( int )
+
+     requires std::is_reference_v<InnerBase> &&
+              ranges::bidirectional_range<Base> &&
+              ranges::bidirectional_range<InnerBase> &&   \fB(5)\fP (since C++23)
+              ranges::common_range<InnerBase> &&
+              ranges::bidirectional_range<PatternBase> &&
+
+              ranges::common_range<PatternBase>;
+
+   Increments or decrements the iterator.
+
+   1) Increments the stored inner iterator. (The inner iterator may point to either
+   InnerBase or PatternBase.)
+     * If the incremented inner iterator reaches the end of the pattern range, it is
+       destroyed, and an iterator to the beginning of the next inner range is
+       constructed.
+     * If the incremented inner iterator reaches the end of the inner range, the outer
+       iterator is incremented, and if the outer iterator is not the end iterator, the
+       inner iterator is destroyed and an iterator to the beginning of the pattern
+       range is constructed.
+     * The above steps may be repeated (e.g. if the pattern is empty), until either the
+       inner range is not empty, or the outer iterator reaches the end.
+   2) Equivalent to ++*this;
+   3) Equivalent to auto tmp = *this; ++*this; return tmp;
+   4) If the outer iterator is the end iterator, it is decremented. Then:
+     * If the stored inner iterator refers to the beginning of the inner range, it is
+       destroyed, and an iterator to the end of the pattern range is constructed.
+     * If the stored inner iterator refers to the beginning of the pattern range, it is
+       destroyed, the outer iterator is decremented, and an iterator to end of the
+       inner range is constructed.
+     * The above steps may be repeated (e.g. if the pattern is empty), until the inner
+       range is not empty.
+   Finally, the inner iterator is decremented.
+   5) Equivalent to auto tmp = *this; --*this; return tmp;
+
+   If InnerBase is not a reference, the inner range is stored in the parent
+   join_with_view for iteration. The inner range need not be movable.
+
+   If InnerBase is a reference, and the outer iterator reaches the end, the inner
+   iterator points to the beginning of the pattern range.
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   1,4) *this
+   3,5) A copy of *this that was made before the change.

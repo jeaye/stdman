@@ -1,21 +1,19 @@
-.TH std::addressof 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::addressof 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::addressof \- std::addressof
 
 .SH Synopsis
    Defined in header <memory>
-   template< class T >                                \fI(since C++11)\fP
-   T* addressof( T& arg ) noexcept;                   \fI(until C++17)\fP
-   template< class T >                        \fB(1)\fP     \fI(since C++17)\fP
-   constexpr T* addressof( T& arg ) noexcept;
-   template <class T>                             \fB(2)\fP \fI(since C++17)\fP
+   template< class T >                       \fB(1)\fP \fI(since C++11)\fP
+   T* addressof( T& arg ) noexcept;              (constexpr since C++17)
+   template< class T >                       \fB(2)\fP \fI(since C++11)\fP
    const T* addressof( const T&& ) = delete;
 
    1) Obtains the actual address of the object or function arg, even in presence of
    overloaded operator&.
    2) Rvalue overload is deleted to prevent taking the address of const rvalues.
 
-   The expression std::addressof(E) is a constant subexpression, if E is  \fI(since C++17)\fP
+   The expression std::addressof(e) is a constant subexpression, if e is  \fI(since C++17)\fP
    an lvalue constant subexpression.
 
 .SH Parameters
@@ -28,10 +26,11 @@ std::addressof \- std::addressof
 
 .SH Possible implementation
 
-   The implementation below is not constexpr (which requires compiler support).
+   The implementation below is not constexpr, because reinterpret_cast is not usable in
+   a constant expression. Compiler support is needed (see below).
 
    template<class T>
-   typename std::enable_if<std::is_object<T>::value, T*>::type  addressof(T& arg) noexcept
+   typename std::enable_if<std::is_object<T>::value, T*>::type addressof(T& arg) noexcept
    {
        return reinterpret_cast<T*>(
                   &const_cast<char&>(
@@ -45,11 +44,15 @@ std::addressof \- std::addressof
    }
 
    Correct implementation of this function requires compiler support: GNU libstdc++,
-   LLVM libc++, Microsoft STL
+   LLVM libc++, Microsoft STL.
 
 .SH Notes
 
-   Feature-test macro: __cpp_lib_addressof_constexpr
+        Feature-test macro        Value    Std           Feature
+   __cpp_lib_addressof_constexpr 201603L \fI(C++17)\fP constexpr std::addressof
+
+   constexpr for addressof is added by LWG2296, and MSVC STL applies the change to
+   C++14 mode as a defect report.
 
 .SH Example
 
@@ -63,12 +66,13 @@ std::addressof \- std::addressof
  #include <memory>
 
  template<class T>
- struct Ptr {
+ struct Ptr
+ {
      T* pad; // add pad to show difference between 'this' and 'data'
      T* data;
      Ptr(T* arg) : pad(nullptr), data(arg)
      {
-         std::cout << "Ctor this = " << this << std::endl;
+         std::cout << "Ctor this = " << this << '\\n';
      }
 
      ~Ptr() { delete data; }
@@ -89,8 +93,8 @@ std::addressof \- std::addressof
  int main()
  {
      Ptr<int> p(new int(42));
-     f(&p);                 // calls int** overload
-     f(std::addressof(p));  // calls Ptr<int>* overload, (= this)
+     f(&p);                // calls int** overload
+     f(std::addressof(p)); // calls Ptr<int>* overload, (= this)
  }
 
 .SH Possible output:
@@ -98,6 +102,15 @@ std::addressof \- std::addressof
  Ctor this = 0x7fff59ae6e88
  int** overload called with p = 0x7fff59ae6e90
  Ptr   overload called with p = 0x7fff59ae6e88
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to          Behavior as published              Correct behavior
+   LWG 2598 C++11      std::addressof<const T> could take       disallowed by a deleted
+                       address of rvalues                       overload
 
 .SH See also
 

@@ -1,4 +1,4 @@
-.TH std::ranges::includes 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::includes 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::includes \- std::ranges::includes
 
@@ -7,24 +7,28 @@ std::ranges::includes \- std::ranges::includes
    Call signature
    template< std::input_iterator I1, std::sentinel_for<I1> S1,
 
-   std::input_iterator I2, std::sentinel_for<I2> S2,
-   class Proj1 = std::identity, class Proj2 = std::identity,
-   std::indirect_strict_weak_order<                                   \fB(1)\fP \fI(since C++20)\fP
-   std::projected<I1, Proj1>,
-   std::projected<I2, Proj2>> Comp = ranges::less >
-   constexpr bool includes( I1 first1, S1 last1, I2 first2, S2 last2,
+             std::input_iterator I2, std::sentinel_for<I2> S2,
+             class Proj1 = std::identity, class Proj2 =
+   std::identity,
+             std::indirect_strict_weak_order<                         \fB(1)\fP \fI(since C++20)\fP
+                 std::projected<I1, Proj1>,
+                 std::projected<I2, Proj2>> Comp = ranges::less >
+   constexpr bool
+       includes( I1 first1, S1 last1, I2 first2, S2 last2,
 
-   Comp comp = {}, Proj1 proj1 = {}, Proj2 proj2 = {} )
+                 Comp comp = {}, Proj1 proj1 = {}, Proj2 proj2 = {} )
    template< ranges::input_range R1, ranges::input_range R2,
 
-   class Proj1 = std::identity, class Proj2 = std::identity,
-   std::indirect_strict_weak_order<
-   std::projected<ranges::iterator_t<R1>, Proj1>,                     \fB(2)\fP \fI(since C++20)\fP
-   std::projected<ranges::iterator_t<R2>, Proj2>> Comp = ranges::less
-   >
-   constexpr bool includes( R1&& r1, R2&& r2, Comp comp = {},
+             class Proj1 = std::identity, class Proj2 =
+   std::identity,
+             std::indirect_strict_weak_order<
+                 std::projected<ranges::iterator_t<R1>, Proj1>,       \fB(2)\fP \fI(since C++20)\fP
+                 std::projected<ranges::iterator_t<R2>, Proj2>> Comp
+   = ranges::less >
+   constexpr bool
 
-   Proj1 proj1 = {}, Proj2 proj2 = {} )
+       includes( R1&& r1, R2&& r2, Comp comp = {}, Proj1 proj1 = {},
+   Proj2 proj2 = {} )
 
    1) Returns true if the projections of the sorted range [first2, last2) is a
    subsequence of the projections of the sorted range [first1, last1).
@@ -37,10 +41,10 @@ std::ranges::includes \- std::ranges::includes
 
    The function-like entities described on this page are niebloids, that is:
 
-     * Explicit template argument lists may not be specified when calling any of them.
-     * None of them is visible to argument-dependent lookup.
-     * When one of them is found by normal unqualified lookup for the name to the left
-       of the function-call operator, it inhibits argument-dependent lookup.
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
 
    In practice, they may be implemented as function objects, or with special compiler
    extensions.
@@ -67,41 +71,42 @@ std::ranges::includes \- std::ranges::includes
 
 .SH Possible implementation
 
-   struct includes_fn {
-     template<std::input_iterator I1, std::sentinel_for<I1> S1,
-              std::input_iterator I2, std::sentinel_for<I2> S2,
-              class Proj1 = std::identity, class Proj2 = std::identity,
-              std::indirect_strict_weak_order<
-                  std::projected<I1, Proj1>,
-                  std::projected<I2, Proj2>> Comp = ranges::less>
-     constexpr bool operator()(I1 first1, S1 last1, I2 first2, S2 last2,
-                             Comp comp = {}, Proj1 proj1 = {}, Proj2 proj2 = {}) const
-     {
-         for (; first2 != last2; ++first1)
-         {
-             if (first1 == last1 && comp(*first2, *first1))
-                 return false;
-             if (!comp(*first1, *first2))
-                 ++first2;
-         }
-         return true;
-     }
+   struct includes_fn
+   {
+       template<std::input_iterator I1, std::sentinel_for<I1> S1,
+                std::input_iterator I2, std::sentinel_for<I2> S2,
+                class Proj1 = std::identity, class Proj2 = std::identity,
+                std::indirect_strict_weak_order<
+                    std::projected<I1, Proj1>,
+                    std::projected<I2, Proj2>> Comp = ranges::less>
+       constexpr bool operator()(I1 first1, S1 last1, I2 first2, S2 last2,
+                                 Comp comp = {}, Proj1 proj1 = {}, Proj2 proj2 = {}) const
+       {
+           for (; first2 != last2; ++first1)
+           {
+               if (first1 == last1 || comp(*first2, *first1))
+                   return false;
+               if (!comp(*first1, *first2))
+                   ++first2;
+           }
+           return true;
+       }
 
-     template<ranges::input_range R1, ranges::input_range R2,
-              class Proj1 = std::identity, class Proj2 = std::identity,
-              std::indirect_strict_weak_order<
-                  std::projected<ranges::iterator_t<R1>, Proj1>,
-                  std::projected<ranges::iterator_t<R2>, Proj2>> Comp = ranges::less>
-     constexpr bool operator()(R1&& r1, R2&& r2, Comp comp = {},
-                               Proj1 proj1 = {}, Proj2 proj2 = {}) const
-     {
-       return (*this)(ranges::begin(r1), ranges::end(r1),
-                      ranges::begin(r2), ranges::end(r2),
-                      std::ref(comp), std::ref(proj1), std::ref(proj2));
-     }
+       template<ranges::input_range R1, ranges::input_range R2,
+                class Proj1 = std::identity, class Proj2 = std::identity,
+                std::indirect_strict_weak_order<
+                    std::projected<ranges::iterator_t<R1>, Proj1>,
+                    std::projected<ranges::iterator_t<R2>, Proj2>> Comp = ranges::less>
+       constexpr bool operator()(R1&& r1, R2&& r2, Comp comp = {},
+                                 Proj1 proj1 = {}, Proj2 proj2 = {}) const
+       {
+           return (*this)(ranges::begin(r1), ranges::end(r1),
+                          ranges::begin(r2), ranges::end(r2),
+                          std::ref(comp), std::ref(proj1), std::ref(proj2));
+       }
    };
 
-   inline constexpr auto includes = includes_fn{};
+   inline constexpr auto includes = includes_fn {};
 
 .SH Example
 
@@ -116,7 +121,7 @@ std::ranges::includes \- std::ranges::includes
  #include <locale>
  #include <string>
 
- template <class T>
+ template<class T>
  std::ostream& operator<<(std::ostream& os, std::initializer_list<T> const& list)
  {
      for (os << "{ "; auto const& elem : list)
@@ -167,9 +172,13 @@ std::ranges::includes \- std::ranges::includes
 
 .SH See also
 
-   ranges::set_difference computes the difference between two sets
-   (C++20)                (niebloid)
-   ranges::search         searches for a range of elements
-   (C++20)                (niebloid)
-   includes               returns true if one sequence is a subsequence of another
-                          \fI(function template)\fP
+   ranges::set_difference    computes the difference between two sets
+   (C++20)                   (niebloid)
+   ranges::search            searches for a range of elements
+   (C++20)                   (niebloid)
+   ranges::contains
+   ranges::contains_subrange checks if the range contains the given element or subrange
+   (C++23)                   (niebloid)
+   (C++23)
+   includes                  returns true if one sequence is a subsequence of another
+                             \fI(function template)\fP

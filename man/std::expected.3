@@ -1,0 +1,182 @@
+.TH std::expected 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::expected \- std::expected
+
+.SH Synopsis
+   Defined in header <expected>
+   template< class T, class E >  (since C++23)
+   class expected;
+
+   The class template std::expected provides a way to store either of two values. An
+   object of std::expected at any given time either holds an expected value of type T,
+   or an unexpected value of type E. std::expected is never valueless.
+
+   The stored value is allocated directly within the storage occupied by the expected
+   object. No dynamic memory allocation takes place.
+
+   A program is ill-formed if it instantiates an expected with a reference type, a
+   function type, or a specialization of std::unexpected. In addition, T must not be
+   std::in_place_t or std::unexpect_t.
+
+.SH Template parameters
+
+       the type of the expected value. The type must either be (possibly cv-qualified)
+   T - void, or meet the Destructible requirements (in particular, array and reference
+       types are not allowed).
+       the type of the unexpected value. The type must meet the Destructible
+   E - requirements, and must be a valid template argument for std::unexpected (in
+       particular, arrays, non-object types, and cv-qualified types are not allowed).
+
+.SH Member types
+
+   Member type     Definition
+   value_type      T
+   error_type      E
+   unexpected_type std::unexpected<E>
+
+.SH Member alias templates
+
+   Type      Definition
+   rebind<U> expected<U, error_type>
+
+.SH Member functions
+
+   constructor     constructs the expected object
+                   \fI(public member function)\fP
+   destructor      destroys the expected object, along with its contained value
+                   \fI(public member function)\fP
+   operator=       assigns contents
+                   \fI(public member function)\fP
+.SH Observers
+   operator->      accesses the expected value
+   operator*       \fI(public member function)\fP
+   operator bool   checks whether the object contains an expected value
+   has_value       \fI(public member function)\fP
+   value           returns the expected value
+                   \fI(public member function)\fP
+   error           returns the unexpected value
+                   \fI(public member function)\fP
+   value_or        returns the expected value if present, another value otherwise
+                   \fI(public member function)\fP
+         Monadic operations
+                   returns the result of the given function on the expected value if it
+   and_then        exists; otherwise, returns the expected itself
+                   \fI(public member function)\fP
+                   returns an expected containing the transformed expected value if it
+   transform       exists; otherwise, returns the expected itself
+                   \fI(public member function)\fP
+                   returns the expected itself if it contains an expected value;
+   or_else         otherwise, returns the result of the given function on the
+                   unexpected value
+                   \fI(public member function)\fP
+                   returns the expected itself if it contains an expected value;
+   transform_error otherwise, returns an expected containing the transformed unexpected
+                   value
+                   \fI(public member function)\fP
+.SH Modifiers
+   emplace         constructs the expected value in-place
+                   \fI(public member function)\fP
+   swap            exchanges the contents
+                   \fI(public member function)\fP
+
+.SH Non-member functions
+
+   operator==          compares expected objects
+   (C++23)             \fI(function template)\fP
+   swap(std::expected) specializes the std::swap algorithm
+   (C++23)             \fI(function)\fP
+
+.SH Helper classes
+
+   unexpected          represented as an unexpected value
+   (C++23)             \fI(class template)\fP
+   bad_expected_access exception indicating checked access to an expected that contains
+   (C++23)             an unexpected value
+                       \fI(class template)\fP
+   unexpect            in-place construction tag for unexpected value in expected
+   unexpect_t          (tag)
+   (C++23)
+
+.SH Notes
+
+   Types with the same functionality are called Result in Rust and Either in Haskell.
+
+   Feature-test macro  Value    Std                        Feature
+                      202202L (C++23) class template std::expected and associated
+   __cpp_lib_expected                 helper classes
+                      202211L (C++23) Monadic functions for std::expected
+
+.SH Example
+
+
+// Run this code
+
+ #include <cmath>
+ #include <expected>
+ #include <iomanip>
+ #include <iostream>
+ #include <string_view>
+
+ enum class parse_error
+ {
+     invalid_input,
+     overflow
+ };
+
+ auto parse_number(std::string_view& str) -> std::expected<double, parse_error>
+ {
+     const char* begin = str.data();
+     char* end;
+     double retval = std::strtod(begin, &end);
+
+     if (begin == end)
+         return std::unexpected(parse_error::invalid_input);
+     else if (std::isinf(retval))
+         return std::unexpected(parse_error::overflow);
+
+     str.remove_prefix(end - begin);
+     return retval;
+ }
+
+ int main()
+ {
+     auto process = [](std::string_view str)
+     {
+         std::cout << "str: " << std::quoted(str) << ", ";
+         if (const auto num = parse_number(str); num.has_value())
+             std::cout << "value: " << *num << '\\n';
+             // If num did not have a value, dereferencing num
+             // would cause an undefined behavior, and
+             // num.value() would throw std::bad_expected_access.
+             // num.value_or(123) uses specified default value 123.
+         else if (num.error() == parse_error::invalid_input)
+             std::cout << "error: invalid input\\n";
+         else if (num.error() == parse_error::overflow)
+             std::cout << "error: overflow\\n";
+         else
+             std::cout << "unexpected!\\n"; // or invoke std::unreachable();
+     };
+
+     for (auto src : {"42", "42abc", "meow", "inf"})
+         process(src);
+ }
+
+.SH Output:
+
+ str: "42", value: 42
+ str: "42abc", value: 42
+ str: "meow", error: invalid input
+ str: "inf", error: overflow
+
+.SH References
+
+     * C++23 standard (ISO/IEC 14882:2023):
+
+     * 22.8 Expected objects [expected]
+
+.SH See also
+
+   variant  a type-safe discriminated union
+   \fI(C++17)\fP  \fI(class template)\fP
+   optional a wrapper that may or may not hold an object
+   \fI(C++17)\fP  \fI(class template)\fP

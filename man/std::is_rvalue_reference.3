@@ -1,4 +1,4 @@
-.TH std::is_rvalue_reference 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_rvalue_reference 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_rvalue_reference \- std::is_rvalue_reference
 
@@ -7,29 +7,32 @@ std::is_rvalue_reference \- std::is_rvalue_reference
    template< class T >              \fI(since C++11)\fP
    struct is_rvalue_reference;
 
+   std::is_rvalue_reference is a UnaryTypeTrait.
+
    Checks whether T is an rvalue reference type. Provides the member constant value
    which is equal to true, if T is an rvalue reference type. Otherwise, value is equal
    to false.
 
-   The behavior of a program that adds specializations for is_rvalue_reference
-   or is_rvalue_reference_v
-   \fI(since C++17)\fP is undefined.
+   If the program adds specializations for std::is_rvalue_reference or
+   std::is_rvalue_reference_v, the behavior is undefined.
 
 .SH Template parameters
 
    T - a type to check
 
-  Helper variable template
+   Helper variable template
 
    template< class T >
    inline constexpr bool is_rvalue_reference_v =                          \fI(since C++17)\fP
    is_rvalue_reference<T>::value;
 
+
+
 Inherited from std::integral_constant
 
 .SH Member constants
 
-   value    true if T is an rvalue reference type , false otherwise
+   value    true if T is an rvalue reference type, false otherwise
    \fB[static]\fP \fI(public static member constant)\fP
 
 .SH Member functions
@@ -47,8 +50,8 @@ Inherited from std::integral_constant
 
 .SH Possible implementation
 
-   template <class T> struct is_rvalue_reference      : std::false_type {};
-   template <class T> struct is_rvalue_reference<T&&> : std::true_type {};
+   template<class T> struct is_rvalue_reference : std::false_type {};
+   template<class T> struct is_rvalue_reference<T&&> : std::true_type {};
 
 .SH Example
 
@@ -56,23 +59,72 @@ Inherited from std::integral_constant
 // Run this code
 
  #include <type_traits>
+ #include <iostream>
 
  class A {};
 
+ static_assert
+ (
+     std::is_rvalue_reference_v<A> == false and
+     std::is_rvalue_reference_v<A&> == false and
+     std::is_rvalue_reference_v<A&&> != false and
+     std::is_rvalue_reference_v<char> == false and
+     std::is_rvalue_reference_v<char&> == false and
+     std::is_rvalue_reference_v<char&&> != false
+ );
+
+
+
+ template <typename T>
+ void test(T&& x)
+ {
+     static_assert(std::is_same_v<T&&, decltype(x)>);
+     std::cout << "T\\t" << std::is_rvalue_reference<T>::value << '\\n';
+     std::cout << "T&&\\t" << std::is_rvalue_reference<T&&>::value << '\\n';
+     std::cout << "decltype(x)\\t" << std::is_rvalue_reference<decltype(x)>::value << '\\n';
+ }
+
  int main()
  {
-     static_assert( not std::is_rvalue_reference_v<A> );
-     static_assert( not std::is_rvalue_reference_v<A&> );
-     static_assert(     std::is_rvalue_reference_v<A&&> );
-     static_assert( not std::is_rvalue_reference_v<int> );
-     static_assert( not std::is_rvalue_reference_v<int&> );
-     static_assert(     std::is_rvalue_reference_v<int&&> );
+     std::cout << std::boolalpha;
+     std::cout << "A\\t" << std::is_rvalue_reference<A>::value << '\\n';
+     std::cout << "A&\\t" << std::is_rvalue_reference<A&>::value << '\\n';
+     std::cout << "A&&\\t" << std::is_rvalue_reference<A&&>::value << '\\n';
+     std::cout << "char\\t" << std::is_rvalue_reference<char>::value << '\\n';
+     std::cout << "char&\\t" << std::is_rvalue_reference<char&>::value << '\\n';
+     std::cout << "char&&\\t" << std::is_rvalue_reference<char&&>::value << '\\n';
+
+     std::cout << "\\ntest(42)\\n";
+     test(42);
+
+     std::cout << "\\ntest(x)\\n";
+     int x = 42;
+     test(x);
  }
+
+.SH Output:
+
+ A       false
+ A&      false
+ A&&     true
+ char    false
+ char&   false
+ char&&  true
+
+ test\fB(42)\fP
+ T       false
+ T&&     true
+ decltype(x)     true
+
+ test(x)
+ T       false
+ T&&     false
+ decltype(x)     false
 
 .SH See also
 
-   is_lvalue_reference checks if a type is a lvalue reference
+   is_lvalue_reference checks if a type is an lvalue reference
    \fI(C++11)\fP             \fI(class template)\fP
-   is_reference        checks if a type is either a lvalue reference or rvalue
+   is_reference        checks if a type is either an lvalue reference or rvalue
    \fI(C++11)\fP             reference
                        \fI(class template)\fP

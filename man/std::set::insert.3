@@ -1,32 +1,36 @@
-.TH std::set::insert 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::set::insert 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::set::insert \- std::set::insert
 
 .SH Synopsis
-   std::pair<iterator,bool> insert( const value_type&   \fB(1)\fP
+   std::pair<iterator, bool> insert( const value_type&  \fB(1)\fP
    value );
-   std::pair<iterator,bool> insert( value_type&& value  \fB(2)\fP \fI(since C++11)\fP
+   std::pair<iterator, bool> insert( value_type&& value \fB(2)\fP \fI(since C++11)\fP
    );
-   iterator insert( iterator hint, const value_type&                      \fI(until C++11)\fP
+   iterator insert( iterator pos, const value_type&                       \fI(until C++11)\fP
    value );
-   iterator insert( const_iterator hint, const                            \fI(since C++11)\fP
+   iterator insert( const_iterator pos, const                             \fI(since C++11)\fP
    value_type& value );
-   iterator insert( const_iterator hint, value_type&&       \fB(4)\fP           \fI(since C++11)\fP
+   iterator insert( const_iterator pos, value_type&&        \fB(4)\fP           \fI(since C++11)\fP
    value );
-   template< class InputIt >                            \fB(3)\fP \fB(5)\fP
+   template< class InputIt >                                \fB(5)\fP
    void insert( InputIt first, InputIt last );
-   void insert( std::initializer_list<value_type> ilist     \fB(6)\fP           \fI(since C++11)\fP
+   void insert( std::initializer_list<value_type> ilist \fB(3)\fP \fB(6)\fP           \fI(since C++11)\fP
    );
    insert_return_type insert( node_type&& nh );             \fB(7)\fP           \fI(since C++17)\fP
-   iterator insert( const_iterator hint, node_type&& nh     \fB(8)\fP           \fI(since C++17)\fP
+   iterator insert( const_iterator pos, node_type&& nh      \fB(8)\fP           \fI(since C++17)\fP
    );
+   template< class K >                                      \fB(9)\fP           (since C++23)
+   std::pair<iterator, bool> insert( K&& x );
+   template< class K >                                      \fB(10)\fP          (since C++23)
+   iterator insert( const_iterator pos, K&& x );
 
    Inserts element(s) into the container, if the container doesn't already contain an
    element with an equivalent key.
 
-   1-2) inserts value.
-   3-4) inserts value in the position as close as possible, just prior\fI(since C++11)\fP, to
-   hint.
+   1,2) Inserts value.
+   3,4) Inserts value in the position as close as possible to the position just prior
+   to pos.
    5) Inserts elements from range [first, last). If multiple elements in the range have
    keys that compare equivalent, it is unspecified which element is inserted (pending
    LWG2844).
@@ -40,11 +44,30 @@ std::set::insert \- std::set::insert
    8) If nh is an empty node handle, does nothing and returns the end iterator.
    Otherwise, inserts the element owned by nh into the container, if the container
    doesn't already contain an element with a key equivalent to nh.key(), and returns
-   the iterator pointing to the element with key equivalent to nh.key() (regardless of
+   the iterator pointing to the element with key equivalent to nh.key()(regardless of
    whether the insert succeeded or failed). If the insertion succeeds, nh is moved
    from, otherwise it retains ownership of the element. The element is inserted as
-   close as possible to the position just prior to hint. The behavior is undefined if
-   nh is not empty and get_allocator() != nh.get_allocator().
+   close as possible to the position just prior to pos. The behavior is undefined if nh
+   is not empty and get_allocator() != nh.get_allocator().
+   9) If *this already contains an element which transparently compares equivalent to
+   x, does nothing. Otherwise, constructs an object u of the value_type with
+   std::forward<K>(x) and then inserts u into *this. If equal_range(u) ==
+   equal_range(x) is false, the behavior is undefined. The value_type must be
+   EmplaceConstructible into set from std::forward<K>(x). This overload participates in
+   overload resolution only if the qualified-id Compare::is_transparent is valid and
+   denotes a type. It allows calling this function without constructing an instance of
+   Key.
+   10) If *this already contains an element which transparently compares equivalent to
+   x, does nothing. Otherwise, constructs an object u of the value_type with
+   std::forward<K>(x) and then inserts u into *this in the position as close as
+   possible to the position just prior to pos. If equal_range(u) == equal_range(x) is
+   false, the behavior is undefined. The value_type must be EmplaceConstructible into
+   set from std::forward<K>(x). This overload participates in overload resolution only
+   if:
+     * std::is_convertible_v<K&&, const_iterator> and std::is_convertible_v<K&&,
+       iterator> are both false, and
+     * the qualified-id Compare::is_transparent is valid and denotes a type,
+   which together allows calling this function without constructing an instance of Key.
 
    No iterators or references are invalidated.
    If the insertion is successful, pointers and references to the element obtained
@@ -54,57 +77,60 @@ std::set::insert \- std::set::insert
 
 .SH Parameters
 
-                 iterator, used as a suggestion as to where to start the  \fI(until C++11)\fP
-   hint        - search
-                 iterator to the position before which the new element    \fI(since C++11)\fP
-                 will be inserted
+   pos         - iterator to the position before which the new element will be inserted
    value       - element value to insert
    first, last - range of elements to insert
    ilist       - initializer list to insert the values from
    nh          - a compatible node handle
+   x           - a value of any type that can be transparently compared with a key
 .SH Type requirements
    -
    InputIt must meet the requirements of LegacyInputIterator.
 
 .SH Return value
 
-   1-2) Returns a pair consisting of an iterator to the inserted element (or to the
-   element that prevented the insertion) and a bool value set to true if the insertion
-   took place.
-   3-4) Returns an iterator to the inserted element, or to the element that prevented
-   the insertion.
-   5-6) \fI(none)\fP
-   7) Returns an insert_return_type with the members initialized as follows:
-
+   1,2) A pair consisting of an iterator to the inserted element (or to the element
+   that prevented the insertion) and a bool value set to true if and only if the
+   insertion took place.
+   3,4) An iterator to the inserted element, or to the element that prevented the
+   insertion.
+   5,6) \fI(none)\fP
+   7) An object of insert_return_type with the members initialized as follows:
      * If nh is empty, inserted is false, position is end(), and node is empty.
      * Otherwise if the insertion took place, inserted is true, position points to the
        inserted element, and node is empty.
      * If the insertion failed, inserted is false, node has the previous value of nh,
        and position points to an element with a key equivalent to nh.key().
-
    8) End iterator if nh was empty, iterator pointing to the inserted element if
    insertion took place, and iterator pointing to an element with a key equivalent to
    nh.key() if it failed.
+   9) A pair consisting of an iterator to the inserted element (or to the element that
+   prevented the insertion) and a bool value set to true if and only if the insertion
+   took place.
+   10) An iterator to the inserted element, or to the element that prevented the
+   insertion.
 
 .SH Exceptions
 
    1-4) If an exception is thrown by any operation, the insertion has no effect.
 
     This section is incomplete
-    Reason: cases 5-8
+    Reason: cases 5-8, 9, 10
 
 .SH Complexity
 
-   1-2) Logarithmic in the size of the container, O(log(size())).
-
-   3-4) Amortized constant if the insertion happens in the position just  \fI(until C++11)\fP
-   after the hint, logarithmic in the size of the container otherwise.
-   3-4) Amortized constant if the insertion happens in the position just  \fI(since C++11)\fP
-   before the hint, logarithmic in the size of the container otherwise.
-
-   5-6) O(N*log(size() + N)), where N is the number of elements to insert.
+   1,2) Logarithmic in the size of the container, O(log(size())).
+   3,4) Amortized constant if the insertion happens in the position just
+   after
+   \fI(until C++11)\fP
+   before
+   \fI(since C++11)\fP pos, logarithmic in the size of the container otherwise.
+   5,6) O(N·log(size() + N)), where N is the number of elements to insert.
    7) Logarithmic in the size of the container, O(log(size())).
-   8) Amortized constant if the insertion happens in the position just before the hint,
+   8) Amortized constant if the insertion happens in the position just before pos,
+   logarithmic in the size of the container otherwise.
+   9) Logarithmic in the size of the container, O(log(size())).
+   10) Amortized constant if the insertion happens in the position just before pos,
    logarithmic in the size of the container otherwise.
 
 .SH Notes
@@ -117,38 +143,67 @@ std::set::insert \- std::set::insert
 
    The overloads (5,6) are often implemented as a loop that calls the overload \fB(3)\fP with
    end() as the hint; they are optimized for appending a sorted sequence (such as
-   another set) whose smallest element is greater than the last element in *this
+   another std::set) whose smallest element is greater than the last element in *this.
+
+                Feature-test macro                Value    Std          Feature
+                                                                 Heterogeneous
+                                                                 overloads for the
+                                                                 remaining member
+   __cpp_lib_associative_heterogeneous_insertion 202311L (C++26) functions in ordered
+                                                                 and unordered
+                                                                 associative
+                                                                 containers. (9,10)
 
 .SH Example
 
 
 // Run this code
 
- #include <set>
  #include <cassert>
  #include <iostream>
+ #include <set>
 
  int main()
  {
-   std::set<int> set;
+     std::set<int> set;
 
-   auto result_1 = set.insert(3);
-   assert(result_1.first != set.end()); // it's a valid iterator
-   assert(*result_1.first == 3);
-   if (result_1.second)
-     std::cout << "insert done\\n";
+     auto result_1 = set.insert(3);
+     assert(result_1.first != set.end()); // it is a valid iterator
+     assert(*result_1.first == 3);
+     if (result_1.second)
+         std::cout << "insert done\\n";
 
-   auto result_2 = set.insert(3);
-   assert(result_2.first == result_1.first); // same iterator
-   assert(*result_2.first == 3);
-   if (!result_2.second)
-     std::cout << "no insertion\\n";
+     auto result_2 = set.insert(3);
+     assert(result_2.first == result_1.first); // same iterator
+     assert(*result_2.first == 3);
+     if (!result_2.second)
+         std::cout << "no insertion\\n";
  }
 
 .SH Output:
 
  insert done
  no insertion
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to         Behavior as published               Correct behavior
+                                                             the insertion is required
+                      pos was just a hint, it could be       to
+   LWG 233 C++98      totally ignored                        be as close as possible to
+                                                             the
+                                                             position just prior to pos
+                      the complexity of overload \fB(5)\fP was     removed the linear
+   LWG 264 C++98      required to be linear if               requirement
+                      the range [first, last) is sorted      in this special case
+                      according to Compare
+                      in the return value of overload \fB(1)\fP,
+   LWG 316 C++98      it was not specified                   success is
+                      which bool value indicates a           indicated by true
+                      successful insertion
 
 .SH See also
 
@@ -158,3 +213,6 @@ std::set::insert \- std::set::insert
    \fI(C++11)\fP      \fI(public member function)\fP
    inserter     creates a std::insert_iterator of type inferred from the argument
                 \fI(function template)\fP
+
+.SH Category:
+     * Todo with reason

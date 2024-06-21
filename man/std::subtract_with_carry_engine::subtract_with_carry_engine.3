@@ -1,43 +1,76 @@
-.TH std::subtract_with_carry_engine::subtract_with_carry_engine 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::subtract_with_carry_engine::subtract_with_carry_engine 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::subtract_with_carry_engine::subtract_with_carry_engine \- std::subtract_with_carry_engine::subtract_with_carry_engine
 
 .SH Synopsis
-   subtract_with_carry_engine() :                                    \fB(1)\fP \fI(since C++11)\fP
-   subtract_with_carry_engine(default_seed) {}
-   explicit subtract_with_carry_engine( result_type value );         \fB(2)\fP \fI(since C++11)\fP
-   template< class Sseq >                                            \fB(3)\fP \fI(since C++11)\fP
-   explicit subtract_with_carry_engine( Sseq& s );
-                                                                         \fI(since C++11)\fP
-   subtract_with_carry_engine( const subtract_with_carry_engine& );  \fB(4)\fP (implicitly
-                                                                         declared)
+   subtract_with_carry_engine() :                             \fB(1)\fP \fI(since C++11)\fP
+   subtract_with_carry_engine(0u) {}
+   explicit subtract_with_carry_engine( result_type value );  \fB(2)\fP \fI(since C++11)\fP
+   template< class SeedSeq >                                  \fB(3)\fP \fI(since C++11)\fP
+   explicit subtract_with_carry_engine( SeedSeq& seq );
+   subtract_with_carry_engine( const                          \fB(4)\fP \fI(since C++11)\fP
+   subtract_with_carry_engine& other );                           (implicitly declared)
 
    Constructs the pseudo-random number engine.
 
-   1) Default constructor. Seeds the engine with default_seed.
+   1) The default constructor.
+   2) Constructs the engine with a seed value value. The sequence X of the engine's
+   initial state is determined as follows:
+    1. Constructs a std::linear_congruential_engine<std::uint_least32_t, 40014u, 0u,
+       2147483563u> object e with argument value == 0u ? default_seed : value.
+    2. Let n be std::size_t(w / 32) + 1.
+    3. Sets the values of \\(X_{-r}\\)X
+       -r, ..., \\(X_{-1}\\)X
+       -1, in that order. Each value \\(X_i\\)X
+       i is set as specified below:
 
-    This section is incomplete
-
-   The overload \fB(3)\fP only participates in overload resolution if Sseq qualifies as a
-   SeedSequence. In particular, it is excluded from the set of candidate functions if
-   Sseq is convertible to result_type.
+    1. Successively calls e for n times, the return values are denoted as \\(z_0\\)z
+       0 ... \\(z_{n-1}\\)z
+       n-1.
+    2. Sets \\(X_i\\)X
+       i to \\((\\sum^{n-1}_{j=0} z_j \\cdot 2^{32j}) \\mod m\\)(∑n-1
+       j=0 z
+       j·232j
+       ) mod m.
+   If \\(X_{-1}\\)X
+   -1 is 0, sets the carry value c of the engine's initial state to 1. Otherwise, sets
+   c to 0.
+   3) Constructs the engine with a seed sequence seq. Given std::size_t(w / 32) + 1 as
+   k, the sequence X of the engine's initial state is determined as follows:
+    1. Creates an invented array object a of length r * k.
+    2. Calls seq.generate(a + 0, a + r * k).
+    3. For each integer i in [-r, -1], sets \\(X_{i}\\)X
+       i to \\((\\sum^{k-1}_{j=0} a_{k(i+r)+j} \\cdot 2^{32j}) \\mod m\\)(∑k-1
+       j=0 a
+       k(i+r)+j·232j
+       ) mod m.
+   If \\(X_{-1}\\)X
+   -1 is 0, sets the carry value c of the engine's initial state to 1. Otherwise, sets
+   c to 0.
+   This overload participates in overload resolution only if SeedSeq meets the
+   requirements of SeedSequence.
+   4) The copy constructor. Upon construction, *this == other is true.
 
 .SH Parameters
 
    value - seed value to use in the initialization of the internal state
-   s     - seed sequence to use in the initialization of the internal state
+   seq   - seed sequence to use in the initialization of the internal state
 
 .SH Complexity
 
-    This section is incomplete
+   1,2) (std::size_t(w / 32) + 1) * r invocations of e.
+   3) Same as the complexity of the seq.generate call.
+   4) \\(\\small{O(r)}\\)O(r).
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-     DR    Applied to      Behavior as published       Correct behavior
-   P0935R0 C++11      default constructor was explicit made implicit
+      DR    Applied to          Behavior as published              Correct behavior
+   LWG 3809 C++11      e could not be constructed if            e can be constructed in
+                       result_type is std::uint16_t             this case
+   P0935R0  C++11      the default constructor was explicit     made implicit
 
 .SH See also
 

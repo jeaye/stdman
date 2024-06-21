@@ -1,4 +1,4 @@
-.TH std::use_facet 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::use_facet 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::use_facet \- std::use_facet
 
@@ -9,6 +9,9 @@ std::use_facet \- std::use_facet
 
    Obtains a reference to a facet implemented by loc.
 
+   The program is ill-formed if Facet is not a facet whose definition contains the
+   public static member id or it is a volatile-qualified facet.
+
 .SH Parameters
 
    loc - the locale object to query
@@ -16,15 +19,29 @@ std::use_facet \- std::use_facet
 .SH Return value
 
    Returns a reference to the facet. The reference returned by this function is valid
-   as long as any std::locale object exists that implements Facet.
+   as long as any std::locale object refers to that facet.
 
 .SH Exceptions
 
    std::bad_cast if std::has_facet<Facet>(loc) == false.
 
+.SH Notes
+
+   A std::locale object should not be a temporary if a reference to the Facet object
+   obtained from use_facet is used after the end of statement:
+
+ // BAD:
+ auto& f = std::use_facet<std::moneypunct<char, true>>(std::locale{"no_NO.UTF-8"});
+ foo(f.curr_symbol()); // Error: f internally uses a dangling reference
+                       // to a std::locale object that no longer exists.
+ // GOOD:
+ auto loc = std::locale{"is_IS.UTF-8"}; // OK: a non-temporary object
+ auto& f = std::use_facet<std::moneypunct<char, true>>(loc);
+ foo(f.curr_symbol()); // OK: f internally uses a reference to existing locale object.
+
 .SH Example
 
-   Display the 3-letter currency name used by the user's preferred locale
+   Display the 3-letter currency name used by the user's preferred locale.
 
 
 // Run this code
@@ -34,14 +51,32 @@ std::use_facet \- std::use_facet
 
  int main()
  {
-     std::locale loc = std::locale(""); // user's preferred locale
-     std::cout << "Your currency string is "
-               << std::use_facet<std::moneypunct<char, true>>(loc).curr_symbol() << '\\n';
+     for (const char* name: {"en_US.UTF-8", "de_DE.UTF-8", "en_GB.UTF-8"})
+         std::cout << "Your currency string is "
+                   << std::use_facet<std::moneypunct<char, true>>(std::locale{name}).
+                      curr_symbol() << '\\n';
  }
 
 .SH Output:
 
  Your currency string is USD
+ Your currency string is EUR
+ Your currency string is GBP
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to    Behavior as published               Correct behavior
+                      the returned reference       the returned reference remains
+   LWG 31  C++98      remained usable              usable as
+                      as long as the locale value  long as some locale object refers to
+                      itself exists                that facet
+   LWG 38  C++98      Facet was not required to    required
+                      have a direct member id
+   LWG 436 C++98      it was unclear whether Facet it can be const-qualified, but not
+                      can be cv-qualified          volatile-qualified
 
 .SH See also
 

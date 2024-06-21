@@ -1,0 +1,77 @@
+.TH std::common_iterator::operator= 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::common_iterator::operator= \- std::common_iterator::operator=
+
+.SH Synopsis
+   template< class I2, class S2 >
+
+   requires std::convertible_to<const I2&, I> &&
+            std::convertible_to<const S2&, S> &&
+            std::assignable_from<I&, const I2&> &&                        \fI(since C++20)\fP
+            std::assignable_from<S&, const S2&>
+
+   constexpr common_iterator& operator=( const common_iterator<I2, S2>&
+   x );
+
+   Assigns the underlying std::variant member object var from that of x.
+
+   Let i is x.var.index(). Then, this assignment is equivalent to:
+
+     * std::get<i>(var) = std::get<i>(x.var), if var.index() == i,
+     * var.emplace<i>(std::get<i>(x.var)) otherwise.
+
+   The behavior is undefined if x is in an invalid state, that is,
+   x.var.valueless_by_exception() is equal to true.
+
+.SH Parameters
+
+   x - iterator adaptor to assign from
+
+.SH Return value
+
+   *this
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <initializer_list>
+ #include <iostream>
+ #include <iterator>
+
+ int main()
+ {
+     const auto il = {1, 2, 3, 4, 5, 6};
+     using CI = std::common_iterator<
+                    std::counted_iterator<std::initializer_list<int>::iterator>,
+                    std::default_sentinel_t>;
+     CI first{std::counted_iterator{std::next(begin(il), 1), ssize(il) - 1}};
+     const CI first2{std::counted_iterator{std::next(begin(il), 2), ssize(il) - 2}};
+     const CI last{std::default_sentinel};
+     std::copy(first, last, std::ostream_iterator<int>{std::cout, " "});
+     std::cout << '\\n';
+     first = first2;
+     std::copy(first, last, std::ostream_iterator<int>{std::cout, " "});
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ 2 3 4 5 6
+ 3 4 5 6
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to            Behavior as published              Correct behavior
+   LWG 3574 C++20      variant was fully constexpr (P2231R1) but    also made constexpr
+                       common_iterator was not
+
+.SH See also
+
+   constructor   constructs a new iterator adaptor
+   (C++20)       \fI(public member function)\fP

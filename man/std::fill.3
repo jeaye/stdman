@@ -1,25 +1,49 @@
-.TH std::fill 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::fill 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::fill \- std::fill
 
 .SH Synopsis
    Defined in header <algorithm>
-   template< class ForwardIt, class T >                                   \fI(until C++20)\fP
-   void fill( ForwardIt first, ForwardIt last, const T& value );
-   template< class ForwardIt, class T >
-   constexpr void fill( ForwardIt first, ForwardIt last, const T& \fB(1)\fP     \fI(since C++20)\fP
-   value );
-   template< class ExecutionPolicy, class ForwardIt, class T >
-   void fill( ExecutionPolicy&& policy, ForwardIt first,              \fB(2)\fP \fI(since C++17)\fP
-   ForwardIt last, const T& value );
+   template< class ForwardIt, class T >                  (constexpr since
+   void fill( ForwardIt first, ForwardIt last,           C++20)
+   const T& value );                                     (until C++26)
+   template< class ForwardIt, class T = typename
+   std::iterator_traits
 
-   1) Assigns the given value to the elements in the range [first, last).
-   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
-   in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+
+    <ForwardIt>::value_type >                            (since C++26)
+   constexpr void fill( ForwardIt first,
+   ForwardIt last,
+
+                        const T& value );
+   template< class ExecutionPolicy, class
+   ForwardIt, class T >
+                                                 \fB(1)\fP                      \fI(since C++17)\fP
+   void fill( ExecutionPolicy&& policy,                                   (until C++26)
+
+              ForwardIt first, ForwardIt last,
+   const T& value );
+   template< class ExecutionPolicy,
+                                                     \fB(2)\fP
+             class ForwardIt, class T = typename
+   std::iterator_traits
+                                                                          (since C++26)
+    <ForwardIt>::value_type >
+   void fill( ExecutionPolicy&& policy,
+
+              ForwardIt first, ForwardIt last,
+   const T& value );
+
+   1) Assigns the given value to all elements in the range [first, last).
+   2) Same as \fB(1)\fP, but executed according to policy.
+   This overload participates in overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
+
+   If value is not writable to first, the program is ill-formed.
 
 .SH Parameters
 
@@ -30,13 +54,9 @@ std::fill \- std::fill
    -
    ForwardIt must meet the requirements of LegacyForwardIterator.
 
-.SH Return value
-
-   \fI(none)\fP
-
 .SH Complexity
 
-   Exactly last - first assignments.
+   Exactly std::distance(first, last) assignments.
 
 .SH Exceptions
 
@@ -50,40 +70,73 @@ std::fill \- std::fill
 
 .SH Possible implementation
 
-   template< class ForwardIt, class T >
+                                     fill
+   template<class ForwardIt,
+            class T = typename std::iterator_traits<ForwardIt>::value_type>
    void fill(ForwardIt first, ForwardIt last, const T& value)
    {
-       for (; first != last; ++first) {
+       for (; first != last; ++first)
            *first = value;
-       }
    }
 
-.SH Example
+.SH Notes
 
-   The following code uses fill() to set all of the elements of a vector of ints to -1:
+             Feature-test macro           Value    Std              Feature
+   __cpp_lib_algorithm_default_value_type 202403 (C++26) List-initialization for
+                                                         algorithms (1,2)
+
+.SH Example
 
 
 // Run this code
 
  #include <algorithm>
- #include <vector>
+ #include <complex>
  #include <iostream>
+ #include <vector>
+
+ void println(const auto& seq)
+ {
+     for (const auto& e : seq)
+         std::cout << e << ' ';
+     std::cout << '\\n';
+ }
 
  int main()
  {
-     std::vector<int> v{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+     std::vector<int> v{0, 1, 2, 3, 4, 5, 6, 7, 8};
+     println(v);
 
-     std::fill(v.begin(), v.end(), -1);
+     // set all of the elements to 8
+     std::fill(v.begin(), v.end(), 8);
+     println(v);
 
-     for (auto elem : v) {
-         std::cout << elem << " ";
-     }
-     std::cout << "\\n";
+     std::vector<std::complex<double>> nums{{1, 3}, {2, 2}, {4, 8}};
+     println(nums);
+     #ifdef __cpp_lib_algorithm_default_value_type
+         std::fill(nums.begin(), nums.end(), {4, 2});
+     #else
+         std::fill(nums.begin(), nums.end(), std::complex<double>{4, 2});
+     #endif
+     println(nums);
  }
 
 .SH Output:
 
- -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+ 0 1 2 3 4 5 6 7 8
+ 8 8 8 8 8 8 8 8 8
+ (1,3) (2,2) (4,8)
+ (4,2) (4,2) (4,2)
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to         Behavior as published               Correct behavior
+                      T was required to be CopyAssignable,   required to be writable
+   LWG 283 C++98      but                                    instead
+                      T is not always writable to ForwardIt
 
 .SH See also
 

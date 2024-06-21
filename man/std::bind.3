@@ -1,22 +1,29 @@
-.TH std::bind 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::bind 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::bind \- std::bind
 
 .SH Synopsis
    Defined in header <functional>
    template< class F, class... Args >                       \fI(since C++11)\fP
-   /*unspecified*/ bind( F&& f, Args&&... args );           \fI(until C++20)\fP
+   /* unspecified */ bind( F&& f, Args&&... args );         \fI(until C++20)\fP
    template< class F, class... Args >
-   constexpr /*unspecified*/ bind( F&& f, Args&&...         \fI(since C++20)\fP
-   args );                                          \fB(1)\fP
+   constexpr /* unspecified */ bind( F&& f,                 \fI(since C++20)\fP
+   Args&&... args );                                \fB(1)\fP
    template< class R, class F, class... Args >                            \fI(since C++11)\fP
-   /*unspecified*/ bind( F&& f, Args&&... args );                         \fI(until C++20)\fP
+   /* unspecified */ bind( F&& f, Args&&... args );                       \fI(until C++20)\fP
    template< class R, class F, class... Args >          \fB(2)\fP
-   constexpr /*unspecified*/ bind( F&& f, Args&&...                       \fI(since C++20)\fP
-   args );
+   constexpr /* unspecified */ bind( F&& f,                               \fI(since C++20)\fP
+   Args&&... args );
 
-   The function template bind generates a forwarding call wrapper for f. Calling this
-   wrapper is equivalent to invoking f with some of its arguments bound to args.
+   The function template std::bind generates a forwarding call wrapper for f. Calling
+   this wrapper is equivalent to invoking f with some of its arguments bound to args.
+
+   If std::is_constructible<std::decay<F>::type, F>::value is false, or
+   std::is_constructible<std::decay<Arg_i>::type, Arg_i>::value is false for any type
+   Arg_i in Args, the program is ill-formed.
+
+   If std::decay<Ti>::type or any type in Args is not MoveConstructible or
+   Destructible, the behavior is undefined.
 
 .SH Parameters
 
@@ -28,8 +35,8 @@ std::bind \- std::bind
 
 .SH Return value
 
-   A function object of unspecified type T, for which std::is_bind_expression<T>::value
-   == true. It has the following members:
+   A function object g of unspecified type T, for which
+   std::is_bind_expression<T>::value is true. It has the following members:
 
 std::bind return type
 
@@ -55,47 +62,16 @@ std::bind return type
 
 .SH Member function operator()
 
-   Given an object g obtained from an earlier call to bind, when it is invoked in a
-   function call expression g(u1, u2, ... uM), an invocation of the stored object takes
-   place, as if by
+   When g is invoked in a function call expression g(u1, u2, ... uM), an invocation of
+   the stored object takes place, as if by
 
    1) INVOKE(fd, std::forward<V1>(v1), std::forward<V2>(v2), ...,
    std::forward<VN>(vN)), or
    2) INVOKE<R>(fd, std::forward<V1>(v1), std::forward<V2>(v2), ...,
    std::forward<VN>(vN)),
 
-   where INVOKE is the operation specified in Callable, fd is a value of type
-   std::decay<F>::type the values and types of the bound arguments v1, v2, ..., vN are
-   determined as specified below.
-
-     * If the stored argument arg is of type std::reference_wrapper<T> (for example,
-       std::ref or std::cref was used in the initial call to bind), then the argument
-       vn in the INVOKE operation above is arg.get() and the type Vn in the same call
-       is T&: the stored argument is passed by reference into the invoked function
-       object.
-     * If the stored argument arg is of type T for which
-       std::is_bind_expression<T>::value == true (for example, another bind expression
-       was passed directly into the initial call to bind), then bind performs function
-       composition: instead of passing the function object that the bind subexpression
-       would return, the subexpression is invoked eagerly, and its return value is
-       passed to the outer invokable object. If the bind subexpression has any
-       placeholder arguments, they are shared with the outer bind (picked out of u1,
-       u2, ...). Specifically, the argument vn in the INVOKE operation above is
-       arg(std::forward<Uj>(uj)...) and the type Vn in the same call is
-       std::result_of<T cv &(Uj&&...)>::type&&
-       \fI(until C++17)\fP
-       std::invoke_result_t<T cv &, Uj&&...>&&
-       \fI(since C++17)\fP (cv qualification is the same as that of g).
-     * If the stored argument arg is of type T, for which std::is_placeholder<T>::value
-       != 0 (meaning, a placeholder such as std::placeholders::_1, _2, _3, ... was used
-       as the argument to the initial call to bind), then the argument indicated by the
-       placeholder (u1 for _1, u2 for _2, etc) is passed to the invokable object: the
-       argument vn in the INVOKE operation above is std::forward<Uj>(uj) and the
-       corresponding type Vn in the same call is Uj&&.
-     * Otherwise, the ordinary stored argument arg is passed to the invokable object as
-       lvalue argument: the argument vn in the INVOKE operation above is simply arg and
-       the corresponding type Vn is T cv &, where cv is the same cv-qualification as
-       that of g.
+   where fd is a value of type std::decay<F>::type, the values and types of the bound
+   arguments v1, v2, ..., vN are determined as specified below.
 
    If some of the arguments that are supplied in the call to g() are not matched by any
    placeholders stored in g, the unused arguments are evaluated and discarded.
@@ -106,8 +82,50 @@ std::bind return type
    participates in overload resolution only if the INVOKE operation is well-formed when
    treated as an unevaluated operand.
 
-   If g is volatile-qualified (i.e., its cv-qualifiers are either volatile or const
-   volatile), the program is ill-formed.
+   If g is volatile-qualified, the program is ill-formed.
+
+   If INVOKE(fd, w1, w2, ..., wN) can never be a valid expression for any possible
+   values w1, w2, ..., wN, the behavior is undefined.
+
+   Bound arguments
+
+   For each stored argument arg_i, the corresponding bound argument v_i in the INVOKE
+   or INVOKE<R> operation is determined as follows:
+
+     Case 1: reference wrappers
+
+   If arg_i is of type std::reference_wrapper<T> (for example, std::ref or std::cref
+   was used in the initial call to std::bind), then v_i is arg_i.get() and its type V_i
+   is T&: the stored argument is passed by reference into the invoked function object.
+
+     Case 2: bind expressions
+
+   If arg_i is of type T for which std::is_bind_expression<T>::value is true (for
+   example, another std::bind expression was passed directly into the initial call to
+   std::bind), then std::bind performs function composition: instead of passing the
+   function object that the bind subexpression would return, the subexpression is
+   invoked eagerly, and its return value is passed to the outer invokable object. If
+   the bind subexpression has any placeholder arguments, they are shared with the outer
+   bind (picked out of u1, u2, ...). Specifically, v_i is
+   arg_i(std::forward<Uj>(uj)...) and its type V_i is
+   std::result_of<T cv &(Uj&&...)>::type&&
+   \fI(until C++17)\fP
+   std::invoke_result_t<T cv &, Uj&&...>&&
+   \fI(since C++17)\fP (cv-qualification is the same as that of g).
+
+     Case 3: placeholders
+
+   If arg_i is of type T, for which std::is_placeholder<T>::value is not 0 (meaning, a
+   placeholder such as std::placeholders::_1, _2, _3, ... was used as the argument to
+   the initial call to std::bind), then the argument indicated by the placeholder (u1
+   for _1, u2 for _2, etc) is passed to the invokable object: v_i is
+   std::forward<Uj>(uj) and its type V_i is Uj&&.
+
+     Case 4: ordinary arguments
+
+   Otherwise, arg_i is passed to the invokable object as lvalue argument: v_i is simply
+   arg_i and its type V_i is T cv &, where cv is the same cv-qualification as that of
+   g.
 
 .SH Exceptions
 
@@ -135,10 +153,10 @@ std::bind return type
 
 // Run this code
 
- #include <random>
+ #include <functional>
  #include <iostream>
  #include <memory>
- #include <functional>
+ #include <random>
 
  void f(int n1, int n2, int n3, const int& n4, int n5)
  {
@@ -150,11 +168,13 @@ std::bind return type
      return n1;
  }
 
- struct Foo {
+ struct Foo
+ {
      void print_sum(int n1, int n2)
      {
-         std::cout << n1+n2 << '\\n';
+         std::cout << n1 + n2 << '\\n';
      }
+
      int data = 10;
  };
 
@@ -173,7 +193,8 @@ std::bind return type
 
      std::cout << "2) achieving the same effect using a lambda: ";
      n = 7;
-     auto lambda = [ncref=std::cref(n), n=n](auto a, auto b, auto /*unused*/) {
+     auto lambda = [&ncref = n, n](auto a, auto b, auto /*unused*/)
+     {
          f(b, 42, a, ncref, n);
      };
      n = 10;
@@ -187,7 +208,7 @@ std::bind return type
      std::default_random_engine e;
      std::uniform_int_distribution<> d(0, 10);
      auto rnd = std::bind(d, e); // a copy of e is stored in rnd
-     for(int n=0; n<10; ++n)
+     for (int n = 0; n < 10; ++n)
          std::cout << rnd() << ' ';
      std::cout << '\\n';
 
@@ -226,6 +247,19 @@ std::bind return type
  7) bind to a pointer to data member: 10
  8) bind to a mem_fn that is a pointer to data member: 10
  9) use smart pointers to call members of the referenced objects: 10 10
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to     Behavior as published              Correct behavior
+                       1. the bounded arguments
+                           were not forwarded to fd  1. forwarded
+   LWG 2021 C++11      2. in case 2, the type of V_i 2. changed to
+                       was                               std::result_of<T
+                           std::result_of<T          cv &(Uj&&...)>::type&&
+                       cv (Uj...)>::type
 
 .SH See also
 

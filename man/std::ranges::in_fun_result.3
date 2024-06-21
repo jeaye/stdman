@@ -1,0 +1,150 @@
+.TH std::ranges::in_fun_result 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::in_fun_result \- std::ranges::in_fun_result
+
+.SH Synopsis
+   Defined in header <algorithm>
+   template< class I, class F >   \fI(since C++20)\fP
+   struct in_fun_result;
+
+   ranges::in_fun_result is a class template that provides a way to store an iterator
+   and a function object as a single unit.
+
+   This class template has no base classes or declared members other than those shown
+   below. Thus it is suitable for use with structured bindings.
+
+   All special member functions of this class template are implicitly declared, which
+   makes specializations be aggregate classes, and propagate triviality,
+   potentially-throwing-ness, and constexpr-ness of corresponding operations on data
+   members.
+
+.SH Template parameters
+
+   I - the type of the iterator that the ranges::in_fun_result stores.
+   F - the type of the function object that the ranges::in_fun_result stores.
+
+   Data members
+
+   Member name Definition
+   in          a value (that is supposed to be an iterator) of type I.
+               \fI(public member object)\fP
+   fun         a value (that is supposed to be a function object) of type F.
+               \fI(public member object)\fP
+
+   All these members are declared with [[no_unique_address]] attribute.
+
+.SH Member functions
+
+std::ranges::in_fun_result::operator in_fun_result<I2, F2>
+
+   template<class I2, class F2>
+
+   requires std::convertible_to<const I&, I2> && std::convertible_to<const F&, F2> \fB(1)\fP
+
+   constexpr operator in_fun_result<I2, F2>() const &;
+   template<class I2, class F2>
+
+   requires std::convertible_to<I, I2> && std::convertible_to<F, F2>               \fB(2)\fP
+
+   constexpr operator in_fun_result<I2, F2>() &&;
+
+   Converts *this to the result by constructing every data member of the result from
+   the corresponding member of *this.
+
+   1) Equivalent to return {in, fun};.
+   2) Equivalent to return {std::move(in), std::move(fun)};.
+
+.SH Standard library
+
+   The following standard library functions use ranges::in_fun_result as the return
+   type:
+
+         Algorithm functions
+   ranges::for_each   applies a function to a range of elements
+   (C++20)            (niebloid)
+   ranges::for_each_n applies a function object to the first N elements of a sequence
+   (C++20)            (niebloid)
+
+.SH Synopsis
+
+ namespace std::ranges
+ {
+     template<class I, class F>
+     struct in_fun_result
+     {
+         [[no_unique_address]] I in;
+         [[no_unique_address]] F fun;
+
+         template<class I2, class F2>
+         requires std::convertible_to<const I&, I2> && std::convertible_to<const F&, F2>
+         constexpr operator in_fun_result<I2, F2>() const &
+         {
+             return {in, fun};
+         }
+
+         template<class I2, class F2>
+         requires std::convertible_to<I, I2> && std::convertible_to<F, F2>
+         constexpr operator in_fun_result<I2, F2>() &&
+         {
+             return {std::move(in), std::move(fun)};
+         }
+     };
+ }
+
+.SH Notes
+
+   Each standard library algorithm that uses this family of return types declares a new
+   alias type, e.g. using merge_result = in_in_out_result<I1, I2, O>;.
+
+   The names for such aliases are formed by adding the suffix "_result" to the
+   algorithm's name. So, the return type of std::ranges::merge can be named as
+   std::ranges::merge_result.
+
+   Unlike std::pair and std::tuple, this class template has data members of meaningful
+   names.
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <cassert>
+ #include <iostream>
+ #include <iterator>
+ #include <ranges>
+
+ int main()
+ {
+     int v[]{1, 2, 3};
+
+     const std::ranges::in_fun_result res1 = std::ranges::for_each_n(
+         v, std::size(v),
+         [](int& x) { return x = -x; } // negating lambda
+     );
+     assert(res1.in == std::end(v));
+
+     const std::ranges::in_fun_result res2 = std::ranges::for_each(
+         std::begin(v),
+         res1.in,
+         [](int x) { std::cout << x << ' '; } // printing lambda
+     );
+
+     std::cout << "│ ";
+
+     std::ranges::for_each(v, res1.fun); // uses negating lambda
+     std::ranges::for_each(v, res2.fun); // uses printing lambda
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ -1 -2 -3 │ 1 2 3
+
+.SH See also
+
+   pair    implements binary tuple, i.e. a pair of values
+           \fI(class template)\fP
+   tuple   implements fixed size container, which holds elements of possibly different
+   \fI(C++11)\fP types
+           \fI(class template)\fP

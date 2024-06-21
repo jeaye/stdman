@@ -1,16 +1,16 @@
-.TH std::aligned_storage 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::aligned_storage 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::aligned_storage \- std::aligned_storage
 
 .SH Synopsis
    Defined in header <type_traits>
-   template< std::size_t Len, std::size_t Align =                 \fI(since C++11)\fP
-   /*default-alignment*/ >                                        (deprecated in C++23)
+   template< std::size_t Len, std::size_t Align = /*              \fI(since C++11)\fP
+   default-alignment */ >                                         (deprecated in C++23)
    struct aligned_storage;
 
-   Provides the nested type type, which is a trivial standard-layout type suitable for
-   use as uninitialized storage for any object whose size is at most Len and whose
-   alignment requirement is a divisor of Align.
+   Provides the nested type type, which satisfies TrivialType and StandardLayoutType
+   and suitable for use as uninitialized storage for any object whose size is at most
+   Len and whose alignment requirement is a divisor of Align.
 
    The default value of Align is the most stringent (the largest) alignment requirement
    for any object whose size is at most Len. If the default value is not used, Align
@@ -20,7 +20,7 @@ std::aligned_storage \- std::aligned_storage
 
    It is implementation-defined whether any extended alignment is supported.
 
-   The behavior of a program that adds specializations for aligned_storage is
+   If the program adds specializations for std::aligned_storage, the behavior is
    undefined.
 
 .SH Member types
@@ -31,8 +31,8 @@ std::aligned_storage \- std::aligned_storage
 
 .SH Helper types
 
-   template< std::size_t Len, std::size_t Align =
-   /*default-alignment*/ >                                        \fI(since C++14)\fP
+   template< std::size_t Len, std::size_t Align = /*
+   default-alignment */ >                                         \fI(since C++14)\fP
    using aligned_storage_t = typename aligned_storage<Len,        (deprecated in C++23)
    Align>::type;
 
@@ -51,8 +51,10 @@ std::aligned_storage \- std::aligned_storage
    Except for default argument, aligned_storage is expressible in terms of alignas:
 
    template<std::size_t Len, std::size_t Align = /* default alignment not implemented */>
-   struct aligned_storage {
-       struct type {
+   struct aligned_storage
+   {
+       struct type
+       {
            alignas(Align) unsigned char data[Len];
        };
    };
@@ -60,20 +62,21 @@ std::aligned_storage \- std::aligned_storage
 .SH Example
 
    A primitive static vector class, demonstrating creation, access, and destruction of
-   objects in aligned storage
+   objects in aligned storage.
 
 
 // Run this code
 
- #include <new>
+ #include <cstddef>
  #include <iostream>
- #include <type_traits>
+ #include <new>
  #include <string>
+ #include <type_traits>
 
  template<class T, std::size_t N>
  class static_vector
  {
-     // properly aligned uninitialized storage for N T's
+     // Properly aligned uninitialized storage for N T's
      std::aligned_storage_t<sizeof(T), alignof(T)> data[N];
      std::size_t m_size = 0;
 
@@ -81,11 +84,10 @@ std::aligned_storage \- std::aligned_storage
      // Create an object in aligned storage
      template<typename ...Args> void emplace_back(Args&&... args)
      {
-         if( m_size >= N ) // possible error handling
+         if (m_size >= N) // Possible error handling
              throw std::bad_alloc{};
 
-         // construct value in memory of aligned storage
-         // using inplace operator new
+         // Construct value in memory of aligned storage using inplace operator new
          ::new(&data[m_size]) T(std::forward<Args>(args)...);
          ++m_size;
      }
@@ -100,10 +102,9 @@ std::aligned_storage \- std::aligned_storage
      // Destroy objects from aligned storage
      ~static_vector()
      {
-         for(std::size_t pos = 0; pos < m_size; ++pos) {
+         for (std::size_t pos = 0; pos < m_size; ++pos)
              // Note: std::launder is needed after the change of object model in P0137R1
              std::destroy_at(std::launder(reinterpret_cast<T*>(&data[pos])));
-         }
      }
  };
 

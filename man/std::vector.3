@@ -1,119 +1,234 @@
-.TH std::vector 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::vector 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::vector \- std::vector
 
 .SH Synopsis
    Defined in header <vector>
-   template<class Allocator>
-   class vector<bool, Allocator>;
+   template<
 
-   std::vector<bool> is a possibly space-efficient specialization of std::vector for
-   the type bool.
+       class T,                                                       \fB(1)\fP
+       class Allocator = std::allocator<T>
 
-   The manner in which std::vector<bool> is made space efficient (as well as whether it
-   is optimized at all) is implementation defined. One potential optimization involves
-   coalescing vector elements such that each element occupies a single bit instead of
-   sizeof(bool) bytes.
+   > class vector;
+   namespace pmr {
 
-   std::vector<bool> behaves similarly to std::vector, but in order to be space
-   efficient, it:
+       template< class T >
+       using vector = std::vector<T,                                  \fB(2)\fP \fI(since C++17)\fP
+   std::pmr::polymorphic_allocator<T>>;
 
-     * Does not necessarily store its elements as a contiguous array.
-     * Exposes class std::vector<bool>::reference as a method of accessing individual
-       bits. In particular, objects of this class are returned by operator[] by value.
-     * Does not use std::allocator_traits::construct to construct bit values.
-     * Does not guarantee that different elements in the same container can be modified
-       concurrently by different threads.
+   }
+
+   1) std::vector is a sequence container that encapsulates dynamic size arrays.
+   2) std::pmr::vector is an alias template that uses a polymorphic allocator.
+
+   The elements are stored contiguously, which means that elements can be accessed not
+   only through iterators, but also using offsets to regular pointers to elements. This
+   means that a pointer to an element of a vector may be passed to any function that
+   expects a pointer to an element of an array.
+
+   The storage of the vector is handled automatically, being expanded as needed.
+   Vectors usually occupy more space than static arrays, because more memory is
+   allocated to handle future growth. This way a vector does not need to reallocate
+   each time an element is inserted, but only when the additional memory is exhausted.
+   The total amount of allocated memory can be queried using capacity() function. Extra
+   memory can be returned to the system via a call to shrink_to_fit()^[1].
+
+   Reallocations are usually costly operations in terms of performance. The reserve()
+   function can be used to eliminate reallocations if the number of elements is known
+   beforehand.
+
+   The complexity (efficiency) of common operations on vectors is as follows:
+
+     * Random access - constant 𝓞\fB(1)\fP.
+     * Insertion or removal of elements at the end - amortized constant 𝓞\fB(1)\fP.
+     * Insertion or removal of elements - linear in the distance to the end of the
+       vector 𝓞(n).
+
+   std::vector (for T other than bool) meets the requirements of Container
+   , AllocatorAwareContainer
+   \fI(since C++11)\fP, SequenceContainer
+   , ContiguousContainer
+   \fI(since C++17)\fP and ReversibleContainer.
+
+   Member functions of std::vector are constexpr: it is possible to
+   create and use std::vector objects in the evaluation of a constant
+   expression.
+                                                                          \fI(since C++20)\fP
+   However, std::vector objects generally cannot be constexpr, because
+   any dynamically allocated storage must be released in the same
+   evaluation of constant expression.
+
+    1. ↑ In libstdc++, shrink_to_fit() is not available in C++98 mode.
+
+.SH Template parameters
+
+               The type of the elements.
+
+               T must meet the requirements of CopyAssignable and                 (until
+               CopyConstructible.                                                 C++11)
+               The requirements that are imposed on the elements depend on the    (since
+               actual operations performed on the container. Generally, it is     C++11)
+               required that element type is a complete type and meets the        (until
+               requirements of Erasable, but many member functions impose         C++17)
+               stricter requirements.
+               The requirements that are imposed on the elements depend on the
+               actual operations performed on the container. Generally, it is
+   T         - required that element type meets the requirements of Erasable, but
+               many member functions impose stricter requirements. This container
+               (but not its members) can be instantiated with an incomplete
+               element type if the allocator satisfies the allocator completeness (since
+               requirements.                                                      C++17)
+
+                         Feature-test macro             Value    Std    Feature
+                                                                       Minimal
+               __cpp_lib_incomplete_container_elements 201505L \fI(C++17)\fP incomplete
+                                                                       type
+                                                                       support
+
+
+               An allocator that is used to acquire/release memory and to
+               construct/destroy the elements in that memory. The type must meet the
+               requirements of Allocator.
+   Allocator - The behavior is undefined
+               \fI(until C++20)\fP
+               The program is ill-formed
+               \fI(since C++20)\fP if Allocator::value_type is not the same as T.
+
+.SH Specializations
+
+   The standard library provides a specialization of std::vector for the type bool,
+   which may be optimized for space efficiency.
+
+   vector<bool> space-efficient dynamic bitset
+                \fI(class template specialization)\fP
+
+   Iterator invalidation
+
+          Operations                                Invalidated
+   All read only operations Never.
+   swap, std::swap          end()
+   clear, operator=, assign Always.
+   reserve, shrink_to_fit   If the vector changed capacity, all of them. If not, none.
+   erase                    Erased elements and all elements after them (including
+                            end()).
+   push_back, emplace_back  If the vector changed capacity, all of them. If not, only
+                            end().
+                            If the vector changed capacity, all of them.
+   insert, emplace          If not, only those at or after the insertion point
+                            (including end()).
+   resize                   If the vector changed capacity, all of them. If not, only
+                            end() and any elements erased.
+   pop_back                 The element erased and end().
 
 .SH Member types
 
    Member type            Definition
-   value_type             bool
+   value_type             T
    allocator_type         Allocator
-   size_type              implementation-defined
-   difference_type        implementation-defined
-   reference              proxy class representing a reference to a single bool
-                          \fI(class)\fP
-   const_reference        bool
-   pointer                implementation-defined
-   const_pointer          implementation-defined
-   iterator               implementation-defined                   \fI(until C++20)\fP
-                          implementation-defined ConstexprIterator \fI(since C++20)\fP
-   const_iterator         implementation-defined                   \fI(until C++20)\fP
-                          implementation-defined ConstexprIterator \fI(since C++20)\fP
+   size_type              Unsigned integer type (usually std::size_t)
+   difference_type        Signed integer type (usually std::ptrdiff_t)
+   reference              value_type&
+   const_reference        const value_type&
+                          Allocator::pointer                        \fI(until C++11)\fP
+   pointer                std::allocator_traits<Allocator>::pointer \fI(since C++11)\fP
+
+
+                          Allocator::const_pointer                        \fI(until C++11)\fP
+   const_pointer          std::allocator_traits<Allocator>::const_pointer \fI(since C++11)\fP
+
+
+                          LegacyRandomAccessIterator and                  \fI(until C++20)\fP
+                          LegacyContiguousIterator to value_type
+                          LegacyRandomAccessIterator,
+   iterator               contiguous_iterator, and ConstexprIterator to   \fI(since C++20)\fP
+                          value_type
+
+
+                          LegacyRandomAccessIterator and                  \fI(until C++20)\fP
+                          LegacyContiguousIterator to const value_type
+                          LegacyRandomAccessIterator,
+   const_iterator         contiguous_iterator, and ConstexprIterator to   \fI(since C++20)\fP
+                          const value_type
+
+
    reverse_iterator       std::reverse_iterator<iterator>
    const_reverse_iterator std::reverse_iterator<const_iterator>
 
 .SH Member functions
 
    constructor   constructs the vector
-                 \fI(public member function of std::vector<T,Allocator>)\fP
+                 \fI(public member function)\fP
    destructor    destructs the vector
-                 \fI(public member function of std::vector<T,Allocator>)\fP
+                 \fI(public member function)\fP
    operator=     assigns values to the container
-                 \fI(public member function of std::vector<T,Allocator>)\fP
+                 \fI(public member function)\fP
    assign        assigns values to the container
-                 \fI(public member function of std::vector<T,Allocator>)\fP
+                 \fI(public member function)\fP
+   assign_range  assigns a range of values to the container
+   (C++23)       \fI(public member function)\fP
    get_allocator returns the associated allocator
-                 \fI(public member function of std::vector<T,Allocator>)\fP
+                 \fI(public member function)\fP
 .SH Element access
    at            access specified element with bounds checking
-                 \fI(public member function of std::vector<T,Allocator>)\fP
+                 \fI(public member function)\fP
    operator[]    access specified element
-                 \fI(public member function of std::vector<T,Allocator>)\fP
+                 \fI(public member function)\fP
    front         access the first element
-                 \fI(public member function of std::vector<T,Allocator>)\fP
+                 \fI(public member function)\fP
    back          access the last element
-                 \fI(public member function of std::vector<T,Allocator>)\fP
+                 \fI(public member function)\fP
+   data          direct access to the underlying contiguous storage
+                 \fI(public member function)\fP
 .SH Iterators
    begin         returns an iterator to the beginning
-   cbegin        \fI(public member function of std::vector<T,Allocator>)\fP
+   cbegin        \fI(public member function)\fP
    \fI(C++11)\fP
    end           returns an iterator to the end
-   cend          \fI(public member function of std::vector<T,Allocator>)\fP
+   cend          \fI(public member function)\fP
    \fI(C++11)\fP
    rbegin        returns a reverse iterator to the beginning
-   crbegin       \fI(public member function of std::vector<T,Allocator>)\fP
+   crbegin       \fI(public member function)\fP
    \fI(C++11)\fP
    rend          returns a reverse iterator to the end
-   crend         \fI(public member function of std::vector<T,Allocator>)\fP
+   crend         \fI(public member function)\fP
    \fI(C++11)\fP
 .SH Capacity
    empty         checks whether the container is empty
-                 \fI(public member function of std::vector<T,Allocator>)\fP
+                 \fI(public member function)\fP
    size          returns the number of elements
-                 \fI(public member function of std::vector<T,Allocator>)\fP
+                 \fI(public member function)\fP
    max_size      returns the maximum possible number of elements
-                 \fI(public member function of std::vector<T,Allocator>)\fP
+                 \fI(public member function)\fP
    reserve       reserves storage
-                 \fI(public member function of std::vector<T,Allocator>)\fP
+                 \fI(public member function)\fP
                  returns the number of elements that can be held in currently allocated
    capacity      storage
-                 \fI(public member function of std::vector<T,Allocator>)\fP
+                 \fI(public member function)\fP
+   shrink_to_fit reduces memory usage by freeing unused memory
+   (DR*)         \fI(public member function)\fP
 .SH Modifiers
    clear         clears the contents
-                 \fI(public member function of std::vector<T,Allocator>)\fP
-   insert        inserts elements
-                 \fI(public member function of std::vector<T,Allocator>)\fP
-   emplace       constructs element in-place
-   \fI(C++11)\fP       \fI(public member function of std::vector<T,Allocator>)\fP
-   erase         erases elements
-                 \fI(public member function of std::vector<T,Allocator>)\fP
-   push_back     adds an element to the end
-                 \fI(public member function of std::vector<T,Allocator>)\fP
-   emplace_back  constructs an element in-place at the end
-   \fI(C++11)\fP       \fI(public member function of std::vector<T,Allocator>)\fP
-   pop_back      removes the last element
-                 \fI(public member function of std::vector<T,Allocator>)\fP
-   resize        changes the number of elements stored
-                 \fI(public member function of std::vector<T,Allocator>)\fP
-   swap          swaps the contents
-                 \fI(public member function of std::vector<T,Allocator>)\fP
-.SH vector<bool> specific modifiers
-   flip          flips all the bits
                  \fI(public member function)\fP
-   swap          swaps two std::vector<bool>::references
-   \fB[static]\fP      \fI(public static member function)\fP
+   insert        inserts elements
+                 \fI(public member function)\fP
+   insert_range  inserts a range of elements
+   (C++23)       \fI(public member function)\fP
+   emplace       constructs element in-place
+   \fI(C++11)\fP       \fI(public member function)\fP
+   erase         erases elements
+                 \fI(public member function)\fP
+   push_back     adds an element to the end
+                 \fI(public member function)\fP
+   emplace_back  constructs an element in-place at the end
+   \fI(C++11)\fP       \fI(public member function)\fP
+   append_range  adds a range of elements to the end
+   (C++23)       \fI(public member function)\fP
+   pop_back      removes the last element
+                 \fI(public member function)\fP
+   resize        changes the number of elements stored
+                 \fI(public member function)\fP
+   swap          swaps the contents
+                 \fI(public member function)\fP
 
 .SH Non-member functions
 
@@ -122,7 +237,7 @@ std::vector \- std::vector
    operator<
    operator<=
    operator>
-   operator>=             lexicographically compares the values in the vector
+   operator>=             lexicographically compares the values of two vectors
    operator<=>            \fI(function template)\fP
    (removed in C++20)
    (removed in C++20)
@@ -132,36 +247,58 @@ std::vector \- std::vector
    (C++20)
    std::swap(std::vector) specializes the std::swap algorithm
                           \fI(function template)\fP
-   erase(std::vector)     Erases all elements satisfying specific criteria
+   erase(std::vector)     erases all elements satisfying specific criteria
    erase_if(std::vector)  \fI(function template)\fP
    (C++20)
 
-.SH Helper classes
-
-   std::hash<std::vector<bool>> hash support for std::vector<bool>
-   \fI(C++11)\fP                      \fI(class template specialization)\fP
-
-  Deduction guides \fI(C++17)\fP
+     Deduction guides \fI(since C++17)\fP
 
 .SH Notes
 
-   If the size of the bitset is known at compile time, std::bitset may be used, which
-   offers a richer set of member functions. In addition, boost::dynamic_bitset exists
-   as an alternative to std::vector<bool>.
+       Feature-test macro       Value    Std                   Feature
+   __cpp_lib_containers_ranges 202202L (C++23) Ranges construction and insertion for
+                                               containers
 
-   Since its representation may be optimized, std::vector<bool> does not necessarily
-   meet all Container or SequenceContainer requirements. For example, because
-   std::vector<bool>::iterator is implementation-defined, it may not satisfy the
-   LegacyForwardIterator requirement. Use of algorithms such as std::search that
-   require LegacyForwardIterators may result in either compile-time or run-time errors.
+.SH Example
 
-   The Boost.Container version of vector does not specialize for bool.
 
-  Defect reports
+// Run this code
+
+ #include <iostream>
+ #include <vector>
+
+ int main()
+ {
+     // Create a vector containing integers
+     std::vector<int> v = {8, 4, 5, 9};
+
+     // Add two more integers to vector
+     v.push_back(6);
+     v.push_back(9);
+
+     // Overwrite element at position 2
+     v[2] = -1;
+
+     // Print out the vector
+     for (int n : v)
+         std::cout << n << ' ';
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ 8 4 -1 9 6 9
+
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to              Behavior as published              Correct behavior
-   LWG 2187 C++11      specializations for bool lacked emplace and     added
-                       emplace_back member functions
+     DR    Applied to           Behavior as published               Correct behavior
+   LWG 69  C++98      contiguity of the storage for elements of  required
+                      vector was not required
+                      T was not required to be CopyConstructible T is also required to
+   LWG 230 C++98      (an element of type T might not be able to be CopyConstructible
+                      be constructed)
+   LWG 464 C++98      access to the underlying storage of an     data function provided
+                      empty vector resulted in UB

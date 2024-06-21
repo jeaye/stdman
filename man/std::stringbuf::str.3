@@ -1,4 +1,4 @@
-.TH std::basic_stringbuf::str 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_stringbuf::str 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_stringbuf::str \- std::basic_stringbuf::str
 
@@ -8,33 +8,18 @@ std::basic_stringbuf::str \- std::basic_stringbuf::str
    template<class SAlloc>
    std::basic_string<CharT, Traits, SAlloc> str( const SAlloc& a      \fB(2)\fP \fI(since C++20)\fP
    ) const;
-   std::basic_string<CharT, Traits, Allocator> str() &&;          \fB(1)\fP \fB(3)\fP \fI(since C++20)\fP
-   void str( const std::basic_string<CharT, Traits, Allocator>& s     \fB(4)\fP
+   std::basic_string<CharT, Traits, Allocator> str() &&;              \fB(3)\fP \fI(since C++20)\fP
+   void str( const std::basic_string<CharT, Traits, Allocator>& s \fB(1)\fP \fB(4)\fP
    );
    template<class SAlloc>                                             \fB(5)\fP \fI(since C++20)\fP
    void str( const std::basic_string<CharT, Traits, SAlloc>& s );
    void str( std::basic_string<CharT, Traits, Allocator>&& s );       \fB(6)\fP \fI(since C++20)\fP
+   template< class StringViewLike >                                   \fB(7)\fP (since C++26)
+   void str( const StringViewLike& t );
 
    Gets and sets the underlying string.
 
-   For the purpose of explanation, let buf_ denote the internal std::basic_string
-   object holding the underlying character sequence. Define buffer pointer
-   initialization as follows:
-
-     * For input streams (bool(mode & std::ios_base::in) == true), makes eback() point
-       at the first character, gptr() == eback(), and egptr() == eback() + buf_.size():
-       the subsequent input will read the first character of the string.
-     * For output streams (bool(mode & std::ios_base::out) == true), makes pbase()
-       points at the first character and epptr() >= pbase() + buf_.size() (epptr() is
-       allowed to point farther so that the following sputc() wouldn't immediately call
-       overflow()).
-
-         * For append streams (bool(mode & std::ios_base::ate) == true),
-           makes pptr() == pbase() + buf_.size(), so that subsequent      \fI(since C++11)\fP
-           output will be appended to the last character of the string.
-
-              * For non-appending output streams, makes pptr() == pbase(), so that
-                subsequent output will overwrite the characters of the string.
+   In the descriptions below, buf and mode are exposition-only data members of *this.
 
    1) Creates and returns a std::basic_string object containing a copy of this
    std::basic_stringbuf's underlying character sequence. For input-only streams, the
@@ -42,57 +27,69 @@ std::basic_stringbuf::str \- std::basic_stringbuf::str
    input/output or output-only streams, contains the characters from pbase() to the
    last character in the sequence regardless of egptr() and epptr().
 
-   The member character sequence in a buffer open for writing can be
-   over-allocated for efficiency purposes. In that case, only the
-   initialized characters are returned: these characters are the ones
-   that were obtained from the string argument of the constructor, the
-   string argument of the most recent call to a setter overload of str(), \fI(since C++11)\fP
-   or from an write operation. A typical implementation that uses
-   over-allocation maintains a high-watermark pointer to track the end of
-   the initialized part of the buffer and this overload returns the
-   characters from pbase() to the high-watermark pointer.
+   The member character sequence in a buffer open for writing can be over-allocated for
+   efficiency purposes. In that case, only the initialized characters are returned:
+   these characters are the ones that were obtained from the string argument of the
+   constructor, the string argument of the most recent call to a setter overload of
+   str(), or from a write operation. A typical implementation that uses over-allocation
+   maintains a high-watermark pointer to track the end of the initialized part of the
+   buffer and this overload returns the characters from pbase() to the high-watermark
+   pointer.
 
    Equivalent to return std::basic_string<CharT, Traits,                  \fI(since C++20)\fP
    Allocator>(view(), get_allocator());.
 
    2) Same as \fB(1)\fP, except that a is used to construct the returned std::basic_string.
-   Equivalent to return std::basic_string<CharT, Traits, SAlloc>(view(), a);. This
-   overload participates in overload resolution only if SAlloc meets the requirements
-   of Allocator.
-   3) Creates std::basic_string object as if initialized with std::move(buf_). buf_ may
-   need to be adjusted to contain the same content as in \fB(1)\fP at first. After
-   construction of the std::basic_string object, sets buf_ to empty and performs buffer
-   pointer initialization, then returns the std::basic_string object.
-   4) Replaces the underlying character sequence as if by buf_ = s, then performs
-   buffer pointer initialization.
-   5) Same as \fB(4)\fP, except the type of s's allocator is not Allocator. This overload
-   participates in overload resolution only if SAlloc and Allocator are not the same
-   type.
-   6) Replaces the underlying character sequence as if by buf_ = std::move(s), then
-   performs buffer pointer initialization.
+   Equivalent to return std::basic_string<CharT, Traits, SAlloc>(view(), a);.
+   This overload participates in overload resolution only if SAlloc meets the
+   requirements of Allocator.
+   3) Creates a std::basic_string object as if by move constructing it from *this's
+   underlying character sequence in buf. buf may need to be adjusted to contain the
+   same content as in \fB(1)\fP at first. After that, sets buf to empty and calls
+   init_buf_ptrs(), then returns the std::basic_string object.
+   4) Replaces the underlying character sequence as if by buf = s, then calls
+   init_buf_ptrs().
+   5) Same as \fB(4)\fP, except the type of s's allocator is not Allocator.
+   This overload participates in overload resolution only if std::is_same_v<SAlloc,
+   Allocator> is false.
+   6) Replaces the underlying character sequence as if by buf = std::move(s), then
+   calls init_buf_ptrs().
+   7) Implicitly converts t to a string view sv as if by std::basic_string_view<CharT,
+   Traits> sv = t;, then replaces the underlying character sequence as if by buf = sv,
+   then calls init_buf_ptrs().
+   This overload participates in overload resolution only if
+   std::is_convertible_v<const StringViewLike&,
+                         std::basic_string_view<CharT, Traits>> is true.
 
 .SH Parameters
 
-   s - a basic_string object holding the replacement character sequence
-   a - allocator to use for all memory allocations of the returned basic_string
+   s - a std::basic_string object holding the replacement character sequence
+   t - an object (convertible to std::basic_string_view) holding the replacement
+       character sequence
+   a - allocator to use for all memory allocations of the returned std::basic_string
 
 .SH Return value
 
-   1-3) A basic_string object holding this buffer's underlying character sequence.
-   4-6) \fI(none)\fP
+   1-3) A std::basic_string object holding this buffer's underlying character sequence.
+   4-7) \fI(none)\fP
 
 .SH Notes
 
    This function is typically accessed through std::basic_istringstream::str(),
    std::basic_ostringstream::str(), or std::basic_stringstream::str().
 
+           Feature-test macro          Value    Std                Feature
+   __cpp_lib_sstream_from_string_view 202306L (C++26) Interfacing string streams with
+                                                      std::string_view
+
 .SH Example
 
 
 // Run this code
 
- #include <sstream>
  #include <iostream>
+ #include <sstream>
+
  int main()
  {
      int n;
@@ -120,9 +117,25 @@ std::basic_stringbuf::str \- std::basic_stringbuf::str
  after writing the int '3' to output stream "1 2", str() = "3 2"
  after writing the int '3' to append stream "1 2", str() = "1 23"
 
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to            Behavior as published               Correct behavior
+                      1. overload \fB(1)\fP did not specify the content
+   LWG 432 C++98      of the underlying character sequence         both specified
+                      2. overload \fB(4)\fP did not specify how the
+                      input and output sequences are initialized
+                      overload \fB(4)\fP set epptr() to point one past
+   LWG 562 C++98      the last underlying                          epptr() can be set
+                      character if bool(mode & std::ios_base::out) beyond that position
+                      == true
+
 .SH See also
 
-   str     gets or sets the contents of underlying string device object
-           \fI(public member function of std::basic_stringstream<CharT,Traits,Allocator>)\fP
+           gets or sets the contents of underlying string device object
+   str     \fI(public member function of std::basic_stringstream<CharT,Traits,Allocator>)\fP
+
    view    obtains a view over the underlying character sequence
    (C++20) \fI(public member function)\fP

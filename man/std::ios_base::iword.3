@@ -1,4 +1,4 @@
-.TH std::ios_base::iword 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ios_base::iword 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ios_base::iword \- std::ios_base::iword
 
@@ -11,13 +11,14 @@ std::ios_base::iword \- std::ios_base::iword
 
    The reference may be invalidated by any operation on this ios_base object, including
    another call to iword(), but the stored values are retained, so that reading from
-   iword(index) with the same index later will produce the same value (until the next
-   call to std::basic_ios::copyfmt()). The value can be used for any purpose. The index
+   iword(index) with the same index later will produce the same value until the next
+   call to std::basic_ios::copyfmt(). The value can be used for any purpose. The index
    of the element must be obtained by a previous call to xalloc(), otherwise the
    behavior is undefined. New elements are initialized to 0.
 
-   If allocation fails, calls std::basic_ios<>::setstate(badbit) which may throw
-   std::ios_base::failure
+   If the function fails (possibly caused by an allocation failure) and *this is a base
+   class subobject of a basic_ios<> object or subobject, calls
+   std::basic_ios<>::setstate(badbit) which may throw std::ios_base::failure.
 
 .SH Notes
 
@@ -45,19 +46,21 @@ std::ios_base::iword \- std::ios_base::iword
  #include <iostream>
  #include <string>
 
- struct Foo {
+ struct Foo
+ {
      static int foo_xalloc;
      std::string data;
+
      Foo(const std::string& s) : data(s) {}
  };
 
- // allocates the iword storage for use with Foo objects
+ // Allocates the iword storage for use with Foo objects
  int Foo::foo_xalloc = std::ios_base::xalloc();
 
  // This user-defined operator<< prints the string in reverse if the iword holds 1
  std::ostream& operator<<(std::ostream& os, Foo& f)
  {
-     if(os.iword(Foo::foo_xalloc) == 1)
+     if (os.iword(Foo::foo_xalloc) == 1)
          return os << std::string(f.data.rbegin(), f.data.rend());
      else
          return os << f.data;
@@ -81,6 +84,20 @@ std::ios_base::iword \- std::ios_base::iword
  example
  elpmaxe
  example
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR   Applied to         Behavior as published               Correct behavior
+                     the stored value might not be         the stored value is retained
+   LWG 36 C++98      retained if the reference is          until the next call of
+                     invalidated                           copyfmt()
+                     the function set badbit by itself on  badbit is set by basic_ios
+   LWG 41 C++98      failure,                              (if *this is its base class
+                     but ios_base does not provide such    subobject)
+                     interface
 
 .SH See also
 

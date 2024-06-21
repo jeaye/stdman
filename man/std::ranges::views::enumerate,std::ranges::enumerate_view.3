@@ -1,0 +1,170 @@
+.TH std::ranges::views::enumerate,std::ranges::enumerate_view 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::views::enumerate,std::ranges::enumerate_view \- std::ranges::views::enumerate,std::ranges::enumerate_view
+
+.SH Synopsis
+   Defined in header <ranges>
+   template< ranges::view V >
+
+       requires /*range-with-movable-references*/<V>                  \fB(1)\fP (since C++23)
+   class enumerate_view
+
+       : public ranges::view_interface<enumerate_view<V>>
+   namespace views {
+
+       inline constexpr /* unspecified */ enumerate = /* unspecified  \fB(2)\fP (since C++23)
+   */;
+
+   }
+   Call signature
+   template< ranges::viewable_range R >
+
+       requires /* see below */                                           (since C++23)
+
+   constexpr /* see below */ enumerate( R&& r );
+   Helper concepts
+   template< class R >
+
+       concept /*range-with-movable-references*/ =
+           ranges::input_range<R> &&                                  \fB(3)\fP (exposition
+           std::move_constructible<ranges::range_reference_t<R>> &&       only*)
+
+
+   std::move_constructible<ranges::range_rvalue_reference_t<R>>;
+
+   1) enumerate_view is a range adaptor that takes a view and produces a view of
+   tuples. i^th element (the tuple) of the resulting sequence holds:
+     * the value equal to i, which is a zero-based index of the element of underlying
+       sequence, and
+     * the reference to the underlying element.
+   2) The name views::enumerate denotes a RangeAdaptorObject. Given a subexpression e,
+   the expression views::enumerate(e) is expression-equivalent to
+   enumerate_view<views::all_t<decltype((e))>>(e) for any suitable subexpression e.
+   3) Ensures that the reference type of the underlying type can be moved.
+
+   enumerate_view models the concepts random_access_range, bidirectional_range,
+   forward_range, input_range, common_range, and sized_range when the underlying view V
+   models respective concepts.
+
+.SH Member functions
+
+   constructor   constructs a enumerate_view
+   (C++23)       \fI(public member function)\fP
+   base          returns a copy of the underlying (adapted) view
+   (C++23)       \fI(public member function)\fP
+   begin         returns an iterator to the beginning
+   (C++23)       \fI(public member function)\fP
+   end           returns an iterator or a sentinel to the end
+   (C++23)       \fI(public member function)\fP
+   size          returns the number of elements. Provided only if the underlying
+   (C++23)       (adapted) range satisfies sized_range.
+                 \fI(public member function)\fP
+         Inherited from std::ranges::view_interface
+   empty         returns whether the derived view is empty. Provided if it satisfies
+   (C++20)       sized_range or forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   cbegin        returns a constant iterator to the beginning of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   cend          returns a sentinel for the constant iterator of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator bool returns whether the derived view is not empty. Provided if
+   (C++20)       ranges::empty is applicable to it.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   front         returns the first element in the derived view. Provided if it
+   (C++20)       satisfies forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   back          returns the last element in the derived view. Provided if it satisfies
+   (C++20)       bidirectional_range and common_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator[]    returns the n^th element in the derived view. Provided if it satisfies
+   (C++20)       random_access_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+
+   Deduction guides
+
+   Nested classes
+
+   iterator the iterator type
+   (C++23)  (exposition-only member class template*)
+   sentinel the sentinel type
+   (C++23)  (exposition-only member class template*)
+
+   Helper templates
+
+   template< class View >
+
+   constexpr bool enable_borrowed_range<ranges::enumerate_view<View>> =  (since C++23)
+
+       std::ranges::enable_borrowed_range<View>;
+
+   This specialization of std::ranges::enable_borrowed_range makes enumerate_view
+   satisfy borrowed_range when the underlying view satisfies it.
+
+.SH Notes
+
+       Feature-test macro      Value    Std             Feature
+   __cpp_lib_ranges_enumerate 202302L (C++23) std::ranges::enumerate_view
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <map>
+ #include <ranges>
+ #include <vector>
+
+ int main()
+ {
+     constexpr static auto v = {'A', 'B', 'C', 'D'};
+
+     for (auto const [index, letter] : std::views::enumerate(v))
+         std::cout << '(' << index << ':' << letter << ") ";
+     std::cout << '\\n';
+
+ #if __cpp_lib_ranges_to_container
+     // create a map using the position of each element as key
+     auto m = v | std::views::enumerate | std::ranges::to<std::map>();
+
+     for (auto const [key, value] : m)
+         std::cout << '[' << key << "]:" << value << ' ';
+     std::cout << '\\n';
+ #endif
+
+     std::vector<int> numbers{1, 3, 5, 7};
+
+     // num is mutable even with const, which does not propagate to reference
+     // to make it const, use `std::views::enumerate(numbers) | std::views::as_const`
+     // or `std::views::enumerate(std::as_const(numbers))`
+     for (auto const [index, num] : std::views::enumerate(numbers))
+     {
+         ++num; // the type is int&
+         std::cout << numbers[index] << ' ';
+     }
+     std::cout << '\\n';
+ }
+
+.SH Possible output:
+
+ (0:A) (1:B) (2:C) (3:D)
+ [0]:A [1]:B [2]:C [3]:D
+ 2 4 6 8
+
+.SH References
+
+     * C++23 standard (ISO/IEC 14882:2023):
+
+     * 26.7.23 Enumerate view [range.enumerate]
+
+.SH See also
+
+   ranges::iota_view     a view consisting of a sequence generated by repeatedly
+   views::iota           incrementing an initial value
+   (C++20)               \fI(class template)\fP (customization point object)
+   ranges::zip_view      a view consisting of tuples of references to corresponding
+   views::zip            elements of the adapted views
+   (C++23)               \fI(class template)\fP (customization point object)
+   ranges::elements_view takes a view consisting of tuple-like values and a number N
+   views::elements       and produces a view of N^th element of each tuple
+   (C++20)               \fI(class template)\fP (range adaptor object)

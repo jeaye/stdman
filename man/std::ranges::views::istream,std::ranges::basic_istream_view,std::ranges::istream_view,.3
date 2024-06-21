@@ -1,0 +1,143 @@
+.TH std::ranges::views::istream,std::ranges::basic_istream_view,std::ranges::istream_view, 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::views::istream,std::ranges::basic_istream_view,std::ranges::istream_view, \- std::ranges::views::istream,std::ranges::basic_istream_view,std::ranges::istream_view,
+
+.SH Synopsis
+
+   Defined in header <ranges>
+   template< std::movable Val, class CharT, class Traits =
+   std::char_traits<CharT> >
+
+       requires std::default_initializable<Val> &&
+                /*stream-extractable*/<Val,CharT,Traits>              \fB(1)\fP \fI(since C++20)\fP
+   class basic_istream_view
+
+       : public
+   ranges::view_interface<basic_istream_view<Val,CharT,Traits>>
+   Helper templates
+   template< class Val >                                              \fB(2)\fP \fI(since C++20)\fP
+   using istream_view = ranges::basic_istream_view<Val, char>;
+   template< class Val >                                              \fB(3)\fP \fI(since C++20)\fP
+   using wistream_view = ranges::basic_istream_view<Val, wchar_t>;
+   Customization point objects
+   namespace views {
+
+       template< class T >                                            \fB(4)\fP \fI(since C++20)\fP
+       inline constexpr /*unspecified*/ istream = /*unspecified*/;
+
+   }
+   Helper concepts
+   template< class Val, class CharT, class Traits >
+
+   concept /*stream-extractable*/ =                                       (exposition
+       requires(std::basic_istream<CharT,Traits>& is, Val& t) {       \fB(5)\fP only*)
+           is >> t;
+
+       };
+
+   1) A range factory that generates a sequence of elements by repeatedly calling
+   operator>>.
+   2,3) Convenience alias templates for character types char and wchar_t.
+   4) views::istream<T>(e) is expression-equivalent to (has the same effect as)
+   ranges::basic_istream_view<T, typename U::char_type, typename U::traits_type>(e) for
+   any suitable subexpressions e, where U is std::remove_reference_t<decltype(e)>. The
+   program is ill-formed if U is not both publicly and unambiguously derived from
+   std::basic_istream<typename U::char_type, typename U::traits_type>, which may result
+   in a substitution failure.
+   5) The exposition-only concept /*stream-extractable*/<Val,CharT,Traits> is satisfied
+   when lvalue of Val can be extracted from lvalue of std::basic_istream<CharT,Traits>.
+
+   The iterator type of basic_istream_view is move-only: it does not meet the
+   LegacyIterator requirements, and thus does not work with pre-C++20 algorithms.
+
+.SH Member functions
+
+   constructor   constructs a basic_istream_view
+                 \fI(public member function)\fP
+   begin         returns an iterator
+                 \fI(public member function)\fP
+   end           returns std::default_sentinel
+                 \fI(public member function)\fP
+         Inherited from std::ranges::view_interface
+                 although basic_istream_view is derived from
+   \fI(none)\fP        std::ranges::view_interface, it cannot use any of inherited member
+                 functions.
+
+std::ranges::basic_istream_view::basic_istream_view
+
+   constexpr explicit                                                    \fI(since C++20)\fP
+       basic_istream_view( std::basic_istream<CharT, Traits>& stream );
+
+   Initializes the stored pointer to stream with std::addressof(stream), and
+   value-initializes the stored value of Val.
+
+std::ranges::basic_istream_view::begin
+
+   constexpr auto begin();  \fI(since C++20)\fP
+
+   Equivalent to *stream_ >> value_; return /*iterator*/{*this};, where stream_ is the
+   stored pointer to stream and value_ is the stored value of Val.
+
+std::ranges::basic_istream_view::end
+
+   constexpr std::default_sentinel_t end() const noexcept;  \fI(since C++20)\fP
+
+   Equivalent to return std::default_sentinel;.
+
+   Nested classes
+
+   iterator the iterator type of basic_istream_view
+   (C++20)  (exposition-only member class*)
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <iomanip>
+ #include <iostream>
+ #include <iterator>
+ #include <ranges>
+ #include <sstream>
+ #include <string>
+
+ int main()
+ {
+     auto words = std::istringstream{"today is yesterday’s tomorrow"};
+     for (const auto& s : std::views::istream<std::string>(words))
+         std::cout << std::quoted(s, '/') << ' ';
+     std::cout << '\\n';
+
+     auto floats = std::istringstream{"1.1  2.2\\t3.3\\v4.4\\f55\\n66\\r7.7  8.8"};
+     std::ranges::copy(
+         std::views::istream<float>(floats),
+         std::ostream_iterator<float>{std::cout, ", "}
+     );
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ /today/ /is/ /yesterday’s/ /tomorrow/
+ 1.1, 2.2, 3.3, 4.4, 55, 66, 7.7, 8.8,
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to        Behavior as published              Correct behavior
+                       default constructor was provided as  removed along with the
+   P2325R3  C++20      view                                 requirement
+                       must be default_initializable
+   LWG 3568 C++20      P2325R3 accidentally made the stored restored to
+                       value default-initialized            value-initialization
+                       ranges::istream_view was a function  made an alias template;
+   P2432R1  C++20      template and                         customization point objects
+                       did not follow the naming convention added
+
+.SH See also
+
+   istream_iterator input iterator that reads from std::basic_istream
+                    \fI(class template)\fP

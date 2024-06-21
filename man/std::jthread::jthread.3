@@ -1,51 +1,59 @@
-.TH std::jthread::jthread 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::jthread::jthread 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::jthread::jthread \- std::jthread::jthread
 
 .SH Synopsis
-   jthread() noexcept;                               \fB(1)\fP \fI(since C++20)\fP
-   jthread( jthread&& other ) noexcept;              \fB(2)\fP \fI(since C++20)\fP
-   template< class Function, class... Args >         \fB(3)\fP \fI(since C++20)\fP
-   explicit jthread( Function&& f, Args&&... args );
-   jthread( const jthread& ) = delete;               \fB(4)\fP \fI(since C++20)\fP
+   jthread() noexcept;                        \fB(1)\fP \fI(since C++20)\fP
+   jthread( jthread&& other ) noexcept;       \fB(2)\fP \fI(since C++20)\fP
+   template< class F, class... Args >         \fB(3)\fP \fI(since C++20)\fP
+   explicit jthread( F&& f, Args&&... args );
+   jthread( const jthread& ) = delete;        \fB(4)\fP \fI(since C++20)\fP
 
-   Constructs new jthread object.
+   Constructs new std::jthread object.
 
-   1) Creates new jthread object which does not represent a thread.
-   2) Move constructor. Constructs the jthread object to represent the thread of
+   1) Creates new std::jthread object which does not represent a thread.
+   2) Move constructor. Constructs the std::jthread object to represent the thread of
    execution that was represented by other. After this call other no longer represents
    a thread of execution.
-   3) Creates new jthread object and associates it with a thread of execution. The new
-   thread of execution starts executing
+   3) Creates new std::jthread object and associates it with a thread of execution.
 
-     * std::invoke(std::move(f_copy), get_stop_token(), std::move(args_copy)...), if
-       the expression is valid; otherwise, it starts executing
-     * std::invoke(std::move(f_copy), std::move(args_copy)...).
+   The new thread of execution starts executing:
 
-   In either case,
+   std::invoke(decay-copy(std::forward<F>(f)), get_stop_token(), (until C++23)
+               decay-copy(std::forward<Args>(args))...)
+   std::invoke(auto(std::forward<F>(f)), get_stop_token(),       (since C++23)
+               auto(std::forward<Args>(args))...)
 
-     * f_copy is an object of type std::decay_t<Function> and constructed from
-       std::forward<Function>(f), and
-     * args_copy... are objects of types std::decay_t<Args>... and constructed from
-       std::forward<Args>(args)....
+   if the expression above is well-formed, otherwise starts executing:
 
-   Constructions of these objects are executed in the context of the caller, so that
-   any exceptions thrown during evaluation and copying/moving of the arguments are
-   thrown in the current thread, without starting the new thread. The program is
-   ill-formed if any construction or the std::invoke call is invalid.
-   This constructor does not participate in overload resolution if
-   std::remove_cvref_t<Function> is the same type as jthread.
-   The completion of the invocation of the constructor synchronizes-with (as defined in
-   std::memory_order) the beginning of the invocation of the copy of f on the new
-   thread of execution.
+   std::invoke(decay-copy(std::forward<F>(f)),           (until C++23)
+               decay-copy(std::forward<Args>(args))...).
+   std::invoke(auto(std::forward<F>(f)),                 (since C++23)
+               auto(std::forward<Args>(args))...).
+
+   The calls of decay-copy are evaluated
+   (until C++23)
+   The values produced by auto are materialized
+   (since C++23) in the current thread, so that any exceptions thrown during evaluation
+   and copying/moving of the arguments are thrown in the current thread, without
+   starting the new thread.
+   These overloads participate in overload resolution only if std::remove_cvref_t<F> is
+   not the same type as std::jthread.
+   If any of the following is false, the program is ill-formed:
+     * std::is_constructible_v<std::decay_t<F>, F>
+     * (std::is_constructible_v<std::decay_t<Args>, Args> && ...)
+     * std::is_invocable_v<std::decay_t<F>, std::decay_t<Args>...> ||
+       std::is_invocable_v<std::decay_t<F>, std::stop_token, std::decay_t<Args>...>
+   The completion of the invocation of the constructor synchronizes with the beginning
+   of the invocation of the copy of f on the new thread of execution.
    4) The copy constructor is deleted; threads are not copyable. No two std::jthread
    objects may represent the same thread of execution.
 
 .SH Parameters
 
-   other   - another jthread object to construct this jthread object with
-   f       - Callable object to execute in the new thread
-   args... - arguments to pass to the new function
+   other - another std::jthread object to construct this std::jthread object with
+   f     - Callable object to execute in the new thread
+   args  - arguments to pass to the new function
 
 .SH Postconditions
 
@@ -77,15 +85,17 @@ std::jthread::jthread \- std::jthread::jthread
 
 // Run this code
 
- #include <iostream>
- #include <utility>
- #include <thread>
  #include <chrono>
+ #include <iostream>
+ #include <thread>
+ #include <utility>
+
  using namespace std::literals;
 
  void f1(int n)
  {
-     for (int i = 0; i < 5; ++i) {
+     for (int i = 0; i < 5; ++i)
+     {
          std::cout << "Thread 1 executing\\n";
          ++n;
          std::this_thread::sleep_for(10ms);
@@ -94,7 +104,8 @@ std::jthread::jthread \- std::jthread::jthread
 
  void f2(int& n)
  {
-     for (int i = 0; i < 5; ++i) {
+     for (int i = 0; i < 5; ++i)
+     {
          std::cout << "Thread 2 executing\\n";
          ++n;
          std::this_thread::sleep_for(10ms);
@@ -106,7 +117,8 @@ std::jthread::jthread \- std::jthread::jthread
  public:
      void bar()
      {
-         for (int i = 0; i < 5; ++i) {
+         for (int i = 0; i < 5; ++i)
+         {
              std::cout << "Thread 3 executing\\n";
              ++n;
              std::this_thread::sleep_for(10ms);
@@ -120,7 +132,8 @@ std::jthread::jthread \- std::jthread::jthread
  public:
      void operator()()
      {
-         for (int i = 0; i < 5; ++i) {
+         for (int i = 0; i < 5; ++i)
+         {
              std::cout << "Thread 4 executing\\n";
              ++n;
              std::this_thread::sleep_for(10ms);
@@ -173,9 +186,25 @@ std::jthread::jthread \- std::jthread::jthread
  Thread 2 executing
  Final value of n is 5
  Final value of f.n (foo::n) is 5
- Final value of b.n (bar::n) is 0
+ Final value of b.n (baz::n) is 0
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+                       overload \fB(3)\fP directly required (the decayed
+   LWG 3476 C++20      types of)                                       removed these
+                       F and the argument types to be move             requirements^[1]
+                       constructible
+
+    1. ↑ The move-constructibility is already indirectly required by
+       std::is_constructible_v.
 
 .SH See also
 
    constructor   constructs new thread object
                  \fI(public member function of std::thread)\fP
+   C documentation for
+   thrd_create

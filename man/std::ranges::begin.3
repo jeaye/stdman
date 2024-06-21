@@ -1,19 +1,20 @@
-.TH std::ranges::begin 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::begin 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::begin \- std::ranges::begin
 
 .SH Synopsis
    Defined in header <ranges>
-   inline namespace /*unspecified*/ {
+   Defined in header <iterator>
+   inline namespace /* unspecified */ {
 
-   inline constexpr /*unspecified*/ begin =                \fI(since C++20)\fP
-   /*unspecified*/;                                        (customization point object)
+       inline constexpr /* unspecified */ begin = /*       \fI(since C++20)\fP
+   unspecified */;                                         (customization point object)
 
    }
    Call signature
    template< class T >
 
-   requires /* see below */                                \fI(since C++20)\fP
+       requires /* see below */                            \fI(since C++20)\fP
 
    constexpr std::input_or_output_iterator auto begin(
    T&& t );
@@ -26,59 +27,25 @@ std::ranges::begin \- std::ranges::begin
    is true, then a call to ranges::begin is expression-equivalent to:
 
     1. t + 0 if t has an array type.
-
-                    If std::remove_all_extents_t<std::remove_reference_t<T>> is
-                    incomplete, then the call to ranges::begin is ill-formed, no
-                    diagnostic required.
-
-    2. Otherwise, t.begin() converted to its decayed type, if that expression with
-       conversion is valid, and its converted type models
+          * If std::remove_all_extents_t<std::remove_reference_t<T>> is incomplete,
+            then the call to ranges::begin is ill-formed, no diagnostic required.
+    2. Otherwise,
+       decay-copy(t.begin())
+       (until C++23)
+       auto(t.begin())
+       (since C++23), if that expression is valid and its type models
        std::input_or_output_iterator.
-    3. Otherwise, begin(t) converted to its decayed type, if t has a class or
-       enumeration type, the aforementioned unqualified call with conversion is valid,
-       and its converted type models std::input_or_output_iterator, where the overload
-       resolution is performed with the following candidates:
-
-          * any declarations of begin found by argument-dependent lookup.
-          * void begin(auto&) = delete;
-          * void begin(const auto&) = delete;
+    3. Otherwise,
+       decay-copy(begin(t))
+       (until C++23)
+       auto(begin(t))
+       (since C++23), if T is a class or enumeration type, that expression is valid and
+       its type models std::input_or_output_iterator, where the meaning of begin is
+       established as if by performing argument-dependent lookup only.
 
    In all other cases, a call to ranges::begin is ill-formed, which can result in
    substitution failure when the call appears in the immediate context of a template
    instantiation.
-
-  Expression-equivalent
-
-   Expression e is expression-equivalent to expression f, if
-
-     * e and f have the same effects, and
-     * either both are constant subexpressions or else neither is a constant
-       subexpression, and
-     * either both are potentially-throwing or else neither is potentially-throwing
-       (i.e. noexcept(e) == noexcept(f)).
-
-  Customization point objects
-
-   The name ranges::begin denotes a customization point object, which is a const
-   function object of a literal semiregular class type. For exposition purposes, the
-   cv-unqualified version of its type is denoted as __begin_fn.
-
-   All instances of __begin_fn are equal. The effects of invoking different instances
-   of type __begin_fn on the same arguments are equivalent, regardless of whether the
-   expression denoting the instance is an lvalue or rvalue, and is const-qualified or
-   not (however, a volatile-qualified instance is not required to be invocable). Thus,
-   ranges::begin can be copied freely and its copies can be used interchangeably.
-
-   Given a set of types Args..., if std::declval<Args>()... meet the requirements for
-   arguments to ranges::begin above, __begin_fn models
-
-     * std::invocable<__begin_fn, Args...>,
-     * std::invocable<const __begin_fn, Args...>,
-     * std::invocable<__begin_fn&, Args...>, and
-     * std::invocable<const __begin_fn&, Args...>.
-
-   Otherwise, no function call operator of __begin_fn participates in overload
-   resolution.
 
 .SH Notes
 
@@ -98,27 +65,35 @@ std::ranges::begin \- std::ranges::begin
 
 // Run this code
 
- #include <iostream>
- #include <vector>
+ #include <cassert>
  #include <ranges>
+ #include <vector>
 
  int main()
  {
-     std::vector<int> v = { 3, 1, 4 };
+     std::vector v{3, 1, 4};
      auto vi = std::ranges::begin(v);
-     std::cout << *vi << '\\n';
-     *vi = 42; // OK
+     auto vci = std::ranges::cbegin(v);
+     assert(*vi == 3 and *vi == *vci);
+     ++vi;
+     ++vci; // OK: vci is modifiable object
+     *vi = 42; // OK: vi points to mutable element
+     // *vci = 13; // Error: vci points to immutable element
 
-     int a[] = { -5, 10, 15 };
-     auto ai = std::ranges::begin(a);
-     std::cout << *ai << '\\n';
+     int a[]{-5, 10, 15};
+     auto ai = std::ranges::begin(a); // works with C-arrays as well
+     assert(*ai == -5);
      *ai = 42; // OK
  }
 
-.SH Output:
+   Defect reports
 
- 3
- -5
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to           Behavior as published               Correct behavior
+   P2602R2 C++20      there's machinery to prohibit certain      removed such machinery
+                      non-member begin found by ADL
 
 .SH See also
 

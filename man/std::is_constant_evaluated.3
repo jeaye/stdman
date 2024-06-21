@@ -1,4 +1,4 @@
-.TH std::is_constant_evaluated 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_constant_evaluated 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_constant_evaluated \- std::is_constant_evaluated
 
@@ -11,29 +11,21 @@ std::is_constant_evaluated \- std::is_constant_evaluated
    expression or conversion that is manifestly constant-evaluated; otherwise returns
    false.
 
-   While testing whether initializers of following variables are constant initializers,
-   compilers may first perform a trial constant evaluation of the initializers:
+   To determine whether initializers of following variables are manifestly
+   constant-evaluated, compilers may first perform a trial constant evaluation:
 
-     * variables with reference type or const-qualified integral or enumeration type
-
-          * if the initializers are constant expressions, the variables are usable in
-            constant expressions
-
-     * static and thread local variables
-
-          * if when all subexpressions of the initializers (including constructor calls
-            and implicit conversions) are constant expressions, static initialization
-            is performed, which can be asserted by constinit
+     * variables with reference type or const-qualified integral or enumeration type;
+     * static and thread local variables.
 
    It is not recommended to depend on the result in this case.
 
- int y;
+ int y = 0;
  const int a = std::is_constant_evaluated() ? y : 1;
  // Trial constant evaluation fails. The constant evaluation is discarded.
  // Variable a is dynamically initialized with 1
 
  const int b = std::is_constant_evaluated() ? 2 : y;
- // Constant evaluation with std::is_constant_evaluation() == true succeeds.
+ // Constant evaluation with std::is_constant_evaluated() == true succeeds.
  // Variable b is statically initialized with 2
 
 .SH Parameters
@@ -50,10 +42,12 @@ std::is_constant_evaluated \- std::is_constant_evaluated
    // This implementation requires C++23 if consteval.
    constexpr bool is_constant_evaluated() noexcept
    {
-       if consteval {
+       if consteval
+       {
            return true;
        }
-       else {
+       else
+       {
            return false;
        }
    }
@@ -64,34 +58,39 @@ std::is_constant_evaluated \- std::is_constant_evaluated
    statement, std::is_constant_evaluated() always returns true.
 
    Because if consteval is absent in C++20, std::is_constant_evaluated is typically
-   implemented by a compiler extension.
+   implemented using a compiler extension.
 
-   Feature-test macro: __cpp_lib_is_constant_evaluated
+         Feature-test macro         Value    Std            Feature
+   __cpp_lib_is_constant_evaluated 201811L (C++20) std::is_constant_evaluated
 
 .SH Example
 
 
 // Run this code
 
- #include <type_traits>
  #include <cmath>
  #include <iostream>
+ #include <type_traits>
 
  constexpr double power(double b, int x)
  {
-     if (std::is_constant_evaluated() && !(b == 0.0 && x < 0)) {
+     if (std::is_constant_evaluated() && !(b == 0.0 && x < 0))
+     {
          // A constant-evaluation context: Use a constexpr-friendly algorithm.
          if (x == 0)
              return 1.0;
-         double r = 1.0, p = x > 0 ? b : 1.0 / b;
-         auto u = unsigned(x > 0 ? x : -x);
-         while (u != 0) {
-             if (u & 1) r *= p;
-             u /= 2;
+         double r {1.0};
+         double p {x > 0 ? b : 1.0 / b};
+         for (auto u = unsigned(x > 0 ? x : -x); u != 0; u /= 2)
+         {
+             if (u & 1)
+                 r *= p;
              p *= p;
          }
          return r;
-     } else {
+     }
+     else
+     {
          // Let the code generator figure it out.
          return std::pow(b, double(x));
      }

@@ -1,4 +1,4 @@
-.TH std::char_traits 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::char_traits 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::char_traits \- std::char_traits
 
@@ -6,7 +6,7 @@ std::char_traits \- std::char_traits
    Defined in header <string>
    template<
 
-   class CharT
+       class CharT
 
    > class char_traits;
 
@@ -17,56 +17,43 @@ std::char_traits \- std::char_traits
    just by supplying a customized char_traits class.
 
    The char_traits class template serves as a basis for explicit instantiations. The
-   user can provide a specialization for any custom character types. Several
-   specializations are defined for the standard character types.
+   user can provide a specialization for any custom character types. Several explicit
+   specializations are provided for the standard character types (see below), other
+   specializations are not required to satisfy the requirements of CharTraits.
 
-   If an operation on traits emits an exception, the behavior is undefined.
+.SH Specializations
 
-.SH Standard specializations
+   The standard library provides the following standard specializations:
 
-   Member typedefs of standard specializations are as follows.
+   Defined in header <string>
+   std::char_traits<char>             the standard character traits of char
+   std::char_traits<wchar_t>          the standard character traits of wchar_t
+   std::char_traits<char8_t> (C++20)  the standard character traits of char8_t
+   std::char_traits<char16_t> \fI(C++11)\fP the standard character traits of char16_t
+   std::char_traits<char32_t> \fI(C++11)\fP the standard character traits of char32_t
 
-             Specialization           char_type      int_type           pos_type
-   std::char_traits<char>             char      int                 std::streampos
-   std::char_traits<wchar_t>          wchar_t   std::wint_t         std::wstreampos
-   std::char_traits<char16_t> \fI(C++11)\fP char16_t  std::uint_least16_t std::u16streampos
-   std::char_traits<char32_t> \fI(C++11)\fP char32_t  std::uint_least32_t std::u32streampos
-   std::char_traits<char8_t> (C++20)  char8_t   unsigned int        std::u8streampos
-
-           Member type         Definition (same among all standard specializations)
-   off_type                    std::streamoff
-   state_type                  std::mbstate_t
-   comparison_category (C++20) std::strong_ordering
-
-   The semantics of the member functions of standard specializations are defined are as
-   follows.
-
-             Specialization           assign       eq            lt            eof
-   std::char_traits<char>             =      == for         < for         EOF
-                                             unsigned char  unsigned char
-   std::char_traits<wchar_t>          =      ==             <             WEOF
-                                                                          invalid
-   std::char_traits<char16_t> \fI(C++11)\fP =      ==             <             UTF-16 code
-                                                                          unit
-                                                                          invalid
-   std::char_traits<char32_t> \fI(C++11)\fP =      ==             <             UTF-32 code
-                                                                          unit
-   std::char_traits<char8_t> (C++20)  =      ==             <             invalid UTF-8
-                                                                          code unit
-
-   Standard specializations of char_traits class template satisfy the requirements of
-   CharTraits.
+   All these specializations satisfy the requirements of CharTraits.
 
 .SH Member types
 
-   Type       Definition
-   char_type  CharT
-   int_type   an integer type that can hold all values of char_type plus EOF
-   off_type   implementation-defined
-   pos_type   implementation-defined
-   state_type implementation-defined
+   The standard specializations define the following member types required by
+   CharTraits:
+
+  CharT                                          Member type
+            char_type        int_type            off_type          pos_type          state_type
+char       char        int                                    std::streampos
+wchar_t    wchar_t     std::wint_t                            std::wstreampos
+char8_t    char8_t     unsigned int           std::streamoff  std::u8streampos     std::mbstate_t
+ char16_t  char16_t     std::uint_least16_t                    std::u16streampos
+char32_t   char32_t    std::uint_least32_t                    std::u32streampos
+
+   On top of that, the standard specializations also define the member    \fI(since C++20)\fP
+   type comparison_category as std::strong_ordering.
 
 .SH Member functions
+
+   The standard specializations define the following static member functions required
+   by CharTraits:
 
    assign       assigns a character
    \fB[static]\fP     \fI(public static member function)\fP
@@ -94,39 +81,61 @@ std::char_traits \- std::char_traits
    not_eof      checks whether a character is eof value
    \fB[static]\fP     \fI(public static member function)\fP
 
+.SH Notes
+
+   CharTraits does not require defining the types and functions listed above as direct
+   members, it only requires types like X::type and expressions like X::func(args) are
+   valid and have the required semantics. Users-defined character traits can be derived
+   from other character traits classes and only override some of their members, see the
+   example below.
+
 .SH Example
 
-   User-defined character traits may be used to provide case-insensitive comparison
+   User-defined character traits may be used to provide case-insensitive comparison:
 
 
 // Run this code
 
+ #include <cctype>
+ #include <iostream>
  #include <string>
  #include <string_view>
- #include <iostream>
- #include <cctype>
 
- struct ci_char_traits : public std::char_traits<char> {
-     static char to_upper(char ch) {
+ struct ci_char_traits : public std::char_traits<char>
+ {
+     static char to_upper(char ch)
+     {
          return std::toupper((unsigned char) ch);
      }
-     static bool eq(char c1, char c2) {
-          return to_upper(c1) == to_upper(c2);
-      }
-     static bool lt(char c1, char c2) {
-          return to_upper(c1) <  to_upper(c2);
+
+     static bool eq(char c1, char c2)
+     {
+         return to_upper(c1) == to_upper(c2);
      }
-     static int compare(const char* s1, const char* s2, std::size_t n) {
-         while ( n-- != 0 ) {
-             if ( to_upper(*s1) < to_upper(*s2) ) return -1;
-             if ( to_upper(*s1) > to_upper(*s2) ) return 1;
-             ++s1; ++s2;
+
+     static bool lt(char c1, char c2)
+     {
+          return to_upper(c1) < to_upper(c2);
+     }
+
+     static int compare(const char* s1, const char* s2, std::size_t n)
+     {
+         while (n-- != 0)
+         {
+             if (to_upper(*s1) < to_upper(*s2))
+                 return -1;
+             if (to_upper(*s1) > to_upper(*s2))
+                 return 1;
+             ++s1;
+             ++s2;
          }
          return 0;
      }
-     static const char* find(const char* s, std::size_t n, char a) {
-         auto const ua (to_upper(a));
-         while ( n-- != 0 )
+
+     static const char* find(const char* s, std::size_t n, char a)
+     {
+         const auto ua{to_upper(a)};
+         while (n-- != 0)
          {
              if (to_upper(*s) == ua)
                  return s;
@@ -160,5 +169,15 @@ std::char_traits \- std::char_traits
 
 .SH See also
 
-   basic_string stores and manipulates sequences of characters
-                \fI(class template)\fP
+   basic_string      stores and manipulates sequences of characters
+                     \fI(class template)\fP
+   basic_string_view read-only string view
+   \fI(C++17)\fP           \fI(class template)\fP
+                     wraps a given abstract device (std::basic_streambuf)
+   basic_istream     and provides high-level input interface
+                     \fI(class template)\fP
+                     wraps a given abstract device (std::basic_streambuf)
+   basic_ostream     and provides high-level output interface
+                     \fI(class template)\fP
+   basic_streambuf   abstracts a raw device
+                     \fI(class template)\fP

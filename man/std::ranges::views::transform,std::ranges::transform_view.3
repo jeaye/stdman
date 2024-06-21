@@ -1,4 +1,4 @@
-.TH std::ranges::views::transform,std::ranges::transform_view 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::views::transform,std::ranges::transform_view 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::views::transform,std::ranges::transform_view \- std::ranges::views::transform,std::ranges::transform_view
 
@@ -6,23 +6,38 @@ std::ranges::views::transform,std::ranges::transform_view \- std::ranges::views:
    Defined in header <ranges>
    template< ranges::input_range V,
 
-   std::copy_constructible F >
-   requires ranges::view<V> &&
-   std::is_object_v<F> &&                                             \fB(1)\fP \fI(since C++20)\fP
-   std::regular_invocable<F&, ranges::range_reference_t<V>> &&
-   /* invoke_result_t<F&, range_reference_t<V>>& is a valid type */
+             std::copy_constructible F >
+       requires ranges::view<V> &&
+                std::is_object_v<F> &&
+                std::regular_invocable<F&,                                \fI(since C++20)\fP
+   ranges::range_reference_t<V>> &&                                       (until C++23)
+                /* invoke_result_t<F&, range_reference_t<V>>& is
+   a valid type */
+   class transform_view
 
-   class transform_view : public
-   ranges::view_interface<transform_view<V, F>>
+       : public ranges::view_interface<transform_view<V, F>>
+   template< ranges::input_range V,
+
+             std::move_constructible F >
+       requires ranges::view<V> &&
+                std::is_object_v<F> &&
+                std::regular_invocable<F&,                                (since C++23)
+   ranges::range_reference_t<V>> &&                               \fB(1)\fP
+                /* invoke_result_t<F&, range_reference_t<V>>& is
+   a valid type */
+   class transform_view
+
+       : public ranges::view_interface<transform_view<V, F>>
    namespace views {
 
-   inline constexpr /*unspecified*/ transform = /*unspecified*/;      \fB(2)\fP \fI(since C++20)\fP
+       inline constexpr /*unspecified*/ transform =                   \fB(2)\fP \fI(since C++20)\fP
+   /*unspecified*/;
 
    }
    Call signature
    template< ranges::viewable_range R, class F >
 
-   requires /* see below */                                               \fI(since C++20)\fP
+       requires /* see below */                                           \fI(since C++20)\fP
 
    constexpr ranges::view auto transform( R&& r, F&& fun );
    template< class F >                                                    \fI(since C++20)\fP
@@ -30,23 +45,13 @@ std::ranges::views::transform,std::ranges::transform_view \- std::ranges::views:
 
    1) A range adaptor that represents view of an underlying sequence after applying a
    transformation function to each element.
-   2) Range adaptor object. The expression views::transform(e, f) is
+   2) RangeAdaptorObject. The expression views::transform(e, f) is
    expression-equivalent to transform_view(e, f) for any suitable subexpressions e and
    f.
 
    transform_view models the concepts random_access_range, bidirectional_range,
    forward_range, input_range, common_range, and sized_range when the underlying view V
    models respective concepts.
-
-  Expression-equivalent
-
-   Expression e is expression-equivalent to expression f, if
-
-     * e and f have the same effects, and
-     * either both are constant subexpressions or else neither is a constant
-       subexpression, and
-     * either both are potentially-throwing or else neither is potentially-throwing
-       (i.e. noexcept(e) == noexcept(f)).
 
 .SH Member functions
 
@@ -62,30 +67,34 @@ std::ranges::views::transform,std::ranges::transform_view \- std::ranges::views:
    (C++20)       (adapted) range satisfies sized_range.
                  \fI(public member function)\fP
          Inherited from std::ranges::view_interface
-   empty         Returns whether the derived view is empty. Provided if it satisfies
+   empty         returns whether the derived view is empty. Provided if it satisfies
    (C++20)       sized_range or forward_range.
                  \fI(public member function of std::ranges::view_interface<D>)\fP
-   operator bool Returns whether the derived view is not empty. Provided if
+   cbegin        returns a constant iterator to the beginning of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   cend          returns a sentinel for the constant iterator of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator bool returns whether the derived view is not empty. Provided if
    (C++20)       ranges::empty is applicable to it.
                  \fI(public member function of std::ranges::view_interface<D>)\fP
-   front         Returns the first element in the derived view. Provided if it
+   front         returns the first element in the derived view. Provided if it
    (C++20)       satisfies forward_range.
                  \fI(public member function of std::ranges::view_interface<D>)\fP
-   back          Returns the last element in the derived view. Provided if it satisfies
+   back          returns the last element in the derived view. Provided if it satisfies
    (C++20)       bidirectional_range and common_range.
                  \fI(public member function of std::ranges::view_interface<D>)\fP
-   operator[]    Returns the nth element in the derived view. Provided if it satisfies
+   operator[]    returns the n^th element in the derived view. Provided if it satisfies
    (C++20)       random_access_range.
                  \fI(public member function of std::ranges::view_interface<D>)\fP
 
-  Deduction guides
+   Deduction guides
 
-  Nested classes
+   Nested classes
 
    iterator the iterator type
-   (C++20)  (exposition-only member class template)
+   (C++20)  (exposition-only member class template*)
    sentinel the sentinel type
-   (C++20)  (exposition-only member class template)
+   (C++20)  (exposition-only member class template*)
 
 .SH Example
 
@@ -105,13 +114,11 @@ std::ranges::views::transform,std::ranges::transform_view \- std::ranges::views:
 
  char rot13(const char x)
  {
-     if (x >= 'A' && x <= 'Z') {
+     if ('Z' >= x and x >= 'A')
          return rot13a(x, 'A');
-     }
 
-     if (x >= 'a' && x <= 'z') {
+     if ('z' >= x and x >= 'a')
          return rot13a(x, 'a');
-     }
 
      return x;
  }
@@ -120,12 +127,12 @@ std::ranges::views::transform,std::ranges::transform_view \- std::ranges::views:
  {
      auto show = [](const unsigned char x) { std::putchar(x); };
 
-     std::string in{ "cppreference.com\\n" };
+     std::string in{"cppreference.com\\n"};
      std::ranges::for_each(in, show);
      std::ranges::for_each(in | std::views::transform(rot13), show);
 
      std::string out;
-     std::ranges::copy( std::views::transform(in, rot13), std::back_inserter(out) );
+     std::ranges::copy(std::views::transform(in, rot13), std::back_inserter(out));
      std::ranges::for_each(out, show);
      std::ranges::for_each(out | std::views::transform(rot13), show);
  }

@@ -1,4 +1,4 @@
-.TH std::exchange 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::exchange 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::exchange \- std::exchange
 
@@ -21,29 +21,29 @@ std::exchange \- std::exchange
 .SH Type requirements
    -
    T must meet the requirements of MoveConstructible. Also, it must be possible to
-   move-assign objects of type U to objects of type T
+   move-assign objects of type U to objects of type T.
 
 .SH Return value
 
-   The old value of obj
+   The old value of obj.
 
 .SH Exceptions
 
-   \fI(none)\fP                                     (until C++23)
+   \fI(none)\fP                                         (until C++23)
    noexcept specification:
    noexcept(
 
-   std::is_nothrow_move_constructible_v<T> && (since C++23)
-   std::is_nothrow_assignable_v<T&, U>
+       std::is_nothrow_move_constructible_v<T> && (since C++23)
+       std::is_nothrow_assignable_v<T&, U>
 
    )
 
 .SH Possible implementation
 
    template<class T, class U = T>
-   constexpr // since C++20
+   constexpr // Since C++20
    T exchange(T& obj, U&& new_value)
-       noexcept( // since C++23
+       noexcept( // Since C++23
            std::is_nothrow_move_constructible<T>::value &&
            std::is_nothrow_assignable<T&, U>::value
        )
@@ -60,20 +60,20 @@ std::exchange \- std::exchange
 
  struct S
  {
-   int n;
+     int n;
 
-   S(S&& other) noexcept : n{std::exchange(other.n, 0)}
-   {}
+     S(S&& other) noexcept : n{std::exchange(other.n, 0)} {}
 
-   S& operator=(S&& other) noexcept
-   {
-     if(this != &other)
-         n = std::exchange(other.n, 0); // move n, while leaving zero in other.n
-     return *this;
-   }
+     S& operator=(S&& other) noexcept
+     {
+         n = std::exchange(other.n, 0); // Move n, while leaving zero in other.n
+                                        // (note: in self-move-assignment, n is unchanged)
+         return *this;
+     }
  };
 
-   Feature-test macro: __cpp_lib_exchange_function
+       Feature-test macro       Value    Std      Feature
+   __cpp_lib_exchange_function 201304L \fI(C++14)\fP std::exchange
 
 .SH Example
 
@@ -81,27 +81,22 @@ std::exchange \- std::exchange
 // Run this code
 
  #include <iostream>
+ #include <iterator>
  #include <utility>
  #include <vector>
- #include <iterator>
 
  class stream
  {
-   public:
+ public:
+     using flags_type = int;
 
-    using flags_type = int;
-
-   public:
-
-     flags_type flags() const
-     { return flags_; }
+ public:
+     flags_type flags() const { return flags_; }
 
      // Replaces flags_ by newf, and returns the old value.
-     flags_type flags(flags_type newf)
-     { return std::exchange(flags_, newf); }
+     flags_type flags(flags_type newf) { return std::exchange(flags_, newf); }
 
-   private:
-
+ private:
      flags_type flags_ = 0;
  };
 
@@ -109,36 +104,36 @@ std::exchange \- std::exchange
 
  int main()
  {
-    stream s;
+     stream s;
 
-    std::cout << s.flags() << '\\n';
-    std::cout << s.flags(12) << '\\n';
-    std::cout << s.flags() << "\\n\\n";
+     std::cout << s.flags() << '\\n';
+     std::cout << s.flags(12) << '\\n';
+     std::cout << s.flags() << "\\n\\n";
 
-    std::vector<int> v;
+     std::vector<int> v;
 
-    // Since the second template parameter has a default value, it is possible
-    // to use a braced-init-list as second argument. The expression below
-    // is equivalent to std::exchange(v, std::vector<int>{1,2,3,4});
+     // Since the second template parameter has a default value, it is possible
+     // to use a braced-init-list as second argument. The expression below
+     // is equivalent to std::exchange(v, std::vector<int>{1, 2, 3, 4});
 
-    std::exchange(v, {1,2,3,4});
+     std::exchange(v, {1, 2, 3, 4});
 
-    std::copy(begin(v),end(v), std::ostream_iterator<int>(std::cout,", "));
+     std::copy(begin(v), end(v), std::ostream_iterator<int>(std::cout, ", "));
 
-    std::cout << "\\n\\n";
+     std::cout << "\\n\\n";
 
-    void (*fun)();
+     void (*fun)();
 
-    // the default value of template parameter also makes possible to use a
-    // normal function as second argument. The expression below is equivalent to
-    // std::exchange(fun, static_cast<void(*)()>(f))
-    std::exchange(fun,f);
-    fun();
+     // The default value of template parameter also makes possible to use a
+     // normal function as second argument. The expression below is equivalent to
+     // std::exchange(fun, static_cast<void(*)()>(f))
+     std::exchange(fun, f);
+     fun();
 
-    std::cout << "\\n\\nFibonacci sequence: ";
-    for (int a{0}, b{1}; a < 100; a = std::exchange(b, a + b))
-        std::cout << a << ", ";
-    std::cout << "...\\n";
+     std::cout << "\\n\\nFibonacci sequence: ";
+     for (int a{0}, b{1}; a < 100; a = std::exchange(b, a + b))
+         std::cout << a << ", ";
+     std::cout << "...\\n";
  }
 
 .SH Output:
@@ -161,3 +156,6 @@ std::exchange \- std::exchange
    atomic_exchange_explicit non-atomic argument and returns the old value of the atomic
    \fI(C++11)\fP                  \fI(function template)\fP
    \fI(C++11)\fP
+
+.SH Category:
+     * conditionally noexcept

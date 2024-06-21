@@ -1,0 +1,82 @@
+.TH std::from_chars_result 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::from_chars_result \- std::from_chars_result
+
+.SH Synopsis
+   Defined in header <charconv>
+   struct from_chars_result;     \fI(since C++17)\fP
+
+   std::from_chars_result is the return type of std::from_chars. It has no base
+   classes, and only has the following members.
+
+.SH Notes
+
+   Feature-test macro  Value    Std                        Feature
+                      201611L \fI(C++17)\fP Elementary string conversions (std::to_chars,
+   __cpp_lib_to_chars                 std::from_chars)
+                      202306L (C++26) Testing for success or failure of <charconv>
+                                      functions
+
+.SH Example
+
+
+// Run this code
+
+ #include <cassert>
+ #include <charconv>
+ #include <iomanip>
+ #include <iostream>
+ #include <optional>
+ #include <string_view>
+ #include <system_error>
+
+ int main()
+ {
+     for (std::string_view const str : {"1234", "15 foo", "bar", " 42", "5000000000"})
+     {
+         std::cout << "String: " << std::quoted(str) << ". ";
+         int result{};
+         auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), result);
+
+         if (ec == std::errc())
+             std::cout << "Result: " << result << ", ptr -> " << std::quoted(ptr) << '\\n';
+         else if (ec == std::errc::invalid_argument)
+             std::cout << "This is not a number.\\n";
+         else if (ec == std::errc::result_out_of_range)
+             std::cout << "This number is larger than an int.\\n";
+     }
+
+     // C++23's constexpr from_char demo / C++26's operator bool() demo:
+     auto to_int = [](std::string_view s) -> std::optional<int>
+     {
+         int value{};
+ #if __cpp_lib_to_chars >= 202306L
+         if (std::from_chars(s.data(), s.data() + s.size(), value))
+ #else
+         if (std::from_chars(s.data(), s.data() + s.size(), value).ec == std::errc{})
+ #endif
+             return value;
+         else
+             return std::nullopt;
+     };
+
+     assert(to_int("42") == 42);
+     assert(to_int("foo") == std::nullopt);
+ #if __cpp_lib_constexpr_charconv and __cpp_lib_optional >= 202106
+     static_assert(to_int("42") == 42);
+     static_assert(to_int("foo") == std::nullopt);
+ #endif
+ }
+
+.SH Output:
+
+ String: "1234". Result: 1234, ptr -> ""
+ String: "15 foo". Result: 15, ptr -> " foo"
+ String: "bar". This is not a number.
+ String: " 42". This is not a number.
+ String: "5000000000". This number is larger than an int.
+
+.SH See also
+
+   from_chars converts a character sequence to an integer or floating-point value
+   \fI(C++17)\fP    \fI(function)\fP
