@@ -1,37 +1,42 @@
-.TH std::for_each 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::for_each 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::for_each \- std::for_each
 
 .SH Synopsis
    Defined in header <algorithm>
-   template< class InputIt, class UnaryFunction >
-   UnaryFunction for_each( InputIt first, InputIt last,                   \fI(until C++20)\fP
-   UnaryFunction f );
-   template< class InputIt, class UnaryFunction >
-   constexpr UnaryFunction for_each( InputIt first, InputIt last, \fB(1)\fP     \fI(since C++20)\fP
-   UnaryFunction f );
+   template< class InputIt, class UnaryFunc >
+   UnaryFunc for_each( InputIt first, InputIt last,         \fB(1)\fP (constexpr since C++20)
+   UnaryFunc f );
    template< class ExecutionPolicy, class ForwardIt, class
-   UnaryFunction2 >                                                   \fB(2)\fP \fI(since C++17)\fP
-   void for_each( ExecutionPolicy&& policy, ForwardIt first,
-   ForwardIt last, UnaryFunction2 f );
+   UnaryFunc >
 
-   1) Applies the given function object f to the result of dereferencing every iterator
-   in the range [first, last), in order.
-   2) Applies the given function object f to the result of dereferencing every iterator
-   in the range [first, last) (not necessarily in order). The algorithm is executed
-   according to policy. This overload does not participate in overload resolution
-   unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+   void for_each( ExecutionPolicy&& policy,                 \fB(2)\fP \fI(since C++17)\fP
 
-   For both overloads, if the iterator type is mutable, f may modify the elements of
-   the range through the dereferenced iterator. If f returns a result, the result is
-   ignored.
+                  ForwardIt first, ForwardIt last,
+   UnaryFunc f );
+
+   Applies the given function object f to the result of dereferencing every iterator in
+   the range [first, last). If f returns a result, the result is ignored.
+
+   1) f is applied in order starting from first.
+
+   If UnaryFunc is not MoveConstructible, the behavior is undefined. \fI(since C++11)\fP
+
+   2) f might not be applied in order. The algorithm is executed according to policy.
+   This overload participates in overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
+
+   If UnaryFunc is not CopyConstructible, the behavior is undefined.
+
+   If the iterator type (InputIt/ForwardIt) is mutable, f may modify the elements of
+   the range through the dereferenced iterator.
 
    Unlike the rest of the parallel algorithms, for_each is not allowed to make copies
-   of the elements in the sequence even if they are trivially copyable.
+   of the elements in the sequence even if they are TriviallyCopyable.
 
 .SH Parameters
 
@@ -42,11 +47,11 @@ std::for_each \- std::for_each
 
                  The signature of the function should be equivalent to the following:
 
-   f           - void fun(const Type &a);
+   f           -  void fun(const Type &a);
 
                  The signature does not need to have const &.
-                 The type Type must be such that an object of type InputIt can be
-                 dereferenced and then implicitly converted to Type.
+                 The type  Type must be such that an object of type InputIt can be
+                 dereferenced and then implicitly converted to  Type.
 
 
 .SH Type requirements
@@ -54,24 +59,15 @@ std::for_each \- std::for_each
    InputIt must meet the requirements of LegacyInputIterator.
    -
    ForwardIt must meet the requirements of LegacyForwardIterator.
-   -
-   UnaryFunction must meet the requirements of MoveConstructible. Does not have to be
-   CopyConstructible
-   -
-   UnaryFunction2 must meet the requirements of CopyConstructible.
 
 .SH Return value
 
-   1)
-   f
-   \fI(until C++11)\fP
-   std::move(f)
-   \fI(since C++11)\fP
+   1) f
    2) \fI(none)\fP
 
 .SH Complexity
 
-   Exactly last - first applications of f
+   Exactly std::distance(first, last) applications of f.
 
 .SH Exceptions
 
@@ -87,73 +83,98 @@ std::for_each \- std::for_each
 
    See also the implementations in libstdc++, libc++ and MSVC stdlib.
 
-   template<class InputIt, class UnaryFunction>
-   constexpr UnaryFunction for_each(InputIt first, InputIt last, UnaryFunction f)
+   template<class InputIt, class UnaryFunc>
+   constexpr UnaryFunc for_each(InputIt first, InputIt last, UnaryFunc f)
    {
-       for (; first != last; ++first) {
+       for (; first != last; ++first)
            f(*first);
-       }
+
        return f; // implicit move since C++11
    }
 
+.SH Notes
+
+   For overload \fB(1)\fP, f can be a stateful function object. The return value can be
+   considered as the final state of the batch operation.
+
+   For overload \fB(2)\fP, multiple copies of f may be created to perform parallel
+   invocation. No value is returned because parallelization often does not permit
+   efficient state accumulation.
+
 .SH Example
 
-   The following example uses a lambda function to increment all of the elements of a
-   vector and then uses an overloaded operator() in a functor to compute their sum.
-   Note that to compute the sum, it is recommended to use the dedicated algorithm
-   std::accumulate.
+   The following example uses a lambda-expression to increment all of the elements of a
+   vector and then uses an overloaded operator() in a function object (a.k.a.,
+   "functor") to compute their sum. Note that to compute the sum, it is recommended to
+   use the dedicated algorithm std::accumulate.
 
 
 // Run this code
 
- #include <vector>
  #include <algorithm>
  #include <iostream>
-
- struct Sum
- {
-     void operator()(int n) { sum += n; }
-     int sum{0};
- };
+ #include <vector>
 
  int main()
  {
-     std::vector<int> nums{3, 4, 2, 8, 15, 267};
+     std::vector<int> v{3, -4, 2, -8, 15, 267};
 
-     auto print = [](const int& n) { std::cout << " " << n; };
+     auto print = [](const int& n) { std::cout << n << ' '; };
 
-     std::cout << "before:";
-     std::for_each(nums.cbegin(), nums.cend(), print);
+     std::cout << "before:\\t";
+     std::for_each(v.cbegin(), v.cend(), print);
      std::cout << '\\n';
 
-     std::for_each(nums.begin(), nums.end(), [](int &n){ n++; });
+     // increment elements in-place
+     std::for_each(v.begin(), v.end(), [](int &n) { n++; });
 
-     // calls Sum::operator() for each number
-     Sum s = std::for_each(nums.begin(), nums.end(), Sum());
-
-     std::cout << "after: ";
-     std::for_each(nums.cbegin(), nums.cend(), print);
+     std::cout << "after:\\t";
+     std::for_each(v.cbegin(), v.cend(), print);
      std::cout << '\\n';
-     std::cout << "sum: " << s.sum << '\\n';
+
+     struct Sum
+     {
+         void operator()(int n) { sum += n; }
+         int sum {0};
+     };
+
+     // invoke Sum::operator() for each element
+     Sum s = std::for_each(v.cbegin(), v.cend(), Sum());
+     std::cout << "sum:\\t" << s.sum << '\\n';
  }
 
 .SH Output:
 
- before: 3 4 2 8 15 267
- after:  4 5 3 9 16 268
- sum: 305
+ before: 3 -4 2 -8 15 267
+ after:  4 -3 3 -7 16 268
+ sum:    281
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to         Behavior as published              Correct behavior
+                       it was unclear whether f can modify
+                       the elements
+   LWG 475  C++98      of the sequence being iterated over   made clear (allowed if the
+                       (for_each is                          iterator type is mutable)
+                       classified as “non-modifying sequence
+                       operations”)
+   LWG 2747 C++11      overload \fB(1)\fP returned std::move(f)    returns f (which
+                                                             implicitly moves)
 
 .SH See also
 
                          applies a function to a range of elements, storing results in
    transform             a destination range
                          \fI(function template)\fP
-   for_each_n            applies a function object to the first n elements of a
+   for_each_n            applies a function object to the first N elements of a
    \fI(C++17)\fP               sequence
                          \fI(function template)\fP
    ranges::for_each      applies a function to a range of elements
    (C++20)               (niebloid)
-   ranges::for_each_n    applies a function object to the first n elements of a
+   ranges::for_each_n    applies a function object to the first N elements of a
    (C++20)               sequence
                          (niebloid)
    range-for loop\fI(C++11)\fP executes loop over range

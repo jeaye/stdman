@@ -1,4 +1,4 @@
-.TH std::jthread::request_stop 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::jthread::request_stop 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::jthread::request_stop \- std::jthread::request_stop
 
@@ -12,10 +12,10 @@ std::jthread::request_stop \- std::jthread::request_stop
    atomically updated to avoid race conditions, such that:
 
      * stop_requested() and stop_possible() can be concurrently invoked on other
-       std::stop_tokens and std::stop_sources of the same shared stop-state
+       std::stop_tokens and std::stop_sources of the same shared stop-state.
      * request_stop() can be concurrently invoked from multiple threads on the same
        jthread object or on other std::stop_source objects associated with the same
-       stop-state, and only one will actually perform the stop request
+       stop-state, and only one will actually perform the stop request.
 
    However, see the Notes section.
 
@@ -25,7 +25,7 @@ std::jthread::request_stop \- std::jthread::request_stop
 
 .SH Return value
 
-   true if this invocation made a stop request, otherwise false
+   true if this invocation made a stop request, otherwise false.
 
 .SH Postconditions
 
@@ -54,40 +54,43 @@ std::jthread::request_stop \- std::jthread::request_stop
 
 // Run this code
 
- #include <iostream>
- #include <thread>
  #include <chrono>
- #include <mutex>
  #include <condition_variable>
+ #include <iostream>
+ #include <mutex>
+ #include <thread>
 
  using namespace std::chrono_literals;
 
  int main()
  {
      // A sleepy worker thread
-     std::jthread sleepy_worker([](std::stop_token stoken) {
-         for (int i = 10; i; --i) {
-             std::this_thread::sleep_for(300ms);
-             if (stoken.stop_requested()) {
-                 std::cout << "Sleepy worker is requested to stop\\n";
-                 return;
+     std::jthread sleepy_worker(
+         [](std::stop_token stoken)
+         {
+             for (int i = 10; i; --i)
+             {
+                 std::this_thread::sleep_for(300ms);
+                 if (stoken.stop_requested())
+                 {
+                     std::cout << "Sleepy worker is requested to stop\\n";
+                     return;
+                 }
+                 std::cout << "Sleepy worker goes back to sleep\\n";
              }
-             std::cout << "Sleepy worker goes back to sleep\\n";
-         }
-     });
+         });
 
      // A waiting worker thread
      // The condition variable will be awoken by the stop request.
-     std::jthread waiting_worker([](std::stop_token stoken) {
-         std::mutex mutex;
-         std::unique_lock lock(mutex);
-         std::condition_variable_any().wait(lock, stoken,
-             [&stoken] { return false; });
-         if (stoken.stop_requested()) {
+     std::jthread waiting_worker(
+         [](std::stop_token stoken)
+         {
+             std::mutex mutex;
+             std::unique_lock lock(mutex);
+             std::condition_variable_any().wait(lock, stoken, []{ return false; });
              std::cout << "Waiting worker is requested to stop\\n";
              return;
-         }
-     });
+         });
 
      // std::jthread::request_stop() can be called explicitly:
      std::cout << "Requesting stop of sleepy worker\\n";

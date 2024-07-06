@@ -1,0 +1,153 @@
+.TH std::ranges::subrange::operatorPairLike 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::subrange::operatorPairLike \- std::ranges::subrange::operatorPairLike
+
+.SH Synopsis
+   template< /* see below */ PairLike >
+
+       requires pair-like-convertible-from<PairLike,  \fB(1)\fP \fI(since C++20)\fP
+   const I&, const S&>
+
+   constexpr operator PairLike() const;
+   Helper concepts
+   template< class T >
+
+   concept pair-like =
+       !std::is_reference_v<T> && requires(T t) {
+           typename std::tuple_size<T>::type; //
+   ensures std::tuple_size<T>
+                                              // is
+   complete
+           requires
+   std::derived_from<std::tuple_size<T>,
+                                                          (until C++23)
+    std::integral_constant<std::size_t, 2>>;          \fB(2)\fP (exposition
+           typename std::tuple_element_t<0,               only*)
+   std::remove_const_t<T>>;
+           typename std::tuple_element_t<1,
+   std::remove_const_t<T>>;
+           { std::get<0>(t) } -> std::convertible_to<
+                                     const
+   std::tuple_element_t<0, T>&>;
+           { std::get<1>(t) } -> std::convertible_to<
+                                     const
+   std::tuple_element_t<1, T>&>;
+
+       };
+   template< class T, class U, class V >
+
+   concept pair-like-convertible-from =
+       !ranges::range<T> && pair-like<T> &&                              (until C++23)
+       std::constructible_from<T, U, V> &&                               (exposition
+       convertible-to-non-slicing<U,                                     only*)
+   std::tuple_element_t<0, T>> &&
+
+       std::convertible_to<V, std::tuple_element_t<1,
+   T>>;
+   template< class T, class U, class V >              \fB(3)\fP
+
+   concept pair-like-convertible-from =
+       !ranges::range<T> && !std::is_reference_v<T>
+   && pair-like<T> &&                                                    (since C++23)
+       std::constructible_from<T, U, V> &&                               (exposition
+       convertible-to-non-slicing<U,                                     only*)
+   std::tuple_element_t<0, T>> &&
+
+       std::convertible_to<V, std::tuple_element_t<1,
+   T>>;
+
+   1) Converts subrange to a pair-like type (i.e. a type models
+   the helper concept pair-like defined below
+   (until C++23)
+   pair-like
+   (since C++23)). Equivalent to return PairLike(i_, s_);, where i_ and s_ are the
+   stored iterator and sentinel respectively.
+   PairLike is constrained that std::same_as<std::remove_cvref_t<PairLike>, subrange>
+   is false.
+   This conversion function has additional constraints imposed by pair-like-convertible
+   (see below).
+   2) The exposition-only concept pair-like specifies a type is pair-like. Generally,
+   an expression e of a pair-like type can be used for structured binding (i.e. auto
+   const& [x, y] = e; is generally well-formed).
+   This concept is replaced by the library-wide exposition-only concept pair-like.
+   (since C++23)
+   3) The exposition-only concept pair-like-convertible-from refines pair-like. It
+     * rejects
+       reference types and
+       (since C++23)range types,
+     * requires that U and V are convertible to the first and second element type of T
+       respectively, and
+     * requires the conversion from U (which will be replaced by const I&) to the first
+       element type to be non-slicing (see convertible-to-non-slicing).
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   A PairLike value direct-initialized with the stored iterator and sentinel.
+
+.SH Notes
+
+   Following types in the standard library are pair-like:
+
+     * std::pair<T, U>
+     * std::tuple<T, U>
+     * std::array<T, 2>
+     * std::ranges::subrange<I, S, K>
+
+     * std::complex<T>   (since C++26)
+
+   A program-defined type derived from one of these types can be a
+   pair-like type, if
+
+     * std::tuple_size and std::tuple_element are correctly specialized   (until C++23)
+       for it, and
+     * calls to std::get<0> and std::get<1> for its value are
+       well-formed.
+
+   Since subrange specializations are range types, conversion to them are not performed
+   via this conversion function.
+
+   std::array specializations cannot be converted from subrange, since they are range
+   types.
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <ranges>
+ #include <string>
+ #include <utility>
+
+ using striter = std::string::const_iterator;
+
+ using legacy_strview = std::pair<striter, striter>;
+
+ void legacy_print(legacy_strview p)
+ {
+     for (; p.first != p.second; ++p.first)
+         std::cout << *p.first << ' ';
+     std::cout << '\\n';
+ }
+
+ int main()
+ {
+     std::string dat{"ABCDE"};
+     for (auto v{std::ranges::subrange{dat}}; v; v = {v.begin(), v.end() - 1})
+     {
+         /*...*/
+         legacy_print(legacy_strview{v});
+     }
+ }
+
+.SH Output:
+
+ A B C D E
+ A B C D
+ A B C
+ A B
+ A

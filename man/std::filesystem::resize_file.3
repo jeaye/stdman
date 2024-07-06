@@ -1,16 +1,16 @@
-.TH std::filesystem::resize_file 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::resize_file 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::resize_file \- std::filesystem::resize_file
 
 .SH Synopsis
    Defined in header <filesystem>
+   void resize_file( const std::filesystem::path& p, \fB(1)\fP \fI(since C++17)\fP
+                     std::uintmax_t new_size );
    void resize_file( const std::filesystem::path& p,
 
-   std::uintmax_t new_size );
-   void resize_file( const std::filesystem::path& p,  \fI(since C++17)\fP
-   std::uintmax_t new_size,
+                     std::uintmax_t new_size,        \fB(2)\fP \fI(since C++17)\fP
 
-   std::error_code& ec ) noexcept;
+                     std::error_code& ec ) noexcept;
 
    Changes the size of the regular file named by p as if by POSIX truncate: if the file
    size was previously larger than new_size, the remainder of the file is discarded. If
@@ -29,12 +29,13 @@ std::filesystem::resize_file \- std::filesystem::resize_file
 
 .SH Exceptions
 
-   The overload that does not take a std::error_code& parameter throws
-   filesystem::filesystem_error on underlying OS API errors, constructed with p as the
-   first path argument and the OS error code as the error code argument. The overload
-   taking a std::error_code& parameter sets it to the OS API error code if an OS API
-   call fails, and executes ec.clear() if no errors occur. Any overload not marked
-   noexcept may throw std::bad_alloc if memory allocation fails.
+   Any overload not marked noexcept may throw std::bad_alloc if memory allocation
+   fails.
+
+   1) Throws std::filesystem::filesystem_error on underlying OS API errors, constructed
+   with p as the first path argument and the OS error code as the error code argument.
+   2) Sets a std::error_code& parameter to the OS API error code if an OS API call
+   fails, and executes ec.clear() if no errors occur.
 
 .SH Notes
 
@@ -44,33 +45,35 @@ std::filesystem::resize_file \- std::filesystem::resize_file
 
 .SH Example
 
-   demonstrates the effect of creating a sparse file on the free space
+   Demonstrates the effect creating a sparse file has on the free space.
 
 
 // Run this code
 
- #include <iostream>
- #include <fstream>
  #include <filesystem>
- namespace fs = std::filesystem;
+ #include <fstream>
+ #include <iostream>
+ #include <locale>
+
  int main()
  {
-     fs::path p = fs::temp_directory_path() / "example.bin";
-     std::ofstream(p).put('a');
-     std::cout << "File size:  " << fs::file_size(p) << '\\n'
-               << "Free space: " << fs::space(p).free << '\\n';
-     fs::resize_file(p, 64*1024); // resize to 64 KB
-     std::cout << "File size:  " << fs::file_size(p) << '\\n'
-               << "Free space: " << fs::space(p).free << '\\n';
-     fs::remove(p);
+     auto p = std::filesystem::temp_directory_path() / "example.bin";
+     std::ofstream{p}.put('a');
+     std::cout.imbue(std::locale{"en_US.UTF8"});
+     std::cout << "File size:  " << std::filesystem::file_size(p) << '\\n'
+               << "Free space: " << std::filesystem::space(p).free << '\\n';
+     std::filesystem::resize_file(p, 64*1024); // resize to 64 KB
+     std::cout << "File size:  " << std::filesystem::file_size(p) << '\\n'
+               << "Free space: " << std::filesystem::space(p).free << '\\n';
+     std::filesystem::remove(p);
  }
 
 .SH Possible output:
 
  File size:  1
- Free space: 31805444096
- File size:  65536
- Free space: 31805444096
+ Free space: 42,954,108,928
+ File size:  65,536
+ Free space: 42,954,108,928
 
 .SH See also
 

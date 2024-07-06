@@ -1,4 +1,4 @@
-.TH std::ios_base::failure 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ios_base::failure 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ios_base::failure \- std::ios_base::failure
 
@@ -33,15 +33,15 @@ std::ios_base::failure::failure
 
    explicit failure( const std::string& message );          \fI(until C++11)\fP
    explicit failure( const std::string& message,
-   const std::error_code& ec = std::io_errc::stream         \fI(since C++11)\fP
-   );
+                     const std::error_code& ec =            \fI(since C++11)\fP
+   std::io_errc::stream );
    explicit failure( const char* message,           \fB(1)\fP
-   const std::error_code& ec = std::io_errc::stream     \fB(2)\fP \fI(since C++11)\fP
-   );
+                     const std::error_code& ec =        \fB(2)\fP \fI(since C++11)\fP
+   std::io_errc::stream );
    failure( const failure& other );                     \fB(3)\fP               \fI(until C++11)\fP
    failure( const failure& other ) noexcept;                              \fI(since C++11)\fP
 
-   1-2) Constructs the exception object using message as explanation string which can
+   1,2) Constructs the exception object using message as explanation string which can
    later be retrieved using what().
    ec is used to identify the specific reason for the failure.
    \fI(since C++11)\fP
@@ -124,19 +124,39 @@ Inherited from std::exception
    what         returns an explanatory string
    \fB[virtual]\fP    \fI(virtual public member function of std::exception)\fP
 
+.SH Notes
+
+   Before the resolution of LWG issue 331, std::ios_base::failure declared a destructor
+   without throw(), where std::exception::~exception() was declared with throw()^[1].
+   This means the std::ios_base::failure::~failure() had a weaker exception
+   specification. The resolution is to remove that declaration so that the non-throwing
+   exception specification is kept.
+
+   LWG issue 363 targets the same defect and its resolution is to add throw() to the
+   declaraion of std::ios_base::failure::~failure(). That resolution was not applied
+   due to the confict between the two resolutions.
+
+    1. ↑ The non-throwing exception specification is now applied globally across the
+       standard library, so the destructors of standard library classes are not
+       declared with throw() or noexcept.
+
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
  #include <fstream>
+ #include <iostream>
+
  int main()
  {
      std::ifstream f("doesn't exist");
-     try {
+
+     try
+     {
          f.exceptions(f.failbit);
-     } catch (const std::ios_base::failure& e)
+     }
+     catch (const std::ios_base::failure& e)
      {
          std::cout << "Caught an ios_base::failure.\\n"
                    << "Explanatory string: " << e.what() << '\\n'
@@ -149,6 +169,19 @@ Inherited from std::exception
  Caught an ios_base::failure.
  Explanatory string: ios_base::clear: unspecified iostream_category error
  Error code: iostream:1
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to           Behavior as published               Correct behavior
+                      the constructor overload \fB(1)\fP initialized
+   LWG 48  C++98      the base class std::exception              corresponding
+                      with msg, but the base class does not have description removed
+                      a matching constructor
+   LWG 331 C++98      std::ios_base::failure declared a          removed the destructor
+                      destructor without throw()                 declaration
 
 .SH See also
 

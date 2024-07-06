@@ -1,13 +1,10 @@
-.TH std::basic_string::resize 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_string::resize 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_string::resize \- std::basic_string::resize
 
 .SH Synopsis
-   void resize( size_type count );                          \fI(until C++20)\fP
-   constexpr void resize( size_type count );                \fI(since C++20)\fP
-   void resize( size_type count, CharT ch );        \fB(1)\fP                   \fI(until C++20)\fP
-   constexpr void resize( size_type count, CharT ch     \fB(2)\fP               \fI(since C++20)\fP
-   );
+   void resize( size_type count );           \fB(1)\fP (constexpr since C++20)
+   void resize( size_type count, CharT ch ); \fB(2)\fP (constexpr since C++20)
 
    Resizes the string to contain count characters.
 
@@ -34,74 +31,75 @@ std::basic_string::resize \- std::basic_string::resize
    Allocator.
 
    If an exception is thrown for any reason, this function has no effect (strong
-   exception guarantee).
-   \fI(since C++11)\fP
+   exception safety guarantee).
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
  #include <iomanip>
+ #include <iostream>
  #include <stdexcept>
 
  int main()
  {
-     const unsigned  desired_length{ 8 };
-     std::string     long_string( "Where is the end?" );
-     std::string     short_string( "H" );
-
+     const unsigned desired_length{8};
+     std::string long_string("Where is the end?");
+     std::string short_string("H");
 
      std::cout << "Basic functionality:\\n"
                << "Shorten:\\n"
-               << "1. Before: " << quoted( long_string ) << '\\n';
-     long_string.resize( desired_length );
-     std::cout << "2. After:  " << quoted( long_string ) << '\\n';
-
+               << "1. Before: " << std::quoted(long_string) << '\\n';
+     long_string.resize(desired_length);
+     std::cout << "2. After:  " << std::quoted(long_string) << '\\n';
 
      std::cout << "Lengthen with a given value 'a':\\n"
-               << "3. Before: " << quoted( short_string ) << '\\n';
-     short_string.resize( desired_length, 'a' );
-     std::cout << "4. After:  " << quoted( short_string ) << '\\n';
-
+               << "3. Before: " << std::quoted(short_string) << '\\n';
+     short_string.resize(desired_length, 'a');
+     std::cout << "4. After:  " << std::quoted(short_string) << '\\n';
 
      std::cout << "Lengthen with char() == " << static_cast<int>(char()) << '\\n'
-               << "5. Before: " << quoted( short_string ) << '\\n';
-     short_string.resize( desired_length + 3 );
+               << "5. Before: " << std::quoted(short_string) << '\\n';
+     short_string.resize(desired_length + 3);
      std::cout << "6. After:  \\"";
-     for (char c : short_string) {
+     for (char c : short_string)
          std::cout << (c == char() ? '@' : c);
-     }
      std::cout << "\\"\\n\\n";
 
-
      std::cout << "Errors:\\n";
+     std::string s;
+
+     try
      {
-         std::string s;
+         // size is OK, no length_error
+         // (may throw bad_alloc)
+         s.resize(s.max_size() - 1, 'x');
+     }
+     catch (const std::bad_alloc& ex)
+     {
+         std::cout << "1. Exception: " << ex.what() << '\\n';
+     }
 
-         try {
-             // size is OK, no length_error
-             // (may throw bad_alloc)
-             s.resize(s.max_size() - 1, 'x');
-         } catch (const std::bad_alloc& ex) {
-             std::cout << "1. Exception: " << ex.what() << '\\n';
-         }
+     try
+     {
+         // size is OK, no length_error
+         // (may throw bad_alloc)
+         s.resize(s.max_size(), 'x');
+     }
+     catch (const std::bad_alloc& ex)
+     {
+         std::cout << "2. Exception: " << ex.what() << '\\n';
+     }
 
-         try {
-             // size is OK, no length_error
-             // (may throw bad_alloc)
-             s.resize(s.max_size(), 'x');
-         } catch (const std::bad_alloc& ex) {
-             std::cout << "2. Exception: " << ex.what() << '\\n';
-         }
-
-         try {
-             // size is BAD, throw length_error
-             s.resize(s.max_size() + 1, 'x');
-         } catch (const std::length_error& ex) {
-             std::cout << "3. Length error: " << ex.what() << '\\n';
-         }
+     try
+     {
+         // size is BAD, throw length_error
+         s.resize(s.max_size() + 1, 'x');
+     }
+     catch (const std::length_error& ex)
+     {
+         std::cout << "3. Length error: " << ex.what() << '\\n';
      }
  }
 
@@ -123,6 +121,15 @@ std::basic_string::resize \- std::basic_string::resize
  2. Exception: std::bad_alloc
  3. Length error: basic_string::_M_replace_aux
 
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to        Behavior as published              Correct behavior
+   LWG 847 C++98      there was no exception safety       added strong exception safety
+                      guarantee                           guarantee
+
 .SH See also
 
    size          returns the number of characters
@@ -130,4 +137,4 @@ std::basic_string::resize \- std::basic_string::resize
    reserve       reserves storage
                  \fI(public member function)\fP
    shrink_to_fit reduces memory usage by freeing unused memory
-   \fI(C++11)\fP       \fI(public member function)\fP
+   (DR*)         \fI(public member function)\fP

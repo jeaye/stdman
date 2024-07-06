@@ -1,4 +1,4 @@
-.TH std::shared_ptr::shared_ptr 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::shared_ptr::shared_ptr 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
 
@@ -41,15 +41,16 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
    T* or Y is the array type U[N] and T is U cv [] (where cv is some set
    of cv-qualifiers).
 
-   1-2) Constructs a shared_ptr with no managed object, i.e. empty shared_ptr
+   1,2) Constructs a shared_ptr with no managed object, i.e. empty shared_ptr.
    3-7) Constructs a shared_ptr with ptr as the pointer to the managed object.
 
-   For (3-4,6), Y* must be convertible to T*.                             \fI(until C++17)\fP
-   If T is an array type U[N], (3-4,6) do not participate in overload
-   resolution if Y(*)[N] is not convertible to T*. If T is an array type
-   U[], (3-4,6) do not participate in overload resolution if Y(*)[] is    \fI(since C++17)\fP
-   not convertible to T*. Otherwise, (3-4,6) do not participate in
-   overload resolution if Y* is not convertible to T*.
+   For (3,4,6), Y* must be convertible to T*.                             \fI(until C++17)\fP
+   If T is an array type U[N], (3,4,6) do not participate in overload
+   resolution if Y(*)[N] is an invalid type or not convertible to T*. If
+   T is an array type U[], (3,4,6) do not participate in overload         \fI(since C++17)\fP
+   resolution if Y(*)[] is an invalid type or not convertible to T*.
+   Otherwise, (3,4,6) do not participate in overload resolution if Y* is
+   not convertible to T*.
 
    Additionally:
    3) Uses the delete-expression delete ptr
@@ -59,16 +60,16 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
    This constructor additionally does not participate in overload resolution if the
    delete expression is not well-formed.
    \fI(since C++17)\fP
-   4-5) Uses the specified deleter d as the deleter. The expression d(ptr) must be well
+   4,5) Uses the specified deleter d as the deleter. The expression d(ptr) must be well
    formed, have well-defined behavior and not throw any exceptions. The construction of
-   d and of the stored deleter from d must not throw exceptions.
+   d and of the stored deleter copied from it must not throw exceptions.
 
    Deleter must be CopyConstructible.                                     \fI(until C++17)\fP
    These constructors additionally do not participate in overload
    resolution if the expression d(ptr) is not well-formed, or if          \fI(since C++17)\fP
-   std::is_move_constructible<D>::value is false.
+   std::is_move_constructible_v<D> is false.
 
-   6-7) Same as (4-5), but additionally uses a copy of alloc for allocation of data for
+   6,7) Same as (4,5), but additionally uses a copy of alloc for allocation of data for
    internal use. Alloc must be an Allocator.
    8) The aliasing constructor: constructs a shared_ptr which shares ownership
    information with the initial value of r, but holds an unrelated and unmanaged
@@ -115,11 +116,11 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
 
    If Deleter is a reference type, it is equivalent to shared_ptr(r.release(),
    std::ref(r.get_deleter()). Otherwise, it is equivalent to shared_ptr(r.release(),
-   std::move(r.get_deleter()))
+   std::move(r.get_deleter())).
 
-   When T is not an array type, the overloads \fB(3)\fP, \fB(4)\fP, and \fB(6)\fP enable shared_from_this
-   with ptr, and the overload \fB(13)\fP enables shared_from_this with the pointer returned
-   by r.release().
+   When T is not an array type, the overloads (3,4,6) enable shared_from_this with ptr,
+   and the overload \fB(13)\fP enables shared_from_this with the pointer returned by
+   r.release().
 
 .SH Parameters
 
@@ -155,8 +156,8 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
    and if so, the constructor evaluates the statement:
 
  if (ptr != nullptr && ptr->weak_this.expired())
-   ptr->weak_this = std::shared_ptr<std::remove_cv_t<U>>(*this,
-                                   const_cast<std::remove_cv_t<U>*>(ptr));
+     ptr->weak_this = std::shared_ptr<std::remove_cv_t<U>>(
+                          *this, const_cast<std::remove_cv_t<U>*>(ptr));
 
    Where weak_this is the hidden mutable std::weak_ptr member of
    std::enable_shared_from_this. The assignment to the weak_this member is not atomic
@@ -196,17 +197,20 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
 
 // Run this code
 
- #include <memory>
  #include <iostream>
+ #include <memory>
 
- struct Foo {
+ struct Foo
+ {
      int id{0};
      Foo(int i = 0) : id{i} { std::cout << "Foo::Foo(" << i <<  ")\\n"; }
      ~Foo() { std::cout << "Foo::~Foo(), id=" << id << '\\n'; }
  };
 
- struct D {
-     void operator()(Foo* p) const {
+ struct D
+ {
+     void operator()(Foo* p) const
+     {
          std::cout << "Call delete from function object. Foo::id=" << p->id << '\\n';
          delete p;
      }
@@ -231,9 +235,10 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
      {
          std::cout << "3) constructor with object and deleter\\n";
          std::shared_ptr<Foo> sh4(new Foo{11}, D());
-         std::shared_ptr<Foo> sh5(new Foo{12}, [](auto p) {
-            std::cout << "Call delete from lambda... p->id=" << p->id << "\\n";
-            delete p;
+         std::shared_ptr<Foo> sh5(new Foo{12}, [](auto p)
+         {
+             std::cout << "Call delete from lambda... p->id=" << p->id << '\\n';
+             delete p;
          });
      }
  }
@@ -255,7 +260,7 @@ std::shared_ptr::shared_ptr \- std::shared_ptr::shared_ptr
  Call delete from function object. Foo::id=11
  Foo::~Foo(), id=11
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.

@@ -1,11 +1,11 @@
-.TH std::random_device::random_device 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::random_device::random_device 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::random_device::random_device \- std::random_device::random_device
 
 .SH Synopsis
-   random_device() : random_device(/*implementation-defined*/) {} \fB(1)\fP \fI(since C++11)\fP
-   explicit random_device(const std::string& token);              \fB(2)\fP \fI(since C++11)\fP
-   random_device(const random_device& ) = delete;                 \fB(3)\fP \fI(since C++11)\fP
+   random_device() : random_device( /*implementation-defined*/ ) {} \fB(1)\fP \fI(since C++11)\fP
+   explicit random_device( const std::string& token );              \fB(2)\fP \fI(since C++11)\fP
+   random_device( const random_device& ) = delete;                  \fB(3)\fP \fI(since C++11)\fP
 
    1) Default constructs a new std::random_device object with an implementation-defined
    token.
@@ -15,15 +15,15 @@ std::random_device::random_device \- std::random_device::random_device
 
 .SH Exceptions
 
-   Throws an implementation-defined exceptions derived from std::exception on failure.
+   Throws an implementation-defined exception derived from std::exception on failure.
 
 .SH Notes
 
    The implementation in libstdc++ expects token to name the source of random bytes.
-   Possible token values include "default", "rand_s", "rdseed", "rdrand", "rdrnd",
-   "/dev/urandom", "/dev/random", "mt19937", and integer string specifying the seed of
-   the mt19937 engine. (Token values other than "default" are only valid for certain
-   targets.)
+   Possible token values include "default", "hw", "rand_s", "rdseed", "rdrand",
+   "rdrnd", "/dev/urandom", "/dev/random", "mt19937", and integer string specifying the
+   seed of the mt19937 engine. (Token values other than "default" are only valid for
+   certain targets.)
 
    The implementation in libc++, when configured to use character device as the source,
    expects token to be the name of a character device that produces random numbers when
@@ -34,7 +34,7 @@ std::random_device::random_device \- std::random_device::random_device
 
 .SH Example
 
-   Demonstrates the two commonly available types of std::random_device on Linux
+   Demonstrates commonly available types of std::random_device on Linux.
 
 
 // Run this code
@@ -42,27 +42,42 @@ std::random_device::random_device \- std::random_device::random_device
  #include <iostream>
  #include <random>
 
+ void demo(std::random_device&& rd)
+ {
+     static std::uniform_int_distribution<int> d(0, 9);
+     for (int n = 0; n != 10; ++n)
+         std::cout << d(rd) << ' ';
+     std::cout << '\\n';
+ }
+
  int main()
  {
-     std::uniform_int_distribution<int> d(0, 10);
+     // Note: How the supplied token is handled is implementation-defined!
 
-     std::random_device rd1; // uses RDRND or /dev/urandom
-     for(int n = 0; n < 10; ++n)
-         std::cout << d(rd1) << ' ';
-     std::cout << '\\n';
+     // Default token for random_device is usually /dev/urandom on Linux
+     demo(std::random_device {});
 
-     std::random_device rd2("/dev/random"); // much slower on Linux
-     for(int n = 0; n < 10; ++n)
-         std::cout << d(rd2) << ' ';
-     std::cout << '\\n';
+     // Request /dev/random, blocks when entropy is empty
+     // Works on libstdc++, ignored in msvc++, might throw on libc++ (as of Nov 2022)
+     demo(std::random_device {"/dev/random"});
+
+     // Request non-blocking /dev/urandom, ensures that RDRAND is not used
+     // Works on libstdc++ and libc++, ignored in msvc++ (as of Nov 2022)
+     demo(std::random_device {"/dev/urandom"});
+
+     // Request "hw", will use hardware-based random generation like rdrand
+     // Works on libstdc++, ignored in msvc++, throws on libc++ (as of Nov 2022)
+     demo(std::random_device {"hw"});
  }
 
 .SH Possible output:
 
- 7 10 7 0 4 4 6 9 4 7
- 2 4 10 6 3 2 0 6 3 7
+ 9 5 2 7 5 9 4 1 0 7
+ 4 7 6 5 1 5 5 1 8 6
+ 3 3 6 1 4 1 4 1 0 2
+ 4 6 3 9 1 9 4 0 9 3
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.

@@ -1,4 +1,4 @@
-.TH deductionguidesforstd::basic_string 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH deductionguidesforstd::basic_string 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 deductionguidesforstd::basic_string \- deductionguidesforstd::basic_string
 
@@ -6,39 +6,51 @@ deductionguidesforstd::basic_string \- deductionguidesforstd::basic_string
    Defined in header <string>
    template< class InputIt, class Alloc = std::allocator<
 
-   typename std::iterator_traits<InputIt>::value_type> >
+                                typename
+   std::iterator_traits<InputIt>::value_type> >
    basic_string( InputIt, InputIt, Alloc = Alloc() )
-   -> basic_string<typename                                           \fB(1)\fP \fI(since C++17)\fP
+       -> basic_string<typename                                       \fB(1)\fP \fI(since C++17)\fP
    std::iterator_traits<InputIt>::value_type,
-   std::char_traits<typename
-   std::iterator_traits<InputIt>::value_type>,
+                       std::char_traits<
 
-   Alloc>;
+                           typename
+   std::iterator_traits<InputIt>::value_type>, Alloc>;
    template< class CharT,
 
-   class Traits,
-   class Alloc = std::allocator<CharT> >                              \fB(2)\fP \fI(since C++17)\fP
+             class Traits,
+             class Alloc = std::allocator<CharT> >                    \fB(2)\fP \fI(since C++17)\fP
    explicit basic_string( std::basic_string_view<CharT, Traits>,
    const Alloc& = Alloc() )
 
-   -> basic_string<CharT, Traits, Alloc>;
+       -> basic_string<CharT, Traits, Alloc>;
    template< class CharT,
 
-   class Traits,
-   class Alloc = std::allocator<CharT>> >
-   basic_string( std::basic_string_view<CharT, Traits>, typename      \fB(3)\fP \fI(since C++17)\fP
-   /*see below*/::size_type,
-   typename /*see below*/::size_type, const Alloc& = Alloc() )
+             class Traits,
+             class Alloc = std::allocator<CharT>> >
+   basic_string( std::basic_string_view<CharT, Traits>,               \fB(3)\fP \fI(since C++17)\fP
+                 typename /* see below */::size_type,
+                 typename /* see below */::size_type,
+                 const Alloc& = Alloc() )
 
-   -> basic_string<CharT, Traits, Alloc>;
+       -> basic_string<CharT, Traits, Alloc>;
+   template< ranges::input_range R,
+
+             class Alloc = std::allocator<ranges::range_value_t<R>> >
+   basic_string( std::from_range_t, R&&, Alloc = Alloc() )            \fB(4)\fP (since C++23)
+       -> basic_string<ranges::range_value_t<R>,
+
+                          std::char_traits<ranges::range_value_t<R>>,
+   Alloc>;
 
    1) This deduction guide is provided for std::basic_string to allow deduction from an
    iterator range. This overload participates in overload resolution only if InputIt
    satisfies LegacyInputIterator and Alloc satisfies Allocator.
-   2-3) These deduction guides are provided for std::basic_string to allow deduction
+   2,3) These deduction guides are provided for std::basic_string to allow deduction
    from a std::basic_string_view. The size_type parameter type in \fB(3)\fP refers to the
    size_type member type of the type deduced by the deduction guide. These overloads
    participate in overload resolution only if Alloc satisfies Allocator.
+   4) This deduction guide is provided for std::basic_string to allow deduction from a
+   std::from_range_t tag and an input_range.
 
    Note: the extent to which the library determines that a type does not satisfy
    LegacyInputIterator is unspecified, except that as a minimum integral types do not
@@ -50,23 +62,39 @@ deductionguidesforstd::basic_string \- deductionguidesforstd::basic_string
 
 .SH Notes
 
-   Guides (2-3) are needed because the std::basic_string constructors for
+   Guides (2,3) are needed because the std::basic_string constructors for
    std::basic_string_views are made templates to avoid causing ambiguities in existing
    code, and those templates do not support class template argument deduction.
+
+.SH Notes
+
+       Feature-test macro       Value    Std                   Feature
+   __cpp_lib_containers_ranges 202202L (C++23) Ranges-aware construction and insertion;
+                                               overload \fB(4)\fP
 
 .SH Example
 
 
 // Run this code
 
+ #include <cassert>
  #include <string>
  #include <vector>
- int main() {
-    std::vector<char> v = {'a', 'b', 'c'};
-    std::basic_string s(v.begin(), v.end()); // uses explicit deduction guide
+
+ int main()
+ {
+     std::vector<char> v = {'a', 'b', 'c'};
+     std::basic_string s1(v.begin(), v.end()); // uses deduction guide (1)
+     assert(s1 == "abc");
+
+ #if __cpp_lib_containers_ranges >= 202202L
+     std::vector<wchar_t> v4{0x43, 43, 053, 0x32, 0x33};
+     std::basic_string s4(std::from_range, v4); // uses deduction guide (4)
+     assert(s4 == L"C++23");
+ #endif
  }
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.

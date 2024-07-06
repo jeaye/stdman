@@ -1,4 +1,4 @@
-.TH std::projected 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::projected 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::projected \- std::projected
 
@@ -6,25 +6,56 @@ std::projected \- std::projected
    Defined in header <iterator>
    template< std::indirectly_readable I,
 
-   std::indirectly_regular_unary_invocable<I> Proj >
-   struct projected {                                                           (since
-   using value_type = std::remove_cvref_t<std::indirect_result_t<Proj&,     \fB(1)\fP C++20)
-   I>>;
-   std::indirect_result_t<Proj&, I> operator*() const; // not defined
+             std::indirectly_regular_unary_invocable<I> Proj >
+   struct projected
+   {                                                                     \fI(since C++20)\fP
+       using value_type =                                                (until C++26)
+   std::remove_cvref_t<std::indirect_result_t<Proj&, I>>;
+       std::indirect_result_t<Proj&, I> operator*() const; //
+   not defined
 
    };
+   template< std::indirectly_readable I,
+
+             std::indirectly_regular_unary_invocable<I> Proj >           (since C++26)
+
+   using projected = /*projected-impl*/<I, Proj>::/*__type*/; //
+   see \fB(3)\fP
    template< std::weakly_incrementable I, class Proj >
 
-   struct incrementable_traits<std::projected<I, Proj>> {                   \fB(2)\fP (since
-   using difference_type = std::iter_difference_t<I>;                           C++20)
+   struct incrementable_traits<std::projected<I, Proj>>          \fB(1)\fP     \fI(since C++20)\fP
+   {                                                                 \fB(2)\fP (until C++26)
+       using difference_type = std::iter_difference_t<I>;
+
+   };
+   template< class I, class Proj >
+
+   struct /*projected-impl*/
+   {
+       struct /*__type*/
+       {
+           using value_type =                                            (since C++26)
+   std::remove_cvref_t<std::indirect_result_t<Proj&, I>>;            \fB(3)\fP (exposition
+           using difference_type = std::iter_difference_t<I>; //         only*)
+   conditionally present
+
+           std::indirect_result_t<Proj&, I> operator*() const;
+   // not defined
+       };
 
    };
 
-   1) Class template projected combines an indirectly_readable type I and a callable
-   object type Proj into a new indirectly_readable type whose reference type is the
-   result of applying Proj to the std::iter_reference_t<I>.
+   1)
+   Class
+   (until C++26)
+   Alias
+   (since C++26) template projected combines an indirectly_readable type I and a
+   callable object type Proj into a new indirectly_readable type whose reference type
+   is the result of applying Proj to the std::iter_reference_t<I>.
    2) This specialization of std::incrementable_traits makes std::projected<I, Proj> a
    weakly_incrementable type when I is also a weakly_incrementable type.
+   3) An indirect layer used for avoiding unexpected argument-dependent lookup. The
+   member type difference_type exists only if I models weakly_incrementable.
 
    projected is used only to constrain algorithms that accept callable objects and
    projections, and hence its operator*() is not defined.
@@ -33,3 +64,47 @@ std::projected \- std::projected
 
    I    - an indirectly readable type
    Proj - projection applied to a dereferenced I
+
+.SH Notes
+
+   The indirect layer prevents I and Proj to be associated classes of projected. When
+   an associated class of I or Proj is an incomplete class type, the indirect layer
+   avoids the unnecessary attempt to inspect the definition of that type that results
+   in hard error.
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <cassert>
+ #include <functional>
+ #include <iterator>
+
+ template<class T>
+ struct Holder
+ {
+     T t;
+ };
+
+ struct Incomplete;
+
+ using P = Holder<Incomplete>*;
+
+ static_assert(std::equality_comparable<P>); // OK
+ static_assert(std::indirectly_comparable<P*, P*, std::equal_to<>>); // Error before C++26
+ static_assert(std::sortable<P*>); // Error before C++26
+
+ int main()
+ {
+     P a[10] = {}; // ten null pointers
+     assert(std::count(a, a + 10, nullptr) == 10); // OK
+     assert(std::ranges::count(a, a + 10, nullptr) == 10); // Error before C++26
+ }
+
+.SH See also
+
+   projected_value_t computes the value type of an indirectly_readable type by
+   (C++26)           projection
+                     (alias template)

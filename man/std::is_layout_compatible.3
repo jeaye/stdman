@@ -1,4 +1,4 @@
-.TH std::is_layout_compatible 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_layout_compatible 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_layout_compatible \- std::is_layout_compatible
 
@@ -13,23 +13,15 @@ std::is_layout_compatible \- std::is_layout_compatible
    Every type is layout-compatible with its any cv-qualified versions, even if it is
    not an object type.
 
-   T and U shall each be a complete type, (possibly cv-qualified) void, or an array of
-   unknown bound. Otherwise, the behavior is undefined.
+   If T or U is not a complete type, (possibly cv-qualified) void, or an array of
+   unknown bound, the behavior is undefined.
 
    If an instantiation of a template above depends, directly or indirectly, on an
    incomplete type, and that instantiation could yield a different result if that type
    were hypothetically completed, the behavior is undefined.
 
-   The behavior of a program that adds specializations for is_layout_compatible or
-   is_layout_compatible_v is undefined.
-
-  Helper variable template
-
-   template< class T, class U >
-   inline constexpr bool is_layout_compatible_v =                         \fI(since C++20)\fP
-   is_layout_compatible<T, U>::value;
-
-Inherited from std::integral_constant
+   If the program adds specializations for std::is_layout_compatible or
+   std::is_layout_compatible_v, the behavior is undefined.
 
 .SH Member constants
 
@@ -62,23 +54,32 @@ Inherited from std::integral_constant
    Array types of layout-compatible but different element types (ignoring
    cv-qualification) are not layout-compatible, even if they are of equal length.
 
-   Feature-test macro: __cpp_lib_is_layout_compatible
+         Feature-test macro        Value    Std            Feature
+   __cpp_lib_is_layout_compatible 201907L (C++20) std::is_layout_compatible
 
 .SH Example
 
 
 // Run this code
 
- #include <type_traits>
  #include <iomanip>
  #include <iostream>
+ #include <type_traits>
 
- struct Foo {
+ struct Foo
+ {
      int x;
      char y;
  };
 
- class Bar {
+ struct FooNua
+ {
+     int x;
+     [[no_unique_address]] char y;
+ };
+
+ class Bar
+ {
      const int u = 42;
      volatile char v = '*';
  };
@@ -86,31 +87,22 @@ Inherited from std::integral_constant
  enum E0 : int {};
  enum class E1 : int {};
 
- #define SHOW(...) std::cout << std::setw(54) << #__VA_ARGS__ << " = " << __VA_ARGS__ << '\\n'
+ static_assert
+ (
+     std::is_layout_compatible_v<const void, volatile void> == true  and
+     std::is_layout_compatible_v<Foo, Bar>                  == true  and
+     std::is_layout_compatible_v<Foo[2], Bar[2]>            == false and
+     std::is_layout_compatible_v<int, E0>                   == false and
+     std::is_layout_compatible_v<E0, E1>                    == true  and
+     std::is_layout_compatible_v<long, unsigned long>       == false and
+     std::is_layout_compatible_v<char*, const char*>        == false and
+     std::is_layout_compatible_v<char*, char* const>        == true  and
+     std::is_layout_compatible_v<Foo, FooNua>               == false // Note [1]
+ );
 
- int main()
- {
-     std::cout << std::boolalpha << std::left;
-     SHOW(std::is_layout_compatible_v<const void, volatile void>);
-     SHOW(std::is_layout_compatible_v<Foo, Bar>);
-     SHOW(std::is_layout_compatible_v<Foo[2], Bar[2]>);
-     SHOW(std::is_layout_compatible_v<int, E0>);
-     SHOW(std::is_layout_compatible_v<E0, E1>);
-     SHOW(std::is_layout_compatible_v<long, unsigned long>);
-     SHOW(std::is_layout_compatible_v<char*, const char*>);
-     SHOW(std::is_layout_compatible_v<char*, char* const>);
- }
+ // [1] MSVC erroneously fails this assert
 
-.SH Output:
-
- std::is_layout_compatible_v<const void, volatile void> = true
- std::is_layout_compatible_v<Foo, Bar>                  = true
- std::is_layout_compatible_v<Foo[2], Bar[2]>            = false
- std::is_layout_compatible_v<int, E0>                   = false
- std::is_layout_compatible_v<E0, E1>                    = true
- std::is_layout_compatible_v<long, unsigned long>       = false
- std::is_layout_compatible_v<char*, const char*>        = false
- std::is_layout_compatible_v<char*, char* const>        = true
+ int main() {}
 
 .SH See also
 

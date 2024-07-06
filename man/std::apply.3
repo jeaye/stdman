@@ -1,4 +1,4 @@
-.TH std::apply 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::apply 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::apply \- std::apply
 
@@ -6,11 +6,24 @@ std::apply \- std::apply
    Defined in header <tuple>
    template< class F, class Tuple >                                       \fI(since C++17)\fP
    constexpr decltype(auto) apply( F&& f, Tuple&& t );                    (until C++23)
-   template< class F, class Tuple >
+   template< class F, tuple-like Tuple >
    constexpr decltype(auto) apply( F&& f, Tuple&& t ) noexcept(/* see     (since C++23)
    below */);
 
-   Invoke the Callable object f with a tuple of arguments.
+   Invoke the Callable object f with the elements of t as arguments.
+
+   Given the exposition-only function apply-impl defined as follows: template<class
+   F,class Tuple, std::size_t... I>
+   constexpr decltype(auto)
+       apply-impl(F&& f, Tuple&& t, std::index_sequence<I...>) // exposition only
+   {
+       return INVOKE(std::forward<F>(f), std::get<I>(std::forward<Tuple>(t))...);
+   }
+
+   The effect is equivalent to return apply-impl(std::forward<F>(f),
+   std::forward<Tuple>(t),
+                     std::make_index_sequence<
+                         std::tuple_size_v<std::decay_t<Tuple>>>{}); .
 
 .SH Parameters
 
@@ -23,14 +36,14 @@ std::apply \- std::apply
 
 .SH Exceptions
 
-   \fI(none)\fP                                                                        (until
-                                                                                 C++23)
+   \fI(none)\fP                                                                  (until
+                                                                           C++23)
    noexcept specification:
    noexcept(
 
-   noexcept(std::invoke(std::forward<F>(f),
-   std::get<Is>(std::forward<Tuple>(t))...))                                     (since
-                                                                                 C++23)
+       noexcept(std::invoke(std::forward<F>(f),
+                            std::get<Is>(std::forward<Tuple>(t))...))      (since
+                                                                           C++23)
    )
 
    where Is... denotes the parameter pack:
@@ -39,42 +52,15 @@ std::apply \- std::apply
 
 .SH Notes
 
-   The tuple need not be std::tuple, and instead may be anything that supports std::get
-   and std::tuple_size; in particular, std::array and std::pair may be used.
+   Tuple need not be std::tuple, and instead may be anything that
+   supports std::get and std::tuple_size; in particular, std::array and   (until C++23)
+   std::pair may be used.
+   Tuple is constrained to be tuple-like, i.e. each type therein is
+   required to be a specialization of std::tuple or another type (such as (since C++23)
+   std::array and std::pair) that models tuple-like.
 
-   Feature-test macro: __cpp_lib_apply
-
-.SH Possible implementation
-
-   namespace detail {
-   template <class F, class Tuple, std::size_t... I>
-   constexpr decltype(auto) apply_impl(F&& f, Tuple&& t, std::index_sequence<I...>)
-   {
-       // This implementation is valid since C++20 (via P1065R2)
-       // In C++17, a constexpr counterpart of std::invoke is actually needed here
-       return std::invoke(std::forward<F>(f), std::get<I>(std::forward<Tuple>(t))...);
-   }
-
-   template <class F, class Tuple, class Idx>
-   inline constexpr bool apply_is_noexcept = false;
-
-   template <class F, class Tuple, std::size_t... I>
-   inline constexpr bool apply_is_noexcept<F, Tuple, std::index_sequence<I...>> =
-     noexcept(std::invoke(std::declval<F>(), std::get<I>(std::declval<Tuple>())...));
-
-   }  // namespace detail
-
-   template <class F, class Tuple>
-   constexpr decltype(auto) apply(F&& f, Tuple&& t)
-     noexcept( // since C++23
-       detail::apply_is_noexcept<F, Tuple,
-         std::make_index_sequence<std::remove_reference_t<Tuple>>>
-     )
-   {
-       return detail::apply_impl(
-           std::forward<F>(f), std::forward<Tuple>(t),
-           std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple>>>{});
-   }
+   Feature-test macro  Value    Std    Feature
+   __cpp_lib_apply    201603L \fI(C++17)\fP std::apply
 
 .SH Example
 
@@ -136,9 +122,12 @@ std::apply \- std::apply
    \fI(C++11)\fP          \fI(function template)\fP
    forward_as_tuple creates a tuple of forwarding references
    \fI(C++11)\fP          \fI(function template)\fP
-   make_from_tuple  Construct an object with a tuple of arguments
+   make_from_tuple  construct an object with a tuple of arguments
    \fI(C++17)\fP          \fI(function template)\fP
    invoke           invokes any Callable object with given arguments
    invoke_r         and possibility to specify return type
    \fI(C++17)\fP          (since C++23)
    (C++23)          \fI(function template)\fP
+
+.SH Category:
+     * conditionally noexcept

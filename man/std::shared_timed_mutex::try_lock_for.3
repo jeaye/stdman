@@ -1,15 +1,15 @@
-.TH std::shared_timed_mutex::try_lock_for 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::shared_timed_mutex::try_lock_for 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::shared_timed_mutex::try_lock_for \- std::shared_timed_mutex::try_lock_for
 
 .SH Synopsis
    template< class Rep, class Period >
-   bool try_lock_for( const std::chrono::duration<Rep,Period>&            \fI(since C++14)\fP
+   bool try_lock_for( const std::chrono::duration<Rep, Period>&           \fI(since C++14)\fP
    timeout_duration );
 
-   Tries to lock the mutex. Blocks until specified timeout_duration has elapsed or the
-   lock is acquired, whichever comes first. On successful lock acquisition returns
-   true, otherwise returns false.
+   Tries to lock the mutex. Blocks until the specified duration timeout_duration has
+   elapsed (timeout) or the lock is acquired (owns the mutex), whichever comes first.
+   On successful lock acquisition returns true, otherwise returns false.
 
    If timeout_duration is less or equal timeout_duration.zero(), the function behaves
    like try_lock().
@@ -17,9 +17,9 @@ std::shared_timed_mutex::try_lock_for \- std::shared_timed_mutex::try_lock_for
    This function may block for longer than timeout_duration due to scheduling or
    resource contention delays.
 
-   The standard recommends that a steady_clock is used to measure the duration. If an
-   implementation uses a system_clock instead, the wait time may also be sensitive to
-   clock adjustments.
+   The standard recommends that a std::steady_clock is used to measure the duration. If
+   an implementation uses a std::system_clock instead, the wait time may also be
+   sensitive to clock adjustments.
 
    As with try_lock(), this function is allowed to fail spuriously and return false
    even if the mutex was not locked by any other thread at some point during
@@ -41,20 +41,21 @@ std::shared_timed_mutex::try_lock_for \- std::shared_timed_mutex::try_lock_for
 
 .SH Exceptions
 
-   Any exception thrown by clock, time_point, or duration during the execution (clocks,
-   time points, and durations provided by the standard library never throw)
+   Any exception thrown by timeout_duration (durations provided by the standard library
+   never throw).
 
 .SH Example
 
 
 // Run this code
 
+ #include <chrono>
  #include <iostream>
  #include <mutex>
- #include <chrono>
+ #include <sstream>
  #include <thread>
  #include <vector>
- #include <sstream>
+
  using namespace std::chrono_literals;
 
  std::mutex cout_mutex; // control access to std::cout
@@ -64,31 +65,32 @@ std::shared_timed_mutex::try_lock_for \- std::shared_timed_mutex::try_lock_for
  {
      std::ostringstream stream;
 
-     for (int i = 0; i < 3; ++i) {
-         if (mutex.try_lock_for(100ms)) {
+     for (int i = 0; i < 3; ++i)
+     {
+         if (mutex.try_lock_for(100ms))
+         {
              stream << "success ";
              std::this_thread::sleep_for(100ms);
              mutex.unlock();
-         } else {
-             stream << "failed ";
          }
+         else
+             stream << "failed ";
+
          std::this_thread::sleep_for(100ms);
      }
 
      std::lock_guard<std::mutex> lock{cout_mutex};
-     std::cout << "[" << id << "] " << stream.str() << "\\n";
+     std::cout << '[' << id << "] " << stream.str() << '\\n';
  }
 
  int main()
  {
      std::vector<std::thread> threads;
-     for (int i = 0; i < 4; ++i) {
+     for (int i{0}; i < 4; ++i)
          threads.emplace_back(job, i);
-     }
 
-     for (auto& i: threads) {
-         i.join();
-     }
+     for (auto& th : threads)
+         th.join();
  }
 
 .SH Possible output:

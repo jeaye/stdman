@@ -1,4 +1,4 @@
-.TH std::any::any 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::any::any 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::any::any \- std::any::any
 
@@ -15,12 +15,12 @@ std::any::any \- std::any::any
    explicit any( std::in_place_type_t<ValueType>,                     \fB(6)\fP \fI(since C++17)\fP
    std::initializer_list<U> il,
 
-   Args&&... args );
+                 Args&&... args );
 
    Constructs a new any object.
 
    1) Constructs an empty object.
-   2-3) Copies \fB(2)\fP or moves \fB(3)\fP content of other into a new instance, so that any
+   2,3) Copies \fB(2)\fP or moves \fB(3)\fP content of other into a new instance, so that any
    content is equivalent in both type and value to those of other prior to the
    constructor call, or empty if other is empty. Formally,
    2) If other is empty, the constructed object is empty. Otherwise, equivalent to
@@ -32,24 +32,19 @@ std::any::any \- std::any::any
 .SH rvalue.
    4) Constructs an object with initial content an object of type
    std::decay_t<ValueType>, direct-initialized from std::forward<ValueType>(value).
-
      * This overload participates in overload resolution only if
        std::decay_t<ValueType> is not the same type as any nor a specialization of
        std::in_place_type_t, and std::is_copy_constructible_v<std::decay_t<ValueType>>
        is true.
-
    5) Constructs an object with initial content an object of type
    std::decay_t<ValueType>, direct-non-list-initialized from
    std::forward<Args>(args)....
-
      * This overload participates in overload resolution only if
        std::is_constructible_v<std::decay_t<ValueType>, Args...> and
        std::is_copy_constructible_v<std::decay_t<ValueType>> are both true.
-
    6) Constructs an object with initial content an object of type
    std::decay_t<ValueType>, direct-non-list-initialized from il,
    std::forward<Args>(args)....
-
      * This overload participates in overload resolution only if
        std::is_constructible_v<std::decay_t<ValueType>, std::initializer_list<U>&,
        Args...> and std::is_copy_constructible_v<std::decay_t<ValueType>> are both
@@ -70,7 +65,7 @@ std::any::any \- std::any::any
 
 .SH Exceptions
 
-   2,4,5,6) Throws any exception thrown by the constructor of the contained type.
+   2,4-6) Throws any exception thrown by the constructor of the contained type.
 
 .SH Notes
 
@@ -84,44 +79,50 @@ std::any::any \- std::any::any
 
 // Run this code
 
- #include <utility>
- #include <set>
- #include <any>
- #include <string>
- #include <memory>
- #include <iostream>
- #include <initializer_list>
- #include <cxxabi.h>
+ #include <boost/core/demangle.hpp>
 
- struct A {
+ #include <any>
+ #include <initializer_list>
+ #include <iostream>
+ #include <memory>
+ #include <set>
+ #include <string>
+ #include <utility>
+
+ struct A
+ {
      int age;
      std::string name;
      double salary;
+
+ #if __cpp_aggregate_paren_init < 201902L
+     // Required before C++20 for in-place construction
+     A(int age, std::string name, double salary)
+         : age(age), name(std::move(name)), salary(salary) {}
+ #endif
  };
 
- // using abi demangle to print nice type name of instance of any holding
- void printType(const std::any& a) {
-     int status;
-     if (char* p = abi::__cxa_demangle(a.type().name(), 0, 0, &status)){
-         std::cout << p << '\\n';
-         std::free(p);
-     }
+ // Using abi demangle to print nice type name of instance of any holding
+ void printType(const std::any& a)
+ {
+     std::cout << boost::core::demangle(a.type().name()) << '\\n';
  }
 
- int main(){
-     // constructor #4: std::any holding int
+ int main()
+ {
+     // Constructor #4: std::any holding int
      std::any a1{7};
 
-     // constructor #5: std::any holding A, constructed in place
-     std::any a2(std::in_place_type_t<A>{}, 30, "Ada", 1000.25);
+     // Constructor #5: std::any holding A, constructed in place
+     std::any a2(std::in_place_type<A>, 30, "Ada", 1000.25);
 
-     // constructor #6: std::any holding a set of A with custom comparison
+     // Constructor #6: std::any holding a set of A with custom comparison
      auto lambda = [](auto&& l, auto&& r){ return l.age < r.age; };
      std::any a3(
-         std::in_place_type_t<std::set<A, decltype(lambda)>>{},
-         std::initializer_list<A>{
-             {39, std::string{"Ada"}, 100.25},
-             {20, std::string{"Bob"}, 75.5}
+         std::in_place_type<std::set<A, decltype(lambda)>>,
+         {
+             A{39, std::string{"Ada"}, 100.25},
+             A{20, std::string{"Bob"}, 75.5}
          },
          lambda);
 

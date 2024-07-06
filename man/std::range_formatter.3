@@ -1,0 +1,124 @@
+.TH std::range_formatter 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::range_formatter \- std::range_formatter
+
+.SH Synopsis
+   Defined in header <format>
+   template< class T, class CharT = char >
+
+       requires std::same_as<std::remove_cvref_t<T>, T> &&                (since C++23)
+   std::formattable<T, CharT>
+
+   class range_formatter;
+
+   The std::range_formatter is a helper class template for implementing std::formatter
+   specializations for range types.
+
+.SH Member objects
+
+   Member name                Definition
+   underlying_ (private)      the underlying formatter of type std::formatter<T, CharT>
+                              (exposition-only member object*)
+                              a string representing the separator of the range
+   separator_ (private)       formatted result. The default separator is ", ".
+                              (exposition-only member object*)
+                              a string representing the opening bracket of the range
+   opening-bracket_ (private) formatted result. The default opening bracket is "[".
+                              (exposition-only member object*)
+                              a string representing the closing bracket of the range
+   closing-bracket_ (private) formatted result. The default closing bracket is "]".
+                              (exposition-only member object*)
+
+.SH Member functions
+
+   set_separator sets a specified separator for the range formatted result
+                 \fI(public member function)\fP
+                 sets a specified opening and closing brackets for the range formatted
+   set_brackets  result
+                 \fI(public member function)\fP
+   underlying    returns the underlying formatter
+                 \fI(public member function)\fP
+   parse         parses the format specifier as specified by range-format-spec
+                 \fI(public member function)\fP
+   format        writes the range formatted output as specified by range-format-spec
+                 \fI(public member function)\fP
+
+std::range_formatter::set_separator
+
+   constexpr void set_separator( std::basic_string_view<CharT> sep ) noexcept;
+
+   Assigns sep to separator_.
+
+std::range_formatter::set_brackets
+
+   constexpr void set_brackets( std::basic_string_view<CharT> opening,
+                                std::basic_string_view<CharT> closing ) noexcept;
+
+   Assigns opening and closing to opening-bracket_ and closing-bracket_, respectively.
+
+std::range_formatter::underlying
+
+   constexpr std::formatter<T, CharT>& underlying();             \fB(1)\fP
+   constexpr const std::formatter<T, CharT>& underlying() const; \fB(2)\fP
+
+   Returns underlying_ (the underlying formatter).
+
+std::range_formatter::parse
+
+   template< class ParseContext >
+   constexpr auto parse( ParseContext& ctx ) -> ParseContext::iterator;
+
+   Parses the format specifiers as a range-format-spec and stores the parsed specifiers
+   in the current object.
+
+   Calls underlying_.parse(ctx) to parse format-spec in range-format-spec or, if the
+   latter is not present, an empty format-spec.
+
+   If range-type or the n option is present, the values of opening-bracket_,
+   closing-bracket_, and separator_ are modified as required.
+
+   It calls underlying_.set_debug_format() if:
+
+     * the range-type is neither s nor ?s,
+     * underlying_.set_debug_format() is a valid expression, and
+     * there is no range-underlying-spec.
+
+   Returns an iterator past the end of the range-format-spec.
+
+std::range_formatter::format
+
+   template< ranges::input_range R, class FormatContext >
+
+     requires std::formattable<ranges::range_reference_t<R>, CharT> &&
+              std::same_as<std::remove_cvref_t<ranges::range_reference_t<R>>, T>
+
+   auto format( R&& r, FormatContext& ctx ) const -> FormatContext::iterator;
+
+   If the range-type was either s or ?s, it writes the formatted
+   std::basic_string<CharT>(std::from_range, r) as a string or an escaped string,
+   respectively, into ctx.out().
+
+   Otherwise, it writes the following into ctx.out() as specified by range-format-spec,
+   in order:
+
+     * opening-bracket_,
+     * for each formattable element e of the range r:
+
+     * the result of writing e via underlying_, and
+     * separator_, unless e is the last element of r, and
+     * closing-bracket_.
+
+   Returns an iterator past the end of the output range.
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to             Behavior as published             Correct behavior
+   LWG 3892 C++23      the formatting of nested ranges was incorrect corrected
+
+.SH See also
+
+   formatter defines formatting rules for a given type
+   (C++20)   \fI(class template)\fP

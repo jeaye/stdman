@@ -1,11 +1,11 @@
-.TH std::ranges::transform_view::transform_view 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::transform_view::transform_view 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::transform_view::transform_view \- std::ranges::transform_view::transform_view
 
 .SH Synopsis
-   transform_view() requires std::default_initializable<V> && \fB(1)\fP \fI(since C++20)\fP
-   std::default_initializable<F> = default;
-   constexpr transform_view( V base, F fun );                 \fB(2)\fP \fI(since C++20)\fP
+   transform_view() requires std::default_initializable<V> &&         \fB(1)\fP \fI(since C++20)\fP
+                             std::default_initializable<F> = default;
+   constexpr explicit transform_view( V base, F fun );                \fB(2)\fP \fI(since C++20)\fP
 
    Constructs a transform_view.
 
@@ -30,6 +30,7 @@ std::ranges::transform_view::transform_view \- std::ranges::transform_view::tran
  #include <iomanip>
  #include <iostream>
  #include <numbers>
+ #include <numeric>
  #include <ranges>
 
  int main()
@@ -38,11 +39,10 @@ std::ranges::transform_view::transform_view \- std::ranges::transform_view::tran
      auto atan1term = std::ranges::views::transform(
          [](int n) { return ((n % 2) ? -1 : 1) * 1.0 / (2 * n + 1); }
      );
-     for (const int iterations : {1, 2, 3, 4, 5, 10, 100, 1000, 1'000'000}) {
-         double accum{0.0};
-         for (double term : std::ranges::views::iota(0, iterations) | atan1term) {
-             accum += term;
-         }
+     for (const int iterations : {1, 2, 3, 4, 5, 10, 100, 1000, 1'000'000})
+     {
+         auto seq = std::ranges::views::iota(0, iterations) | atan1term;
+         const double accum = std::accumulate(seq.begin(), seq.end(), 0.0);
          std::cout << "π ~ " << 4 * accum << " (iterations: " << iterations << ")\\n";
      }
      std::cout << "π ~ " << std::numbers::pi << " (std::numbers::pi)\\n";
@@ -61,13 +61,15 @@ std::ranges::transform_view::transform_view \- std::ranges::transform_view::tran
  π ~ 3.141591653589774 (iterations: 1000000)
  π ~ 3.141592653589793 (std::numbers::pi)
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-     DR    Applied to         Behavior as published               Correct behavior
-                      if F is not default_initializable, the
-   P2325R3 C++20      default constructor                    the transform_view is also
-                      constructs a transform_view which does not default_initializable
-                      not contain an F
+      DR     Applied to        Behavior as published              Correct behavior
+   LWG 3714  C++20      the multi-parameter constructor was  made explicit
+   (P2711R1)            not explicit
+                        if F is not default_initializable,
+   P2325R3   C++20      the default constructor              the transform_view is also
+                        constructs a transform_view which    not default_initializable
+                        does not contain an F

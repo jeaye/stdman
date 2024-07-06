@@ -1,0 +1,99 @@
+.TH std::expected::transform_error 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::expected::transform_error \- std::expected::transform_error
+
+.SH Synopsis
+   template< class F >                              \fB(1)\fP (since C++23)
+   constexpr auto transform_error( F&& f ) &;
+   template< class F >                              \fB(2)\fP (since C++23)
+   constexpr auto transform_error( F&& f ) const&;
+   template< class F >                              \fB(3)\fP (since C++23)
+   constexpr auto transform_error( F&& f ) &&;
+   template< class F >                              \fB(4)\fP (since C++23)
+   constexpr auto transform_error( F&& f ) const&&;
+
+   If *this contains an error value, invokes f with the argument error() and returns a
+   std::expected object that contains its result; otherwise, returns a std::expected
+   object that contains a copy of the contained expected value (obtained from
+   operator*).
+
+   1,2) Given type G as std::remove_cv_t<std::invoke_result_t<F, decltype(error())>>.
+   If G is not a valid template argument for std::unexpected, or G
+   g(std::invoke(std::forward<F>(f), error())); is ill-formed, the program is
+   ill-formed.
+   The effect is equivalent to
+
+ if (has_value())
+ {
+     if (std::is_void_v<T>)
+         return std::expected<T, G>();
+     else
+         return std::expected<T, G>(std::in_place, **this);
+ }
+ else
+     // the returned std::expected object contains an unexpected value,
+     // which is direct-non-list-initialized with
+     // std::invoke(std::forward<F>(f), error())
+     return /* an std::expected<T, G> object */;
+
+   These overloads participate in overload resolution only if std::is_void_v<T> or
+   std::is_constructible_v<T, decltype(**this)> is true.
+   3,4) Given type G as std::remove_cv_t<std::invoke_result_t<F,
+   decltype(std::move(error()))>>.
+   If G is not a valid template argument for std::unexpected, or G
+   g(std::invoke(std::forward<F>(f), std::move(error()))); is ill-formed, the program
+   is ill-formed.
+   The effect is equivalent to
+
+ if (has_value())
+ {
+     if (std::is_void_v<T>)
+         return std::expected<T, G>();
+     else
+         return std::expected<T, G>(std::in_place, std::move(**this));
+ }
+ else
+     // the returned std::expected object contains an unexpected value,
+     // which is direct-non-list-initialized with
+     // std::invoke(std::forward<F>(f), std::move(error()))
+     return /* an std::expected<T, G> object */;
+
+   These overloads participate in overload resolution only if std::is_void_v<T> or
+   std::is_constructible_v<T, decltype(std::move(**this))> is true.
+
+.SH Parameters
+
+   f - a suitable function or Callable object whose call signature returns a
+       non-reference type
+
+.SH Return value
+
+   A std::expected object containing either the result of f or an expected value, as
+   described above.
+
+.SH Example
+
+    This section is incomplete
+    Reason: no example
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+                       transform_error was ill-formed if T is not
+   LWG 3938 C++23      (possibly cv-qualified) void and E is not       made well-formed
+                       copyable
+
+.SH See also
+
+             returns the expected itself if it contains an expected value; otherwise,
+   or_else   returns the result of the given function on the unexpected value
+             \fI(public member function)\fP
+             returns an expected containing the transformed expected value if it
+   transform exists; otherwise, returns the expected itself
+             \fI(public member function)\fP
+
+.SH Category:
+     * Todo no example

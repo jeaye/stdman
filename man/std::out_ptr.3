@@ -1,0 +1,88 @@
+.TH std::out_ptr 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::out_ptr \- std::out_ptr
+
+.SH Synopsis
+   Defined in header <memory>
+   template< class Pointer = void, class Smart, class... Args >  (since C++23)
+   auto out_ptr( Smart& s, Args&&... args );
+
+   Returns an std::out_ptr_t with deduced template arguments that captures arguments
+   for resetting by reference.
+
+   The program is ill-formed if construction of the return value (see below) is
+   ill-formed.
+
+.SH Parameters
+
+   s       - the object (typically a smart pointer) to adapt
+   args... - the arguments for resetting to capture
+
+.SH Return value
+
+   std::out_ptr_t<Smart, P, Args&&>(s, std::forward<Args>(args)...), where P is
+
+     * Pointer, if Pointer is not same as void. Otherwise,
+     * Smart::pointer, if it is valid and denotes a type. Otherwise,
+     * Smart::element_type*, if Smart::element_type is valid and denotes a type.
+       Otherwise,
+     * std::pointer_traits<Smart>::element_type*.
+
+.SH Notes
+
+   Users may specify the template argument for the template parameter Pointer, in order
+   to interoperate with foreign functions that take a Pointer*.
+
+   As all arguments for resetting are captured by reference, the returned out_ptr_t
+   should be a temporary object destroyed at the end of the full-expression containing
+   the call to the foreign function, in order to avoid dangling references.
+
+   Feature-test macro  Value    Std                     Feature
+   __cpp_lib_out_ptr  202106L (C++23) std::out_ptr, std::inout_ptr
+                      202311L (C++26) freestanding std::out_ptr and std::inout_ptr
+
+.SH Example
+
+   Use std::out_ptr to adapt a smart pointer for sqlite3_open, which expects a
+   sqlite3** as an out parameter.
+
+
+// Run this code
+
+ #include <memory>
+ #include <sqlite3.h>
+
+ int main()
+ {
+     auto close_db = [](sqlite3* db) { sqlite3_close(db); };
+
+     {
+         // open an in-memory database, and manage its lifetime with std::unique_ptr
+         std::unique_ptr<sqlite3, decltype(close_db)> up;
+         sqlite3_open(":memory:", std::out_ptr(up));
+
+         sqlite3* db = up.get();
+         // do something with db ...
+     }
+     {
+         // same as above, but use a std::shared_ptr
+         std::shared_ptr<sqlite3> sp;
+         sqlite3_open(":memory:", std::out_ptr(sp, close_db));
+
+         sqlite3* db = sp.get();
+         // do something with db ...
+     }
+ }
+
+.SH See also
+
+   inout_ptr                 creates an inout_ptr_t with an associated smart pointer
+   (C++23)                   and resetting arguments
+                             \fI(function template)\fP
+   make_unique
+   make_unique_for_overwrite creates a unique pointer that manages a new object
+   \fI(C++14)\fP                   \fI(function template)\fP
+   (C++20)
+   make_shared               creates a shared pointer that manages a new object
+   make_shared_for_overwrite \fI(function template)\fP
+   (C++20)

@@ -1,15 +1,18 @@
-.TH std::iter_swap 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::iter_swap 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::iter_swap \- std::iter_swap
 
 .SH Synopsis
    Defined in header <algorithm>
-   template< class ForwardIt1, class ForwardIt2 >           \fI(until C++20)\fP
+   template< class ForwardIt1, class ForwardIt2 >  (constexpr since C++20)
    void iter_swap( ForwardIt1 a, ForwardIt2 b );
-   template< class ForwardIt1, class ForwardIt2 >           \fI(since C++20)\fP
-   constexpr void iter_swap( ForwardIt1 a, ForwardIt2 b );
 
    Swaps the values of the elements the given iterators are pointing to.
+
+   If any of the following conditions is satisfied, the behavior is undefined:
+
+     * a or b is not dereferenceable.
+     * *a is not Swappable with *b.
 
 .SH Parameters
 
@@ -17,8 +20,6 @@ std::iter_swap \- std::iter_swap
 .SH Type requirements
    -
    ForwardIt1, ForwardIt2 must meet the requirements of LegacyForwardIterator.
-   -
-   *a, *b must meet the requirements of Swappable.
 
 .SH Return value
 
@@ -26,7 +27,7 @@ std::iter_swap \- std::iter_swap
 
 .SH Complexity
 
-   constant
+   Constant.
 
 .SH Notes
 
@@ -37,10 +38,11 @@ std::iter_swap \- std::iter_swap
 .SH Possible implementation
 
    template<class ForwardIt1, class ForwardIt2>
-   constexpr void iter_swap(ForwardIt1 a, ForwardIt2 b) // constexpr since C++20
+   constexpr //< since C++20
+   void iter_swap(ForwardIt1 a, ForwardIt2 b)
    {
-      using std::swap;
-      swap(*a, *b);
+       using std::swap;
+       swap(*a, *b);
    }
 
 .SH Example
@@ -50,41 +52,59 @@ std::iter_swap \- std::iter_swap
 
 // Run this code
 
- #include <random>
- #include <vector>
- #include <iostream>
  #include <algorithm>
- #include <functional>
+ #include <iostream>
+ #include <random>
+ #include <string_view>
+ #include <vector>
 
  template<class ForwardIt>
  void selection_sort(ForwardIt begin, ForwardIt end)
  {
-     for (ForwardIt i = begin; i != end; ++i)
-         std::iter_swap(i, std::min_element(i, end));
+     for (ForwardIt it = begin; it != end; ++it)
+         std::iter_swap(it, std::min_element(it, end));
+ }
+
+ void println(std::string_view rem, std::vector<int> const& v)
+ {
+     std::cout << rem;
+     for (int e : v)
+         std::cout << e << ' ';
+     std::cout << '\\n';
+ }
+
+ template<int min, int max>
+ int rand_int()
+ {
+     static std::uniform_int_distribution dist(min, max);
+     static std::mt19937 gen(std::random_device{}());
+     return dist(gen);
  }
 
  int main()
  {
-     std::random_device rd;
-     std::mt19937 gen(rd());
-     std::uniform_int_distribution<> dist(-9, +9);
      std::vector<int> v;
-     std::generate_n(back_inserter(v), 20, bind(dist, gen));
+     std::generate_n(std::back_inserter(v), 20, rand_int<-9, +9>);
 
-     std::cout << "Before sort: " << std::showpos;
-     for(auto e : v) std::cout << e << ' ';
-
+     std::cout << std::showpos;
+     println("Before sort: ", v);
      selection_sort(v.begin(), v.end());
-
-     std::cout << "\\nAfter sort : ";
-     for(auto e : v) std::cout << e << ' ';
-     std::cout << '\\n';
+     println("After sort:  ", v);
  }
 
 .SH Possible output:
 
  Before sort: -9 -3 +2 -8 +0 -1 +8 -4 -5 +1 -4 -5 +4 -9 -8 -6 -6 +8 -4 -6
- After sort : -9 -9 -8 -8 -6 -6 -6 -5 -5 -4 -4 -4 -3 -1 +0 +1 +2 +4 +8 +8
+ After sort:  -9 -9 -8 -8 -6 -6 -6 -5 -5 -4 -4 -4 -3 -1 +0 +1 +2 +4 +8 +8
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to      Behavior as published              Correct behavior
+   LWG 187 C++98      it was unspecified whether swap the effect is equivalent to
+                      is used                         swap(*a, *b)
 
 .SH See also
 

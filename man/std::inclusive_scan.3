@@ -1,146 +1,122 @@
-.TH std::inclusive_scan 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::inclusive_scan 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::inclusive_scan \- std::inclusive_scan
 
 .SH Synopsis
    Defined in header <numeric>
-   template< class InputIt, class OutputIt
+   template< class InputIt, class OutputIt >
+                                                                \fI(since C++17)\fP
+   OutputIt inclusive_scan( InputIt first, InputIt last,    \fB(1)\fP (constexpr since C++20)
+
+                            OutputIt d_first );
+   template< class ExecutionPolicy,
+
+             class ForwardIt1, class ForwardIt2 >
+   ForwardIt2 inclusive_scan( ExecutionPolicy&& policy,     \fB(2)\fP \fI(since C++17)\fP
+                              ForwardIt1 first, ForwardIt1
+   last,
+
+                              ForwardIt2 d_first );
+   template< class InputIt, class OutputIt, class BinaryOp
    >
-                                                    \fI(since C++17)\fP
-   OutputIt inclusive_scan( InputIt first,          \fI(until C++20)\fP
+                                                                \fI(since C++17)\fP
+   OutputIt inclusive_scan( InputIt first, InputIt last,    \fB(3)\fP (constexpr since C++20)
 
-   InputIt last, OutputIt d_first );
-   template< class InputIt, class OutputIt
-   >
+                            OutputIt d_first, BinaryOp op
+   );
+   template< class ExecutionPolicy,
 
-   constexpr OutputIt inclusive_scan(               \fI(since C++20)\fP
-   InputIt first,
+             class ForwardIt1, class ForwardIt2, class
+   BinaryOp >
+   ForwardIt2 inclusive_scan( ExecutionPolicy&& policy,     \fB(4)\fP \fI(since C++17)\fP
+                              ForwardIt1 first, ForwardIt1
+   last,
 
-   InputIt last, OutputIt d_first );
-   template< class ExecutionPolicy, class
-   ForwardIt1, class ForwardIt2 >
-
-   ForwardtIt2 inclusive_scan(                  \fB(2)\fP \fI(since C++17)\fP
-   ExecutionPolicy&& policy, ForwardIt1
-   first,
-
-   ForwardIt1 last, ForwardIt2 d_first );
+                              ForwardIt2 d_first, BinaryOp
+   op );
    template< class InputIt, class OutputIt,
-   class BinaryOperation >
 
-   OutputIt inclusive_scan( InputIt first,                        \fI(since C++17)\fP
-   InputIt last,                                                  \fI(until C++20)\fP
+             class BinaryOp, class T >                          \fI(since C++17)\fP
+   OutputIt inclusive_scan( InputIt first, InputIt last,    \fB(5)\fP (constexpr since C++20)
 
-   OutputIt d_first, BinaryOperation
-   binary_op );
-   template< class InputIt, class OutputIt,
-   class BinaryOperation >
+                            OutputIt d_first, BinaryOp op,
+   T init );
+   template< class ExecutionPolicy,
 
-   constexpr OutputIt inclusive_scan(                             \fI(since C++20)\fP
-   InputIt first, InputIt last,
+             class ForwardIt1, class ForwardIt2,
+             class BinaryOp, class T >
+   ForwardIt2 inclusive_scan( ExecutionPolicy&& policy,     \fB(6)\fP \fI(since C++17)\fP
+                              ForwardIt1 first, ForwardIt1
+   last,
 
-   OutputIt d_first, BinaryOperation        \fB(1)\fP
-   binary_op );
-   template< class ExecutionPolicy, class
-   ForwardIt1, class ForwardIt2,
+                              ForwardIt2 d_first, BinaryOp
+   op, T init );
 
-   class BinaryOperation >
-   ForwardIt2 inclusive_scan(                       \fB(4)\fP           \fI(since C++17)\fP
-   ExecutionPolicy&& policy,
-   ForwardIt1 first, ForwardIt1 last,
+   1) Equivalent to inclusive_scan(first, last, d_first, std::plus<>().
+   3) Computes the inclusive prefix sum using op.
+   For each integer i in [0, std::distance(first, last)), performs the following
+   operations in order:
+    1. Creates a sequence which is formed by the elements of [first, iter] in order,
+       where iter is the next i
+       th iterator of first.
+    2. Computes the generalized noncommutative sum of the sequence over op.
+    3. Assigns the result to *dest, where dest is the next i
+       th iterator of d_first.
+   5) Same as \fB(3)\fP, but each sequence created is formed by init followed by the elements
+   of [first, iter] in order.
+   2,4,6) Same as (1,3,5), but executed according to policy.
+   These overloads participate in overload resolution only if
 
-   ForwardIt2 d_first, BinaryOperation
-   binary_op );                                 \fB(3)\fP
-   template< class InputIt, class OutputIt,
-   class BinaryOperation, class T >                                             (since
-                                                                                C++17)
-   OutputIt inclusive_scan( InputIt first,                                      (until
-   InputIt last, OutputIt d_first,                                              C++20)
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
 
-   BinaryOperation binary_op, T init );
-   template< class InputIt, class OutputIt,
-   class BinaryOperation, class T >
+   The generalized, noncommutative sum of a sequence of elements over a binary
+   operation binary_op is defined as follows:
 
-   constexpr OutputIt inclusive_scan(                                           (since
-   InputIt first, InputIt last, OutputIt                                        C++20)
-   d_first,                                         \fB(5)\fP
+     * If the sequence only has one element, the sum is the value of the element.
+     * Otherwise, performs the following operations in order:
+    1. Selects any two adjacent elements elem1 and elem2 from the sequence.
+    2. Calculates binary_op(elem1, elem2) and replaces the two elements in the sequence
+       with the result.
+    3. Repeats steps 1 and 2 until there is only one element in the sequence.
 
-   BinaryOperation binary_op, T init );
-   template< class ExecutionPolicy, class
-   ForwardIt1, class ForwardIt2,
+   Given binary_op as the actual binary operation:
 
-   class BinaryOperation, class T >
-   ForwardIt2 inclusive_scan(                                     \fB(6)\fP           (since
-   ExecutionPolicy&& policy,                                                    C++17)
-   ForwardIt1 first, ForwardIt1 last,
-   ForwardIt2 d_first,
+     * The result is non-deterministic if the binary_op is not associative (such as
+       floating-point addition).
+     * For overloads (1-4), if binary_op(*first, *first) is not convertible to the
+       value type of decltype(first), the program is ill-formed.
+     * For overloads (5,6), if any of the following values is not convertible to T, the
+       program is ill-formed:
 
-   BinaryOperation binary_op, T init );
+     * binary_op(init, *first)
+     * binary_op(init, init)
+     * binary_op(*first, *first)
+     * If any of the following conditions is satisfied, the behavior is undefined:
 
-   Computes an inclusive prefix sum operation using binary_op (or std::plus<>() for
-   overloads (1-2)) for the range [first, last), using init as the initial value (if
-   provided), and writes the results to the range beginning at d_first. "inclusive"
-   means that the i-th input element is included in the i-th sum.
-
-   Formally, assigns through each iterator i in [d_first, d_first + (last - first)) the
-   value of:
-
-     * for overloads (1-4), the generalized noncommutative sum of *j... for every j in
-       [first, first + (i - d_first + 1)) over binary_op
-     * for overloads (5-6), the generalized noncommutative sum of init, *j... for every
-       j in [first, first + (i - d_first + 1)) over binary_op
-
-   where generalized noncommutative sum GNSUM(op, a
-   1, ..., a
-   N) is defined as follows:
-
-     * if N=1, a
-       1
-     * if N > 1, op(GNSUM(op, a
-       1, ..., a
-       K), GNSUM(op, a
-       M, ..., a
-       N)) for any K where 1 < K+1 = M ≤ N
-
-   In other words, the summation operations may be performed in arbitrary order, and
-   the behavior is nondeterministic if binary_op is not associative.
-
-   Overloads (2,4,6) are executed according to policy. These overloads do not
-   participate in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
-
-   binary_op shall not invalidate iterators (including the end iterators) or subranges,
-   nor modify elements in the ranges [first, last) or [d_first, d_first + (last -
-   first)). Otherwise, the behavior is undefined.
+     * For overloads (1-4), the value type of decltype(first) is not MoveConstructible.
+     * For overloads (5,6), T is not MoveConstructible.
+     * binary_op modifies any element of [first, last).
+     * binary_op invalidates any iterator or subrange of [first, last].
 
 .SH Parameters
 
-   first, last     -     the range of elements to sum
-   d_first         -     the beginning of the destination range; may be equal to first
-   policy          -     the execution policy to use. See execution policy for details.
-   init            -     the initial value (optional)
-                         binary FunctionObject that will be applied in to the result of
-   binary_op       -     dereferencing the input iterators, the results of other
-                         binary_op, and init (if provided).
+   first, last - the range of elements to sum
+   d_first     - the beginning of the destination range; may be equal to first
+   policy      - the execution policy to use. See execution policy for details.
+   init        - the initial value
+                 binary FunctionObject that will be applied in to the result of
+   op          - dereferencing the input iterators, the results of other op, and init
+                 (if provided)
 .SH Type requirements
    -
    InputIt must meet the requirements of LegacyInputIterator.
    -
    OutputIt must meet the requirements of LegacyOutputIterator.
    -
-   ForwardIt1 must meet the requirements of LegacyForwardIterator.
-   -
-   ForwardIt2 must meet the requirements of LegacyForwardIterator.
-   -
-   If init is not provided, decltype(first)'s value_type must be MoveConstructible and
-   binary_op(*first, *first) must be convertible to decltype(first)'s value type.
-   -
-   T (if init is provided) must meet the requirements of MoveConstructible. All of
-   binary_op(init, *first), binary_op(init, init), and binary_op(*first, *first) must
-   be convertible to T
+   ForwardIt1, ForwardIt2 must meet the requirements of LegacyForwardIterator.
 
 .SH Return value
 
@@ -148,7 +124,10 @@ std::inclusive_scan \- std::inclusive_scan
 
 .SH Complexity
 
-   O(last - first) applications of the binary operation
+   Given \\(\\scriptsize N\\)N as std::distance(first, last):
+
+   1,2) \\(\\scriptsize O(N)\\)O(N) applications of std::plus<>().
+   3-6) \\(\\scriptsize O(N)\\)O(N) applications of op.
 
 .SH Exceptions
 
@@ -173,45 +152,47 @@ std::inclusive_scan \- std::inclusive_scan
 
  int main()
  {
-   std::vector data {3, 1, 4, 1, 5, 9, 2, 6};
+     std::vector data{3, 1, 4, 1, 5, 9, 2, 6};
 
-   std::cout << "exclusive sum: ";
-   std::exclusive_scan(data.begin(), data.end(),
-                       std::ostream_iterator<int>(std::cout, " "),
-                       0);
-   std::cout << "\\ninclusive sum: ";
-   std::inclusive_scan(data.begin(), data.end(),
-                       std::ostream_iterator<int>(std::cout, " "));
+     std::cout << "Exclusive sum: ";
+     std::exclusive_scan(data.begin(), data.end(),
+                         std::ostream_iterator<int>(std::cout, " "),
+                         0);
 
-   std::cout << "\\n\\nexclusive product: ";
-   std::exclusive_scan(data.begin(), data.end(),
-                       std::ostream_iterator<int>(std::cout, " "),
-                       1, std::multiplies<>{});
-   std::cout << "\\ninclusive product: ";
-   std::inclusive_scan(data.begin(), data.end(),
-                       std::ostream_iterator<int>(std::cout, " "),
-                       std::multiplies<>{});
+     std::cout << "\\nInclusive sum: ";
+     std::inclusive_scan(data.begin(), data.end(),
+                         std::ostream_iterator<int>(std::cout, " "));
+
+     std::cout << "\\n\\nExclusive product: ";
+     std::exclusive_scan(data.begin(), data.end(),
+                         std::ostream_iterator<int>(std::cout, " "),
+                         1, std::multiplies<>{});
+
+     std::cout << "\\nInclusive product: ";
+     std::inclusive_scan(data.begin(), data.end(),
+                         std::ostream_iterator<int>(std::cout, " "),
+                         std::multiplies<>{});
  }
 
 .SH Output:
 
- exclusive sum: 0 3 4 8 9 14 23 25
- inclusive sum: 3 4 8 9 14 23 25 31
+ Exclusive sum: 0 3 4 8 9 14 23 25
+ Inclusive sum: 3 4 8 9 14 23 25 31
 
- exclusive product: 1 3 3 12 12 60 540 1080
- inclusive product: 3 3 12 12 60 540 1080 6480
+ Exclusive product: 1 3 3 12 12 60 540 1080
+ Inclusive product: 3 3 12 12 60 540 1080 6480
 
 .SH See also
 
                             computes the differences between adjacent elements in a
    adjacent_difference      range
                             \fI(function template)\fP
-   accumulate               sums up a range of elements
+   accumulate               sums up or folds a range of elements
                             \fI(function template)\fP
    partial_sum              computes the partial sum of a range of elements
                             \fI(function template)\fP
    transform_inclusive_scan applies an invocable, then calculates inclusive scan
    \fI(C++17)\fP                  \fI(function template)\fP
-   exclusive_scan           similar to std::partial_sum, excludes the ith input element
-   \fI(C++17)\fP                  from the ith sum
+   exclusive_scan           similar to std::partial_sum, excludes the i^th input
+   \fI(C++17)\fP                  element from the i^th sum
                             \fI(function template)\fP

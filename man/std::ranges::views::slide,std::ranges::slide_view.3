@@ -1,0 +1,183 @@
+.TH std::ranges::views::slide,std::ranges::slide_view 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::views::slide,std::ranges::slide_view \- std::ranges::views::slide,std::ranges::slide_view
+
+.SH Synopsis
+   Defined in header <ranges>
+   template< ranges::forward_range V >
+
+       requires ranges::view<V>                                  \fB(1)\fP (since C++23)
+   class slide_view
+
+       : public ranges::view_interface<slide_view<V>>
+   namespace views {
+
+       inline constexpr /* unspecified */ slide = /* unspecified \fB(2)\fP (since C++23)
+   */;
+
+   }
+   Call signature
+   template< ranges::viewable_range R >
+   constexpr ranges::view auto slide( R&& r,                         (since C++23)
+   ranges::range_difference_t<R> n );
+   template< class DifferenceType >
+   constexpr /* range adaptor object */ slide( DifferenceType&&      (since C++23)
+   n );
+   Helper concepts
+   template< class V >
+
+   concept __slide_caches_nothing =                              \fB(3)\fP (exposition only*)
+
+       ranges::random_access_range<V> && ranges::sized_range<V>;
+   template< class V >
+
+   concept __slide_caches_last =
+       !__slide_caches_nothing<V> &&                             \fB(4)\fP (exposition only*)
+
+       ranges::bidirectional_range<V> &&
+   ranges::common_range<V>;
+   template< class V >
+
+   concept __slide_caches_first =                                \fB(5)\fP (exposition only*)
+
+       !__slide_caches_nothing<V> && !__slide_caches_last<V>;
+
+   1) slide_view is a range adaptor that takes a view and a number n and produces a
+   view whose m ^th element (a "window") is a view over the m ^th through (m + n -
+   1) ^th elements of the original view.
+   Let s be the size of the original view. Then the size of produced view is:
+     * s - n + 1, if s >= n,
+     * 0 otherwise, and the resulting view is empty.
+   2) The name views::slide denotes a RangeAdaptorObject. Given subexpressions e and n,
+   the expression views::slide(e, n) is expression-equivalent to slide_view(e, n).
+
+   If n is not greater than 0, the behavior is undefined.
+
+   slide_view always models forward_range, and models bidirectional_range,
+   random_access_range, or sized_range if adapted view type models the corresponding
+   concept.
+
+.SH Member functions
+
+   constructor   constructs a slide_view
+   (C++23)       \fI(public member function)\fP
+   begin         returns an iterator to the beginning
+   (C++23)       \fI(public member function)\fP
+   end           returns an iterator or a sentinel to the end
+   (C++23)       \fI(public member function)\fP
+   size          returns the number of elements. Provided only if the underlying
+   (C++23)       (adapted) range satisfies sized_range.
+                 \fI(public member function)\fP
+         Inherited from std::ranges::view_interface
+   empty         returns whether the derived view is empty. Provided if it satisfies
+   (C++20)       sized_range or forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   cbegin        returns a constant iterator to the beginning of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   cend          returns a sentinel for the constant iterator of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator bool returns whether the derived view is not empty. Provided if
+   (C++20)       ranges::empty is applicable to it.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   front         returns the first element in the derived view. Provided if it
+   (C++20)       satisfies forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   back          returns the last element in the derived view. Provided if it satisfies
+   (C++20)       bidirectional_range and common_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator[]    returns the n^th element in the derived view. Provided if it satisfies
+   (C++20)       random_access_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+
+   Deduction guides
+
+   Nested classes
+
+   iterator the iterator type
+   (C++23)  (exposition-only member class template*)
+   sentinel the sentinel type used when slide_view is not a common_range
+   (C++23)  (exposition-only member class template*)
+
+   Helper templates
+
+   template< class V >
+
+   inline constexpr bool ranges::enable_borrowed_range<slide_view<V>> =  (since C++23)
+
+       ranges::enable_borrowed_range<V>;
+
+   This specialization of ranges::enable_borrowed_range makes slide_view satisfy
+   borrowed_range when the underlying view satisfies it.
+
+.SH Notes
+
+   There are similarities between ranges::adjacent_view and ranges::slide_view:
+
+     * Both create a "sliding window" of size N.
+     * Both have the same size S - N + 1, where S is the size of an adapted view such
+       that S >= N > 0.
+
+   The differences between these adapters are:
+
+                  View adaptor          value_type       The window size N
+              ranges::adjacent_view A std::tuple object A template parameter
+              ranges::slide_view    A range             A runtime parameter
+
+     Feature-test macro    Value    Std           Feature
+   __cpp_lib_ranges_slide 202202L (C++23) std::ranges::slide_view
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <iostream>
+ #include <ranges>
+
+ auto print_subrange = [](std::ranges::viewable_range auto&& r)
+ {
+     std::cout << '[';
+     for (char space[]{0,0}; auto elem : r)
+         std::cout << space << elem, *space = ' ';
+     std::cout << "] ";
+ };
+
+ int main()
+ {
+     const auto v = {1, 2, 3, 4, 5, 6};
+
+     std::cout << "All sliding windows of width:\\n";
+     for (const unsigned width : std::views::iota(1U, 1U + v.size()))
+     {
+         auto const windows = v | std::views::slide(width);
+         std::cout << "W = " << width << ": ";
+         std::ranges::for_each(windows, print_subrange);
+         std::cout << '\\n';
+     }
+ }
+
+.SH Output:
+
+ All sliding windows of width W:
+ W = 1: [1] [2] [3] [4] [5] [6]
+ W = 2: [1 2] [2 3] [3 4] [4 5] [5 6]
+ W = 3: [1 2 3] [2 3 4] [3 4 5] [4 5 6]
+ W = 4: [1 2 3 4] [2 3 4 5] [3 4 5 6]
+ W = 5: [1 2 3 4 5] [2 3 4 5 6]
+ W = 6: [1 2 3 4 5 6]
+
+.SH References
+
+     * C++23 standard (ISO/IEC 14882:2023):
+
+     * 26.7.29 Slide view [range.slide]
+
+.SH See also
+
+   ranges::adjacent_view a view consisting of tuples of references to adjacent elements
+   views::adjacent       of the adapted view
+   (C++23)               \fI(class template)\fP (range adaptor object)
+   ranges::chunk_view    a range of views that are N-sized non-overlapping successive
+   views::chunk          chunks of the elements of another view
+   (C++23)               \fI(class template)\fP (range adaptor object)

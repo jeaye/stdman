@@ -1,4 +1,4 @@
-.TH std::errc 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::errc 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::errc \- std::errc
 
@@ -52,18 +52,18 @@ std::errc \- std::errc
    no_child_process                   ECHILD
    no_link                            ENOLINK
    no_lock_available                  ENOLCK
-   no_message_available               ENODATA
+   no_message_available \fB(deprecated)\fP  ENODATA
    no_message                         ENOMSG
    no_protocol_option                 ENOPROTOOPT
    no_space_on_device                 ENOSPC
-   no_stream_resources                ENOSR
+   no_stream_resources \fB(deprecated)\fP   ENOSR
    no_such_device_or_address          ENXIO
    no_such_device                     ENODEV
    no_such_file_or_directory          ENOENT
    no_such_process                    ESRCH
    not_a_directory                    ENOTDIR
    not_a_socket                       ENOTSOCK
-   not_a_stream                       ENOSTR
+   not_a_stream \fB(deprecated)\fP          ENOSTR
    not_connected                      ENOTCONN
    not_enough_memory                  ENOMEM
    not_supported                      ENOTSUP
@@ -81,7 +81,7 @@ std::errc \- std::errc
    resource_unavailable_try_again     EAGAIN
    result_out_of_range                ERANGE
    state_not_recoverable              ENOTRECOVERABLE
-   stream_timeout                     ETIME
+   stream_timeout \fB(deprecated)\fP        ETIME
    text_file_busy                     ETXTBSY
    timed_out                          ETIMEDOUT
    too_many_files_open_in_system      ENFILE
@@ -93,16 +93,16 @@ std::errc \- std::errc
 
 .SH Non-member functions
 
-   make_error_code(std::errc)      constructs an std::errc error code
+   make_error_code(std::errc)      creates error code value for errc enum e
    \fI(C++11)\fP                         \fI(function)\fP
-   make_error_condition(std::errc) constructs an std::errc error condition
+   make_error_condition(std::errc) creates an error condition for an errc value e
    \fI(C++11)\fP                         \fI(function)\fP
 
 .SH Helper classes
 
                                       extends the type trait
-   is_error_condition_enum<std::errc> std::is_error_condition_enum to identify
-   \fI(C++11)\fP                            std::errc values as error conditions
+   is_error_condition_enum<std::errc> std::is_error_condition_enum to identify errc
+   \fI(C++11)\fP                            values as error conditions
                                       \fI(function template)\fP
 
 .SH Example
@@ -110,26 +110,101 @@ std::errc \- std::errc
 
 // Run this code
 
+ #include <filesystem>
+ #include <fstream>
+ #include <iomanip>
  #include <iostream>
+ #include <string>
  #include <system_error>
  #include <thread>
+
+ void print_error(const std::string& details, std::error_code error_code)
+ {
+     std::string value_name;
+     if (error_code == std::errc::invalid_argument)
+         value_name = "std::errc::invalid_argument";
+     if (error_code == std::errc::no_such_file_or_directory)
+         value_name = "std::errc::no_such_file_or_directory";
+     if (error_code == std::errc::is_a_directory)
+         value_name = "std::errc::is_a_directory";
+     if (error_code == std::errc::permission_denied)
+         value_name = "std::errc::permission_denied";
+
+     std::cout << details << ":\\n  "
+               << std::quoted(error_code.message())
+               << " (" << value_name << ")\\n\\n";
+ }
+
+ void print_errno(const std::string& details, int errno_value = errno)
+ {
+     print_error(details, std::make_error_code(std::errc(errno_value)));
+ }
+
  int main()
  {
-     try {
-         std::thread().detach(); // detaching a not-a-thread
-     } catch (const std::system_error& e) {
-         std::cout << "Caught a system_error\\n";
-         if(e.code() == std::errc::invalid_argument)
-             std::cout << "The error condition is std::errc::invalid_argument\\n";
-         std::cout << "the error description is " << e.what() << '\\n';
+     std::cout << "Detaching a not-a-thread...\\n";
+     try
+     {
+         std::thread().detach();
      }
+     catch (const std::system_error& e)
+     {
+         print_error("Error detaching empty thread", e.code());
+     }
+
+     std::cout << "Opening nonexistent file...\\n";
+     std::ifstream nofile{"nonexistent-file"};
+     if (!nofile.is_open())
+         print_errno("Error opening nonexistent file for reading");
+
+     std::cout << "Reading from directory as a file...\\n";
+     std::filesystem::create_directory("dir");
+     std::ifstream dir_stream{"dir"};
+     [[maybe_unused]] char c = dir_stream.get();
+     if (!dir_stream.good())
+         print_errno("Error reading data from directory");
+
+     std::cout << "Open read-only file for writing...\\n";
+     std::fstream{"readonly-file", std::ios::out};
+     std::filesystem::permissions("readonly-file", std::filesystem::perms::owner_read);
+     std::fstream write_readonly("readonly-file", std::ios::out);
+     if (!write_readonly.is_open())
+         print_errno("Error opening read-only file for writing");
  }
 
 .SH Possible output:
 
- Caught a system_error
- The error condition is std::errc::invalid_argument
- the error description is Invalid argument
+ Detaching a not-a-thread...
+ Error detaching empty thread:
+   "Invalid argument" (std::errc::invalid_argument)
+
+ Opening nonexistent file...
+ Error opening nonexistent file for reading:
+   "No such file or directory" (std::errc::no_such_file_or_directory)
+
+ Reading from directory as a file...
+ Error reading data from directory:
+   "Is a directory" (std::errc::is_a_directory)
+
+ Open read-only file for writing...
+ Error opening read-only file for writing:
+   "Permission denied" (std::errc::permission_denied)
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+                       the member constants no_message_available,
+   LWG 3869 C++11      no_stream_resources, not_a_stream and           deprecated them
+                       stream_timeout
+                       referred to the obsolete POSIX STREAMS API^[1]
+
+    1. ↑ Although the corresponding POSIX error numbers ENODATA, ENOSR, ENOSTR and
+       ETIME were marked "obsolescent" in POSIX 2017, the STREAMS API was optional and
+       not required for conformance to the previous POSIX standard (because popular
+       unix-like systems refused to implement it).
 
 .SH See also
 

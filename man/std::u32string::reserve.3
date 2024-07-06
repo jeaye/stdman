@@ -1,34 +1,32 @@
-.TH std::basic_string::reserve 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_string::reserve 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_string::reserve \- std::basic_string::reserve
 
 .SH Synopsis
    void reserve( size_type new_cap = 0 );               \fI(until C++20)\fP
-   constexpr void reserve( size_type new_cap ); \fB(1)\fP     \fI(since C++20)\fP
-   void reserve();                                  \fB(2)\fP \fI(since C++20)\fP
-                                                        \fB(deprecated)\fP
+   constexpr void reserve( size_type new_cap );         \fI(since C++20)\fP
+                                                \fB(1)\fP     \fI(since C++20)\fP
+   void reserve();                                  \fB(2)\fP (deprecated in C++20)
+                                                        (removed in C++26)
 
    1) Informs a std::basic_string object of a planned change in size, so that it can
    manage the storage allocation appropriately.
+     * If new_cap is greater than the current capacity(), new storage is allocated, and
+       capacity() is made equal or greater than new_cap.
 
-              * If new_cap is greater than the current capacity(), new storage is
-                allocated, and capacity() is made equal or greater than new_cap.
-
-         * If new_cap is less than the current capacity(), this is a
-           non-binding shrink request.
-         * If new_cap is less than the current size(), this is a          \fI(until C++20)\fP
-           non-binding shrink-to-fit request
-           equivalent to shrink_to_fit()
-           \fI(since C++11)\fP.
-         * If new_cap is less than or equal to the current capacity(),    \fI(since C++20)\fP
-           there is no effect.
+     * If new_cap is less than the current capacity(), this is a
+       non-binding shrink request.
+     * If new_cap is less than the current size(), this is a non-binding  \fI(until C++20)\fP
+       shrink-to-fit request
+       equivalent to shrink_to_fit()
+       \fI(since C++11)\fP.
+     * If new_cap is less than or equal to the current capacity(), there  \fI(since C++20)\fP
+       is no effect.
 
    If a capacity change takes place, all iterators and references, including the
    past-the-end iterator, are invalidated.
-
-   2) A call to reserve with no argument is a non-binding shrink-to-fit
-   request. After this call, capacity() has an unspecified value greater  \fI(since C++20)\fP
-   than or equal to size().
+   2) A non-binding shrink-to-fit request. After this call, capacity() has an
+   unspecified value greater than or equal to size().
 
 .SH Parameters
 
@@ -40,14 +38,17 @@ std::basic_string::reserve \- std::basic_string::reserve
 
 .SH Exceptions
 
-   Throws std::length_error if new_cap is greater than max_size()
+   Throws std::length_error if new_cap is greater than max_size().
 
    May throw any exceptions thrown by std::allocator_traits<Allocator>::allocate(),
    such as std::bad_alloc.
 
+   If an exception is thrown for any reason, this function has no effect (strong
+   exception safety guarantee).
+
 .SH Complexity
 
-   At most linear in the size() of the string
+   At most linear in the size() of the string.
 
 .SH Example
 
@@ -61,36 +62,46 @@ std::basic_string::reserve \- std::basic_string::reserve
  int main()
  {
      std::string s;
-     const std::string::size_type new_capacity{ 100u };
-     std::cout << "Before: " << s.capacity() << "\\n";
+     std::cout << "1) Initially: " << s.capacity() << '\\n';
 
-     s.reserve(new_capacity);
-     std::cout << "After:  " << s.capacity() << "\\n";
-     assert(new_capacity <= s.capacity());
+     const std::string::size_type new_cap{101u};
+     s.reserve(new_cap);
+     assert(s.capacity() >= new_cap);
+     std::cout << "2) After reserve(" << new_cap << "): " << s.capacity() << '\\n';
 
      // observing the capacity growth factor
-     auto cap{ s.capacity() };
-     for (int check{}; check != 4; ++check) {
-         while(cap == s.capacity())
+     auto cap{s.capacity()};
+     for (int check{}; check != 4; ++check)
+     {
+         while (cap == s.capacity())
              s += '$';
          cap = s.capacity();
-         std::cout << "New capacity: " << cap << '\\n';
+         std::cout << (3) + check << ") Capacity: " << cap << '\\n';
      }
 
-     // s.reserve(); //< deprecated in C++20, use:
+ //  s.reserve(); // deprecated/removed in C++20/26, use:
      s.shrink_to_fit();
-     std::cout << "After:  " << s.capacity() << "\\n";
+     std::cout << "7) After shrink_to_fit: " << s.capacity() << '\\n';
  }
 
 .SH Possible output:
 
- Before: 15
- After:  100
- New capacity: 200
- New capacity: 400
- New capacity: 800
- New capacity: 1600
- After:  801
+ 1) Initially: 15
+ 2) After reserve(101): 101
+ 3) Capacity: 202
+ 4) Capacity: 404
+ 5) Capacity: 808
+ 6) Capacity: 1616
+ 7) After shrink_to_fit: 809
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to        Behavior as published              Correct behavior
+   LWG 847 C++98      there was no exception safety       added strong exception safety
+                      guarantee                           guarantee
 
 .SH See also
 

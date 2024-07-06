@@ -1,4 +1,4 @@
-.TH std::partition_copy 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::partition_copy 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::partition_copy \- std::partition_copy
 
@@ -6,42 +6,43 @@ std::partition_copy \- std::partition_copy
    Defined in header <algorithm>
    template< class InputIt, class OutputIt1,
 
-   class OutputIt2, class UnaryPredicate >
-   std::pair<OutputIt1, OutputIt2>                                        \fI(since C++11)\fP
-   partition_copy( InputIt first, InputIt last,                           \fI(until C++20)\fP
-   OutputIt1 d_first_true, OutputIt2 d_first_false,
+             class OutputIt2, class UnaryPred >
+   std::pair<OutputIt1, OutputIt2>                              \fI(since C++11)\fP
+       partition_copy( InputIt first, InputIt last,         \fB(1)\fP (constexpr since C++20)
+                       OutputIt1 d_first_true, OutputIt2
+   d_first_false,
 
-   UnaryPredicate p );
-   template< class InputIt, class OutputIt1,
-
-   class OutputIt2, class UnaryPredicate >
-   constexpr std::pair<OutputIt1, OutputIt2>                              \fI(since C++20)\fP
-   partition_copy( InputIt first, InputIt last,                   \fB(1)\fP
-   OutputIt1 d_first_true, OutputIt2 d_first_false,
-
-   UnaryPredicate p );
+                       UnaryPred p );
    template< class ExecutionPolicy, class ForwardIt1, class
    ForwardIt2,
 
-   class ForwardIt3, class UnaryPredicate >
-   std::pair<ForwardIt2, ForwardIt3>                                  \fB(2)\fP \fI(since C++17)\fP
-   partition_copy( ExecutionPolicy&& policy, ForwardIt1 first,
-   ForwardIt1 last,
-   ForwardIt2 d_first_true, ForwardIt3 d_first_false,
+             class ForwardIt3, class UnaryPred >
+   std::pair<ForwardIt2, ForwardIt3>
+       partition_copy( ExecutionPolicy&& policy,            \fB(2)\fP \fI(since C++17)\fP
+                       ForwardIt1 first, ForwardIt1 last,
+                       ForwardIt2 d_first_true, ForwardIt3
+   d_first_false,
 
-   UnaryPredicate p );
+                       UnaryPred p );
 
    1) Copies the elements from the range [first, last) to two different ranges
-   depending on the value returned by the predicate p. The elements that satisfy the
-   predicate p are copied to the range beginning at d_first_true. The rest of the
-   elements are copied to the range beginning at d_first_false.
-   The behavior is undefined if the input range overlaps either of the output ranges.
-   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
-   in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+   depending on the value returned by the predicate p.
+     * The elements that satisfy the predicate p are copied to the range beginning at
+       d_first_true.
+     * The rest of the elements are copied to the range beginning at d_first_false.
+   2) Same as \fB(1)\fP, but executed according to policy.
+   This overload participates in overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
+
+   If *first is not writable to d_first_true or d_first_false, the program is
+   ill-formed.
+
+   Among the input range and the two output ranges, if any two ranges overlap, the
+   behavior is undefined.
 
 .SH Parameters
 
@@ -50,8 +51,8 @@ std::partition_copy \- std::partition_copy
    d_first_false - the beginning of the output range for the elements that do not
                    satisfy p
    policy        - the execution policy to use. See execution policy for details.
-                   unary predicate which returns true if the element should be
-                   placed in d_first_true.
+                   unary predicate which returns true if the element should be placed
+                   in d_first_true.
 
                    The expression p(v) must be convertible to bool for every argument v
    p             - of type (possibly const) VT, where VT is the value type of InputIt,
@@ -63,15 +64,12 @@ std::partition_copy \- std::partition_copy
    -
    InputIt must meet the requirements of LegacyInputIterator.
    -
-   The type of dereferenced InputIt must meet the requirements of CopyAssignable.
-   -
    OutputIt1, OutputIt2 must meet the requirements of LegacyOutputIterator.
    -
    ForwardIt1, ForwardIt2, ForwardIt3 must meet the requirements of
-   LegacyForwardIterator. ForwardIt1's value type must be CopyAssignable, writable to
-   ForwardIt2 and ForwardIt3, and convertible to UnaryPredicate's argument type
+   LegacyForwardIterator.
    -
-   UnaryPredicate must meet the requirements of Predicate.
+   UnaryPred must meet the requirements of Predicate.
 
 .SH Return value
 
@@ -80,10 +78,10 @@ std::partition_copy \- std::partition_copy
 
 .SH Complexity
 
-   Exactly distance(first, last) applications of p.
+   Exactly std::distance(first, last) applications of p.
 
-   For the overload with an ExecutionPolicy, there may be a performance cost if
-   ForwardIt's value type is not CopyConstructible.
+   For the overload \fB(2)\fP, there may be a performance cost if ForwardIt's value type is
+   not CopyConstructible.
 
 .SH Exceptions
 
@@ -97,23 +95,29 @@ std::partition_copy \- std::partition_copy
 
 .SH Possible implementation
 
+                              partition_copy \fB(1)\fP
    template<class InputIt, class OutputIt1,
-            class OutputIt2, class UnaryPredicate>
+            class OutputIt2, class UnaryPred>
+   constexpr //< since C++20
    std::pair<OutputIt1, OutputIt2>
        partition_copy(InputIt first, InputIt last,
                       OutputIt1 d_first_true, OutputIt2 d_first_false,
-                      UnaryPredicate p)
+                      UnaryPred p)
    {
-       while (first != last) {
-           if (p(*first)) {
+       for (; first != last; ++first)
+       {
+           if (p(*first))
+           {
                *d_first_true = *first;
                ++d_first_true;
-           } else {
+           }
+           else
+           {
                *d_first_false = *first;
                ++d_first_false;
            }
-           ++first;
        }
+
        return std::pair<OutputIt1, OutputIt2>(d_first_true, d_first_false);
    }
 
@@ -122,39 +126,46 @@ std::partition_copy \- std::partition_copy
 
 // Run this code
 
- #include <iostream>
  #include <algorithm>
+ #include <iostream>
  #include <utility>
+
+ void print(auto rem, const auto& v)
+ {
+     for (std::cout << rem; const auto& x : v)
+         std::cout << x << ' ';
+     std::cout << '\\n';
+ }
 
  int main()
  {
-     int arr [10] = {1,2,3,4,5,6,7,8,9,10};
-     int true_arr [5] = {0};
-     int false_arr [5] = {0};
+     int arr[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+     int true_arr[5] = {0};
+     int false_arr[5] = {0};
 
-     std::partition_copy(std::begin(arr), std::end(arr), std::begin(true_arr),std::begin(false_arr),
-                         [] (int i) {return i > 5;});
+     std::partition_copy(std::begin(arr), std::end(arr),
+                         std::begin(true_arr), std::begin(false_arr),
+                         [](int i) { return 4 < i; });
 
-     std::cout << "true_arr: ";
-     for (int x : true_arr) {
-         std::cout << x << ' ';
-     }
-     std::cout << '\\n';
-
-     std::cout << "false_arr: ";
-     for (int x : false_arr) {
-         std::cout << x << ' ';
-     }
-     std::cout << '\\n';
-
-     return 0;
-
+     print("true_arr:  ", true_arr);
+     print("false_arr: ", false_arr);
  }
 
 .SH Output:
 
- true_arr: 6 7 8 9 10
- false_arr: 1 2 3 4 5
+ true_arr:  5 6 7 8 9
+ false_arr: 0 1 2 3 4
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to            Behavior as published              Correct behavior
+                      1. the value type of InputIt                1. not required
+   P0896R4 C++11      \fI(C++11)\fP/ForwardIt1 \fI(C++17)\fP                  2. the behavior is
+           C++17          was required to be CopyAssignable           undefined in this
+                      2. the two output ranges could overlap      case
 
 .SH See also
 

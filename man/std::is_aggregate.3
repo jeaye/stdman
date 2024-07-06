@@ -1,4 +1,4 @@
-.TH std::is_aggregate 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_aggregate 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_aggregate \- std::is_aggregate
 
@@ -7,29 +7,33 @@ std::is_aggregate \- std::is_aggregate
    template< class T >              \fI(since C++17)\fP
    struct is_aggregate;
 
-   Checks if T is an aggregate type. The member constant value is equal to true if T is
-   an aggregate type and false otherwise.
+   std::is_aggregate is a UnaryTypeTrait.
 
-   The behavior is undefined if std::remove_all_extents_t<T> is an incomplete type
-   other than (possibly cv-qualified) void.
+   If T is an aggregate type, provides the member constant value equal true. For any
+   other type, value is false.
 
-   The behavior of a program that adds specializations for is_aggregate or
-   is_aggregate_v is undefined.
+   If T is an incomplete type other than an array type or (possibly cv-qualified) void,
+   the behavior is undefined.
+
+   If the program adds specializations for std::is_aggregate or std::is_aggregate_v,
+   the behavior is undefined.
 
 .SH Template parameters
 
    T - a type to check
 
-  Helper variable template
+   Helper variable template
 
    template< class T >                                             \fI(since C++17)\fP
    inline constexpr bool is_aggregate_v = is_aggregate<T>::value;
+
+
 
 Inherited from std::integral_constant
 
 .SH Member constants
 
-   value    true if T is an aggregate type , false otherwise
+   value    true if T is an aggregate type, false otherwise
    \fB[static]\fP \fI(public static member constant)\fP
 
 .SH Member functions
@@ -47,34 +51,48 @@ Inherited from std::integral_constant
 
 .SH Notes
 
-   Feature-test macro: __cpp_lib_is_aggregate
+     Feature-test macro    Value    Std       Feature
+   __cpp_lib_is_aggregate 201703L \fI(C++17)\fP std::is_agregate
 
 .SH Example
 
 
 // Run this code
 
- #include <type_traits>
  #include <new>
+ #include <type_traits>
  #include <utility>
 
- // constructs a T at the uninitialized memory pointed to by p
- // using list-initialization for aggregates and non-list initialization otherwise
+ // constructs a T at the uninitialized memory pointed to by p using
+ // list-initialization for aggregates and non-list initialization otherwise
  template<class T, class... Args>
- T* construct(T* p, Args&&... args) {
-     if constexpr(std::is_aggregate_v<T>) {
+ T* construct(T* p, Args&&... args)
+ {
+     if constexpr (std::is_aggregate_v<T>)
          return ::new (static_cast<void*>(p)) T{std::forward<Args>(args)...};
-     }
-     else {
+     else
          return ::new (static_cast<void*>(p)) T(std::forward<Args>(args)...);
-     }
  }
 
  struct A { int x, y; };
- struct B { B(int, const char*) { } };
+ struct B { B(int, const char*) {} };
 
- int main() {
+ int main()
+ {
      std::aligned_union_t<1, A, B> storage;
      [[maybe_unused]] A* a = construct(reinterpret_cast<A*>(&storage), 1, 2);
      [[maybe_unused]] B* b = construct(reinterpret_cast<B*>(&storage), 1, "hello");
  }
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+    DR   Applied         Behavior as published                 Correct behavior
+           to
+                 The behavior is undefined if T is an   The behavior is defined
+   LWG           array type but                         regardless of the
+   3823  C++17   std::remove_all_extents_t<T> is an     incompleteness of
+                 incomplete type.                       std::remove_all_extents_t<T>
+                                                        as long as T is an array type.

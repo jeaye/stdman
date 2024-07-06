@@ -1,18 +1,19 @@
-.TH std::any_cast 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::any_cast 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::any_cast \- std::any_cast
 
 .SH Synopsis
-   template<class T>                               \fB(1)\fP \fI(since C++17)\fP
-   T any_cast(const any& operand);
-   template<class T>                               \fB(2)\fP \fI(since C++17)\fP
-   T any_cast(any& operand);
-   template<class T>                               \fB(3)\fP \fI(since C++17)\fP
-   T any_cast(any&& operand);
-   template<class T>                               \fB(4)\fP \fI(since C++17)\fP
-   const T* any_cast(const any* operand) noexcept;
-   template<class T>                               \fB(5)\fP \fI(since C++17)\fP
-   T* any_cast(any* operand) noexcept;
+   Defined in header <any>
+   template< class T >                               \fB(1)\fP \fI(since C++17)\fP
+   T any_cast( const any& operand );
+   template< class T >                               \fB(2)\fP \fI(since C++17)\fP
+   T any_cast( any& operand );
+   template< class T >                               \fB(3)\fP \fI(since C++17)\fP
+   T any_cast( any&& operand );
+   template< class T >                               \fB(4)\fP \fI(since C++17)\fP
+   const T* any_cast( const any* operand ) noexcept;
+   template< class T >                               \fB(5)\fP \fI(since C++17)\fP
+   T* any_cast( any* operand ) noexcept;
 
    Performs type-safe access to the contained object.
 
@@ -21,6 +22,7 @@ std::any_cast \- std::any_cast
    1) The program is ill-formed if std::is_constructible_v<T, const U&> is false.
    2) The program is ill-formed if std::is_constructible_v<T, U&> is false.
    3) The program is ill-formed if std::is_constructible_v<T, U> is false.
+   4,5) The program is ill-formed if std::is_void_v<T> is true.
 
 .SH Parameters
 
@@ -28,9 +30,9 @@ std::any_cast \- std::any_cast
 
 .SH Return value
 
-   1-2) Returns static_cast<T>(*std::any_cast<U>(&operand))
+   1,2) Returns static_cast<T>(*std::any_cast<U>(&operand)).
    3) Returns static_cast<T>(std::move(*std::any_cast<U>(&operand))).
-   4-5) If operand is not a null pointer, and the typeid of the requested T matches
+   4,5) If operand is not a null pointer, and the typeid of the requested T matches
    that of the contents of operand, a pointer to the value contained by operand,
    otherwise a null pointer.
 
@@ -44,59 +46,68 @@ std::any_cast \- std::any_cast
 
 // Run this code
 
- #include <string>
- #include <iostream>
  #include <any>
+ #include <iostream>
+ #include <string>
+ #include <type_traits>
  #include <utility>
 
  int main()
  {
-     // simple example
+     // Simple example
+     auto a1 = std::any(12);
+     std::cout << "1) a1 is int: " << std::any_cast<int>(a1) << '\\n';
 
-     auto a = std::any(12);
-
-     std::cout << std::any_cast<int>(a) << '\\n';
-
-     try {
-         std::cout << std::any_cast<std::string>(a) << '\\n';
+     try
+     {
+         auto s = std::any_cast<std::string>(a1); // throws
      }
-     catch(const std::bad_any_cast& e) {
-         std::cout << e.what() << '\\n';
-     }
-
-     // pointer example
-
-     if (int* i = std::any_cast<int>(&a)) {
-        std::cout << "a is int: " << *i << '\\n';
-     } else if (std::string* s = std::any_cast<std::string>(&a)) {
-        std::cout << "a is std::string: " << *s << '\\n';
-     } else {
-        std::cout << "a is another type or unset\\n";
+     catch (const std::bad_any_cast& e)
+     {
+         std::cout << "2) " << e.what() << '\\n';
      }
 
-     // advanced example
+     // Pointer example
+     if (int* i = std::any_cast<int>(&a1))
+         std::cout << "3) a1 is int: " << *i << '\\n';
+     else if (std::string* s = std::any_cast<std::string>(&a1))
+         std::cout << "3) a1 is std::string: " << *s << '\\n';
+     else
+         std::cout << "3) a1 is another type or unset\\n";
 
-     a = std::string("hello");
-
-     auto& ra = std::any_cast<std::string&>(a); //< reference
+     // Advanced example
+     a1 = std::string("hello");
+     auto& ra = std::any_cast<std::string&>(a1); //< reference
      ra[1] = 'o';
 
-     std::cout << "a: "
-         << std::any_cast<const std::string&>(a) << '\\n'; //< const reference
+     std::cout << "4) a1 is string: "
+               << std::any_cast<std::string const&>(a1) << '\\n'; //< const reference
 
-     auto b = std::any_cast<std::string&&>(std::move(a)); //< rvalue reference
+     auto s1 = std::any_cast<std::string&&>(std::move(a1)); //< rvalue reference
+     // Note: “s1” is a move-constructed std::string:
+     static_assert(std::is_same_v<decltype(s1), std::string>);
 
-     // Note: 'b' is a move-constructed std::string,
-     // 'a' is left in valid but unspecified state
-
-     std::cout << "a: " << *std::any_cast<std::string>(&a) //< pointer
-         << "b: " << b << '\\n';
+     // Note: the std::string in “a1” is left in valid but unspecified state
+     std::cout << "5) a1.size(): "
+               << std::any_cast<std::string>(&a1)->size() //< pointer
+               << '\\n'
+               << "6) s1: " << s1 << '\\n';
  }
 
 .SH Possible output:
 
- 12
- bad any_cast
- a is int: 12
- a: hollo
- a: b: hollo
+ 1) a1 is int: 12
+ 2) bad any_cast
+ 3) a1 is int: 12
+ 4) a1 is string: hollo
+ 5) a1.size(): 0
+ 6) s1: hollo
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to         Behavior as published              Correct behavior
+   LWG 3305 C++17      the behavior of overloads (4,5) was    the program ill-formed in
+                       unclear if T is void                   this case

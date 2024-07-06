@@ -1,0 +1,174 @@
+.TH std::ranges::uninitialized_default_construct_n 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::uninitialized_default_construct_n \- std::ranges::uninitialized_default_construct_n
+
+.SH Synopsis
+   Defined in header <memory>
+   Call signature
+   template< no-throw-forward-iterator I >
+
+   requires std::default_initializable<std::iter_value_t<I>>              \fI(since C++20)\fP
+
+   I uninitialized_default_construct_n( I first,
+   std::iter_difference_t<I> n );
+
+   Constructs n objects of type std::iter_value_t<I> in the uninitialized memory area
+   starting at first by default-initialization, as if by
+
+ for (; n-- > 0; ++first)
+     ::new (static_cast<void*>(std::addressof(*first)))
+         std::remove_reference_t<std::iter_reference_t<I>>;
+
+   If an exception is thrown during the initialization, the objects already constructed
+   are destroyed in an unspecified order.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first - the beginning of the range of elements to initialize
+   n     - the number of elements to construct
+
+.SH Return value
+
+   The end of the range of objects (i.e., ranges::next(first, n)).
+
+.SH Complexity
+
+   Linear in n.
+
+.SH Exceptions
+
+   The exception thrown on construction of the elements in the destination range, if
+   any.
+
+.SH Notes
+
+   An implementation may skip the objects construction (without changing the observable
+   effect) if no non-trivial default constructor is called while default-initializing a
+   std::iter_value_t<I> object, which can be detected by
+   std::is_trivially_default_constructible_v.
+
+.SH Possible implementation
+
+struct uninitialized_default_construct_n_fn
+{
+    template<no-throw-forward-iterator I>
+    requires std::default_initializable<std::iter_value_t<I>>
+    I operator()(I first, std::iter_difference_t<I> n) const
+    {
+        using ValueType = std::remove_reference_t<std::iter_reference_t<I>>;
+        if constexpr (std::is_trivially_default_constructible_v<ValueType>)
+            return ranges::next(first, n); // skip initialization
+        I rollback{first};
+        try
+        {
+            for (; n-- > 0; ++first)
+                ::new (const_cast<void*>(static_cast<const volatile void*>
+                    (std::addressof(*first)))) ValueType;
+            return first;
+        }
+        catch (...) // rollback: destroy constructed elements
+        {
+            for (; rollback != first; ++rollback)
+                ranges::destroy_at(std::addressof(*rollback));
+            throw;
+        }
+    }
+};
+
+inline constexpr uninitialized_default_construct_n_fn uninitialized_default_construct_n{};
+
+.SH Example
+
+
+// Run this code
+
+ #include <cstring>
+ #include <iostream>
+ #include <memory>
+ #include <string>
+
+ int main()
+ {
+     struct S { std::string m{"█▓▒░ █▓▒░ "}; };
+
+     constexpr int n{4};
+     alignas(alignof(S)) char out[n * sizeof(S)];
+
+     try
+     {
+         auto first{reinterpret_cast<S*>(out)};
+         auto last = std::ranges::uninitialized_default_construct_n(first, n);
+
+         auto count{1};
+         for (auto it{first}; it != last; ++it)
+             std::cout << count++ << ' ' << it->m << '\\n';
+
+         std::ranges::destroy(first, last);
+     }
+     catch (...)
+     {
+         std::cout << "Exception!\\n";
+     }
+
+     // Notice that for "trivial types" the uninitialized_default_construct_n
+     // generally does not zero-fill the given uninitialized memory area.
+     constexpr int sample[]{1, 2, 3, 4, 5, 6};
+     int v[]{1, 2, 3, 4, 5, 6};
+     std::ranges::uninitialized_default_construct_n(std::begin(v), std::size(v));
+     if (std::memcmp(v, sample, sizeof(v)) == 0)
+     {
+         // Maybe undefined behavior, pending CWG 1997:
+         // for (const int i : v) { std::cout << i << ' '; }
+         for (const int i : sample)
+             std::cout << i << ' ';
+     }
+     else
+         std::cout << "Unspecified!";
+     std::cout << '\\n';
+ }
+
+.SH Possible output:
+
+ 1 █▓▒░ █▓▒░
+ 2 █▓▒░ █▓▒░
+ 3 █▓▒░ █▓▒░
+ 4 █▓▒░ █▓▒░
+ 1 2 3 4 5 6
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 3870 C++20      this algorithm might create objects on a const  kept disallowed
+                       storage
+
+.SH See also
+
+                                           constructs objects by default-initialization
+   ranges::uninitialized_default_construct in an uninitialized area of memory, defined
+   (C++20)                                 by a range
+                                           (niebloid)
+                                           constructs objects by value-initialization
+   ranges::uninitialized_value_construct   in an uninitialized area of memory, defined
+   (C++20)                                 by a range
+                                           (niebloid)
+                                           constructs objects by value-initialization
+   ranges::uninitialized_value_construct_n in an uninitialized area of memory, defined
+   (C++20)                                 by a start and a count
+                                           (niebloid)
+                                           constructs objects by default-initialization
+   uninitialized_default_construct_n       in an uninitialized area of memory, defined
+   \fI(C++17)\fP                                 by a start and a count
+                                           \fI(function template)\fP

@@ -1,11 +1,14 @@
-.TH std::scoped_allocator_adaptor 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::scoped_allocator_adaptor 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::scoped_allocator_adaptor \- std::scoped_allocator_adaptor
 
 .SH Synopsis
    Defined in header <scoped_allocator>
-   template< class OuterAlloc, class... InnerAlloc >    \fI(since C++11)\fP
-   class scoped_allocator_adaptor : public OuterAlloc;
+   template< class OuterAlloc, class... InnerAllocs >
+
+   class scoped_allocator_adaptor                      \fI(since C++11)\fP
+
+       : public OuterAlloc;
 
    The std::scoped_allocator_adaptor class template is an allocator which can be used
    with multilevel containers (vector of sets of lists of tuples of maps, etc). It is
@@ -31,43 +34,47 @@ std::scoped_allocator_adaptor \- std::scoped_allocator_adaptor
    Typical implementation holds an instance of a
    std::scoped_allocator_adaptor<InnerAllocs...> as a member object.
 
+   Note that std::pmr::polymorphic allocators propagate to nested containers following
+   uses-allocator construction and do not need (and do not work with)
+   std::scoped_allocator_adaptor.
+
 .SH Member types
 
-   Type                      Definition
-   outer_allocator_type      OuterAlloc
-                             scoped_allocator_adaptor<InnerAllocs...> or, if
-   inner_allocator_type      sizeof...(InnerAllocs) == 0,
-                             scoped_allocator_adaptor<OuterAlloc>
-   value_type                std::allocator_traits<OuterAlloc>::value_type
-   size_type                 std::allocator_traits<OuterAlloc>::size_type
-   difference_type           std::allocator_traits<OuterAlloc>::difference_type
-   pointer                   std::allocator_traits<OuterAlloc>::pointer
-   const_pointer             std::allocator_traits<OuterAlloc>::const_pointer
-   void_pointer              std::allocator_traits<OuterAlloc>::void_pointer
-   const_void_pointer        std::allocator_traits<OuterAlloc>::const_void_pointer
+   Type                       Definition
+   outer_allocator_type       OuterAlloc
+                              scoped_allocator_adaptor<InnerAllocs...> or, if
+   inner_allocator_type       sizeof...(InnerAllocs) == 0,
+                              scoped_allocator_adaptor<OuterAlloc>
+   value_type                 std::allocator_traits<OuterAlloc>::value_type
+   size_type                  std::allocator_traits<OuterAlloc>::size_type
+   difference_type            std::allocator_traits<OuterAlloc>::difference_type
+   pointer                    std::allocator_traits<OuterAlloc>::pointer
+   const_pointer              std::allocator_traits<OuterAlloc>::const_pointer
+   void_pointer               std::allocator_traits<OuterAlloc>::void_pointer
+   const_void_pointer         std::allocator_traits<OuterAlloc>::const_void_pointer
    propagate_on_container_copy_assignment
 
-              std::true_type if
-              std::allocator_traits<A>::propagate_on_container_copy_assignment::value
-              is true for at least one allocator A among OuterAlloc and InnerAlloc...
+   std::true_type if
+   std::allocator_traits<A>::propagate_on_container_copy_assignment::value is true for
+   at least one allocator A among OuterAlloc and InnerAlloc...
    propagate_on_container_move_assignment
 
-              std::true_type if
-              std::allocator_traits<A>::propagate_on_container_move_assignment::value
-              is true for at least one allocator A among OuterAlloc and InnerAlloc...
+   std::true_type if
+   std::allocator_traits<A>::propagate_on_container_move_assignment::value is true for
+   at least one allocator A among OuterAlloc and InnerAlloc...
    propagate_on_container_swap
 
-              std::true_type if
-              std::allocator_traits<A>::propagate_on_container_swap::value is true for
-              at least one allocator A among OuterAlloc and InnerAlloc...
+   std::true_type if std::allocator_traits<A>::propagate_on_container_swap::value is
+   true for at least one allocator A among OuterAlloc and InnerAlloc...
    is_always_equal
 
-              std::true_type if std::allocator_traits<A>::is_always_equal::value is
-              true for every allocator A among OuterAlloc and InnerAlloc...
+   std::true_type if std::allocator_traits<A>::is_always_equal::value is true for every
+   allocator A among OuterAlloc and InnerAlloc...
    rebind
 
-   template< class T >
-   struct rebind {
+         template< class T >
+   struct rebind
+   {
        typedef scoped_allocator_adaptor<
            std::allocator_traits<OuterAlloc>::template rebind_alloc<T>,
            InnerAllocs...
@@ -111,40 +118,44 @@ std::scoped_allocator_adaptor \- std::scoped_allocator_adaptor
    operator!=         \fI(function template)\fP
    (removed in C++20)
 
-  Deduction guides\fI(since C++17)\fP
+   Deduction guides\fI(since C++17)\fP
 
 .SH Example
 
 
 // Run this code
 
- #include <vector>
- #include <scoped_allocator>
- #include <boost/interprocess/managed_shared_memory.hpp>
  #include <boost/interprocess/allocators/adaptive_pool.hpp>
+ #include <boost/interprocess/managed_shared_memory.hpp>
+ #include <scoped_allocator>
+ #include <vector>
+
  namespace bi = boost::interprocess;
+
  template<class T> using alloc = bi::adaptive_pool<T,
                                      bi::managed_shared_memory::segment_manager>;
  using ipc_row = std::vector<int, alloc<int>>;
  using ipc_matrix = std::vector<ipc_row, std::scoped_allocator_adaptor<alloc<ipc_row>>>;
+
  int main ()
  {
-    bi::managed_shared_memory s(bi::create_only, "Demo", 65536);
+     bi::managed_shared_memory s(bi::create_only, "Demo", 65536);
 
-    // create vector of vectors in shared memory
-    ipc_matrix v(s.get_segment_manager());
+     // create vector of vectors in shared memory
+     ipc_matrix v(s.get_segment_manager());
 
-    // for all these additions, the inner vectors obtain their allocator arguments
-    // from the outer vector's scoped_allocator_adaptor
-    v.resize(1); v[0].push_back(1);
-    v.emplace_back(2);
-    std::vector<int> local_row = {1,2,3};
-    v.emplace_back(local_row.begin(), local_row.end());
+     // for all these additions, the inner vectors obtain their allocator arguments
+     // from the outer vector's scoped_allocator_adaptor
+     v.resize(1);
+     v[0].push_back(1);
+     v.emplace_back(2);
+     std::vector<int> local_row = {1, 2, 3};
+     v.emplace_back(local_row.begin(), local_row.end());
 
-    bi::shared_memory_object::remove("Demo");
+     bi::shared_memory_object::remove("Demo");
  }
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.

@@ -1,14 +1,15 @@
-.TH std::filesystem::directory_entry::is_character_file 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::directory_entry::is_character_file 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::directory_entry::is_character_file \- std::filesystem::directory_entry::is_character_file
 
 .SH Synopsis
-   bool is_character_file() const;                                \fI(since C++17)\fP
-   bool is_character_file( std::error_code& ec ) const noexcept;
+   bool is_character_file() const;                               \fB(1)\fP \fI(since C++17)\fP
+   bool is_character_file( std::error_code& ec ) const noexcept; \fB(2)\fP \fI(since C++17)\fP
 
-   Checks whether the pointed-to object is a character device. Effectively returns
-   std::filesystem::is_character_file(status()) or
-   std::filesystem::is_character_file(status(ec)), respectively.
+   Checks whether the pointed-to object is a character device. Effectively returns:
+
+   1) std::filesystem::is_character_file(status()),
+   2) std::filesystem::is_character_file(status(ec)).
 
 .SH Parameters
 
@@ -20,12 +21,13 @@ std::filesystem::directory_entry::is_character_file \- std::filesystem::director
 
 .SH Exceptions
 
-   The overload that does not take a std::error_code& parameter throws
-   filesystem::filesystem_error on underlying OS API errors, constructed with p as the
-   first path argument and the OS error code as the error code argument. The overload
-   taking a std::error_code& parameter sets it to the OS API error code if an OS API
-   call fails, and executes ec.clear() if no errors occur. Any overload not marked
-   noexcept may throw std::bad_alloc if memory allocation fails.
+   Any overload not marked noexcept may throw std::bad_alloc if memory allocation
+   fails.
+
+   1) Throws std::filesystem::filesystem_error on underlying OS API errors, constructed
+   with p as the first path argument and the OS error code as the error code argument.
+   2) Sets a std::error_code& parameter to the OS API error code if an OS API call
+   fails, and executes ec.clear() if no errors occur.
 
 .SH Example
 
@@ -46,64 +48,78 @@ std::filesystem::directory_entry::is_character_file \- std::filesystem::director
 
  namespace fs = std::filesystem;
 
- void print_entry_type(std::filesystem::directory_entry const& entry) {
+ void print_entry_type(const std::filesystem::directory_entry& entry)
+ {
      std::cout << entry.path() << ": ";
-     if (!entry.exists()) std::cout << "does not exist ";
-     if (entry.is_block_file()) std::cout << "is a block device ";
-     if (entry.is_character_file()) std::cout << "is a character device ";
-     if (entry.is_directory()) std::cout << "is a directory ";
-     if (entry.is_fifo()) std::cout << "is a named IPC pipe ";
-     if (entry.is_regular_file()) std::cout << "is a regular file ";
-     if (entry.is_socket()) std::cout << "is a named IPC socket ";
-     if (entry.is_symlink()) std::cout << "(a symlink) ";
-     if (entry.is_other()) std::cout << "(an `other` file) ";
-     std::cout <<'\\n';
+
+     if (!entry.exists())
+         std::cout << "does not exist ";
+     if (entry.is_block_file())
+         std::cout << "is a block device ";
+     if (entry.is_character_file())
+         std::cout << "is a character device ";
+     if (entry.is_directory())
+         std::cout << "is a directory ";
+     if (entry.is_fifo())
+         std::cout << "is a named IPC pipe ";
+     if (entry.is_regular_file())
+         std::cout << "is a regular file ";
+     if (entry.is_socket())
+         std::cout << "is a named IPC socket ";
+     if (entry.is_symlink())
+         std::cout << "(a symlink)";
+     if (entry.is_other())
+         std::cout << "(an `other` file)";
+
+     std::cout << '\\n';
  }
 
- template <typename Type, typename Fun>
- class scoped_cleanup {
+ template<typename Type, typename Fun>
+ class scoped_cleanup
+ {
      std::unique_ptr<Type, std::function<void(const Type*)>> u;
-   public:
+
+ public:
      scoped_cleanup(Type* ptr, Fun fun) : u{ptr, std::move(fun)} {}
  };
 
  int main()
  {
-     // create files of different kinds
+     // Create files of different kinds.
      std::filesystem::current_path(fs::temp_directory_path());
      const std::filesystem::path sandbox{"sandbox"};
-     scoped_cleanup remove_all_at_exit{&sandbox, [](const fs::path* p) {
+     scoped_cleanup remove_all_at_exit{&sandbox, [](const fs::path* p)
+     {
          std::cout << "cleanup: remove_all(" << *p << ")\\n";
          fs::remove_all(*p);
-     } };
+     }};
      std::filesystem::create_directory(sandbox);
-     std::ofstream{sandbox/"file"}; // creates a regular file
+     std::ofstream{sandbox/"file"}; // Creates a regular file
      std::filesystem::create_directory(sandbox/"dir");
 
      mkfifo((sandbox/"pipe").string().data(), 0644);
      struct sockaddr_un addr; addr.sun_family = AF_UNIX;
 
      std::strcpy(addr.sun_path, (sandbox/"sock").string().data());
-     int fd {socket(PF_UNIX, SOCK_STREAM, 0)};
-     scoped_cleanup close_socket_at_exit{&fd, [](const int* f) {
+     int fd{socket(PF_UNIX, SOCK_STREAM, 0)};
+     scoped_cleanup close_socket_at_exit{&fd, [](const int* f)
+     {
          std::cout << "cleanup: close socket #" << *f << '\\n';
          close(*f);
-     } };
+     }};
      bind(fd, reinterpret_cast<sockaddr*>(std::addressof(addr)), sizeof addr);
 
      fs::create_symlink("file", sandbox/"symlink");
 
-     for (std::filesystem::directory_entry entry: fs::directory_iterator(sandbox)) {
+     for (std::filesystem::directory_entry entry: fs::directory_iterator(sandbox))
          print_entry_type(entry);
-     }
 
-     // direct calls to status:
-     for (const char* str: {"/dev/null", "/dev/cpu", "/usr/include/c++",
-                            "/usr/include/asm", "/usr/include/time.h"}) {
+     // Request file system objects status directly:
+     for (const char* str : {"/dev/null", "/dev/cpu", "/usr/include/c++",
+                             "/usr/include/asm", "/usr/include/time.h"})
          print_entry_type(fs::directory_entry{str});
-     }
 
- }   // cleanup via `scoped_cleanup` objects
+ } // Cleanup via scoped_cleanup objects
 
 .SH Possible output:
 

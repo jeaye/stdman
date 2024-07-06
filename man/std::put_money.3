@@ -1,4 +1,4 @@
-.TH std::put_money 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::put_money 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::put_money \- std::put_money
 
@@ -21,24 +21,36 @@ std::put_money \- std::put_money
 
 .SH Return value
 
-   Returns an object of unspecified type such that if out is the name of an output
-   stream of type std::basic_ostream<CharT, Traits>, then the expression out <<
-   put_money(mon, intl) behaves as if the following code was executed:
+   An object of unspecified type such that
 
-   typedef std::ostreambuf_iterator<CharT, Traits> Iter;
-   typedef std::money_put<CharT, Iter> MoneyPut;
-   const MoneyPut& mp = std::use_facet<MoneyPut>(out.getloc());
-   const Iter end = mp.put(Iter(out.rdbuf()), intl, out, out.fill(), mon);
-   if (end.failed())
-   out.setstate(std::ios::badbit);
+     * if out is an object of type std::basic_ostream<CharT, Traits>, the expression
+       out << put_money(mon, intl)
+          * has type std::basic_ostream<CharT, Traits>&
+          * has value out
+          * behaves as a FormattedOutputFunction that calls f(out, mon, intl)
+
+   where the function f is defined as:
+
+ template<class CharT, class Traits, class MoneyT>
+ void f(std::basic_ios<CharT, Traits>& str, const MoneyT& mon, bool intl)
+ {
+     using Iter = std::ostreambuf_iterator<CharT, Traits>;
+     using MoneyPut = std::money_put<CharT, Iter>;
+
+     const MoneyPut& mp = std::use_facet<MoneyPut>(str.getloc());
+     const Iter end = mp.put(Iter(str.rdbuf()), intl, str, str.fill(), mon);
+
+     if (end.failed())
+         str.setstate(std::ios_base::badbit);
+ }
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
  #include <iomanip>
+ #include <iostream>
 
  int main()
  {

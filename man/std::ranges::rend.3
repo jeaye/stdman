@@ -1,44 +1,48 @@
-.TH std::ranges::rend 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::rend 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::rend \- std::ranges::rend
 
 .SH Synopsis
    Defined in header <ranges>
-   inline namespace /*unspecified*/ {
-                                                                         \fI(since C++20)\fP
-   inline constexpr /*unspecified*/ rend = /*unspecified*/;              (customization
-                                                                         point object)
+   Defined in header <iterator>
+   inline namespace /* unspecified */ {
+                                                                   \fI(since C++20)\fP
+       inline constexpr /* unspecified */ rend = /* unspecified    (customization point
+   */;                                                             object)
+
    }
    Call signature
    template< class T >
 
-   requires /* see below */
-   constexpr                                                             \fI(since C++20)\fP
-   std::sentinel_for<decltype(ranges::rbegin(std::declval<T>()))> auto
+       requires /* see below */
+   constexpr std::sentinel_for<                                    \fI(since C++20)\fP
 
-   rend( T&& t );
+       decltype(ranges::rbegin(std::declval<T>()))> auto rend(
+   T&& t );
 
    Returns a sentinel indicating the end of a reversed range.
 
    range-rbegin-rend.svg
 
-   Let t be an object of type T. If the argument is an lvalue or
-   ranges::enable_borrowed_range<std::remove_cv_t<T>> is true, then a call to
-   ranges::rend is expression-equivalent to:
+   If T is an array type and std::remove_all_extents_t<std::remove_reference_t<T>> is
+   incomplete, then the call to ranges::rend is ill-formed, no diagnostic required.
 
-    1. t.rend() converted to its decayed type, if that expression with conversion is
-       valid, and its converted type models
+   If the argument is an lvalue or ranges::enable_borrowed_range<std::remove_cv_t<T>>
+   is true, then a call to ranges::rend is expression-equivalent to:
+
+    1. decay-copy(t.rend())
+       (until C++23)
+       auto(t.rend())
+       (since C++23), if that expression is valid and its type models
        std::sentinel_for<decltype(ranges::rbegin(std::declval<T>()))>.
-    2. Otherwise, rend(t) converted to its decayed type, if T is a class or enumeration
-       type, the aforementioned unqualified call with conversion is valid, and its
-       converted type models
-       std::sentinel_for<decltype(ranges::rbegin(std::declval<T>()))>, where the
-       overload resolution is performed with the following candidates:
-
-          * void rend(auto&) = delete;
-          * void rend(const auto&) = delete;
-          * any declarations of rend found by argument-dependent lookup.
-
+    2. Otherwise,
+       decay-copy(rend(t))
+       (until C++23)
+       auto(rend(t))
+       (since C++23), if T is a class or enumeration type, that expression is valid and
+       its type models std::sentinel_for<decltype(ranges::rbegin(std::declval<T>()))>,
+       where the meaning of rend is established as if by performing argument-dependent
+       lookup only.
     3. Otherwise, std::make_reverse_iterator(ranges::begin(t)) if both ranges::begin(t)
        and ranges::end(t) are valid expressions, have the same type, and that type
        models std::bidirectional_iterator.
@@ -46,39 +50,6 @@ std::ranges::rend \- std::ranges::rend
    In all other cases, a call to ranges::rend is ill-formed, which can result in
    substitution failure when ranges::rend(t) appears in the immediate context of a
    template instantiation.
-
-  Expression-equivalent
-
-   Expression e is expression-equivalent to expression f, if
-
-     * e and f have the same effects, and
-     * either both are constant subexpressions or else neither is a constant
-       subexpression, and
-     * either both are potentially-throwing or else neither is potentially-throwing
-       (i.e. noexcept(e) == noexcept(f)).
-
-  Customization point objects
-
-   The name ranges::rend denotes a customization point object, which is a const
-   function object of a literal semiregular class type. For exposition purposes, the
-   cv-unqualified version of its type is denoted as __rend_fn.
-
-   All instances of __rend_fn are equal. The effects of invoking different instances of
-   type __rend_fn on the same arguments are equivalent, regardless of whether the
-   expression denoting the instance is an lvalue or rvalue, and is const-qualified or
-   not (however, a volatile-qualified instance is not required to be invocable). Thus,
-   ranges::rend can be copied freely and its copies can be used interchangeably.
-
-   Given a set of types Args..., if std::declval<Args>()... meet the requirements for
-   arguments to ranges::rend above, __rend_fn models
-
-     * std::invocable<__rend_fn, Args...>,
-     * std::invocable<const __rend_fn, Args...>,
-     * std::invocable<__rend_fn&, Args...>, and
-     * std::invocable<const __rend_fn&, Args...>.
-
-   Otherwise, no function call operator of __rend_fn participates in overload
-   resolution.
 
 .SH Notes
 
@@ -109,21 +80,28 @@ std::ranges::rend \- std::ranges::rend
 
  int main()
  {
-     std::vector<int> v = { 3, 1, 4 };
+     std::vector<int> v = {3, 1, 4};
      namespace ranges = std::ranges;
-     if (ranges::find(ranges::rbegin(v), ranges::rend(v), 5) != ranges::rend(v)) {
-         std::cout << "found a 5 in vector `v`!\\n";
-     }
+     if (ranges::find(ranges::rbegin(v), ranges::rend(v), 5) != ranges::rend(v))
+         std::cout << "found a 5 in vector v!\\n";
 
-     int a[] = { 5, 10, 15 };
-     if (ranges::find(ranges::rbegin(a), ranges::rend(a), 5) != ranges::rend(a)) {
-         std::cout << "found a 5 in array `a`!\\n";
-     }
+     int a[] = {5, 10, 15};
+     if (ranges::find(ranges::rbegin(a), ranges::rend(a), 5) != ranges::rend(a))
+         std::cout << "found a 5 in array a!\\n";
  }
 
 .SH Output:
 
- found a 5 in array `a`!
+ found a 5 in array a!
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to           Behavior as published               Correct behavior
+   P2602R2 C++20      there's machinery to prohibit certain      removed such machinery
+                      non-member rend found by ADL
 
 .SH See also
 

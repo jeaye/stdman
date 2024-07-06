@@ -1,0 +1,303 @@
+.TH std::bind_front,std::bind_back 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::bind_front,std::bind_back \- std::bind_front,std::bind_back
+
+.SH Synopsis
+   Defined in header <functional>
+   template< class F, class... Args >                               \fB(1)\fP \fI(since C++20)\fP
+   constexpr /* unspecified */ bind_front( F&& f, Args&&... args );
+   template< auto ConstFn, class... Args >                          \fB(2)\fP (since C++26)
+   constexpr /* unspecified */ bind_front( Args&&... args );
+   template< class F, class... Args >                               \fB(3)\fP (since C++23)
+   constexpr /* unspecified */ bind_back( F&& f, Args&&... args );
+   template< auto ConstFn, class... Args >                          \fB(4)\fP (since C++26)
+   constexpr /* unspecified */ bind_back( Args&&... args );
+
+   Function templates std::bind_front and std::bind_back generate a perfect forwarding
+   call wrapper which allows to invoke the callable target with its (1,2) first or
+   (3,4) last sizeof...(Args) parameters bound to args.
+
+   1,3) The call wrapper holds a copy of the target callable object f.
+   2,4) The call wrapper does not hold a callable target (it is statically determined).
+   1) std::bind_front(f, bound_args...)(call_args...) is expression-equivalent to
+   std::invoke(f, bound_args..., call_args...).
+   2) std::bind_front<ConstFn>(bound_args...)(call_args...) is expression-equivalent to
+   std::invoke(ConstFn, bound_args..., call_args...).
+   3) std::bind_back(f, bound_args...)(call_args...) is expression-equivalent to
+   std::invoke(f, call_args..., bound_args...).
+   4) std::bind_back<ConstFn>(bound_args...)(call_args...) is expression-equivalent to
+   std::invoke(ConstFn, call_args..., bound_args...).
+
+   The following conditions must be true, otherwise the program is ill-formed:
+
+     * (1,3) std::is_constructible_v<std::decay_t<F>, F>,
+     * (1,3) std::is_move_constructible_v<std::decay_t<F>>,
+     * (2,4) If decltype(ConstFn) is a pointer or a pointer-to-member then ConstFn is
+       not a null pointer,
+     * (std::is_constructible_v<std::decay_t<Args>, Args> && ...),
+     * (std::is_move_constructible_v<std::decay_t<Args>> && ...).
+
+.SH Parameters
+
+          Callable object \fI\fI(function\fP object, pointer to function, reference to function,\fP
+   f    - pointer to member function, or pointer to data member) that will be bound to
+          some arguments
+   args - list of the arguments to bind to the (1,2) first or (3,4) last
+          sizeof...(Args) parameters of the callable target
+.SH Type requirements
+   -
+   std::decay_t<F> must meet the requirements of MoveConstructible.
+   -
+   std::decay_t<Args>... must meet the requirements of MoveConstructible.
+   -
+   decltype(ConstFn) must meet the requirements of Callable.
+
+.SH Return value
+
+   A function object (the call wrapper) of type T that is unspecified, except that the
+   types of objects returned by two calls to std::bind_front or std::bind_back with the
+   same arguments are the same.
+
+   Let bind-partial be either std::bind_front or std::bind_back.
+
+   The returned object has the following properties:
+
+bind-partial return type
+
+.SH Member objects
+
+   The returned object behaves as if it holds:
+
+   1,3) A member object fd of type std::decay_t<F> direct-non-list-initialized from
+   std::forward<F>(f), and
+   1-4) An std::tuple object tup constructed with
+   std::tuple<std::decay_t<Args>...>(std::forward<Args>(args)...), except that the
+   returned object's assignment behavior is unspecified and the names are for
+   exposition only.
+
+    Constructors
+
+   The return type of bind-partial behaves as if its copy/move constructors perform a
+   memberwise copy/move. It is CopyConstructible if all of its member objects
+   (specified above) are CopyConstructible, and is MoveConstructible otherwise.
+
+.SH Member function operator()
+
+   Given an object G obtained from an earlier call to (1,3) bind-partial(f, args...) or
+   (2,4) bind-partial<ConstFn>(args...), when a glvalue g designating G is invoked in a
+   function call expression g(call_args...), an invocation of the stored object takes
+   place, as if by:
+
+   1) std::invoke(g.fd, std::get<Ns>(g.tup)..., call_args...), when bind-partial is
+   std::bind_front,
+   2) std::invoke(ConstFn, std::get<Ns>(g.tup)..., call_args...), when bind-partial is
+   std::bind_front,
+   3) std::invoke(g.fd, call_args..., std::get<Ns>(g.tup)...), when bind-partial is
+   std::bind_back,
+   4) std::invoke(ConstFn, call_args..., std::get<Ns>(g.tup)...), when bind-partial is
+   std::bind_back,
+
+   where
+
+     * Ns is an integer pack 0, 1, ..., (sizeof...(Args) - 1),
+     * g is an lvalue in the std::invoke expression if it is an lvalue in the call
+       expression, and is an rvalue otherwise. Thus std::move(g)(call_args...) can move
+       the bound arguments into the call, where g(call_args...) would copy.
+
+   The program is ill-formed if g has volatile-qualified type.
+
+   The member operator() is noexcept if the std::invoke expression it calls is noexcept
+   (in other words, it preserves the exception specification of the underlying call
+   operator).
+
+.SH Exceptions
+
+   1,3) Throw any exception thrown by calling the constructor of the stored function
+   object.
+   1-4) Throw any exception thrown by calling the constructor of any of the bound
+   arguments.
+
+.SH Notes
+
+   These function templates are intended to replace std::bind. Unlike std::bind, they
+   do not support arbitrary argument rearrangement and have no special treatment for
+   nested bind-expressions or std::reference_wrappers. On the other hand, they pay
+   attention to the value category of the call wrapper object and propagate exception
+   specification of the underlying call operator.
+
+   As described in std::invoke, when invoking a pointer to non-static member function
+   or pointer to non-static data member, the first argument has to be a reference or
+   pointer (including, possibly, smart pointer such as std::shared_ptr and
+   std::unique_ptr) to an object whose member will be accessed.
+
+   The arguments to std::bind_front or std::bind_back are copied or moved, and are
+   never passed by reference unless wrapped in std::ref or std::cref.
+
+   Typically, binding arguments to a function or a member function using \fB(1)\fP
+   std::bind_front and \fB(3)\fP std::bind_back requires storing a function pointer along
+   with the arguments, even though the language knows precisely which function to call
+   without a need to dereference the pointer. To guarantee "zero cost" in those cases,
+   C++26 introduces the versions (2,4) (that accept the callable object as an argument
+   for non-type template parameter).
+
+    Feature-test macro   Value    Std                       Feature
+                        201907L (C++20) std::bind_front, \fB(1)\fP
+   __cpp_lib_bind_front 202306L (C++26) Allow passing callable objects as non-type
+                                        template arguments to std::bind_front, \fB(2)\fP
+                        202202L (C++23) std::bind_back, \fB(3)\fP
+   __cpp_lib_bind_back  202306L (C++26) Allow passing callable objects as non-type
+                                        template arguments to std::bind_back, \fB(4)\fP
+
+.SH Possible implementation
+
+                                    \fB(2)\fP bind_front
+   namespace detail
+   {
+       template<class T, class U>
+       struct copy_const
+           : std::conditional<std::is_const_v<T>, U const, U> {};
+
+       template<class T, class U,
+                class X = typename copy_const<std::remove_reference_t<T>, U>::type>
+       struct copy_value_category
+           : std::conditional<std::is_lvalue_reference_v<T&&>, X&, X&&> {};
+
+       template <class T, class U>
+       struct type_forward_like
+           : copy_value_category<T, std::remove_reference_t<U>> {};
+
+       template <class T, class U>
+       using type_forward_like_t = typename type_forward_like<T, U>::type;
+   }
+
+   template<auto ConstFn, class... Args>
+   constexpr auto bind_front(Args&&... args)
+   {
+       using F = decltype(ConstFn);
+
+       if constexpr (std::is_pointer_v<F> or std::is_member_pointer_v<F>)
+           static_assert(ConstFn != nullptr);
+
+       return
+           [... bound_args(std::forward<Args>(args))]<class Self, class... T>
+           (
+               this Self&&, T&&... call_args
+           )
+           noexcept
+           (
+               std::is_nothrow_invocable_v<F,
+                   detail::type_forward_like_t<Self, std::decay_t<Args>>..., T...>
+           )
+           -> std::invoke_result_t<F,
+                   detail::type_forward_like_t<Self, std::decay_t<Args>>..., T...>
+           {
+               return std::invoke(ConstFn, std::forward_like<Self>(bound_args)...,
+                                  std::forward<T>(call_args)...);
+           };
+   }
+                                    \fB(4)\fP bind_back
+   namespace detail { /* is the same as above */ }
+
+   template<auto ConstFn, class... Args>
+   constexpr auto bind_back(Args&&... args)
+   {
+       using F = decltype(ConstFn);
+
+       if constexpr (std::is_pointer_v<F> or std::is_member_pointer_v<F>)
+           static_assert(ConstFn != nullptr);
+
+       return
+           [... bound_args(std::forward<Args>(args))]<class Self, class... T>
+           (
+               this Self&&, T&&... call_args
+           )
+           noexcept
+           (
+               std::is_nothrow_invocable_v<F,
+                   detail::type_forward_like_t<Self, T..., std::decay_t<Args>>...>
+           )
+           -> std::invoke_result_t<F,
+                   detail::type_forward_like_t<Self, T..., std::decay_t<Args>>...>
+           {
+               return std::invoke(ConstFn, std::forward<T>(call_args)...,
+                                  std::forward_like<Self>(bound_args)...);
+           };
+   }
+
+.SH Example
+
+
+// Run this code
+
+ #include <cassert>
+ #include <functional>
+
+ int minus(int a, int b)
+ {
+     return a - b;
+ }
+
+ struct S
+ {
+     int val;
+     int minus(int arg) const noexcept { return val - arg; }
+ };
+
+ int main()
+ {
+     auto fifty_minus = std::bind_front(minus, 50);
+     assert(fifty_minus(3) == 47); // equivalent to: minus(50, 3) == 47
+
+     auto member_minus = std::bind_front(&S::minus, S{50});
+     assert(member_minus(3) == 47); //: S tmp{50}; tmp.minus(3) == 47
+
+     // Noexcept-specification is preserved:
+     static_assert(!noexcept(fifty_minus(3)));
+     static_assert(noexcept(member_minus(3)));
+
+     // Binding of a lambda:
+     auto plus = [](int a, int b) { return a + b; };
+     auto forty_plus = std::bind_front(plus, 40);
+     assert(forty_plus(7) == 47); // equivalent to: plus(40, 7) == 47
+
+ #if __cpp_lib_bind_front >= 202306L
+     auto fifty_minus_cpp26 = std::bind_front<minus>(50);
+     assert(fifty_minus_cpp26(3) == 47);
+
+     auto member_minus_cpp26 = std::bind_front<&S::minus>(S{50});
+     assert(member_minus_cpp26(3) == 47);
+
+     auto forty_plus_cpp26 = std::bind_front<plus>(40);
+     assert(forty_plus(7) == 47);
+ #endif
+
+ #if __cpp_lib_bind_back >= 202202L
+     auto madd = [](int a, int b, int c) { return a * b + c; };
+     auto mul_plus_seven = std::bind_back(madd, 7);
+     assert(mul_plus_seven(4, 10) == 47); //: madd(4, 10, 7) == 47
+ #endif
+
+ #if __cpp_lib_bind_back >= 202306L
+     auto mul_plus_seven_cpp26 = std::bind_back<madd>(7);
+     assert(mul_plus_seven_cpp26(4, 10) == 47);
+ #endif
+ }
+
+.SH References
+
+     * C++26 standard (ISO/IEC 14882:2026):
+
+     * TBD Function templates bind_front and bind_back [func.bind.partial]
+     * C++23 standard (ISO/IEC 14882:2023):
+
+     * 22.10.14 Function templates bind_front and bind_back [func.bind.partial]
+     * C++20 standard (ISO/IEC 14882:2020):
+
+     * 20.14.14 Function template bind_front [func.bind.front]
+
+.SH See also
+
+   bind    binds one or more arguments to a function object
+   \fI(C++11)\fP \fI(function template)\fP
+   mem_fn  creates a function object out of a pointer to a member
+   \fI(C++11)\fP \fI(function template)\fP

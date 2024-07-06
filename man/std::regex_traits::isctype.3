@@ -1,4 +1,4 @@
-.TH std::regex_traits::isctype 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::regex_traits::isctype 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::regex_traits::isctype \- std::regex_traits::isctype
 
@@ -12,15 +12,16 @@ std::regex_traits::isctype \- std::regex_traits::isctype
    The version of this function provided in the standard library specializations of
    std::regex_traits does the following:
 
-   1) First converts f to some temporary value m of type std::ctype_base::mask in
-   implementation-defined manner
+   1) First converts f to a value m of type std::ctype_base::mask.
+   For each std::ctype category listed in the table in the page lookup_classname(), if
+   the bits in f corresponding to the category are set, the corresponding bits in m
+   will also be set.
    2) Then attempts to classify the character in the imbued locale by calling
-   std::use_facet<std::ctype<CharT>>(getloc()).is(m, c). If that returned true, true is
-   returned by isctype().
-   3) Otherwise, checks whether c equals '_' and the bitmask f includes the result of
-   calling lookup_classname() for the character class [:w:], in which case true is
-   returned.
-   4) Otherwise, false is returned.
+   std::use_facet<std::ctype<CharT>>(getloc()).is(m, c).
+     * If that returns true, isctype() will also return true.
+     * Otherwise, if c equals '_', and f includes the result of calling
+       lookup_classname() for the character class [:w:], true is returned, otherwise
+       false is returned.
 
 .SH Parameters
 
@@ -31,19 +32,14 @@ std::regex_traits::isctype \- std::regex_traits::isctype
 
    true if c is classified by f, false otherwise.
 
-.SH Notes
-
-   The description above summarizes C++14; the C++11 phrasing required this function to
-   return true for '_' in all cases (LWG issue 2018)
-
 .SH Example
 
 
 // Run this code
 
  #include <iostream>
- #include <string>
  #include <regex>
+ #include <string>
 
  int main()
  {
@@ -64,25 +60,29 @@ std::regex_traits::isctype \- std::regex_traits::isctype
  true false
  false false
 
-   demonstraits a custom regex_traits implementation of lookup_classname/isctype
+   Demonstrates a custom regex traits implementation of lookup_classname() / isctype():
 
 
 // Run this code
 
+ #include <cwctype>
  #include <iostream>
  #include <locale>
  #include <regex>
- #include <cwctype>
 
- // This custom regex traits uses wctype/iswctype to implement lookup_classname/isctype
+ // This custom regex traits uses wctype/iswctype to implement lookup_classname/isctype.
  struct wctype_traits : std::regex_traits<wchar_t>
  {
      using char_class_type = std::wctype_t;
+
      template<class It>
-     char_class_type lookup_classname(It first, It last, bool=false) const {
+     char_class_type lookup_classname(It first, It last, bool = false) const
+     {
          return std::wctype(std::string(first, last).c_str());
      }
-     bool isctype(wchar_t c, char_class_type f) const {
+
+     bool isctype(wchar_t c, char_class_type f) const
+     {
          return std::iswctype(c, f);
      }
  };
@@ -108,6 +108,15 @@ std::regex_traits::isctype \- std::regex_traits::isctype
 
  alnums: 風の谷のナウシカ
  katakana: ナウシカ
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to Behavior as published              Correct behavior
+   LWG 2018 C++11      the value of m was     matches lookup_classname()'s minimal
+                       unspecified            support
 
 .SH See also
 

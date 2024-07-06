@@ -1,4 +1,4 @@
-.TH std::unique_ptr::get_deleter 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::unique_ptr::get_deleter 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unique_ptr::get_deleter \- std::unique_ptr::get_deleter
 
@@ -29,33 +29,53 @@ std::unique_ptr::get_deleter \- std::unique_ptr::get_deleter
 
  struct Foo
  {
-     Foo() { std::cout << "Foo...\\n"; }
-     ~Foo() { std::cout << "~Foo...\\n"; }
+     Foo() { std::cout << "Foo() 0x" << std::hex << (void*)this << '\\n'; }
+     ~Foo() { std::cout << "~Foo() 0x" << std::hex << (void*)this << '\\n'; }
  };
 
  struct D
  {
-     void bar() { std::cout << "Call deleter D::bar()...\\n"; }
+     int number;
+
+     void bar()
+     {
+         std::cout << "call D::bar(), my number is: " << std::dec << number << '\\n';
+     }
+
      void operator()(Foo* p) const
      {
-         std::cout << "Call delete for Foo object...\\n";
+         std::cout << "call deleter for Foo object 0x" << std::hex << (void*)p << '\\n';
          delete p;
      }
  };
 
  int main()
  {
-     std::unique_ptr<Foo, D> up(new Foo(), D());
-     D& del = up.get_deleter();
-     del.bar();
+     std::cout << "main start\\n";
+
+     std::unique_ptr<Foo, D> up1(new Foo(), D(42));
+     D& del1 = up1.get_deleter();
+     del1.bar();
+
+     std::unique_ptr<Foo, D> up2(new Foo(), D(43));
+     D& del2 = up2.get_deleter();
+     auto* released = up2.release();
+     del2(released);
+
+     std::cout << "main end\\n";
  }
 
 .SH Output:
 
- Foo...
- Call deleter D::bar()...
- Call delete for Foo object...
- ~Foo...
+ main start
+ Foo() 0x0x90cc30
+ call D::bar(), my number is: 42
+ Foo() 0x0x90cc50
+ call deleter for Foo object 0x0x90cc50
+ ~Foo() 0x0x90cc50
+ main end
+ call deleter for Foo object 0x0x90cc30
+ ~Foo() 0x0x90cc30
 
 .SH See also
 

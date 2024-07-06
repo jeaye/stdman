@@ -1,4 +1,4 @@
-.TH std::ranges::take_view::begin 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::take_view::begin 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::take_view::begin \- std::ranges::take_view::begin
 
@@ -20,17 +20,18 @@ std::ranges::take_view::begin \- std::ranges::take_view::begin
 
 .SH Return value
 
-   The result depends on the concepts satisfied by possible const-qualified underlying
+   The result depends on the concepts satisfied by possibly const-qualified underlying
    view type Base_, which is V (for overload \fB(1)\fP) or const V (for overload \fB(2)\fP).
 
-   Let base_ be the underlying view, count_ be the number passed to the constructor
-   (0 if default initialized).
+   Let base_ be the underlying view, count_ be the number passed to the constructor (0
+   if default initialized).
 
    The underlying                           random_access_range
    view satisfies
          ...               yes                                 no
                                         std::counted_iterator(ranges::begin(base_),
-   sized_range yes ranges::begin(base_)
+               yes ranges::begin(base_)
+   sized_range
                                         ranges::range_difference_t<Base_>(this->size()))
                no  std::counted_iterator(ranges::begin(base_), count_)
 
@@ -39,23 +40,49 @@ std::ranges::take_view::begin \- std::ranges::take_view::begin
 
 // Run this code
 
- #include <ranges>
+ #include <concepts>
+ #include <forward_list>
  #include <iostream>
+ #include <ranges>
  #include <string_view>
+ #include <type_traits>
  using namespace std::literals;
 
  int main()
  {
-     static constexpr auto sv = {"∀x"sv, "∃y"sv, "ε"sv, "δ"sv};
+     {
+         static constexpr auto v = {"∀x"sv, "∃y"sv, "ε"sv, "δ"sv};
+         auto view = std::ranges::take_view(v, 8);
+         auto iter = view.begin();
+         std::cout << *iter << '\\n';
+         static_assert(
+             std::ranges::sized_range<decltype(v)> and
+             std::ranges::random_access_range<decltype(v)> and
+             std::is_same_v<decltype(iter), decltype(std::ranges::begin(v))>
+         );
+     }
 
-     std::cout << *std::ranges::take_view(sv, 8).begin() << '\\n';
+     {
+         std::forward_list v = {"Ax"sv, "Ey"sv, "p"sv, "q"sv};
+         auto view = std::ranges::take_view(v, 8);
+         auto iter = view.begin();
+         std::cout << *iter << '\\n';
+         static_assert(
+             not std::ranges::sized_range<decltype(v)> and
+             not std::ranges::random_access_range<decltype(v)> and
+             std::is_same_v<decltype(iter),
+                 std::counted_iterator<
+                     std::forward_list<std::string_view>::iterator>>
+         );
+     }
  }
 
 .SH Output:
 
  ∀x
+ Ax
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.

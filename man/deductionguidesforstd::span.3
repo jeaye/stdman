@@ -1,31 +1,39 @@
-.TH deductionguidesforstd::span 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH deductionguidesforstd::span 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 deductionguidesforstd::span \- deductionguidesforstd::span
 
 .SH Synopsis
    Defined in header <span>
-   template <class It, class EndOrSize>
-   span(It, EndOrSize) ->                                                          \fB(1)\fP
-   span<std::remove_reference_t<std::iter_reference_t<It>>>;
-   template<class T, std::size_t N>                                                \fB(2)\fP
-   span(T (&)[N]) -> span<T, N>;
-   template<class T, std::size_t N>                                                \fB(3)\fP
-   span(std::array<T, N>&) -> span<T, N>;
-   template<class T, std::size_t N>                                                \fB(4)\fP
-   span(const std::array<T, N>&) -> span<const T, N>;
-   template<class R>                                                               \fB(5)\fP
-   span(R&&) -> span<std::remove_reference_t<std::ranges::range_reference_t<R>>>;
+   template< class It, class EndOrSize >                                        (since
+   span( It, EndOrSize ) ->                                                     C++20)
+   span<std::remove_reference_t<std::iter_reference_t<It>>>;                    (until
+                                                                                C++26)
+   template< class It, class EndOrSize >
+
+   span( It, EndOrSize ) ->                                                     (since
+   span<std::remove_reference_t<std::iter_reference_t<It>>,                     C++26)
+
+                                 /*maybe-static-ext*/<EndOrSize>>;      \fB(1)\fP
+   template< class T, std::size_t N >                                       \fB(2)\fP (since
+   span( T (&)[N] ) -> span<T, N>;                                              C++20)
+   template< class T, std::size_t N >                                       \fB(3)\fP (since
+   span( std::array<T, N>& ) -> span<T, N>;                                     C++20)
+   template< class T, std::size_t N >                                       \fB(4)\fP (since
+   span( const std::array<T, N>& ) -> span<const T, N>;                         C++20)
+   template< class R >                                                          (since
+   span( R&& ) ->                                                           \fB(5)\fP C++20)
+   span<std::remove_reference_t<std::ranges::range_reference_t<R>>>;
 
    The following deduction guides are provided for span.
 
-   \fB(1)\fP allow the element type to be deduced from the iterator-sentinel pair. This
-   overload participates in overload resolution only if It satisfies
-   contiguous_iterator
-
-   (2-4) allow the static extent to be deduced from built-in arrays and std::array.
-
-   \fB(5)\fP allow the element type to be deduced from ranges. This overload participates in
-   overload resolution only if R satisfies contiguous_range
+   1) Allows the element type to be deduced from the iterator-sentinel pair.
+   It also allows the static extent to be deduced if EndOrSize satisfies
+   integral-constant-like.
+   (since C++26). This overload participates in overload resolution only if It
+   satisfies contiguous_iterator.
+   2-4) Allows the static extent to be deduced from built-in arrays and std::array.
+   5) Allows the element type to be deduced from ranges. This overload participates in
+   overload resolution only if R satisfies contiguous_range.
 
 .SH Example
 
@@ -40,9 +48,12 @@ deductionguidesforstd::span \- deductionguidesforstd::span
  #include <string_view>
  #include <vector>
 
- void print(std::string_view rem = "", std::size_t size_of = 0, std::size_t extent = 0) {
-     if (rem.empty()) {
-         std::cout << "name │ sizeof │ extent\\n─────┼────────┼────────\\n";
+ void print(std::string_view rem = "", std::size_t size_of = 0, std::size_t extent = 0)
+ {
+     if (rem.empty())
+     {
+         std::cout << "name │ sizeof │ extent\\n"
+                      "─────┼────────┼────────\\n";
          return;
      }
      std::cout << std::setw(4) << rem << " │ " << std::setw(6) << size_of << " │ ";
@@ -53,45 +64,52 @@ deductionguidesforstd::span \- deductionguidesforstd::span
      std::cout << '\\n';
  }
 
- int main() {
-     int a[] {1, 2, 3, 4, 5};
+ int main()
+ {
+     int a[]{1, 2, 3, 4, 5};
 
      print();
-     std::span s1 {std::begin(a), std::end(a)}; // guide (1)
+     std::span s1{std::begin(a), std::end(a)}; // guide (1)
      print("s1", sizeof s1, s1.extent);
 
-     std::span s2 {std::begin(a), 3}; // guide (1)
+     std::span s2{std::begin(a), 3}; // guide (1)
      print("s2", sizeof s2, s2.extent);
 
-     std::span s3 {a}; // guide (2)
+ #if __cplusplus > 202302L
+     std::span s3{std::begin(a), std::integral_constant<std::size_t, 2>{}}; // guide (1)
      print("s3", sizeof s3, s3.extent);
+ #endif // C++26
 
-     std::span<int> s4 {a}; // does not use a guide, makes a dynamic span
+     std::span s4{a}; // guide (2)
      print("s4", sizeof s4, s4.extent);
 
-     std::array arr {6, 7, 8};
-     std::span s5 {arr}; // guide (3)
+     std::span<int> s5{a}; // does not use a guide, makes a dynamic span
      print("s5", sizeof s5, s5.extent);
-     s5[0] = 42; // OK, element_type is 'int'
 
-     const std::array arr2 {9, 10, 11};
-     std::span s6 {arr2}; // guide (4)
+     std::array arr{6, 7, 8};
+     std::span s6{arr}; // guide (3)
      print("s6", sizeof s6, s6.extent);
-     // s6[0] = 42; // Error: element_type is 'const int'
+     s6[0] = 42; // OK, element_type is 'int'
 
-     std::vector v {66, 69, 99};
-     std::span s7 {v}; // guide (5)
+     const std::array arr2{9, 10, 11};
+     std::span s7{arr2}; // guide (4)
      print("s7", sizeof s7, s7.extent);
+     // s7[0] = 42; // Error: element_type is 'const int'
+
+     std::vector v{66, 69, 99};
+     std::span s8{v}; // guide (5)
+     print("s8", sizeof s8, s8.extent);
  }
 
-.SH Output:
+.SH Possible output:
 
  name │ sizeof │ extent
  ─────┼────────┼────────
    s1 │     16 │ dynamic
    s2 │     16 │ dynamic
-   s3 │      8 │ 5
-   s4 │     16 │ dynamic
-   s5 │      8 │ 3
+   s3 │      8 │ 2
+   s4 │      8 │ 5
+   s5 │     16 │ dynamic
    s6 │      8 │ 3
-   s7 │     16 │ dynamic
+   s7 │      8 │ 3
+   s8 │     16 │ dynamic

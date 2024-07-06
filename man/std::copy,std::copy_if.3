@@ -1,65 +1,69 @@
-.TH std::copy,std::copy_if 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::copy,std::copy_if 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::copy,std::copy_if \- std::copy,std::copy_if
 
 .SH Synopsis
    Defined in header <algorithm>
    template< class InputIt, class OutputIt >
-   OutputIt copy( InputIt first, InputIt last,              \fI(until C++20)\fP
-   OutputIt d_first );
-   template< class InputIt, class OutputIt >
-   constexpr OutputIt copy( InputIt first, InputIt          \fI(since C++20)\fP
-   last, OutputIt d_first );
-   template< class ExecutionPolicy, class
-   ForwardIt1, class ForwardIt2 >
-   ForwardIt2 copy( ExecutionPolicy&& policy,           \fB(2)\fP \fI(since C++17)\fP
-   ForwardIt1 first, ForwardIt1 last, ForwardIt2
-   d_first );
-   template< class InputIt, class OutputIt, class
-   UnaryPredicate >
-                                                                          \fI(since C++11)\fP
-   OutputIt copy_if( InputIt first, InputIt last,                         \fI(until C++20)\fP
-   OutputIt d_first,
 
-   UnaryPredicate pred );                           \fB(1)\fP
-   template< class InputIt, class OutputIt, class
-   UnaryPredicate >
+   OutputIt copy( InputIt first, InputIt last,              \fB(1)\fP (constexpr since C++20)
 
-   constexpr OutputIt copy_if( InputIt first,                             \fI(since C++20)\fP
-   InputIt last,                                        \fB(3)\fP
-   OutputIt d_first,
+                  OutputIt d_first );
+   template< class ExecutionPolicy,
 
-   UnaryPredicate pred );
-   template< class ExecutionPolicy, class
-   ForwardIt1, class ForwardIt2, class
-   UnaryPredicate >
+             class ForwardIt1, class ForwardIt2 >
+   ForwardIt2 copy( ExecutionPolicy&& policy,               \fB(2)\fP \fI(since C++17)\fP
+                    ForwardIt1 first, ForwardIt1 last,
 
-   ForwardIt2 copy_if( ExecutionPolicy&& policy,            \fB(4)\fP           \fI(since C++17)\fP
-   ForwardIt1 first, ForwardIt1 last,
-   ForwardIt2 d_first,
+                    ForwardIt2 d_first );
+   template< class InputIt, class OutputIt, class UnaryPred
+   >
+                                                            \fB(3)\fP \fI(since C++11)\fP
+   OutputIt copy_if( InputIt first, InputIt last,               (constexpr since C++20)
 
-   UnaryPredicate pred );
+                     OutputIt d_first, UnaryPred pred );
+   template< class ExecutionPolicy,
+
+             class ForwardIt1, class ForwardIt2, class
+   UnaryPred >
+   ForwardIt2 copy_if( ExecutionPolicy&& policy,            \fB(4)\fP \fI(since C++17)\fP
+                       ForwardIt1 first, ForwardIt1 last,
+
+                       ForwardIt2 d_first, UnaryPred pred
+   );
 
    Copies the elements in the range, defined by [first, last), to another range
-   beginning at d_first.
+   beginning at d_first (copy destination range).
 
    1) Copies all elements in the range [first, last) starting from first and proceeding
-   to last - 1. The behavior is undefined if d_first is within the range [first, last).
-   In this case, std::copy_backward may be used instead.
-   3) Only copies the elements for which the predicate pred returns true. The relative
-   order of the elements that are copied is preserved. The behavior is undefined if the
-   source and the destination ranges overlap.
-   2,4) Same as (1,3), but executed according to policy. These overloads do not
-   participate in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+   to last.
+   If d_first is in [first, last), the behavior is undefined. In this case,
+   std::copy_backward may be used instead.
+   2) Copies the elements, but executed according to policy.
+   This overload participates in overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
+
+   If [first, last) and the copy destination range overlaps, the behavior is undefined.
+   3) Only copies the elements for which the predicate pred returns true. This copy
+   algorithm is stable: the relative order of the elements that are copied is
+   preserved.
+   If [first, last) and the copy destination range overlaps, the behavior is undefined.
+   4) Same as \fB(3)\fP, but executed according to policy.
+   This overload participates in overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
 
 .SH Parameters
 
    first, last - the range of elements to copy
-   d_first     - the beginning of the destination range.
+   d_first     - the beginning of the destination range
    policy      - the execution policy to use. See execution policy for details.
                  unary predicate which returns true for the required elements.
 
@@ -77,7 +81,7 @@ std::copy,std::copy_if \- std::copy,std::copy_if
    -
    ForwardIt1, ForwardIt2 must meet the requirements of LegacyForwardIterator.
    -
-   UnaryPredicate must meet the requirements of Predicate.
+   UnaryPred must meet the requirements of Predicate.
 
 .SH Return value
 
@@ -86,10 +90,11 @@ std::copy,std::copy_if \- std::copy,std::copy_if
 
 .SH Complexity
 
-   1-2) Exactly (last - first) assignments
-   3-4) Exactly (last - first) applications of the predicate, between 0 and (last
-   - first) assignments (assignment for every element for which predicate is equal to
-   true, dependent on predicate and input data)
+   Given \\(\\scriptsize N\\)N as std::distance(first, last):
+
+   1,2) Exactly \\(\\scriptsize N\\)N assignments.
+   3,4) Exactly \\(\\scriptsize N\\)N applications of the predicate pred, and at most
+   \\(\\scriptsize N\\)N assignments.
 
    For the overloads with an ExecutionPolicy, there may be a performance cost if
    ForwardIt1's value type is not MoveConstructible.
@@ -104,6 +109,33 @@ std::copy,std::copy_if \- std::copy,std::copy_if
        For any other ExecutionPolicy, the behavior is implementation-defined.
      * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
+.SH Possible implementation
+
+                           copy \fB(1)\fP
+   template<class InputIt, class OutputIt>
+   OutputIt copy(InputIt first, InputIt last,
+                 OutputIt d_first)
+   {
+       for (; first != last; (void)++first, (void)++d_first)
+           *d_first = *first;
+
+       return d_first;
+   }
+                          copy_if \fB(3)\fP
+   template<class InputIt, class OutputIt, class UnaryPred>
+   OutputIt copy_if(InputIt first, InputIt last,
+                    OutputIt d_first, UnaryPred pred)
+   {
+       for (; first != last; ++first)
+           if (pred(*first))
+           {
+               *d_first = *first;
+               ++d_first;
+           }
+
+       return d_first;
+   }
+
 .SH Notes
 
    In practice, implementations of std::copy avoid multiple assignments and use bulk
@@ -115,45 +147,19 @@ std::copy,std::copy_if \- std::copy,std::copy_if
    std::copy_backward is appropriate when copying to the right (end of the destination
    range is outside the source range).
 
-.SH Possible implementation
-
-.SH First version
-   template<class InputIt, class OutputIt>
-   OutputIt copy(InputIt first, InputIt last,
-                 OutputIt d_first)
-   {
-       for (; first != last; (void)++first, (void)++d_first) {
-           *d_first = *first;
-       }
-       return d_first;
-   }
-.SH Second version
-   template<class InputIt, class OutputIt, class UnaryPredicate>
-   OutputIt copy_if(InputIt first, InputIt last,
-                    OutputIt d_first, UnaryPredicate pred)
-   {
-       for (; first != last; ++first) {
-           if (pred(*first)) {
-               *d_first = *first;
-               ++d_first;
-           }
-       }
-       return d_first;
-   }
-
 .SH Example
 
-   The following code uses copy to both copy the contents of one vector to another and
-   to display the resulting vector:
+   The following code uses std::copy to both copy the contents of one std::vector to
+   another and to display the resulting std::vector.
 
 
 // Run this code
 
  #include <algorithm>
  #include <iostream>
- #include <vector>
  #include <iterator>
  #include <numeric>
+ #include <vector>
 
  int main()
  {
@@ -182,14 +188,14 @@ std::copy,std::copy_if \- std::copy,std::copy_if
                   [](int x) { return x % 2 != 0; });
      std::cout << '\\n';
 
-     std::cout << "to_vector contains these multiples of 3:\\n";
+     std::cout << "to_vector contains these multiples of 3: ";
 
      to_vector.clear();
      std::copy_if(from_vector.begin(), from_vector.end(),
                   std::back_inserter(to_vector),
                   [](int x) { return x % 3 == 0; });
 
-     for (int x : to_vector)
+     for (const int x : to_vector)
          std::cout << x << ' ';
      std::cout << '\\n';
  }
@@ -198,8 +204,17 @@ std::copy,std::copy_if \- std::copy,std::copy_if
 
  to_vector contains: 0 1 2 3 4 5 6 7 8 9
  odd numbers in to_vector are: 1 3 5 7 9
- to_vector contains these multiples of 3:
- 0 3 6 9
+ to_vector contains these multiples of 3: 0 3 6 9
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 2039 C++11      the return value of std::copy_if was not        specified
+                       specified
+   LWG 2044 C++11      the stability of std::copy_if was not defined   defined
 
 .SH See also
 

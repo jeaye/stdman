@@ -1,0 +1,81 @@
+.TH std::stack::push_range 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::stack::push_range \- std::stack::push_range
+
+.SH Synopsis
+   template< container-compatible-range<value_type> R >  (since C++23)
+   void push_range( R&& rg );
+
+   Inserts a copy of each element of rg in stack, as if by:
+
+     * c.append_range(std::forward<R>(rg)) if that is a valid expression (i.e. the
+       underlying container c has an appropriate append_range member function), or
+     * ranges::copy(rg, std::back_inserter(c)) otherwise.
+
+   Each iterator in the range rg is dereferenced exactly once.
+
+.SH Parameters
+
+   rg - a container compatible range, that is, an input_range whose elements are
+        convertible to T
+
+.SH Return value
+
+   \fI(none)\fP
+
+.SH Complexity
+
+   Identical to the complexity of c.append_range or ranges::copy(rg,
+   std::back_inserter(c)) (depending on what function is used internally).
+
+.SH Notes
+
+       Feature-test macro       Value    Std                   Feature
+   __cpp_lib_containers_ranges 202202L (C++23) Ranges-aware construction and insertion
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <iostream>
+ #include <ranges>
+ #include <stack>
+
+ template<typename Adaptor>
+ requires (std::ranges::input_range<typename Adaptor::container_type>)
+ void println(auto, const Adaptor& adaptor)
+ {
+     struct Container : Adaptor // gain access to protected Adaptor::Container c;
+     {
+         auto const& container() const { return this->c; }
+     };
+
+     for (auto const& elem : static_cast<const Container&>(adaptor).container())
+         std::cout << elem << ' ';
+     std::cout << '\\n';
+ }
+
+ int main()
+ {
+     std::stack<int> adaptor;
+     const auto rg = {1, 3, 2, 4};
+
+ #ifdef __cpp_lib_containers_ranges
+     adaptor.push_range(rg);
+ #else
+     std::ranges::for_each(rg, [&adaptor](auto e){ adaptor.push(e); });
+ #endif
+
+     println("{}", adaptor);
+ }
+
+.SH Output:
+
+ 1 3 2 4
+
+.SH See also
+
+   push inserts element at the top
+        \fI(public member function)\fP

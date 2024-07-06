@@ -1,4 +1,4 @@
-.TH std::mersenne_twister_engine::mersenne_twister_engine 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::mersenne_twister_engine::mersenne_twister_engine 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::mersenne_twister_engine::mersenne_twister_engine \- std::mersenne_twister_engine::mersenne_twister_engine
 
@@ -6,57 +6,62 @@ std::mersenne_twister_engine::mersenne_twister_engine \- std::mersenne_twister_e
    mersenne_twister_engine() :                                \fB(1)\fP \fI(since C++11)\fP
    mersenne_twister_engine(default_seed) {}
    explicit mersenne_twister_engine( result_type value );     \fB(2)\fP \fI(since C++11)\fP
-   template< class Sseq >                                     \fB(3)\fP \fI(since C++11)\fP
-   explicit mersenne_twister_engine( Sseq& s );
-   mersenne_twister_engine( const mersenne_twister_engine& ); \fB(4)\fP \fI(since C++11)\fP
-                                                                  (implicitly declared)
+   template< class SeedSeq >                                  \fB(3)\fP \fI(since C++11)\fP
+   explicit mersenne_twister_engine( SeedSeq& seq );
+   mersenne_twister_engine( const mersenne_twister_engine&    \fB(4)\fP \fI(since C++11)\fP
+   other );                                                       (implicitly declared)
 
    Constructs the pseudo-random number engine.
 
-   1) Default constructor. Seeds the engine with default_seed.
-   2) Constructs the engine and initializes the state (n values X
-   i of type result_type) as follows: value mod 2w
-   is used to initialize X
-   0 and the rest are initialized iteratively, for i=1-n,...,-1, each X
-   i is initialized to [f·(X
-   i-1xor(X
-   i-1rshift(w-2)))+i mod n] mod 2w
-   3) Constructs the engine and initializes the state by calling s.generate(a, a+n*k)
-   where a is an array of length n*k and k is ceil(w/32) and then, iteratively for
-   i=-n,...,-1, setting each element of the engine state X
-   i to (Σk-1
-   j=0a
-   k(i+n)+j}·232j
-   ) mod 2w
-   , and finally if the most significant w-r bits of X
-   0 are zero, and if all other X
-   i are zero, replacing X
-   0 with 2w-1
-   .
-
-   Note: initialization requirements are based on the 2002 version of Mersenne Twister,
-   mt19937ar.c
-
-   The overload \fB(3)\fP only participates in overload resolution if Sseq qualifies as a
-   SeedSequence. In particular, it is excluded from the set of candidate functions if
-   Sseq is convertible to result_type.
+   1) The default constructor.
+   2) Constructs the engine with a seed value value. Given \\(2^w\\)2w
+   as p, the engine's initial state is determined as follows:
+    1. Sets \\(X_{-n}\\)X
+       -n to value % p.
+    2. For each integer i in [i - n, -1], sets \\(X_i\\)X
+       i to \\([f \\cdot (X_{i-1}\\ \\mathsf{xor}\\ (X_{i-1}\\ \\mathsf{rshift}\\ (w-2)))+i\\mod
+       n]\\mod p\\)[f·(X
+       i-1 xor (X
+       i-1 rshift (w-2)))+i mod n] mod p, where \\(\\mathsf{xor}\\)xor and
+       \\(\\mathsf{rshift}\\)rshift stand for built-in bitwise XOR and bitwise right-shift
+       respectively.
+   3) Constructs the engine with a seed sequence seq. Given std::size_t(w / 32) + 1 as
+   k, the engine's initial state is determined as follows:
+    1. Creates an invented array object a of length n * k.
+    2. Calls seq.generate(a + 0, a + n * k).
+    3. For each integer i in [-n, -1], sets \\(X_{i}\\)X
+       i to \\((\\sum^{k-1}_{j=0} a_{k(i+n)+j} \\cdot 2^{32j}) \\mod 2^w\\)(∑k-1
+       j=0 a
+       k(i+n)+j·232j
+       ) mod 2w
+       .
+    4. If the most significant w − r bits of \\(X_{-n}\\)X
+       -n are zero, and if each of the other resulting \\(X_{i}\\)X
+       i is 0, changes \\(X_{-n}\\)X
+       -n to \\(2^{w-1}\\)2w-1
+       .
+   This overload participates in overload resolution only if SeedSeq meets the
+   requirements of SeedSequence.
+   4) The copy constructor. Upon construction, *this == other is true.
 
 .SH Parameters
 
    value - seed value to use in the initialization of the internal state
-   s     - seed sequence to use in the initialization of the internal state
+   seq   - seed sequence to use in the initialization of the internal state
 
 .SH Complexity
 
-   linear in n (the state size)
+   1,2) \\(\\small{O(n)}\\)O(n).
+   3) Same as the complexity of the seq.generate call.
+   4) \\(\\small{O(n)}\\)O(n).
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-     DR    Applied to      Behavior as published       Correct behavior
-   P0935R0 C++11      default constructor was explicit made implicit
+     DR    Applied to        Behavior as published         Correct behavior
+   P0935R0 C++11      the default constructor was explicit made implicit
 
 .SH See also
 

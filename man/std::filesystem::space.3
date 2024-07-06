@@ -1,26 +1,25 @@
-.TH std::filesystem::space 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::space 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::space \- std::filesystem::space
 
 .SH Synopsis
    Defined in header <filesystem>
-   std::filesystem::space_info space(const std::filesystem::path& p);
-
-   std::filesystem::space_info space(const std::filesystem::path& p,   \fI(since C++17)\fP
-
-   std::error_code& ec) noexcept;
+   std::filesystem::space_info space( const std::filesystem::path& p  \fB(1)\fP \fI(since C++17)\fP
+   );
+   std::filesystem::space_info space( const std::filesystem::path& p, \fB(2)\fP \fI(since C++17)\fP
+                                      std::error_code& ec ) noexcept;
 
    Determines the information about the filesystem on which the pathname p is located,
    as if by POSIX statvfs.
 
    Populates and returns an object of type filesystem::space_info, set from the members
-   of the POSIX struct statvfs as follows
+   of the POSIX struct statvfs as follows:
 
-     * space_info.capacity is set as if by f_blocks*f_frsize
-     * space_info.free is set to f_bfree*f_frsize
-     * space_info.available is set to f_bavail*f_frsize
+     * space_info.capacity is set as if by f_blocks * f_frsize.
+     * space_info.free is set to f_bfree * f_frsize.
+     * space_info.available is set to f_bavail * f_frsize.
      * Any member that could not be determined is set to
-       static_cast<std::uintmax_t>(-1)
+       static_cast<std::uintmax_t>(-1).
 
    The non-throwing overload sets all members to static_cast<std::uintmax_t>(-1) on
    error.
@@ -28,7 +27,7 @@ std::filesystem::space \- std::filesystem::space
 .SH Parameters
 
    p  - path to examine
-   ec - out-parameter for error reporting in the non-throwing overload.
+   ec - out-parameter for error reporting in the non-throwing overload
 
 .SH Return value
 
@@ -36,12 +35,13 @@ std::filesystem::space \- std::filesystem::space
 
 .SH Exceptions
 
-   The overload that does not take a std::error_code& parameter throws
-   filesystem::filesystem_error on underlying OS API errors, constructed with p as the
-   first path argument and the OS error code as the error code argument. The overload
-   taking a std::error_code& parameter sets it to the OS API error code if an OS API
-   call fails, and executes ec.clear() if no errors occur. Any overload not marked
-   noexcept may throw std::bad_alloc if memory allocation fails.
+   Any overload not marked noexcept may throw std::bad_alloc if memory allocation
+   fails.
+
+   1) Throws std::filesystem::filesystem_error on underlying OS API errors, constructed
+   with p as the first path argument and the OS error code as the error code argument.
+   2) Sets a std::error_code& parameter to the OS API error code if an OS API call
+   fails, and executes ec.clear() if no errors occur.
 
 .SH Notes
 
@@ -52,40 +52,61 @@ std::filesystem::space \- std::filesystem::space
 
 // Run this code
 
- #include <iostream>
- #include <filesystem>
  #include <cstdint>
+ #include <filesystem>
+ #include <iostream>
 
- void print_space_info(auto const& dirs, int width = 14)
+ std::uintmax_t disk_usage_percent(const std::filesystem::space_info& si,
+                                   bool is_privileged = false) noexcept
  {
-     std::cout << std::left;
-     for (const auto s : {"Capacity", "Free", "Available", "Dir"})
+     if (constexpr std::uintmax_t X(-1);
+         si.capacity == 0 || si.free == 0 || si.available == 0 ||
+         si.capacity == X || si.free == X || si.available == X
+     )
+         return 100;
+
+     std::uintmax_t unused_space = si.free, capacity = si.capacity;
+     if (!is_privileged)
+     {
+         const std::uintmax_t privileged_only_space = si.free - si.available;
+         unused_space -= privileged_only_space;
+         capacity -= privileged_only_space;
+     }
+     const std::uintmax_t used_space{capacity - unused_space};
+     return 100 * used_space / capacity;
+ }
+
+ void print_disk_space_info(auto const& dirs, int width = 14)
+ {
+     (std::cout << std::left).imbue(std::locale("en_US.UTF-8"));
+
+     for (const auto s : {"Capacity", "Free", "Available", "Use%", "Dir"})
          std::cout << "│ " << std::setw(width) << s << ' ';
-     std::cout << '\\n';
-     std::error_code ec;
-     for (auto const& dir : dirs) {
+
+     for (std::cout << '\\n'; auto const& dir : dirs)
+     {
+         std::error_code ec;
          const std::filesystem::space_info si = std::filesystem::space(dir, ec);
-         std::cout
-             << "│ " << std::setw(width) << static_cast<std::intmax_t>(si.capacity) << ' '
-             << "│ " << std::setw(width) << static_cast<std::intmax_t>(si.free) << ' '
-             << "│ " << std::setw(width) << static_cast<std::intmax_t>(si.available) << ' '
-             << "│ " << dir << '\\n';
+         for (auto x : {si.capacity, si.free, si.available, disk_usage_percent(si)})
+             std::cout << "│ " << std::setw(width) << static_cast<std::intmax_t>(x) << ' ';
+         std::cout << "│ " << dir << '\\n';
      }
  }
 
  int main()
  {
-     const auto dirs = { "/dev/null", "/tmp", "/home", "/null" };
-     print_space_info(dirs);
+     const auto dirs = {"/dev/null", "/tmp", "/home", "/proc", "/null"};
+     print_disk_space_info(dirs);
  }
 
 .SH Possible output:
 
- │ Capacity       │ Free           │ Available      │ Dir
- │ 8342851584     │ 8342851584     │ 8342851584     │ /dev/null
- │ 12884901888    │ 3045265408     │ 3045265408     │ /tmp
- │ 250321567744   │ 37623181312    │ 25152159744    │ /home
- │ -1             │ -1             │ -1             │ /null
+ │ Capacity       │ Free           │ Available      │ Use%           │ Dir
+ │ 84,417,331,200 │ 42,732,986,368 │ 40,156,028,928 │ 50             │ /dev/null
+ │ 84,417,331,200 │ 42,732,986,368 │ 40,156,028,928 │ 50             │ /tmp
+ │ -1             │ -1             │ -1             │ 100            │ /home
+ │ 0              │ 0              │ 0              │ 100            │ /proc
+ │ -1             │ -1             │ -1             │ 100            │ /null
 
 .SH See also
 

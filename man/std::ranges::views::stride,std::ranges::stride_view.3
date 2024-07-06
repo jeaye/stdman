@@ -1,0 +1,158 @@
+.TH std::ranges::views::stride,std::ranges::stride_view 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::views::stride,std::ranges::stride_view \- std::ranges::views::stride,std::ranges::stride_view
+
+.SH Synopsis
+   Defined in header <ranges>
+   template< ranges::input_range V >
+
+       requires ranges::view<V>                                       \fB(1)\fP (since C++23)
+   class stride_view
+
+       : public ranges::view_interface<stride_view<V>>
+   namespace views {
+
+       inline constexpr /* unspecified */ stride = /* unspecified */; \fB(2)\fP (since C++23)
+
+   }
+   Call signature
+   template< ranges::viewable_range R >
+   constexpr ranges::view auto stride( R&& r,                             (since C++23)
+   ranges::range_difference_t<R> n );
+   template< class DifferenceType >                                       (since C++23)
+   constexpr /*range adaptor closure*/ stride( DifferenceType&& n );
+   Helper templates
+
+   1) stride_view is a range adaptor that takes a view and a number n and produces a
+   view, that consists of elements of the original view by advancing over n elements at
+   a time. This means that each m^th element of the produced view is (n * i)^th element
+   of the original view, for some non-negative index i. The elements of the original
+   view, whose "index" is not a multiple of n, are not present in the produced view.
+   Let S be the size of the original view. Then the size of produced view is:
+     * (S / n) + (S % n ? 1 : 0), if S >= n; otherwise,
+     * 1, if S > 0; otherwise,
+     * 0, and the resulting view is empty.
+   2) The name views::stride denotes a RangeAdaptorObject. Given subexpressions e and
+   n, the expression views::stride(e, n) is expression-equivalent to stride_view(e, n).
+   The n must be greater than 0, otherwise the behavior is undefined.
+
+   stride_view always models input_range, and models forward_range,
+   bidirectional_range, random_access_range, and/or sized_range, if adapted view type V
+   models the corresponding concept. stride_view<V> models common_range whenever the
+   underlying view V does.
+
+.SH Member functions
+
+   constructor   constructs a stride_view
+   (C++23)       \fI(public member function)\fP
+   stride        returns the stored stride value
+   (C++23)       \fI(public member function)\fP
+   base          returns a copy of the underlying (adapted) view
+   (C++23)       \fI(public member function)\fP
+   begin         returns an iterator to the beginning
+   (C++23)       \fI(public member function)\fP
+   end           returns an iterator or a sentinel to the end
+   (C++23)       \fI(public member function)\fP
+   size          returns the number of elements. Provided only if the underlying
+   (C++23)       (adapted) range satisfies sized_range.
+                 \fI(public member function)\fP
+         Inherited from std::ranges::view_interface
+   empty         returns whether the derived view is empty. Provided if it satisfies
+   (C++20)       sized_range or forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   cbegin        returns a constant iterator to the beginning of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   cend          returns a sentinel for the constant iterator of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator bool returns whether the derived view is not empty. Provided if
+   (C++20)       ranges::empty is applicable to it.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   front         returns the first element in the derived view. Provided if it
+   (C++20)       satisfies forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   back          returns the last element in the derived view. Provided if it satisfies
+   (C++20)       bidirectional_range and common_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator[]    returns the n^th element in the derived view. Provided if it satisfies
+   (C++20)       random_access_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+
+   Deduction guides
+
+   Nested classes
+
+   iterator the iterator type
+   (C++23)  (exposition-only member class template*)
+
+   Helper templates
+
+   template< class V >
+
+   inline constexpr bool ranges::enable_borrowed_range<stride_view<V>> =  (since C++23)
+
+       ranges::enable_borrowed_range<V>;
+
+   This specialization of ranges::enable_borrowed_range makes stride_view satisfy
+   borrowed_range when the underlying view satisfies it.
+
+.SH Notes
+
+     Feature-test macro     Value    Std           Feature
+   __cpp_lib_ranges_stride 202207L (C++23) std::ranges::stride_view
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <iostream>
+ #include <ranges>
+ #include <string_view>
+ using namespace std::literals;
+
+ void print(std::ranges::viewable_range auto&& v, std::string_view separator = " ")
+ {
+     for (auto const& x : v)
+         std::cout << x << separator;
+     std::cout << '\\n';
+ }
+
+ int main()
+ {
+     print(std::views::iota(1, 13) | std::views::stride(3));
+     print(std::views::iota(1, 13) | std::views::stride(3) | std::views::reverse);
+     print(std::views::iota(1, 13) | std::views::reverse | std::views::stride(3));
+
+     print("0x0!133713337*x//42/A$@"sv | std::views::stride(0B11) |
+           std::views::transform([](char O) -> char { return 0100 | O; }),
+           "");
+ }
+
+.SH Output:
+
+ 1 4 7 10
+ 10 7 4 1
+ 12 9 6 3
+ password
+
+.SH References
+
+     * C++23 standard (ISO/IEC 14882:2023):
+
+     * 26.7.31 Stride view [range.stride]
+
+.SH See also
+
+   ranges::slide_view    a view whose M^th element is a view over the M^th through (M +
+   views::slide          N - 1)^th elements of another view
+   (C++23)               \fI(class template)\fP (range adaptor object)
+   ranges::chunk_view    a range of views that are N-sized non-overlapping successive
+   views::chunk          chunks of the elements of another view
+   (C++23)               \fI(class template)\fP (range adaptor object)
+   ranges::adjacent_view a view consisting of tuples of references to adjacent elements
+   views::adjacent       of the adapted view
+   (C++23)               \fI(class template)\fP (range adaptor object)
+   ranges::filter_view   a view that consists of the elements of a range that satisfies
+   views::filter         a predicate
+   (C++20)               \fI(class template)\fP (range adaptor object)

@@ -1,4 +1,4 @@
-.TH std::fread 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::fread 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::fread \- std::fread
 
@@ -32,35 +32,44 @@ std::fread \- std::fread
 
    If size or count is zero, fread returns zero and performs no other action.
 
+   fread does not distinguish between end-of-file and error, and callers must use
+   std::feof and std::ferror to determine which occurred.
+
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
+ #include <cstddef>
  #include <cstdio>
  #include <fstream>
+ #include <iomanip>
+ #include <iostream>
  #include <vector>
+
  int main()
  {
-     // prepare file
+     // Prepare file
      std::ofstream("test.txt") << 1 << ' ' << 2 << '\\n';
      std::FILE* f = std::fopen("test.txt", "r");
 
-     std::vector<char> buf(4); // char is trivally copyable
-     std::fread(&buf[0], sizeof buf[0], buf.size(), f);
+     std::vector<char> buf(4); // char is trivially copyable
+     const std::size_t n = std::fread(&buf[0], sizeof buf[0], buf.size(), f);
 
-     for(char n : buf)
-         std::cout << n;
+     std::cout << "Read " << n << " object" << (n > 1 ? "s" : "") << ": "
+               << std::hex << std::uppercase << std::setfill('0');
+     for (char n : buf)
+         std::cout << "0x" << std::setw(2) << static_cast<short>(n) << ' ';
+     std::cout << '\\n';
 
      std::vector<std::string> buf2; // string is not trivially copyable
- // this would result in undefined behavior
- //    std::fread(&buf2[0], sizeof buf2[0], buf2.size(), f);
+ //  This would result in undefined behavior:
+ //  std::fread(&buf2[0], sizeof buf2[0], buf2.size(), f);
  }
 
-.SH Output:
+.SH Possible output:
 
- 1 2
+ Read 4 objects: 0x31 0x20 0x32 0x0A
 
 .SH See also
 
@@ -71,3 +80,5 @@ std::fread \- std::fread
           \fI(function)\fP
    fwrite writes to a file
           \fI(function)\fP
+   C documentation for
+   fread

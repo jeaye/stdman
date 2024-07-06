@@ -1,4 +1,4 @@
-.TH std::cmp_equal,cmp_not_equal,cmp_less,cmp_greater,cmp_less_equal,cmp_greater_equal 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::cmp_equal,cmp_not_equal,cmp_less,cmp_greater,cmp_less_equal,cmp_greater_equal 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::cmp_equal,cmp_not_equal,cmp_less,cmp_greater,cmp_less_equal,cmp_greater_equal \- std::cmp_equal,cmp_not_equal,cmp_less,cmp_greater,cmp_less_equal,cmp_greater_equal
 
@@ -19,13 +19,13 @@ std::cmp_equal,cmp_not_equal,cmp_less,cmp_greater,cmp_less_equal,cmp_greater_equ
 
    Compare the values of two integers t and u. Unlike builtin comparison operators,
    negative signed integers always compare less than (and not equal to) unsigned
-   integers: the comparison is safe against lossy integer conversion.
+   integers: the comparison is safe against non-value-preserving integer conversion.
 
  -1 > 0u; // true
  std::cmp_greater(-1, 0u); // false
 
-   It is a compile-time error if either T or U is not a signed or unsigned integer type
-   (including standard integer type and extended integer type).
+   It is a compile-time error if either T or U is a non-integer type, a character type,
+   or bool.
 
 .SH Parameters
 
@@ -43,52 +43,48 @@ std::cmp_equal,cmp_not_equal,cmp_less,cmp_greater,cmp_less_equal,cmp_greater_equ
 
 .SH Possible implementation
 
-   template< class T, class U >
-   constexpr bool cmp_equal( T t, U u ) noexcept
+   template<class T, class U>
+   constexpr bool cmp_equal(T t, U u) noexcept
    {
-       using UT = std::make_unsigned_t<T>;
-       using UU = std::make_unsigned_t<U>;
        if constexpr (std::is_signed_v<T> == std::is_signed_v<U>)
            return t == u;
        else if constexpr (std::is_signed_v<T>)
-           return t < 0 ? false : UT(t) == u;
+           return t >= 0 && std::make_unsigned_t<T>(t) == u;
        else
-           return u < 0 ? false : t == UU(u);
+           return u >= 0 && std::make_unsigned_t<U>(u) == t;
    }
 
-   template< class T, class U >
-   constexpr bool cmp_not_equal( T t, U u ) noexcept
+   template<class T, class U>
+   constexpr bool cmp_not_equal(T t, U u) noexcept
    {
        return !cmp_equal(t, u);
    }
 
-   template< class T, class U >
-   constexpr bool cmp_less( T t, U u ) noexcept
+   template<class T, class U>
+   constexpr bool cmp_less(T t, U u) noexcept
    {
-       using UT = std::make_unsigned_t<T>;
-       using UU = std::make_unsigned_t<U>;
        if constexpr (std::is_signed_v<T> == std::is_signed_v<U>)
            return t < u;
        else if constexpr (std::is_signed_v<T>)
-           return t < 0 ? true : UT(t) < u;
+           return t < 0 || std::make_unsigned_t<T>(t) < u;
        else
-           return u < 0 ? false : t < UU(u);
+           return u >= 0 && t < std::make_unsigned_t<U>(u);
    }
 
-   template< class T, class U >
-   constexpr bool cmp_greater( T t, U u ) noexcept
+   template<class T, class U>
+   constexpr bool cmp_greater(T t, U u) noexcept
    {
        return cmp_less(u, t);
    }
 
-   template< class T, class U >
-   constexpr bool cmp_less_equal( T t, U u ) noexcept
+   template<class T, class U>
+   constexpr bool cmp_less_equal(T t, U u) noexcept
    {
-       return !cmp_greater(t, u);
+       return !cmp_less(u, t);
    }
 
-   template< class T, class U >
-   constexpr bool cmp_greater_equal( T t, U u ) noexcept
+   template<class T, class U>
+   constexpr bool cmp_greater_equal(T t, U u) noexcept
    {
        return !cmp_less(t, u);
    }
@@ -98,12 +94,13 @@ std::cmp_equal,cmp_not_equal,cmp_less,cmp_greater,cmp_less_equal,cmp_greater_equ
    These functions cannot be used to compare enums (including std::byte), char,
    char8_t, char16_t, char32_t, wchar_t and bool.
 
-   Feature-test macro: __cpp_lib_integer_comparison_functions
+             Feature-test macro            Value    Std             Feature
+   __cpp_lib_integer_comparison_functions 202002L (C++20) Integer comparison functions
 
 .SH Example
 
    The example below might produce different signedness comparison warning if compiled
-   without an appropriate warning suppression flag, e.g. -Wno-sign-compare (gcc/clang
+   without an appropriate warning suppression flag, e.g., -Wno-sign-compare (gcc/clang
    with -Wall -Wextra, see also SO: disabling a specific warning).
 
 
@@ -116,24 +113,24 @@ std::cmp_equal,cmp_not_equal,cmp_less,cmp_greater,cmp_less_equal,cmp_greater_equ
 
  int main()
  {
-     static_assert( sizeof(int) == 4 ); // precondition
+     static_assert(sizeof(int) == 4); // precondition
 
      // Quite surprisingly
-     static_assert( -1 > 1U ); //< warning: sign-unsign comparison
+     static_assert(-1 > 1U); //< warning: sign-unsign comparison
      // because after implicit conversion of -1 to the RHS type (`unsigned int`)
      // the expression is equivalent to:
-     static_assert( 0xFFFFFFFFU > 1U );
-     static_assert( 0xFFFFFFFFU == static_cast<unsigned>(-1) );
+     static_assert(0xFFFFFFFFU > 1U);
+     static_assert(0xFFFFFFFFU == static_cast<unsigned>(-1));
 
      // In contrast, the cmp_* family compares integers as most expected -
      // negative signed integers always compare less than unsigned integers:
-     static_assert( std::cmp_less( -1, 1U ) );
-     static_assert( std::cmp_less_equal( -1, 1U ) );
-     static_assert( ! std::cmp_greater( -1, 1U ) );
-     static_assert( ! std::cmp_greater_equal( -1, 1U ) );
+     static_assert(std::cmp_less(-1, 1U));
+     static_assert(std::cmp_less_equal(-1, 1U));
+     static_assert(!std::cmp_greater(-1, 1U));
+     static_assert(!std::cmp_greater_equal(-1, 1U));
 
-     static_assert( -1 == 0xFFFFFFFFU ); //< warning: sign-unsign comparison
-     static_assert( std::cmp_not_equal( -1, 0xFFFFFFFFU ) );
+     static_assert(-1 == 0xFFFFFFFFU); //< warning: sign-unsign comparison
+     static_assert(std::cmp_not_equal(-1, 0xFFFFFFFFU));
  }
 
 .SH See also
@@ -150,23 +147,23 @@ std::cmp_equal,cmp_not_equal,cmp_less,cmp_greater,cmp_less_equal,cmp_greater_equ
                          \fI(class template)\fP
    greater_equal         function object implementing x >= y
                          \fI(class template)\fP
-   ranges::equal_to      function object implementing x == y
+   ranges::equal_to      constrained function object implementing x == y
    (C++20)               \fI(class)\fP
-   ranges::not_equal_to  function object implementing x != y
+   ranges::not_equal_to  constrained function object implementing x != y
    (C++20)               \fI(class)\fP
-   ranges::less          function object implementing x < y
+   ranges::less          constrained function object implementing x < y
    (C++20)               \fI(class)\fP
-   ranges::greater       function object implementing x > y
+   ranges::greater       constrained function object implementing x > y
    (C++20)               \fI(class)\fP
-   ranges::less_equal    function object implementing x <= y
+   ranges::less_equal    constrained function object implementing x <= y
    (C++20)               \fI(class)\fP
-   ranges::greater_equal function object implementing x >= y
+   ranges::greater_equal constrained function object implementing x >= y
    (C++20)               \fI(class)\fP
-   compare_three_way     function object implementing x <=> y
+   compare_three_way     constrained function object implementing x <=> y
    (C++20)               \fI(class)\fP
    in_range              checks if an integer value is in the range of a given integer
    (C++20)               type
                          \fI(function template)\fP
                          provides an interface to query properties of all fundamental
-   numeric_limits        numeric types.
+   numeric_limits        numeric types
                          \fI(class template)\fP

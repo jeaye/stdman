@@ -1,0 +1,211 @@
+.TH std::ranges::lazy_split_view::inner_iterator 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::lazy_split_view::inner_iterator \- std::ranges::lazy_split_view::inner_iterator
+
+.SH Synopsis
+   template< bool Const >      \fI(since C++20)\fP
+   struct /*inner_iterator*/;  (exposition only*)
+
+   The return type of lazy_split_view::outer_iterator::value_type::begin().
+
+   Const matches the template argument of outer_iterator.
+
+.SH Member types
+
+   Member type       Definition
+   Base              const V if Const is true, otherwise V
+                     (exposition-only member type*)
+   iterator_concept  equivalent to /*outer_iterator*/<Const>::iterator_concept, that is
+   (C++20)           std::forward_iterator_tag if Base models forward_range, or
+                     std::input_iterator_tag otherwise.
+                       * Not present if Base does not model forward_range.
+                       * std::forward_iterator_tag if
+   iterator_category     std::iterator_traits<ranges::iterator_t<Base>>::iterator_category
+   (C++20)               models std::derived_from<std::forward_iterator_tag>.
+                       * std::iterator_traits<ranges::iterator_t<Base>>::iterator_category
+                         otherwise.
+   value_type        ranges::range_value_t<Base>.
+   (C++20)
+   difference_type   ranges::range_difference_t<Base>.
+   (C++20)
+
+   Data members
+
+   Member object          Definition
+                          An iterator of type /*outer_iterator*/<Const> into the
+   i_ (private)           underlying view of the parent lazy_split_view.
+                          (exposition-only member object*)
+                          A boolean flag that indicates whether the operator++ was
+   incremented_ (private) invoked on this object at least once.
+                          (exposition-only member object*)
+
+.SH Member functions
+
+   constructor     constructs an iterator
+   (C++20)         \fI(public member function)\fP
+   base            returns the underlying iterator
+   (C++20)         \fI(public member function)\fP
+   operator*       returns the current element
+   (C++20)         \fI(public member function)\fP
+   operator++      advances the iterator
+   operator++(int) \fI(public member function)\fP
+   (C++20)
+
+.SH Member functions
+
+std::ranges::lazy_split_view::inner_iterator::inner_iterator
+
+   /*inner_iterator*/() = default;                                    \fB(1)\fP \fI(since C++20)\fP
+   constexpr explicit /*inner_iterator*/( /*outer_iterator*/<Const> i \fB(2)\fP \fI(since C++20)\fP
+   );
+
+   1) Value initializes data member i_ via its default member initializer (=
+   /*outer_iterator*/<Const>()).
+   2) Initializes i_ with std::move(i).
+
+   The data member incremented_ is initialized with its default member initializer to
+   false.
+
+std::ranges::lazy_split_view::inner_iterator::base
+
+   constexpr const ranges::iterator_t<Base>& base() const & noexcept; \fB(1)\fP \fI(since C++20)\fP
+   constexpr ranges::iterator_t<Base> base() &&                       \fB(2)\fP \fI(since C++20)\fP
+       requires ranges::forward_range<V>;
+
+   Returns a copy of the underlying iterator.
+
+   1) Copy constructs the result from the underlying iterator. Equivalent to return
+   i_./*cur*/();.
+   2) Move constructs the result from the underlying iterator. Equivalent to return
+   std::move(i_./*cur*/());.
+
+std::ranges::lazy_split_view::inner_iterator::operator*
+
+   constexpr decltype(auto) operator*() const;  \fI(since C++20)\fP
+
+   Returns the element the underlying iterator points to.
+
+   Equivalent to return *i_./*cur*/();.
+
+std::ranges::lazy_split_view::inner_iterator::operator++
+
+   constexpr /*inner_iterator*/& operator++(); \fB(1)\fP \fI(since C++20)\fP
+   constexpr decltype(auto) operator++(int);   \fB(2)\fP \fI(since C++20)\fP
+
+   1) The function body is equivalent to
+   incremented_ = true;
+
+   if constexpr (!ranges::forward_range<Base>)
+   {
+       if constexpr (Pattern::size() == 0)
+           return *this;
+   }
+   ++i_./*cur*/();
+
+   return *this;
+   2) Equivalent to
+   if constexpr (ranges::forward_range<Base>)
+
+   {
+       auto tmp = *this;
+       ++*this;
+       return tmp;
+   }
+   else
+       ++*this; // no return statement
+
+.SH Non-member functions
+
+   operator== compares the iterators or the iterator and std::default_sentinel
+   (C++20)    \fI(function)\fP
+   iter_move  casts the result of dereferencing the underlying iterator to its
+   (C++20)    associated rvalue reference type
+              \fI(function)\fP
+   iter_swap  swaps the objects pointed to by two underlying iterators
+   (C++20)    \fI(function)\fP
+
+operator==(std::ranges::split_view::inner_iterator)
+
+   friend constexpr bool operator==( const /*inner_iterator*/& x,
+
+                                     const /*inner_iterator*/& y ) \fB(1)\fP \fI(since C++20)\fP
+
+         requires forward_range<Base>;
+   friend constexpr bool operator==( const /*inner_iterator*/& x,  \fB(2)\fP \fI(since C++20)\fP
+                                     std::default_sentinel_t );
+
+   1) Equivalent to return x.i_./*cur*/() == y.i_./*cur*/();.
+   2) The function body is equivalent to
+
+ auto [pcur, pend] = ranges::subrange{x.i_.parent_->pattern_};
+ auto end = ranges::end(x.i_.parent_->base_);
+ if constexpr (/*tiny_range*/<Pattern>)
+ {
+     const auto& cur = x.i_./*cur*/();
+     if (cur == end)
+         return true;
+     if (pcur == pend)
+         return x.incremented_;
+     return *cur == *pcur;
+ }
+ else
+ {
+     auto cur = x.i_./*cur*/();
+     if (cur == end)
+         return true;
+     if (pcur == pend)
+         return x.incremented_;
+     do
+     {
+         if (*cur != *pcur)
+             return false;
+         if (++pcur == pend)
+             return true;
+     }
+     while (++cur != end);
+     return false;
+ }
+
+   The != operator is synthesized from operator==.
+
+   These functions are not visible to ordinary unqualified or qualified lookup, and can
+   only be found by argument-dependent lookup when
+   std::ranges::split_view::inner_iterator is an associated class of the arguments.
+
+iter_move(std::ranges::split_view::inner_iterator)
+
+   friend constexpr decltype(auto) iter_move( const /*inner_iterator*/& i  (since
+   )                                                                       C++20)
+       noexcept(noexcept(ranges::iter_move(i.i_./*cur*/())));
+
+   Equivalent to return ranges::iter_move(i.i_./*cur*/());.
+
+   This function is not visible to ordinary unqualified or qualified lookup, and can
+   only be found by argument-dependent lookup when
+   std::ranges::split_view::inner_iterator is an associated class of the arguments.
+
+iter_swap(std::ranges::split_view::inner_iterator)
+
+   friend constexpr void iter_swap( const /*inner_iterator*/& x,
+
+                                    const /*inner_iterator*/& y )         \fI(since C++20)\fP
+       noexcept(noexcept(ranges::iter_swap(x.i_.current, y.i_.current)))
+
+       requires std::indirectly_swappable<ranges::iterator_t<Base>>;
+
+   Equivalent to ranges::iter_swap(x.i_./*cur*/(), y.i_./*cur*/()).
+
+   This function is not visible to ordinary unqualified or qualified lookup, and can
+   only be found by argument-dependent lookup when
+   std::ranges::split_view::inner_iterator is an associated class of the arguments.
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to             Behavior as published              Correct behavior
+   LWG 3591 C++20      the && overload of base might invalidate outer constraints added
+                       iterators
+   LWG 3593 C++20      the const& overload of base returns a          made noexcept
+                       reference but might not be noexcept

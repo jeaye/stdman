@@ -1,4 +1,4 @@
-.TH std::uninitialized_default_construct 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_default_construct 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_default_construct \- std::uninitialized_default_construct
 
@@ -6,33 +6,28 @@ std::uninitialized_default_construct \- std::uninitialized_default_construct
    Defined in header <memory>
    template< class ForwardIt >
    void uninitialized_default_construct( ForwardIt first, ForwardIt   \fB(1)\fP \fI(since C++17)\fP
-   last);
+   last );
    template< class ExecutionPolicy, class ForwardIt >
+
    void uninitialized_default_construct( ExecutionPolicy&& policy,    \fB(2)\fP \fI(since C++17)\fP
-   ForwardIt first, ForwardIt last );
 
-   1) Constructs objects of type typename iterator_traits<ForwardIt>::value_type in the
-   uninitialized storage designated by the range [first, last) by
-   default-initialization, as if by
+                                         ForwardIt first, ForwardIt
+   last );
 
- for (; first != last; ++first)
-   ::new (/*VOIDIFY*/(*first))
-       typename std::iterator_traits<ForwardIt>::value_type;
-
-   where /*VOIDIFY*/(e) is:
-
-      static_cast<void*>(std::addressof(e))                               \fI(until C++20)\fP
-      const_cast<void*>(static_cast<const volatile                        \fI(since C++20)\fP
-      void*>(std::addressof(e)))
-
+   1) Constructs objects of type typename std::iterator_traits<ForwardIt>::value_type
+   in the uninitialized storage designated by the range [first, last) by
+   default-initialization, as if by for (; first != last; ++first)
+       ::new (static_cast<void*>(std::addressof(*first)))
+           typename std::iterator_traits<ForwardIt>::value_type;
    If an exception is thrown during the initialization, the objects already constructed
    are destroyed in an unspecified order.
-   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
-   in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+   2) Same as \fB(1)\fP, but executed according to policy. This overload participates in
+   overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
 
 .SH Parameters
 
@@ -71,12 +66,16 @@ std::uninitialized_default_construct \- std::uninitialized_default_construct
    {
        using Value = typename std::iterator_traits<ForwardIt>::value_type;
        ForwardIt current = first;
-       try {
-           for (; current != last; ++current) {
+       try
+       {
+           for (; current != last; ++current)
+           {
                ::new (const_cast<void*>(static_cast<const volatile void*>(
                    std::addressof(*current)))) Value;
            }
-       }  catch (...) {
+       }
+       catch (...)
+       {
            std::destroy(first, current);
            throw;
        }
@@ -87,46 +86,51 @@ std::uninitialized_default_construct \- std::uninitialized_default_construct
 
 // Run this code
 
+ #include <cstring>
  #include <iostream>
  #include <memory>
  #include <string>
- #include <cstring>
+
+ struct S
+ {
+     std::string m{"Default value"};
+ };
 
  int main()
  {
-     struct S { std::string m{ "Default value" }; };
-
-     constexpr int n {3};
+     constexpr int n{3};
      alignas(alignof(S)) unsigned char mem[n * sizeof(S)];
 
      try
      {
-         auto first {reinterpret_cast<S*>(mem)};
-         auto last {first + n};
+         auto first{reinterpret_cast<S*>(mem)};
+         auto last{first + n};
 
          std::uninitialized_default_construct(first, last);
 
-         for (auto it {first}; it != last; ++it) {
+         for (auto it{first}; it != last; ++it)
              std::cout << it->m << '\\n';
-         }
 
          std::destroy(first, last);
      }
-     catch(...)
+     catch (...)
      {
          std::cout << "Exception!\\n";
      }
 
      // Notice that for "trivial types" the uninitialized_default_construct
      // generally does not zero-fill the given uninitialized memory area.
-     int v[] { 1, 2, 3, 4 };
-     const int original[] { 1, 2, 3, 4 };
+     int v[]{1, 2, 3, 4};
+     const int original[]{1, 2, 3, 4};
      std::uninitialized_default_construct(std::begin(v), std::end(v));
-     // for (const int i : v) { std::cout << i << ' '; }
+
      // Maybe undefined behavior, pending CWG 1997.
+     // for (const int i : v)
+     //     std::cout << i << ' ';
+
+     // The result is unspecified.
      std::cout <<
          (std::memcmp(v, original, sizeof(v)) == 0 ? "Unmodified\\n" : "Modified\\n");
-     // The result is unspecified.
  }
 
 .SH Possible output:
@@ -135,6 +139,15 @@ std::uninitialized_default_construct \- std::uninitialized_default_construct
  Default value
  Default value
  Unmodified
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 3870 C++20      this algorithm might create objects on a const  kept disallowed
+                       storage
 
 .SH See also
 

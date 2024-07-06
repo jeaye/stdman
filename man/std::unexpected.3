@@ -1,57 +1,216 @@
-.TH std::unexpected 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::unexpected 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unexpected \- std::unexpected
 
 .SH Synopsis
-   Defined in header <exception>
-   void unexpected();               \fI(until C++11)\fP
-                                    \fI(since C++11)\fP
-   [[noreturn]] void unexpected();  \fB(deprecated)\fP
-                                    (removed in C++17)
+   Defined in header <expected>
+   template< class E >           (since C++23)
+   class unexpected;
 
-   std::unexpected() is called by the C++ runtime when a dynamic exception
-   specification is violated: an exception is thrown from a function whose exception
-   specification forbids exceptions of this type.
+   The class template std::unexpected represents an unexpected value stored in
+   std::expected. In particular, std::expected has constructors with std::unexpected as
+   a single argument, which creates an expected object that contains an unexpected
+   value.
 
-   std::unexpected() may also be called directly from the program.
+   A program is ill-formed if it instantiates an unexpected with a non-object type, an
+   array type, a specialization of std::unexpected, or a cv-qualified type.
 
-   In either case, std::unexpected calls the currently installed
-   std::unexpected_handler. The default std::unexpected_handler calls std::terminate.
+.SH Template parameters
 
-   If a destructor reset the unexpected handler during stack unwinding
-   and the unwinding later led to unexpected being called, the handler
-   that was installed at the end of the throw expression is the one that  \fI(until C++11)\fP
-   will be called. (note: it was ambiguous whether re-throwing applied
-   the new handlers)
-   If a destructor reset the unexpected handler during stack unwinding,
-   it is unspecified which handler is called if the unwinding later led   \fI(since C++11)\fP
-   to unexpected being called.
+   E - the type of the unexpected value. The type must not be an array type, a
+       non-object type, a specialization of std::unexpected, or a cv-qualified type.
+
+.SH Member functions
+
+   constructor                   constructs the unexpected object
+   (C++23)                       \fI(public member function)\fP
+   destructor                    destroys the unexpected object, along with the stored
+   (implicitly declared) (C++23) value
+                                 \fI(public member function)\fP
+   operator=                     assigns the stored value
+   (implicitly declared) (C++23) \fI(public member function)\fP
+   error                         accesses the stored value
+   (C++23)                       \fI(public member function)\fP
+   swap                          swaps the stored value
+   (C++23)                       \fI(public member function)\fP
+
+.SH Non-member functions
+
+   operator==            compares the stored value
+   (C++23)               \fI(function template)\fP
+   swap(std::unexpected) specializes the std::swap algorithm
+   (C++23)               \fI(function template)\fP
+
+std::unexpected::unexpected
+
+   constexpr unexpected( const unexpected& ) = default;               \fB(1)\fP (since C++23)
+   constexpr unexpected( unexpected&& ) = default;                    \fB(2)\fP (since C++23)
+   template< class Err = E >                                          \fB(3)\fP (since C++23)
+   constexpr explicit unexpected( Err&& e );
+   template< class... Args >                                          \fB(4)\fP (since C++23)
+   constexpr explicit unexpected( std::in_place_t, Args&&... args );
+   template< class U, class... Args >
+
+   constexpr explicit unexpected( std::in_place_t,                    \fB(5)\fP (since C++23)
+
+                                  std::initializer_list<U> il,
+   Args&&... args );
+
+   Constructs a std::unexpected object.
+
+   1,2) Copy/move constructor. Copies or moves the stored value, respectively.
+   3) Constructs the stored value, as if by direct-initializing a value of type E from
+   std::forward<Err>(e).
+     * This overload participates in overload resolution only if
+          * std::is_same_v<std::remove_cvref_t<Err>, unexpected> is false, and
+          * std::is_same_v<std::remove_cvref_t<Err>, std::in_place_t> is false, and
+          * std::is_constructible_v<E, Err> is true.
+   4) Constructs the stored value, as if by direct-initializing a value of type E from
+   the arguments std::forward<Args>(args)....
+     * This overload participates in overload resolution only if
+       std::is_constructible_v<E, Args...> is true.
+   5) Constructs the stored value, as if by direct-initializing a value of type E from
+   the arguments il, std::forward<Args>(args)....
+     * This overload participates in overload resolution only if
+       std::is_constructible_v<E, std::initializer_list<U>&, Args...> is true.
 
 .SH Parameters
 
-   \fI(none)\fP
-
-.SH Return value
-
-   \fI(none)\fP
+   e       - value with which to initialize the contained value
+   args... - arguments with which to initialize the contained value
+   il      - initializer list with which to initialize the contained value
 
 .SH Exceptions
 
-   Throw any exception thrown by the currently installed std::unexpected_handler
+   Throws any exception thrown by the constructor of E.
 
-  Defect reports
+std::unexpected::error
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+   constexpr const E& error() const& noexcept;
 
-      DR    Applied to              Behavior as published              Correct behavior
-                       effect of calling set_unexpected during stack
-   LWG 2111 C++11      unwinding differs from C++98 and breaks some    made unspecified
-                       ABIs
+   constexpr E& error() & noexcept;               (since C++23)
+   constexpr const E&& error() const&& noexcept;
+
+   constexpr E&& error() && noexcept;
+
+   Returns a reference to the stored value.
+
+std::unexpected::swap
+
+   constexpr void swap( unexpected& other )                               (since C++23)
+   noexcept(std::is_nothrow_swappable_v<E>);
+
+   Swaps the stored values, as if by using std::swap; swap(error(), other.error());.
+
+   The program is ill-formed if std::is_swappable_v<E> is false.
+
+operator==(std::unexpected)
+
+   template< class E2 >
+   friend constexpr bool operator==( unexpected& x, std::unexpected<E2>&  (since C++23)
+   y );
+
+   Compares the stored values, as if by return x.error() == y.error().
+
+   If the expression x.error() == e.error() is not well-formed, or if its result is not
+   convertible to bool, the program is ill-formed.
+
+   This function is not visible to ordinary unqualified or qualified lookup, and can
+   only be found by argument-dependent lookup when std::unexpected<E> is an associated
+   class of the arguments.
+
+swap(std::unexpected)
+
+   friend constexpr void                                                (since C++23)
+   swap( unexpected& x, unexpected& y ) noexcept(noexcept(x.swap(y)));
+
+   Equivalent to x.swap(y).
+
+   This overload participates in overload resolution only if std::is_swappable_v<E> is
+   true.
+
+   This function is not visible to ordinary unqualified or qualified lookup, and can
+   only be found by argument-dependent lookup when std::unexpected<E> is an associated
+   class of the arguments.
+
+   Deduction guides
+
+   template< class E >              (since C++23)
+   unexpected(E) -> unexpected<E>;
+
+   The deduction guide is provided for unexpected to allow deduction from the
+   constructor argument.
+
+.SH Notes
+
+   Prior to C++17, the name std::unexpected denoted the function called by the C++
+   runtime when a dynamic exception specification was violated.
+
+.SH Example
+
+
+// Run this code
+
+ #include <expected>
+ #include <iostream>
+
+ int main()
+ {
+     std::expected<double, int> ex = std::unexpected(3);
+
+     if (!ex)
+         std::cout << "ex contains an error value\\n";
+
+     if (ex == std::unexpected(3))
+         std::cout << "The error value is equal to 3\\n";
+ }
+
+.SH Output:
+
+ ex contains an error value
+ The error value is equal to 3
+
+   Example with enum
+
+
+// Run this code
+
+ #include <expected>
+ #include <iostream>
+
+ enum class error
+ {
+     compile_time_error,
+     runtime_error
+ };
+
+ [[nodiscard]] auto unexpected_runtime_error() -> std::expected<int, error>
+ {
+     return std::unexpected(error::runtime_error);
+ }
+
+ int main()
+ {
+     const auto e = unexpected_runtime_error();
+
+     e.and_then([](const auto& e) -> std::expected<int, error> {
+          std::cout << "and_then: " << int(e); // not printed
+          return {};
+      }).or_else([](const auto& e) -> std::expected<int, error> {
+         std::cout << "or_else: " << int(e); // prints this line
+         return {};
+     });
+
+     return 0;
+ }
+
+.SH Output:
+
+ or_else: 1
 
 .SH See also
 
-   unexpected         represented as an unexpected value in expected
-   (C++23)            \fI(class template)\fP
-   unexpected_handler the type of the function called by std::unexpected
-   (removed in C++17) \fI(typedef)\fP
+   constructor   constructs the expected object
+                 \fI(public member function)\fP
+   operator==    compares expected objects
+   (C++23)       \fI(function template)\fP

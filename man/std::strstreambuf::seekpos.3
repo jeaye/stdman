@@ -1,16 +1,18 @@
-.TH std::strstreambuf::seekpos 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::strstreambuf::seekpos 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::strstreambuf::seekpos \- std::strstreambuf::seekpos
 
 .SH Synopsis
    protected:
 
-   virtual pos_type seekpos(pos_type sp,
+   virtual pos_type seekpos( pos_type sp,                         (deprecated in C++98)
+                             std::ios_base::openmode which =      (removed in C++26)
 
-   std::ios_base::openmode which = std::ios_base::in | std::ios_base::out );
+                                 std::ios_base::in |
+   std::ios_base::out );
 
    Repositions std::basic_streambuf::gptr and/or std::basic_streambuf::pptr, if
-   possible, to the position indicated by sp
+   possible, to the position indicated by sp.
 
    If std::ios_base::in is set in which, attempts to reposition gptr() (the next
    pointer in the get area). If std::ios_base::out is set in which, attempts to
@@ -19,12 +21,12 @@ std::strstreambuf::seekpos \- std::strstreambuf::seekpos
 
    Each next pointer is repositioned as follows:
 
-   1) If the next pointer is null, the operation fails
-   2) Otherwise, the new offset newoff (of type off_type) is determined by calling
-   sp.offset(). If newoff is negative, out of bounds of the buffer, or invalid, the
-   operation fails.
-   3) Otherwise, the next pointer is assigned as if by gptr() = eback()+newoff or
-   pptr() = pbase()+newoff.
+     * If the next pointer is null, the operation fails.
+     * Otherwise, the new offset newoff (of type off_type) is determined by calling
+       sp.offset(). If newoff is negative, out of bounds of the buffer, or invalid, the
+       operation fails.
+     * Otherwise, the next pointer is assigned as if by gptr() = eback() + newoff or
+       pptr() = pbase() + newoff.
 
 .SH Parameters
 
@@ -45,29 +47,34 @@ std::strstreambuf::seekpos \- std::strstreambuf::seekpos
 
    seekpos() is called by std::basic_streambuf::pubseekpos(), which is called by the
    single-argument versions of std::basic_istream::seekg() and
-   std::basic_ostream::seekp()
+   std::basic_ostream::seekp().
 
 .SH Example
 
 
 // Run this code
 
- #include <strstream>
  #include <cstring>
  #include <iostream>
+ #include <strstream>
 
  struct mybuf : std::strstreambuf
  {
      mybuf(const char* str) : std::strstreambuf(str, std::strlen(str)) {}
-     pos_type seekpos(pos_type sp, std::ios_base::openmode which) {
-          std::cout << "Before seekpos(" << sp << "), size of the get area is "
-                    << egptr()-eback() << " with "
-                    << egptr()-gptr() << " read positions available\\n";
-          pos_type rc = std::strstreambuf::seekpos(sp, which);
-          std::cout << "seekpos() returns " << rc << ".\\nAfter the call, "
-                    << "size of the get area is "
-                    << egptr()-eback() << " with "
-                    << egptr()-gptr() << " read positions available\\n";
+
+     pos_type seekpos(pos_type sp, std::ios_base::openmode which)
+     {
+         std::cout << "Before seekpos(" << sp << "), size of the get area is "
+                   << egptr() - eback() << " with "
+                   << egptr() - gptr() << " read positions available.\\n";
+
+         pos_type rc = std::strstreambuf::seekpos(sp, which);
+
+         std::cout << "seekpos() returns " << rc << ".\\nAfter the call, "
+                   << "size of the get area is "
+                   << egptr() - eback() << " with "
+                   << egptr() - gptr() << " read positions available.\\n";
+
          return rc;
      }
  };
@@ -81,20 +88,32 @@ std::strstreambuf::seekpos \- std::strstreambuf::seekpos
 
 .SH Output:
 
- Before seekpos\fB(2)\fP, size of the get area is 5 with 5 read positions available
+ Before seekpos\fB(2)\fP, size of the get area is 5 with 5 read positions available.
  seekpos() returns 2.
- After the call, size of the get area is 5 with 3 read positions available
+ After the call, size of the get area is 5 with 3 read positions available.
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR   Applied to       Behavior as published           Correct behavior
+   LWG 55 C++98      seekpos returned an undefined      pos_type(off_type(-1))
+                     invalid stream position on failure is returned on failure
 
 .SH See also
 
-   pubseekpos invokes seekpos()
-              \fI(public member function of std::basic_streambuf<CharT,Traits>)\fP
-              repositions the next pointer in the input sequence, output sequence, or
-   seekpos    both using absolute addressing
-   \fB[virtual]\fP  \fI\fI(virtual protected member function\fP of\fP
-              std::basic_stringbuf<CharT,Traits,Allocator>)
-   seekpos    repositions the file position, using absolute addressing
-   \fB[virtual]\fP  \fI(virtual protected member function of std::basic_filebuf<CharT,Traits>)\fP
-   seekoff    repositions the next pointer in the input sequence, output sequence, or
-   \fB[virtual]\fP  both, using relative addressing
-              \fI(virtual protected member function)\fP
+   seekoff   repositions the next pointer in the input sequence, output sequence, or
+   \fB[virtual]\fP both, using relative addressing
+             \fI(virtual protected member function)\fP
+             repositions the next pointer in the input sequence, output sequence, or
+   seekpos   both using absolute addressing
+   \fB[virtual]\fP \fI(virtual protected member function of std::basic_streambuf<CharT,Traits>)\fP
+
+             repositions the next pointer in the input sequence, output sequence, or
+   seekpos   both using absolute addressing
+   \fB[virtual]\fP \fI\fI(virtual protected member function\fP of\fP
+             std::basic_stringbuf<CharT,Traits,Allocator>)
+   seekpos   repositions the file position, using absolute addressing
+   \fB[virtual]\fP \fI(virtual protected member function of std::basic_filebuf<CharT,Traits>)\fP
+

@@ -1,4 +1,4 @@
-.TH std::condition_variable 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::condition_variable 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::condition_variable \- std::condition_variable
 
@@ -6,54 +6,47 @@ std::condition_variable \- std::condition_variable
    Defined in header <condition_variable>
    class condition_variable;               \fI(since C++11)\fP
 
-   The condition_variable class is a synchronization primitive that can be used to
-   block a thread, or multiple threads at the same time, until another thread both
-   modifies a shared variable (the condition), and notifies the condition_variable.
+   std::condition_variable is a synchronization primitive used with a std::mutex to
+   block one or more threads until another thread both modifies a shared variable (the
+   condition) and notifies the std::condition_variable.
 
-   The thread that intends to modify the shared variable has to
+   The thread that intends to modify the shared variable must:
 
-    1. acquire a std::mutex (typically via std::lock_guard)
-    2. perform the modification while the lock is held
-    3. execute notify_one or notify_all on the std::condition_variable (the lock does
-       not need to be held for notification)
+    1. Acquire a std::mutex (typically via std::lock_guard).
+    2. Modify the shared variable while the lock is owned.
+    3. Call notify_one or notify_all on the std::condition_variable (can be done after
+       releasing the lock).
 
-   Even if the shared variable is atomic, it must be modified under the mutex in order
-   to correctly publish the modification to the waiting thread.
+   Even if the shared variable is atomic, it must be modified while owning the mutex to
+   correctly publish the modification to the waiting thread.
 
-   Any thread that intends to wait on std::condition_variable has to
+   Any thread that intends to wait on a std::condition_variable must:
 
-    1. acquire a std::unique_lock<std::mutex>, on the same mutex as used to protect the
-       shared variable
-    2. either
+    1. Acquire a std::unique_lock<std::mutex> on the mutex used to protect the shared
+       variable.
+    2. Do one of the following:
 
-             1. check the condition, in case it was already updated and notified
-             2. execute wait, wait_for, or wait_until. The wait operations atomically
-                release the mutex and suspend the execution of the thread.
-             3. When the condition variable is notified, a timeout expires, or a
-                spurious wakeup occurs, the thread is awakened, and the mutex is
-                atomically reacquired. The thread should then check the condition and
-                resume waiting if the wake up was spurious.
+    1. Check the condition, in case it was already updated and notified.
+    2. Call wait, wait_for, or wait_until on the std::condition_variable (atomically
+       releases the mutex and suspends thread execution until the condition variable is
+       notified, a timeout expires, or a spurious wakeup occurs, then atomically
+       acquires the mutex before returning).
+    3. Check the condition and resume waiting if not satisfied.
 
-                        or
+   or:
+    1. Use the predicated overload of wait, wait_for, and wait_until, which performs
+       the same three steps.
 
-             1. use the predicated overload of wait, wait_for, and wait_until, which
-                takes care of the three steps above
-
-   std::condition_variable works only with std::unique_lock<std::mutex>; this
-   restriction allows for maximal efficiency on some platforms.
-   std::condition_variable_any provides a condition variable that works with any
-   BasicLockable object, such as std::shared_lock.
+   std::condition_variable works only with std::unique_lock<std::mutex>, which allows
+   for maximal efficiency on some platforms. std::condition_variable_any provides a
+   condition variable that works with any BasicLockable object, such as
+   std::shared_lock.
 
    Condition variables permit concurrent invocation of the wait, wait_for, wait_until,
    notify_one and notify_all member functions.
 
    The class std::condition_variable is a StandardLayoutType. It is not
    CopyConstructible, MoveConstructible, CopyAssignable, or MoveAssignable.
-
-.SH Member types
-
-   Member type        Definition
-   native_handle_type implementation-defined
 
 .SH Member functions
 
@@ -69,12 +62,12 @@ std::condition_variable \- std::condition_variable
    notify_all    notifies all waiting threads
                  \fI(public member function)\fP
 .SH Waiting
-   wait          blocks the current thread until the condition variable is woken up
+   wait          blocks the current thread until the condition variable is awakened
                  \fI(public member function)\fP
-                 blocks the current thread until the condition variable is woken up or
+                 blocks the current thread until the condition variable is awakened or
    wait_for      after the specified timeout duration
                  \fI(public member function)\fP
-                 blocks the current thread until the condition variable is woken up or
+                 blocks the current thread until the condition variable is awakened or
    wait_until    until specified time point has been reached
                  \fI(public member function)\fP
 .SH Native handle
@@ -83,17 +76,17 @@ std::condition_variable \- std::condition_variable
 
 .SH Example
 
-   condition_variable is used in combination with a std::mutex to facilitate
+   std::condition_variable is used in combination with a std::mutex to facilitate
    inter-thread communication.
 
 
 // Run this code
 
+ #include <condition_variable>
  #include <iostream>
+ #include <mutex>
  #include <string>
  #include <thread>
- #include <mutex>
- #include <condition_variable>
 
  std::mutex m;
  std::condition_variable cv;
@@ -103,19 +96,19 @@ std::condition_variable \- std::condition_variable
 
  void worker_thread()
  {
-     // Wait until main() sends data
+     // wait until main() sends data
      std::unique_lock lk(m);
-     cv.wait(lk, []{return ready;});
+     cv.wait(lk, []{ return ready; });
 
-     // after the wait, we own the lock.
+     // after the wait, we own the lock
      std::cout << "Worker thread is processing data\\n";
      data += " after processing";
 
-     // Send data back to main()
+     // send data back to main()
      processed = true;
      std::cout << "Worker thread signals data processing completed\\n";
 
-     // Manual unlocking is done before notifying, to avoid waking up
+     // manual unlocking is done before notifying, to avoid waking up
      // the waiting thread only to block again (see notify_one for details)
      lk.unlock();
      cv.notify_one();
@@ -137,7 +130,7 @@ std::condition_variable \- std::condition_variable
      // wait for the worker
      {
          std::unique_lock lk(m);
-         cv.wait(lk, []{return processed;});
+         cv.wait(lk, []{ return processed; });
      }
      std::cout << "Back in main(), data = " << data << '\\n';
 

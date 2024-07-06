@@ -1,41 +1,50 @@
-.TH std::frexp,std::frexpf,std::frexpl 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::frexp,std::frexpf,std::frexpl 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::frexp,std::frexpf,std::frexpl \- std::frexp,std::frexpf,std::frexpl
 
 .SH Synopsis
    Defined in header <cmath>
-   float frexp ( float arg, int* exp );             \fB(1)\fP (constexpr since C++23)
-   float frexpf( float arg, int* exp );             \fB(2)\fP \fI(since C++11)\fP
-                                                        (constexpr since C++23)
-   double frexp ( double arg, int* exp );           \fB(3)\fP (constexpr since C++23)
-   long double frexp ( long double arg, int* exp ); \fB(4)\fP (constexpr since C++23)
-   long double frexpl( long double arg, int* exp ); \fB(5)\fP \fI(since C++11)\fP
-                                                        (constexpr since C++23)
-   double frexp ( IntegralType arg, int* exp );     \fB(6)\fP \fI(since C++11)\fP
-                                                        (constexpr since C++23)
+   float       frexp ( float num, int* exp );
 
-   1-5) Decomposes given floating point value arg into a normalized fraction and an
-   integral power of two.
-   6) A set of overloads or a function template accepting an argument of any integral
-   type. Equivalent to \fB(3)\fP (the argument is cast to double).
+   double      frexp ( double num, int* exp );                  (until C++23)
+
+   long double frexp ( long double num, int* exp );
+   constexpr /* floating-point-type */
+               frexp ( /* floating-point-type */ num,           (since C++23)
+   int* exp );                                          \fB(1)\fP
+   float       frexpf( float num, int* exp );               \fB(2)\fP \fI(since C++11)\fP
+                                                                (constexpr since C++23)
+   long double frexpl( long double num, int* exp );         \fB(3)\fP \fI(since C++11)\fP
+                                                                (constexpr since C++23)
+   Additional overloads \fI(since C++11)\fP
+   Defined in header <cmath>
+   template< class Integer >                                (A) (constexpr since C++23)
+   double      frexp ( Integer num, int* exp );
+
+   1-3) Decomposes given floating point value num into a normalized fraction and an
+   integral exponent of two.
+   The library provides overloads of std::frexp for all cv-unqualified floating-point
+   types as the type of the parameter num.
+   (since C++23)
+
+   A) Additional overloads are provided for all integer types, which are  \fI(since C++11)\fP
+   treated as double.
 
 .SH Parameters
 
-   arg - floating point value
+   num - floating-point or integer value
    exp - pointer to integer value to store the exponent to
 
 .SH Return value
 
-   If arg is zero, returns zero and stores zero in *exp.
+   If num is zero, returns zero and stores zero in *exp.
 
-   Otherwise (if arg is not zero), if no errors occur, returns the value x in the range
-   (-1;-0.5], [0.5; 1) and stores an integer value in *exp such that x×2(*exp)
-   == arg
+   Otherwise (if num is not zero), if no errors occur, returns the value x in the range
+   (-1, -0.5], [0.5, 1) and stores an integer value in *exp such that x×2(*exp)
+   == num.
 
    If the value to be stored in *exp is outside the range of int, the behavior is
    unspecified.
-
-   If arg is not a floating-point number, the behavior is unspecified.
 
 .SH Error handling
 
@@ -43,16 +52,16 @@ std::frexp,std::frexpf,std::frexpl \- std::frexp,std::frexpf,std::frexpl
 
    If the implementation supports IEEE floating-point arithmetic (IEC 60559),
 
-     * If arg is ±0, it is returned, unmodified, and 0 is stored in *exp.
-     * If arg is ±∞, it is returned, and an unspecified value is stored in *exp.
-     * If arg is NaN, NaN is returned, and an unspecified value is stored in *exp.
+     * If num is ±0, it is returned, unmodified, and 0 is stored in *exp.
+     * If num is ±∞, it is returned, and an unspecified value is stored in *exp.
+     * If num is NaN, NaN is returned, and an unspecified value is stored in *exp.
      * No floating-point exceptions are raised.
      * If FLT_RADIX is 2 (or a power of 2), the returned value is exact, the current
-       rounding mode is ignored
+       rounding mode is ignored.
 
 .SH Notes
 
-   On a binary system (where FLT_RADIX is 2), frexp may be implemented as
+   On a binary system (where FLT_RADIX is 2), std::frexp may be implemented as
 
  {
      *exp = (value == 0) ? 0 : (int)(1 + std::logb(value));
@@ -63,15 +72,20 @@ std::frexp,std::frexpf,std::frexpl \- std::frexp,std::frexpf,std::frexpl
    manipulate the representation of a floating-point number without direct bit
    manipulations.
 
+   The additional overloads are not required to be provided exactly as (A). They only
+   need to be sufficient to ensure that for their argument num of integer type,
+   std::frexp(num, exp) has the same effect as std::frexp(static_cast<double>(num),
+   exp).
+
 .SH Example
 
-   Compares different floating-point decomposition functions
+   Compares different floating-point decomposition functions:
 
 
 // Run this code
 
- #include <iostream>
  #include <cmath>
+ #include <iostream>
  #include <limits>
 
  int main()
@@ -89,8 +103,8 @@ std::frexp,std::frexpf,std::frexpl \- std::frexp,std::frexpf,std::frexpl
      std::cout << "frexp() makes " << f2 << " * 2^" << i << '\\n';
 
      i = std::ilogb(f);
-     std::cout << "logb()/ilogb() make " << f/std::scalbn(1.0, i) << " * "
-               << std::numeric_limits<double>::radix
+     std::cout << "logb()/ilogb() make " << f / std::scalbn(1.0, i)
+               << " * " << std::numeric_limits<double>::radix
                << "^" << std::ilogb(f) << '\\n';
  }
 
@@ -104,7 +118,7 @@ std::frexp,std::frexpf,std::frexpl \- std::frexp,std::frexpf,std::frexpl
 .SH See also
 
    ldexp
-   ldexpf  multiplies a number by 2 raised to a power
+   ldexpf  multiplies a number by 2 raised to an integral power
    ldexpl  \fI(function)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
@@ -125,3 +139,5 @@ std::frexp,std::frexpf,std::frexpl \- std::frexp,std::frexpf,std::frexpl
    modfl   \fI(function)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
+   C documentation for
+   frexp

@@ -1,0 +1,157 @@
+.TH std::ranges::views::common,std::ranges::common_view 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::views::common,std::ranges::common_view \- std::ranges::views::common,std::ranges::common_view
+
+.SH Synopsis
+   Defined in header <ranges>
+   template< ranges::view V >
+
+       requires (not ranges::common_range<V> and
+                 std::copyable<ranges::iterator_t<V>>)                \fB(1)\fP \fI(since C++20)\fP
+   class common_view
+
+       : public ranges::view_interface<common_view<V>>
+   namespace views {
+
+       inline constexpr /* unspecified */ common = /* unspecified */; \fB(2)\fP \fI(since C++20)\fP
+
+   }
+   Call signature
+   template< ranges::viewable_range R >
+
+       requires /* see below */                                           \fI(since C++20)\fP
+
+   constexpr ranges::view auto common( R&& r );
+
+   1) Adapts a given view with different types for iterator/sentinel pair into a view
+   that is also a common_range. A common_view always has the same iterator/sentinel
+   type.
+   2) RangeAdaptorObject. Let e be a subexpression. Then the expression
+   views::common(e) is expression-equivalent to:
+     * views::all(e), if it is a well-formed expression and decltype((e)) models
+       common_range;
+     * common_view{e} otherwise.
+
+.SH Member functions
+
+   constructor   constructs a common_view
+   (C++20)       \fI(public member function)\fP
+   base          returns a copy of the underlying (adapted) view
+   (C++20)       \fI(public member function)\fP
+   begin         returns an iterator to the beginning
+   (C++20)       \fI(public member function)\fP
+   end           returns an iterator to the end
+   (C++20)       \fI(public member function)\fP
+   size          returns the number of elements. Provided only if the underlying
+   (C++20)       (adapted) range satisfies sized_range.
+                 \fI(public member function)\fP
+         Inherited from std::ranges::view_interface
+   empty         returns whether the derived view is empty. Provided if it satisfies
+   (C++20)       sized_range or forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   cbegin        returns a constant iterator to the beginning of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   cend          returns a sentinel for the constant iterator of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator bool returns whether the derived view is not empty. Provided if
+   (C++20)       ranges::empty is applicable to it.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   data          gets the address of derived view's data. Provided if its iterator type
+   (C++20)       satisfies contiguous_iterator.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   front         returns the first element in the derived view. Provided if it
+   (C++20)       satisfies forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   back          returns the last element in the derived view. Provided if it satisfies
+   (C++20)       bidirectional_range and common_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator[]    returns the n^th element in the derived view. Provided if it satisfies
+   (C++20)       random_access_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+
+   Deduction guides
+
+   Helper templates
+
+   template< class T >
+
+   inline constexpr bool                                                  \fI(since C++20)\fP
+   enable_borrowed_range<std::ranges::common_view<T>> =
+
+       std::ranges::enable_borrowed_range<T>;
+
+   This specialization of std::ranges::enable_borrowed_range makes common_view satisfy
+   borrowed_range when the underlying view satisfies it.
+
+.SH Notes
+
+   common_view can be useful for working with legacy algorithms that expect the
+   iterator and sentinel are of the same type.
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <iterator>
+ #include <list>
+ #include <numeric>
+ #include <ranges>
+
+ int main()
+ {
+     auto v1 = {1, 2, 3, 4, 5};
+     auto i1 = std::counted_iterator{v1.begin(), std::ssize(v1)};
+     auto r1 = std::ranges::subrange{i1, std::default_sentinel};
+ //  auto e1 = std::accumulate(r1.begin(), r1.end(), 0); // error: "common range" required
+     auto c1 = std::ranges::common_view{r1};
+     std::cout << "accumulate: " << std::accumulate(c1.begin(), c1.end(), 0) << '\\n';
+
+     // inherited from ranges::view_interface:
+     std::cout << "c1.front(): " << c1.front() << '\\n';
+     std::cout << "c1.back(): " << c1.back() << '\\n';
+     std::cout << "c1.data(): " << c1.data() << '\\n';
+     std::cout << "c1[0]: " << c1[0] << '\\n';
+
+     auto v2 = std::list{1, 2, 3, 4, 5};
+     auto i2 = std::counted_iterator{v2.begin(), std::ssize(v2)};
+     auto r2 = std::ranges::subrange{i2, std::default_sentinel};
+ //  auto e2 = std::accumulate(r2.begin(), r2.end(), 0); // error: "common range" required
+     auto c2 = std::ranges::common_view{ r2 };
+     std::cout << "accumulate: " << std::accumulate(c2.begin(), c2.end(), 0) << '\\n';
+
+     // inherited from ranges::view_interface:
+     std::cout << "c2.front(): " << c2.front() << '\\n';
+ //  auto e3 = c2.back(); // error: "bidirectional range" required
+ //  auto e4 = c2.data(); // error: "contiguous range" required
+ //  auto e5 = c2[0];     // error: "random access range" required
+ }
+
+.SH Possible output:
+
+ accumulate: 15
+ c1.front(): 1
+ c1.back(): 5
+ c1.data(): 0x7f19937f00d0
+ c1[0]: 1
+ accumulate: 15
+ c2.front(): 1
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to  Behavior as published              Correct behavior
+   LWG 3494 C++20      common_view was never a it is a borrowed_range if its underlying
+                       borrowed_range          view is
+
+.SH See also
+
+   ranges::common_range specifies that a range has identical iterator and sentinel
+   (C++20)              types
+                        (concept)
+   common_iterator      adapts an iterator type and its sentinel into a common iterator
+   (C++20)              type
+                        \fI(class template)\fP

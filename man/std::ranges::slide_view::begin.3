@@ -1,0 +1,67 @@
+.TH std::ranges::slide_view::begin 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::slide_view::begin \- std::ranges::slide_view::begin
+
+.SH Synopsis
+   constexpr auto begin()
+       requires (!(__simple_view<V> && __slide_caches_nothing<const   \fB(1)\fP (since C++23)
+   V>));
+   constexpr auto begin() const                                       \fB(2)\fP (since C++23)
+       requires __slide_caches_nothing<const V>;
+
+   Returns an iterator to the first element of the slide_view.
+
+   1) If V models __slide_caches_first, equivalent to:
+
+   return iterator<false>(
+              ranges::begin(base_),
+              ranges::next(ranges::begin(base_), n_ - 1, ranges::end(base_)),
+              n_
+          );
+
+   Otherwise, equivalent to: return iterator<false>(ranges::begin(base_), n_);.
+   If V models __slide_caches_first this function caches the result within the
+   slide_view::cached_begin_ for use on subsequent calls. This is necessary to provide
+   the amortized constant-time complexity required by the range.
+   2) Equivalent to: return iterator<true>(ranges::begin(base_), n_);.
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   An iterator to the first element of slide_view, which points to the n_-sized
+   subrange of the possibly const-qualified underlying view type – V for overload \fB(1)\fP
+   or const V for overload \fB(2)\fP.
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <ranges>
+ #include <string_view>
+ using namespace std::literals;
+
+ int main()
+ {
+     static constexpr auto source = {"∀x"sv, "∃y"sv, "ε"sv, "δ"sv};
+     auto view{std::ranges::slide_view(source, 2)};
+     const auto subrange{*(view.begin())};
+     for (std::string_view const s : subrange)
+         std::cout << s << ' ';
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ ∀x ∃y
+
+.SH See also
+
+   end        returns an iterator or a sentinel to the end
+   (C++23)    \fI(public member function)\fP
+   operator== compares a sentinel with an iterator returned from slide_view::begin
+   (C++23)    \fI(function)\fP

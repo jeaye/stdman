@@ -1,4 +1,4 @@
-.TH std::stop_callback 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::stop_callback 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::stop_callback \- std::stop_callback
 
@@ -46,7 +46,7 @@ std::stop_callback \- std::stop_callback
    operator=     stop_callback is not assignable
    [deleted]     \fI(public member function)\fP
 
-  Deduction guides
+   Deduction guides
 
 .SH Example
 
@@ -62,71 +62,78 @@ std::stop_callback \- std::stop_callback
 
  using namespace std::chrono_literals;
 
- // Use a helper class for atomic std::cout streaming
+ // Use a helper class for atomic std::cout streaming.
  class Writer
  {
-         std::ostringstream buffer;
+     std::ostringstream buffer;
  public:
-         ~Writer() {
-                 std::cout << buffer.str();
-         }
-         Writer& operator<<(auto input) {
-                 buffer << input;
-                 return *this;
-         }
+     ~Writer()
+     {
+         std::cout << buffer.str();
+     }
+     Writer& operator<<(auto input)
+     {
+         buffer << input;
+         return *this;
+     }
  };
 
  int main()
  {
-         // A worker thread
-         // It will wait until it is requested to stop.
-         std::jthread worker([] (std::stop_token stoken) {
-                 Writer() << "Worker thread's id: " << std::this_thread::get_id() << '\\n';
-                 std::mutex mutex;
-                 std::unique_lock lock(mutex);
-                 std::condition_variable_any().wait(lock, stoken,
-                         [&stoken] { return stoken.stop_requested(); });
-         });
+     // A worker thread.
+     // It will wait until it is requested to stop.
+     std::jthread worker([] (std::stop_token stoken)
+     {
+         Writer() << "Worker thread's id: " << std::this_thread::get_id() << '\\n';
+         std::mutex mutex;
+         std::unique_lock lock(mutex);
+         std::condition_variable_any().wait(lock, stoken,
+             [&stoken] { return stoken.stop_requested(); });
+     });
 
-         // Register a stop callback on the worker thread.
-         std::stop_callback callback(worker.get_stop_token(), [] {
-                 Writer() << "Stop callback executed by thread: "
-                         << std::this_thread::get_id() << '\\n';
-         });
+     // Register a stop callback on the worker thread.
+     std::stop_callback callback(worker.get_stop_token(), []
+     {
+         Writer() << "Stop callback executed by thread: "
+             << std::this_thread::get_id() << '\\n';
+     });
 
-         // stop_callback objects can be destroyed prematurely to prevent execution
+     // Stop_callback objects can be destroyed prematurely to prevent execution.
+     {
+         std::stop_callback scoped_callback(worker.get_stop_token(), []
          {
-                 std::stop_callback scoped_callback(worker.get_stop_token(), [] {
-                         // This will not be executed.
-                         Writer() << "Scoped stop callback executed by thread: "
-                                 << std::this_thread::get_id() << '\\n';
-                 });
-         }
-
-         // Demonstrate which thread executes the stop_callback and when.
-         // Define a stopper function
-         auto stopper_func = [&worker] {
-                 if(worker.request_stop())
-                         Writer() << "Stop request executed by thread: "
-                                 << std::this_thread::get_id() << '\\n';
-                 else
-                         Writer() << "Stop request not executed by thread: "
-                                 << std::this_thread::get_id() << '\\n';
-         };
-
-         // Let multiple threads compete for stopping the worker thread
-         std::jthread stopper1(stopper_func);
-         std::jthread stopper2(stopper_func);
-         stopper1.join();
-         stopper2.join();
-
-         // After a stop has already been requested,
-         // a new stop_callback executes immediately.
-         Writer() << "Main thread: " << std::this_thread::get_id() << '\\n';
-         std::stop_callback callback_after_stop(worker.get_stop_token(), [] {
-                 Writer() << "Stop callback executed by thread: "
-                         << std::this_thread::get_id() << '\\n';
+             // This will not be executed.
+             Writer() << "Scoped stop callback executed by thread: "
+                 << std::this_thread::get_id() << '\\n';
          });
+     }
+
+     // Demonstrate which thread executes the stop_callback and when.
+     // Define a stopper function.
+     auto stopper_func = [&worker]
+     {
+         if (worker.request_stop())
+             Writer() << "Stop request executed by thread: "
+                 << std::this_thread::get_id() << '\\n';
+         else
+             Writer() << "Stop request not executed by thread: "
+                 << std::this_thread::get_id() << '\\n';
+     };
+
+     // Let multiple threads compete for stopping the worker thread.
+     std::jthread stopper1(stopper_func);
+     std::jthread stopper2(stopper_func);
+     stopper1.join();
+     stopper2.join();
+
+     // After a stop has already been requested,
+     // a new stop_callback executes immediately.
+     Writer() << "Main thread: " << std::this_thread::get_id() << '\\n';
+     std::stop_callback callback_after_stop(worker.get_stop_token(), []
+     {
+         Writer() << "Stop callback executed by thread: "
+             << std::this_thread::get_id() << '\\n';
+     });
  }
 
 .SH Possible output:

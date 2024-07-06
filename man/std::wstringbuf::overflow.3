@@ -1,26 +1,26 @@
-.TH std::basic_stringbuf::overflow 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_stringbuf::overflow 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_stringbuf::overflow \- std::basic_stringbuf::overflow
 
 .SH Synopsis
    protected:
-   virtual int_type overflow ( int_type c = Traits::eof() );
+   virtual int_type overflow( int_type c = Traits::eof() );
 
    Appends the character c to the output character sequence.
 
-   If c is the end-of-file indicator (traits::eq_int_type(c,traits::eof()) == true),
+   If c is the end-of-file indicator (traits::eq_int_type(c, traits::eof()) == true),
    then there is no character to append. The function does nothing and returns an
    unspecified value other than traits::eof().
 
    Otherwise, if the output sequence has a write position available or this function
    can successfully make a write position available, then calls sputc(c) and returns c.
 
-   This function can make a write position available if the stringbuf is open for
+   This function can make a write position available if the std::stringbuf is open for
    output ((mode & ios_base::out) != 0): in this case, it reallocates (or initially
    allocates) the buffer big enough to hold the entire current buffer plus at least one
-   more character. If the stringbuf is also open for input ((mode & ios_base::in) !=
-   0), then overflow also increases the size of the get area by moving egptr() to point
-   just past the new write position.
+   more character. If the std::stringbuf is also open for input ((mode & ios_base::in)
+   != 0), then overflow also increases the size of the get area by moving egptr() to
+   point just past the new write position.
 
 .SH Parameters
 
@@ -39,9 +39,10 @@ std::basic_stringbuf::overflow \- std::basic_stringbuf::overflow
 
 .SH Example
 
-   In the implementation used to execute this example, overflow() over-allocates the
-   put area to 512 bytes: a call to str() would only return the four initialized bytes,
-   but the next 508 calls to sputc() would not require new calls to overflow()
+   In the implementation used to execute this example (e.g. GCC-4.9), overflow()
+   over-allocates the put area to 512 bytes: a call to str() would only return the four
+   initialized bytes, but the next 508 calls to sputc() would not require new calls to
+   overflow().
 
 
 // Run this code
@@ -52,16 +53,20 @@ std::basic_stringbuf::overflow \- std::basic_stringbuf::overflow
  struct mybuf : std::stringbuf
  {
      mybuf(const std::string& new_str,
-           std::ios_base::openmode which = std::ios_base::in|std::ios_base::out)
-            : std::stringbuf(new_str, which) {}
+           std::ios_base::openmode which = std::ios_base::in | std::ios_base::out)
+         : std::stringbuf(new_str, which) {}
+
      int_type overflow(int_type c = EOF) override
      {
          std::cout << "stringbuf::overflow('" << char(c) << "') called\\n"
                    << "Before: size of get area: " << egptr() - eback() << '\\n'
                    << "        size of put area: " << epptr() - pbase() << '\\n';
+
          int_type ret = std::stringbuf::overflow(c);
+
          std::cout << "After : size of get area: " << egptr() - eback() << '\\n'
                    << "        size of put area: " << epptr() - pbase() << '\\n';
+
          return ret;
      }
  };
@@ -109,9 +114,23 @@ std::basic_stringbuf::overflow \- std::basic_stringbuf::overflow
  After : size of get area: 0
          size of put area: 512
 
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to              Behavior as published              Correct behavior
+   LWG 169 C++98      the buffer (re)allocated could only hold one    allows more extra
+                      extra character                                 characters
+                      overflow moved epptr() to point just past the
+   LWG 432 C++98      new                                             it is not moved
+                      write position if the std::stringbuf is open
+                      for input
+
 .SH See also
 
    overflow  writes characters to the associated output sequence from the put area
    \fB[virtual]\fP \fI(virtual protected member function of std::basic_streambuf<CharT,Traits>)\fP
+
    underflow returns the next character available in the input sequence
    \fB[virtual]\fP \fI(virtual protected member function)\fP

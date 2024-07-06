@@ -1,4 +1,4 @@
-.TH std::logic_error 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::logic_error 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::logic_error \- std::logic_error
 
@@ -25,22 +25,20 @@ std::logic_error \- std::logic_error
                  \fI(public member function)\fP
    operator=     replaces the logic_error object
                  \fI(public member function)\fP
-   what          returns the explanatory string
-                 \fI(public member function)\fP
 
 std::logic_error::logic_error
 
-   logic_error( const std::string& what_arg );       \fB(1)\fP
-   logic_error( const char* what_arg );              \fB(2)\fP \fI(since C++11)\fP
-   logic_error( const logic_error& other );          \fB(3)\fP               \fI(until C++11)\fP
-   logic_error( const logic_error& other ) noexcept;                   \fI(since C++11)\fP
+   logic_error( const std::string& what_arg ); \fB(1)\fP
+   logic_error( const char* what_arg );        \fB(2)\fP
+   logic_error( const logic_error& other );    \fB(3)\fP (noexcept since C++11)
 
-   1-2) Constructs the exception object with what_arg as explanatory string that can be
-   accessed through what().
-   3) Copy constructor.
-   If *this and other both have dynamic type std::logic_error then std::strcmp(what(),
-   other.what()) == 0.
-   \fI(since C++11)\fP
+   1) Constructs the exception object with what_arg as explanatory string. After
+   construction, std::strcmp(what(), what_arg.c_str()) == 0.
+   2) Constructs the exception object with what_arg as explanatory string. After
+   construction, std::strcmp(what(), what_arg) == 0.
+   3) Copy constructor. If *this and other both have dynamic type std::logic_error then
+   std::strcmp(what(), other.what()) == 0. No exception can be thrown from the copy
+   constructor.
 
 .SH Parameters
 
@@ -49,7 +47,7 @@ std::logic_error::logic_error
 
 .SH Exceptions
 
-   1-2) May throw std::bad_alloc
+   1,2) May throw std::bad_alloc.
 
 .SH Notes
 
@@ -58,15 +56,22 @@ std::logic_error::logic_error
    This is also why there is no constructor taking std::string&&: it would have to copy
    the content anyway.
 
+   Before the resolution of LWG issue 254, the non-copy constructor can only accept
+   std::string. It makes dynamic allocation mandatory in order to construct a
+   std::string object.
+
+   After the resolution of LWG issue 471, a derived standard exception class must have
+   a publicly accessible copy constructor. It can be implicitly defined as long as the
+   explanatory strings obtained by what() are the same for the original object and the
+   copied object.
+
 std::logic_error::operator=
 
-   logic_error& operator=( const logic_error& other );           \fI(until C++11)\fP
-   logic_error& operator=( const logic_error& other ) noexcept;  \fI(since C++11)\fP
+   logic_error& operator=( const logic_error& other );  (noexcept since C++11)
 
-   Assigns the contents with those of other.
-   If *this and other both have dynamic type std::logic_error then std::strcmp(what(),
-   other.what()) == 0 after assignment.
-   \fI(since C++11)\fP
+   Assigns the contents with those of other. If *this and other both have dynamic type
+   std::logic_error then std::strcmp(what(), other.what()) == 0 after assignment. No
+   exception can be thrown from the copy assignment operator.
 
 .SH Parameters
 
@@ -76,28 +81,12 @@ std::logic_error::operator=
 
    *this
 
-std::logic_error::what
-
-   virtual const char* what() const throw();   \fI(until C++11)\fP
-   virtual const char* what() const noexcept;  \fI(since C++11)\fP
-
-   Returns the explanatory string.
-
-.SH Parameters
-
-   \fI(none)\fP
-
-.SH Return value
-
-   Pointer to a null-terminated string with explanatory information. The string is
-   suitable for conversion and display as a std::wstring. The pointer is guaranteed to
-   be valid at least until the exception object from which it is obtained is destroyed,
-   or until a non-const member function (e.g. copy assignment operator) on the
-   exception object is called.
-
 .SH Notes
 
-   Implementations are allowed but not required to override what().
+   After the resolution of LWG issue 471, a derived standard exception class must have
+   a publicly accessible copy assignment operator. It can be implicitly defined as long
+   as the explanatory strings obtained by what() are the same for the original object
+   and the copied object.
 
 Inherited from std::exception
 
@@ -107,3 +96,16 @@ Inherited from std::exception
    \fB[virtual]\fP    \fI(virtual public member function of std::exception)\fP
    what         returns an explanatory string
    \fB[virtual]\fP    \fI(virtual public member function of std::exception)\fP
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to          Behavior as published              Correct behavior
+   LWG 254 C++98      the constructor accepting const char*   added
+                      was missing
+                      the explanatory strings of              they are the same as that
+   LWG 471 C++98      std::logic_error's                      of the
+                      copies were implementation-defined      original std::logic_error
+                                                              object

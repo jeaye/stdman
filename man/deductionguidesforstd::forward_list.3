@@ -1,4 +1,4 @@
-.TH deductionguidesforstd::forward_list 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH deductionguidesforstd::forward_list 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 deductionguidesforstd::forward_list \- deductionguidesforstd::forward_list
 
@@ -6,16 +6,25 @@ deductionguidesforstd::forward_list \- deductionguidesforstd::forward_list
    Defined in header <forward_list>
    template< class InputIt,
 
-   class Alloc = std::allocator<typename
-   std::iterator_traits<InputIt>::value_type>>                            \fI(since C++17)\fP
-   forward_list(InputIt, InputIt, Alloc = Alloc())
+             class Alloc = std::allocator<
+                 typename std::iterator_traits<InputIt>::value_type>
+   >                                                                  \fB(1)\fP \fI(since C++17)\fP
+   forward_list( InputIt, InputIt, Alloc = Alloc() )
 
-   -> forward_list<typename std::iterator_traits<InputIt>::value_type,
-   Alloc>;
+       -> forward_list<typename
+   std::iterator_traits<InputIt>::value_type, Alloc>;
+   template< ranges::input_range R,
 
-   This deduction guide is provided for forward_list to allow deduction from an
+             class Alloc = std::allocator<ranges::range_value_t<R>> > \fB(2)\fP (since C++23)
+   forward_list( std::from_range_t, R&&, Alloc = Alloc() )
+
+       -> forward_list<ranges::range_value_t<R>, Alloc>;
+
+   1) This deduction guide is provided for forward_list to allow deduction from an
    iterator range. This overload participates in overload resolution only if InputIt
    satisfies LegacyInputIterator and Alloc satisfies Allocator.
+   2) This deduction guide is provided for forward_list to allow deduction from a
+   std::from_range_t tag and an input_range.
 
    Note: the extent to which the library determines that a type does not satisfy
    LegacyInputIterator is unspecified, except that as a minimum integral types do not
@@ -25,6 +34,12 @@ deductionguidesforstd::forward_list \- deductionguidesforstd::forward_list
    std::declval<Alloc&>().allocate(std::size_t{}) must be well-formed when treated as
    an unevaluated operand.
 
+.SH Notes
+
+       Feature-test macro       Value    Std                   Feature
+   __cpp_lib_containers_ranges 202202L (C++23) Ranges-aware construction and insertion;
+                                               overload \fB(2)\fP
+
 .SH Example
 
 
@@ -32,15 +47,17 @@ deductionguidesforstd::forward_list \- deductionguidesforstd::forward_list
 
  #include <forward_list>
  #include <vector>
- int main() {
-    std::vector<int> v = {1, 2, 3, 4};
 
-    // uses explicit deduction guide to deduce std::forward_list<int>
-    std::forward_list x(v.begin(), v.end());
+ int main()
+ {
+     std::vector<int> v = {1, 2, 3, 4};
 
-    // deduces std::forward_list<std::vector<int>::iterator>
-    // first phase of overload resolution for list-initialization selects the candidate
-    // synthesized from the initializer-list constructor; second phase is not performed and
-    // deduction guide has no effect
-    std::forward_list y{v.begin(), v.end()};
+     // uses explicit deduction guide to deduce std::forward_list<int>
+     std::forward_list x(v.begin(), v.end());
+
+     // deduces std::forward_list<std::vector<int>::iterator>
+     // first phase of overload resolution for list-initialization selects the candidate
+     // synthesized from the initializer-list constructor; second phase is not performed
+     // and deduction guide has no effect
+     std::forward_list y{v.begin(), v.end()};
  }

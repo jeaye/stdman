@@ -1,65 +1,29 @@
-.TH std::less_equal 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::less_equal 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::less_equal \- std::less_equal
 
 .SH Synopsis
    Defined in header <functional>
-   template< class T >             \fI(until C++14)\fP
-   struct less_equal;
-   template< class T = void >      \fI(since C++14)\fP
-   struct less_equal;
+   template<>                      \fI(since C++14)\fP
+   class less_equal<void>;
 
-   Function object for performing comparisons. Unless specialized, invokes operator<=
-   on type T.
-
-  Implementation-defined strict total order over pointers
-
-   A specialization of std::less_equal for any pointer type yields the
-   implementation-defined strict total order, even if the built-in <= operator does
-   not.
-
-   The implementation-defined strict total order is consistent with the partial order
-   imposed by built-in comparison operators (
-   <=>,
-   \fI(since C++20)\fP<, >, <=, and >=), and consistent among following standard function
-   objects:
-
-     * std::less, std::greater, std::less_equal, and std::greater_equal, when the
-       template argument is a pointer type
-       or void
-       \fI(since C++14)\fP
-
-     * std::ranges::equal_to, std::ranges::not_equal_to,
-       std::ranges::less, std::ranges::greater, std::ranges::less_equal,  \fI(since C++20)\fP
-       std::ranges::greater_equal, and std::compare_three_way
-
-.SH Specializations
-
-   less_equal<void> function object implementing x <= y deducing argument and return
-   \fI(C++14)\fP          types
-                    \fI(class template specialization)\fP
-
-.SH Member types
-
-   Type                                                         Definition
-   result_type (deprecated in C++17)(removed in C++20)          bool
-   first_argument_type (deprecated in C++17)(removed in C++20)  T
-   second_argument_type (deprecated in C++17)(removed in C++20) T
-
-   These member types are obtained via publicly inheriting                \fI(until C++11)\fP
-   std::binary_function<T, T, bool>.
+   std::less_equal<void> is a specialization of std::less_equal with parameter and
+   return type deduced.
 
 .SH Member functions
 
-   operator() checks if the first argument is less than or equal to the second
+   operator() tests if lhs compares less or equal than rhs
               \fI(public member function)\fP
 
-std::less_equal::operator()
+std::less_equal<void>::operator()
 
-   bool operator()( const T& lhs, const T& rhs ) const;            \fI(until C++14)\fP
-   constexpr bool operator()( const T& lhs, const T& rhs ) const;  \fI(since C++14)\fP
+   template< class T, class U >
 
-   Checks if lhs is less than or equal to rhs.
+   constexpr auto operator()( T&& lhs, U&& rhs ) const
+
+       -> decltype(std::forward<T>(lhs) <= std::forward<U>(rhs));
+
+   Returns the result of std::forward<T>(lhs) <= std::forward<U>(rhs).
 
 .SH Parameters
 
@@ -67,25 +31,46 @@ std::less_equal::operator()
 
 .SH Return value
 
-   For T which is not a pointer type, true if lhs <= rhs, false otherwise.
+   std::forward<T>(lhs) <= std::forward<U>(rhs).
 
-   For T which is a pointer type, true if lhs does not succeed rhs in the
-   implementation-defined strict total order, false otherwise.
+   If a built-in operator comparing pointers is called, the result is consistent with
+   the implementation-defined strict total order over pointers.
 
 .SH Exceptions
 
    May throw implementation-defined exceptions.
 
-.SH Possible implementation
+.SH Example
 
-   constexpr bool operator()(const T &lhs, const T &rhs) const
-   {
-       return lhs <= rhs; // assumes that the implementation uses a flat address space
-   }
 
-.SH See also
+// Run this code
 
-   less               function object implementing x < y
-                      \fI(class template)\fP
-   ranges::less_equal function object implementing x <= y
-   (C++20)            \fI(class)\fP
+ #include <algorithm>
+ #include <functional>
+ #include <initializer_list>
+
+ constexpr bool strictly_not_positive(int lhs)
+ {
+     return std::less_equal<>()(lhs, 0);
+ }
+
+ int main()
+ {
+     constexpr int low = 0, high = 8;
+     std::less_equal<> less_equal{};
+     static_assert(less_equal(low, high));
+     static_assert(less_equal(low, low));
+
+     static constexpr auto arr = {1, 0, -1, -2, -3, -4};
+     static_assert(!std::all_of(arr.begin(), arr.end(), strictly_not_positive));
+     static_assert(std::all_of(arr.begin() + 1, arr.end(), strictly_not_positive));
+ }
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to        Behavior as published              Correct behavior
+   LWG 2562 C++98      the pointer total order might be     guaranteed to be consistent
+                       inconsistent

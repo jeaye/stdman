@@ -1,24 +1,29 @@
-.TH std::erase,std::erase_if(std::forward_list) 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::erase,std::erase_if(std::forward_list) 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::erase,std::erase_if(std::forward_list) \- std::erase,std::erase_if(std::forward_list)
 
 .SH Synopsis
    Defined in header <forward_list>
    template< class T, class Alloc, class U >
+                                                                        \fI(since C++20)\fP
+   std::forward_list<T, Alloc>::size_type                               (until C++26)
 
-   typename std::forward_list<T,Alloc>::size_type          \fB(1)\fP \fI(since C++20)\fP
+       erase( std::forward_list<T, Alloc>& c, const U& value );
+   template< class T, class Alloc, class U = T >
 
-   erase( std::forward_list<T,Alloc>& c, const U& value );
+   std::forward_list<T, Alloc>::size_type                       \fB(1)\fP     (since C++26)
+
+       erase( std::forward_list<T, Alloc>& c, const U& value );
    template< class T, class Alloc, class Pred >
 
-   typename std::forward_list<T,Alloc>::size_type          \fB(2)\fP \fI(since C++20)\fP
+   std::forward_list<T, Alloc>::size_type                           \fB(2)\fP \fI(since C++20)\fP
 
-   erase_if( std::forward_list<T,Alloc>& c, Pred pred );
+       erase_if( std::forward_list<T, Alloc>& c, Pred pred );
 
    1) Erases all elements that compare equal to value from the container. Equivalent to
-   return c.remove_if([&](auto& elem) { return elem == value; });
+   return c.remove_if([&](auto& elem) { return elem == value; });.
    2) Erases all elements that satisfy the predicate pred from the container.
-   Equivalent to return c.remove_if(pred);
+   Equivalent to return c.remove_if(pred);.
 
 .SH Parameters
 
@@ -42,25 +47,29 @@ std::erase,std::erase_if(std::forward_list) \- std::erase,std::erase_if(std::for
 
 .SH Notes
 
-   Unlike std::forward_list::remove, erase accepts heterogenous types and does not
+   Unlike std::forward_list::remove, erase accepts heterogeneous types and does not
    force a conversion to the container's value type before invoking the == operator.
+
+             Feature-test macro           Value    Std              Feature
+   __cpp_lib_algorithm_default_value_type 202403 (C++26) List-initialization for
+                                                         algorithm \fB(1)\fP
 
 .SH Example
 
 
 // Run this code
 
+ #include <complex>
  #include <iostream>
  #include <numeric>
  #include <string_view>
  #include <forward_list>
 
- void print_container(std::string_view comment, const std::forward_list<char>& c)
+ void println(std::string_view comment, const auto& c)
  {
      std::cout << comment << "{ ";
-     for (auto x : c) {
+     for (const auto& x : c)
          std::cout << x << ' ';
-     }
      std::cout << "}\\n";
  }
 
@@ -68,14 +77,22 @@ std::erase,std::erase_if(std::forward_list) \- std::erase,std::erase_if(std::for
  {
      std::forward_list<char> cnt(10);
      std::iota(cnt.begin(), cnt.end(), '0');
-     print_container("Initially, cnt = ", cnt);
+     println("Initially, cnt = ", cnt);
 
      std::erase(cnt, '3');
-     print_container("After erase '3', cnt = ", cnt);
+     println("After erase '3', cnt = ", cnt);
 
      auto erased = std::erase_if(cnt, [](char x) { return (x - '0') % 2 == 0; });
-     print_container("After erase all even numbers, cnt = ", cnt);
+     println("After erase all even numbers, cnt = ", cnt);
      std::cout << "Erased even numbers: " << erased << '\\n';
+
+     std::forward_list<std::complex<double>> nums{{2, 2}, {4, 2}, {4, 8}, {4, 2}};
+     #ifdef __cpp_lib_algorithm_default_value_type
+         std::erase(nums, {4, 2});
+     #else
+         std::erase(nums, std::complex<double>{4, 2});
+     #endif
+     println("After erase {4, 2}, nums = ", nums);
  }
 
 .SH Output:
@@ -84,6 +101,7 @@ std::erase,std::erase_if(std::forward_list) \- std::erase,std::erase_if(std::for
  After erase '3', cnt = { 0 1 2 4 5 6 7 8 9 }
  After erase all even numbers, cnt = { 1 5 7 9 }
  Erased even numbers: 5
+ After erase {4, 2}, nums = { (2,2) (4,8) }
 
 .SH See also
 
@@ -91,4 +109,3 @@ std::erase,std::erase_if(std::forward_list) \- std::erase,std::erase_if(std::for
    remove_if \fI(function template)\fP
    remove    removes elements satisfying specific criteria
    remove_if \fI(public member function)\fP
-   \fI(C++11)\fP

@@ -1,4 +1,4 @@
-.TH std::time_get::get_weekday,std::time_get::do_get_weekday 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::time_get::get_weekday,std::time_get::do_get_weekday 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::time_get::get_weekday,std::time_get::do_get_weekday \- std::time_get::get_weekday,std::time_get::do_get_weekday
 
@@ -8,25 +8,26 @@ std::time_get::get_weekday,std::time_get::do_get_weekday \- std::time_get::get_w
 
    iter_type get_weekday( iter_type beg, iter_type end, std::ios_base& str,        \fB(1)\fP
 
-   std::ios_base::iostate& err, std::tm* t) const;
+                          std::ios_base::iostate& err, std::tm* t ) const;
    protected:
 
-   virtual iter_type do_get_weekday( iter_type beg, iter_type end, std::ios_base&  \fB(2)\fP
-   str,
+   virtual iter_type do_get_weekday( iter_type beg, iter_type end, std::ios_base&
+   str,                                                                            \fB(2)\fP
 
-   std::ios_base::iostate& err, std::tm* t) const;
+                                     std::ios_base::iostate& err, std::tm* t )
+   const;
 
-   1) public member function, calls the protected virtual member function
+   1) Public member function, calls the protected virtual member function
    do_get_weekday of the most derived class.
    2) Reads successive characters from the sequence [beg, end) and parses out the
    weekday name (possibly abbreviated), using the default format for weekdays expected
    by this locale, which is the same format as "%a" as used by the functions
-   std::get_time, time_get::get, and the POSIX function strptime()
+   std::get_time, time_get::get, and the POSIX function strptime().
 
    If it finds abbreviated name, followed by the characters that are valid for the full
    name, it continues reading until it consumes all the characters for the full name or
-   finds a character that isn't expected, in which case parsing fails even if the first
-   few characters were a valid abbreviation.
+   finds a character that is not expected, in which case parsing fails even if the
+   first few characters were a valid abbreviation.
 
    The parsed weekday is stored in the std::tm field t->tm_wday.
 
@@ -46,7 +47,7 @@ std::time_get::get_weekday,std::time_get::do_get_weekday \- std::time_get::get_w
 .SH Return value
 
    Iterator pointing one past the last character in [beg, end) that was recognized as a
-   part of a valid weekname.
+   part of a valid weekday name.
 
 .SH Notes
 
@@ -60,53 +61,72 @@ std::time_get::get_weekday,std::time_get::do_get_weekday \- std::time_get::get_w
 
 // Run this code
 
+ #include <initializer_list>
  #include <iostream>
+ #include <iterator>
  #include <locale>
  #include <sstream>
- #include <iterator>
+ #include <string_view>
 
- void try_get_wday(const std::string& s)
+ void try_get_wday(std::string_view s)
  {
-     std::cout << "Parsing the weekday out of '" << s <<
-                  "' in the locale " << std::locale().name() << '\\n';
-     std::istringstream str(s);
-     std::ios_base::iostate err = std::ios_base::goodbit;
+     std::cout << "Parsing the weekday out of '" << s
+               << "' in the locale " << std::locale().name() << '\\n';
+     std::istringstream str{s.data()};
+     std::ios_base::iostate err{std::ios_base::goodbit};
 
      std::tm t;
-     std::istreambuf_iterator<char> ret =
-         std::use_facet<std::time_get<char>>(str.getloc()).get_weekday(
-             {str}, {}, str, err, &t
-         );
+     std::time_get<char> const& facet = std::use_facet<std::time_get<char>>(str.getloc());
+     std::istreambuf_iterator<char> ret = facet.get_weekday({str}, {}, str, err, &t);
      str.setstate(err);
      std::istreambuf_iterator<char> last{};
-     if(str) {
+
+     if (str)
+     {
          std::cout << "Successfully parsed, weekday number is " << t.tm_wday;
-         if(ret != last) {
+
+         if (ret != last)
+         {
              std::cout << " Remaining content: ";
              std::copy(ret, last, std::ostreambuf_iterator<char>(std::cout));
-         } else {
-             std::cout << " the input was fully consumed";
          }
-     } else {
+         else
+             std::cout << " the input was fully consumed";
+     }
+     else
+     {
          std::cout << "Parse failed. Unparsed string: ";
          std::copy(ret, last, std::ostreambuf_iterator<char>(std::cout));
      }
+
      std::cout << '\\n';
  }
- int main()
+
+ void demo(std::string_view locale_name, std::initializer_list<std::string_view>&& data)
  {
-     std::locale::global(std::locale("lt_LT.utf8"));
-     try_get_wday("Št");
-     try_get_wday("Šeštadienis");
+     try
+     {
+         std::locale::global(std::locale(locale_name.data()));
+     }
+     catch (std::runtime_error const& ex)
+     {
+         std::cout << "Cannot setup locale: " << locale_name << "\\n"
+                      "Exception: " << ex.what() << '\\n';
+         return;
+     }
 
-     std::locale::global(std::locale("en_US.utf8"));
-     try_get_wday("SATELLITE");
-
-     std::locale::global(std::locale("ja_JP.utf8"));
-     try_get_wday("土曜日");
+     for (std::string_view const weekday : data)
+         try_get_wday(weekday);
  }
 
-.SH Output:
+ int main()
+ {
+     demo("lt_LT.utf8", {"Št", "Šeštadienis"});
+     demo("en_US.utf8", {"SATELLITE"});
+     demo("ja_JP.utf8", {"土曜日"});
+ }
+
+.SH Possible output:
 
  Parsing the weekday out of 'Št' in the locale lt_LT.utf8
  Successfully parsed, weekday number is 6 the input was fully consumed
@@ -116,6 +136,15 @@ std::time_get::get_weekday,std::time_get::do_get_weekday \- std::time_get::get_w
  Successfully parsed, weekday number is 6 Remaining content: ELLITE
  Parsing the weekday out of '土曜日' in the locale ja_JP.utf8
  Successfully parsed, weekday number is 6 the input was fully consumed
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to      Behavior as published               Correct behavior
+   LWG 248 C++98      eofbit was not set upon reaching sets eofbit if a valid weekday
+                      the end iterator                 name has not been read
 
 .SH See also
 

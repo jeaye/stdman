@@ -1,71 +1,76 @@
-.TH std::hash 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::hash 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::hash \- std::hash
 
 .SH Synopsis
-   Defined in header <variant>
-   template <class... Types>             \fI(since C++17)\fP
-   struct hash<std::variant<Types...>>;
+   Defined in header <filesystem>
+   template<>                           \fI(since C++17)\fP
+   struct hash<std::filesystem::path>;
 
-   The template specialization of std::hash for the std::variant template allows users
-   to obtain hashes of variant objects.
+   The template specialization of std::hash for std::filesystem::path allows users to
+   obtain hash values of std::filesystem::path.
 
-   The specialization std::hash<std::variant<Types...>> is enabled (see std::hash) if
-   every specialization in std::hash<std::remove_const_t<Types>>... is enabled, and is
-   disabled otherwise.
+   The operator() of this specialization is noexcept. For every std::filesystem::path
+   value p, std::hash<std::filesystem::path>{}(p) is equal to
+   std::filesystem::hash_value(p).
 
-   The member functions of this specialization are not guaranteed to be noexcept.
-
-.SH Template parameters
-
-   Types - the types of the alternatives supported by the variant object
-
-.SH Notes
-
-   Unlike std::hash<std::optional>, hash of a variant does not typically equal the hash
-   of the contained value; this makes it possible to distinguish std::variant<int, int>
-   holding the same value as different alternatives.
+   This specialization was absent from the C++17 standard publication, see LWG issue
+   3657.
 
 .SH Example
 
 
 // Run this code
 
- #include <variant>
+ #include <cassert>
+ #include <cstddef>
+ #include <filesystem>
+ #include <iomanip>
  #include <iostream>
- #include <string>
+ #include <unordered_set>
+ namespace fs = std::filesystem;
 
- using Var = std::variant<int, int, int, std::string>;
-
- template<unsigned I>
- void print(Var const& var) {
-     std::cout << "get<" << var.index() << "> = "
-               << std::get<I>(var)
-               << "\\t" "# = "
-               << std::hash<Var>{}(var) << '\\n';
+ void show_hash(fs::path const& p)
+ {
+     std::cout << std::hex << std::uppercase << std::setw(16)
+               << std::hash<fs::path>{}(p) << " : " << p << '\\n';
  }
 
  int main()
  {
-     Var var;
-     std::get<0>(var) = 2020;
-     print<0>(var);
-     var.emplace<1>(2023);
-     print<1>(var);
-     var.emplace<2>(2026);
-     print<2>(var);
-     var = "C++";
-     print<3>(var);
+     auto tmp1 = fs::path{"/tmp"};
+     auto tmp2 = fs::path{"/tmp/../tmp"};
+     assert(!(tmp1 == tmp2));
+     assert(fs::equivalent(tmp1, tmp2));
+     show_hash(tmp1);
+     show_hash(tmp2);
+
+     for (auto s : {"/a///b", "/a//b", "/a/c", "...", "..", ".", ""})
+         show_hash(s);
+
+     std::unordered_set<fs::path, std::hash<fs::path>> dirs{
+         "/bin", "/bin", "/lib", "/lib", "/opt", "/opt", "/tmp", "/tmp/../tmp"};
+     for (fs::path const& p : dirs)
+         std::cout << p << ' ';
+     std::cout << '\\n';
  }
 
 .SH Possible output:
 
- get<0> = 2020     # = 2020
- get<1> = 2023     # = 2024
- get<2> = 2026     # = 2028
- get<3> = C++      # = 15518724754199266859
+ 6050C47ADB62DFE5 : "/tmp"
+ 62795A58B69AD90A : "/tmp/../tmp"
+ FF302110C9991974 : "/a///b"
+ FF302110C9991974 : "/a//b"
+ FD6167277915D464 : "/a/c"
+ C42040F82CD8B542 : "..."
+ D2D30154E0B78BBC : ".."
+ D18C722215ED0530 : "."
+                0 : ""
+ "/tmp/../tmp" "/opt" "/lib" "/tmp" "/bin"
 
 .SH See also
 
-   hash    hash function object
-   \fI(C++11)\fP \fI(class template)\fP
+   hash       hash function object
+   \fI(C++11)\fP    \fI(class template)\fP
+   hash_value calculates a hash value for a path object
+   \fI(C++17)\fP    \fI(function)\fP

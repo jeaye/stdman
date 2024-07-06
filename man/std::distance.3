@@ -1,4 +1,4 @@
-.TH std::distance 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::distance 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::distance \- std::distance
 
@@ -8,17 +8,15 @@ std::distance \- std::distance
 
    typename std::iterator_traits<InputIt>::difference_type  (constexpr since C++17)
 
-   distance( InputIt first, InputIt last );
+       distance( InputIt first, InputIt last );
 
    Returns the number of hops from first to last.
 
-   The behavior is undefined if last is not reachable from first by       \fI(until C++11)\fP
-   (possibly repeatedly) incrementing first.
-   If InputIt is not LegacyRandomAccessIterator, the behavior is
-   undefined if last is not reachable from first by (possibly repeatedly)
-   incrementing first. If InputIt is LegacyRandomAccessIterator, the      \fI(since C++11)\fP
-   behavior is undefined if last is not reachable from first and first is
-   not reachable from last.
+   If InputIt is not LegacyRandomAccessIterator, the behavior is undefined if last is
+   not reachable from first.
+
+   If InputIt is LegacyRandomAccessIterator, the behavior is undefined if first and
+   last are neither reachable from each other.
 
 .SH Parameters
 
@@ -28,14 +26,14 @@ std::distance \- std::distance
    -
    InputIt must meet the requirements of LegacyInputIterator. The operation is more
    efficient if InputIt additionally meets the requirements of
-   LegacyRandomAccessIterator
+   LegacyRandomAccessIterator.
 
 .SH Return value
 
    The number of increments needed to go from first to last.
-   The value may be negative if random-access iterators are used and first is reachable
-   from last
-   \fI(since C++11)\fP
+
+   The value may be negative if random-access iterators are used and      \fI(since C++11)\fP
+   first is reachable from last.
 
 .SH Complexity
 
@@ -48,31 +46,30 @@ std::distance \- std::distance
 
    See also the implementations in libstdc++ and libc++.
 
-.SH First version
-   // implementation via tag dispatch, available in C++98 with constexpr removed
-   namespace detail {
-
-   template<class It>
-   constexpr // required since C++17
-   typename std::iterator_traits<It>::difference_type
-       do_distance(It first, It last, std::input_iterator_tag)
+                C++98 implementation via tag dispatch, with constexpr removed
+   namespace detail
    {
-       typename std::iterator_traits<It>::difference_type result = 0;
-       while (first != last) {
-           ++first;
-           ++result;
+       template<class It>
+       constexpr // required since C++17
+       typename std::iterator_traits<It>::difference_type
+           do_distance(It first, It last, std::input_iterator_tag)
+       {
+           typename std::iterator_traits<It>::difference_type result = 0;
+           while (first != last)
+           {
+               ++first;
+               ++result;
+           }
+           return result;
        }
-       return result;
-   }
 
-   template<class It>
-   constexpr // required since C++17
-   typename std::iterator_traits<It>::difference_type
-       do_distance(It first, It last, std::random_access_iterator_tag)
-   {
-       return last - first;
-   }
-
+       template<class It>
+       constexpr // required since C++17
+       typename std::iterator_traits<It>::difference_type
+           do_distance(It first, It last, std::random_access_iterator_tag)
+       {
+           return last - first;
+       }
    } // namespace detail
 
    template<class It>
@@ -83,8 +80,7 @@ std::distance \- std::distance
        return detail::do_distance(first, last,
                                   typename std::iterator_traits<It>::iterator_category());
    }
-.SH Second version
-   // implementation via constexpr if, available in C++17
+                            C++17 implementation via if constexpr
    template<class It>
    constexpr typename std::iterator_traits<It>::difference_type
        distance(It first, It last)
@@ -94,9 +90,11 @@ std::distance \- std::distance
 
        if constexpr (std::is_base_of_v<std::random_access_iterator_tag, category>)
            return last - first;
-       else {
+       else
+       {
            typename std::iterator_traits<It>::difference_type result = 0;
-           while (first != last) {
+           while (first != last)
+           {
                ++first;
                ++result;
            }
@@ -115,14 +113,14 @@ std::distance \- std::distance
 
  int main()
  {
-     std::vector<int> v{ 3, 1, 4 };
+     std::vector<int> v{3, 1, 4};
      std::cout << "distance(first, last) = "
                << std::distance(v.begin(), v.end()) << '\\n'
                << "distance(last, first) = "
                << std::distance(v.end(), v.begin()) << '\\n';
-                //the behavior is undefined \fI(until C++11)\fP
+               // the behavior is undefined (until LWG940)
 
-     static constexpr auto il = { 3, 1, 4 };
+     static constexpr auto il = {3, 1, 4};
      // Since C++17 `distance` can be used in constexpr context.
      static_assert(std::distance(il.begin(), il.end()) == 3);
      static_assert(std::distance(il.end(), il.begin()) == -3);
@@ -132,6 +130,15 @@ std::distance \- std::distance
 
  distance(first, last) = 3
  distance(last, first) = -3
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to              Behavior as published               Correct behavior
+   LWG 940 C++98      the wording was unclear for the case where first made clear
+                      is reachable from last
 
 .SH See also
 

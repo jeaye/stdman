@@ -1,0 +1,158 @@
+.TH std::ranges::swap_ranges,std::ranges::swap_ranges_result 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::swap_ranges,std::ranges::swap_ranges_result \- std::ranges::swap_ranges,std::ranges::swap_ranges_result
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< std::input_iterator I1, std::sentinel_for<I1> S1,
+
+             std::input_iterator I2, std::sentinel_for<I2> S2 >                 (since
+   requires std::indirectly_swappable<I1, I2>                               \fB(1)\fP C++20)
+   constexpr swap_ranges_result<I1, I2>
+
+       swap_ranges( I1 first1, S1 last1, I2 first2, S2 last2 );
+   template< ranges::input_range R1, ranges::input_range R2 >
+
+   requires std::indirectly_swappable<ranges::iterator_t<R1>,
+   ranges::iterator_t<R2>>                                                  \fB(2)\fP (since
+   constexpr swap_ranges_result<ranges::borrowed_iterator_t<R1>,                C++20)
+                                ranges::borrowed_iterator_t<R2>>
+
+       swap_ranges( R1&& r1, R2&& r2 );
+.SH Helper types
+   template< class I1, class I2 >                                           \fB(3)\fP (since
+   using swap_ranges_result = ranges::in_in_result<I1, I2>;                     C++20)
+
+   1) Exchanges elements between first range [first1, first1 + M) and second range
+   [first2, first2 + M) via ranges::iter_swap(first1 + i, first2 + i), where M =
+   ranges::min(ranges::distance(first1, last1), ranges::distance(first2, last2)).
+   The ranges [first1, last1) and [first2, last2) must not overlap.
+   2) Same as \fB(1)\fP, but uses r1 as the first range and r2 as the second range, as if
+   using ranges::begin(r1) as first1, ranges::end(r1) as last1, ranges::begin(r2) as
+   first2, and ranges::end(r2) as last2.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first1, last1 - the first range of elements to swap
+   first2, last2 - the second range of elements to swap
+   r1            - the first range of elements to swap
+   r2            - the second range of elements to swap.
+
+.SH Return value
+
+   {first1 + M, first2 + M}.
+
+.SH Complexity
+
+   Exactly M swaps.
+
+.SH Notes
+
+   Implementations (e.g. MSVC STL) may enable vectorization when the iterator type
+   models contiguous_iterator and swapping its value type calls neither non-trivial
+   special member function nor ADL-found swap.
+
+.SH Possible implementation
+
+   struct swap_ranges_fn
+   {
+       template<std::input_iterator I1, std::sentinel_for<I1> S1,
+                std::input_iterator I2, std::sentinel_for<I2> S2>
+       requires std::indirectly_swappable<I1, I2>
+       constexpr ranges::swap_ranges_result<I1, I2>
+           operator()(I1 first1, S1 last1, I2 first2, S2 last2) const
+       {
+           for (; !(first1 == last1 or first2 == last2); ++first1, ++first2)
+               ranges::iter_swap(first1, first2);
+           return {std::move(first1), std::move(first2)};
+       }
+
+       template<ranges::input_range R1, ranges::input_range R2>
+       requires std::indirectly_swappable<ranges::iterator_t<R1>, ranges::iterator_t<R2>>
+       constexpr ranges::swap_ranges_result<ranges::borrowed_iterator_t<R1>,
+                                            ranges::borrowed_iterator_t<R2>>
+           operator()(R1&& r1, R2&& r2) const
+       {
+           return (*this)(ranges::begin(r1), ranges::end(r1),
+                          ranges::begin(r2), ranges::end(r2));
+       }
+   };
+
+   inline constexpr swap_ranges_fn swap_ranges {};
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <iostream>
+ #include <list>
+ #include <string_view>
+ #include <vector>
+
+ auto print(std::string_view name, auto const& seq, std::string_view term = "\\n")
+ {
+     std::cout << name << " : ";
+     for (const auto& elem : seq)
+         std::cout << elem << ' ';
+     std::cout << term;
+ }
+
+ int main()
+ {
+     std::vector<char> p {'A', 'B', 'C', 'D', 'E'};
+     std::list<char> q {'1', '2', '3', '4', '5', '6'};
+
+     print("p", p);
+     print("q", q, "\\n\\n");
+
+     // swap p[0, 2) and q[1, 3):
+     std::ranges::swap_ranges(p.begin(),
+                              p.begin() + 4,
+                              std::ranges::next(q.begin(), 1),
+                              std::ranges::next(q.begin(), 3));
+     print("p", p);
+     print("q", q, "\\n\\n");
+
+     // swap p[0, 5) and q[0, 5):
+     std::ranges::swap_ranges(p, q);
+
+     print("p", p);
+     print("q", q);
+ }
+
+.SH Output:
+
+ p : A B C D E
+ q : 1 2 3 4 5 6
+
+ p : 2 3 C D E
+ q : 1 A B 4 5 6
+
+ p : 1 A B 4 5
+ q : 2 3 C D E 6
+
+.SH See also
+
+   iter_swap    swaps the values referenced by two dereferenceable objects
+   (C++20)      (customization point object)
+   ranges::swap swaps the values of two objects
+   (C++20)      (customization point object)
+   swap_ranges  swaps two ranges of elements
+                \fI(function template)\fP
+   iter_swap    swaps the elements pointed to by two iterators
+                \fI(function template)\fP
+   swap         swaps the values of two objects
+                \fI(function template)\fP

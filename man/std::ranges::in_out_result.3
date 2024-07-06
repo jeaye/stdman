@@ -1,0 +1,183 @@
+.TH std::ranges::in_out_result 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::in_out_result \- std::ranges::in_out_result
+
+.SH Synopsis
+   Defined in header <algorithm>
+   template< class I, class O >   \fI(since C++20)\fP
+   struct in_out_result;
+
+   ranges::in_out_result is a class template that provides a way to store two iterators
+   as a single unit.
+
+   This class template has no base classes or declared members other than those shown
+   below. Thus it is suitable for use with structured bindings.
+
+   All special member functions of this class template are implicitly declared, which
+   makes specializations be aggregate classes, and propagate triviality,
+   potentially-throwing-ness, and constexpr-ness of corresponding operations on data
+   members.
+
+.SH Template parameters
+
+   I, O - the types of the objects that the ranges::in_out_result stores.
+
+   Data members
+
+   Member name Definition
+   in          a value (that is supposed to be an iterator) of type I.
+               \fI(public member object)\fP
+   out         a value (that is supposed to be an iterator) of type O.
+               \fI(public member object)\fP
+
+   All these members are declared with [[no_unique_address]] attribute.
+
+.SH Member functions
+
+std::ranges::in_out_result::operator in_out_result<I2, O2>
+
+   template<class I2, class O2>
+
+   requires std::convertible_to<const I&, I2> && std::convertible_to<const O&, O2> \fB(1)\fP
+
+   constexpr operator in_out_result<I2, O2>() const &;
+   template<class I2, class O2>
+
+   requires std::convertible_to<I, I2> && std::convertible_to<O, O2>               \fB(2)\fP
+
+   constexpr operator in_out_result<I2, O2>() &&;
+
+   Converts *this to the result by constructing every data member of the result from
+   the corresponding member of *this.
+
+   1) Equivalent to return {in, out};.
+   2) Equivalent to return {std::move(in), std::move(out)};.
+
+.SH Standard library
+
+   The following standard library functions use ranges::in_out_result as the return
+   type:
+
+         Algorithm functions
+   ranges::copy
+   ranges::copy_if              copies a range of elements to a new location
+   (C++20)                      (niebloid)
+   (C++20)
+   ranges::copy_n               copies a number of elements to a new location
+   (C++20)                      (niebloid)
+   ranges::copy_backward        copies a range of elements in backwards order
+   (C++20)                      (niebloid)
+   ranges::move                 moves a range of elements to a new location
+   (C++20)                      (niebloid)
+   ranges::move_backward        moves a range of elements to a new location in
+   (C++20)                      backwards order
+                                (niebloid)
+   ranges::transform            applies a function to a range of elements
+   (C++20)                      (niebloid)
+   ranges::replace_copy         copies a range, replacing elements satisfying specific
+   ranges::replace_copy_if      criteria with another value
+   (C++20)                      (niebloid)
+   (C++20)
+   ranges::remove_copy          copies a range of elements omitting those that satisfy
+   ranges::remove_copy_if       specific criteria
+   (C++20)                      (niebloid)
+   (C++20)
+   ranges::unique_copy          creates a copy of some range of elements that contains
+   (C++20)                      no consecutive duplicates
+                                (niebloid)
+   ranges::reverse_copy         creates a copy of a range that is reversed
+   (C++20)                      (niebloid)
+   ranges::rotate_copy          copies and rotate a range of elements
+   (C++20)                      (niebloid)
+   ranges::partial_sort_copy    copies and partially sorts a range of elements
+   (C++20)                      (niebloid)
+   ranges::set_difference       computes the difference between two sets
+   (C++20)                      (niebloid)
+         Memory functions
+   ranges::uninitialized_copy   copies a range of objects to an uninitialized area of
+   (C++20)                      memory
+                                (niebloid)
+   ranges::uninitialized_copy_n copies a number of objects to an uninitialized area of
+   (C++20)                      memory
+                                (niebloid)
+   ranges::uninitialized_move   moves a range of objects to an uninitialized area of
+   (C++20)                      memory
+                                (niebloid)
+   ranges::uninitialized_move_n moves a number of objects to an uninitialized area of
+   (C++20)                      memory
+                                (niebloid)
+
+.SH Synopsis
+
+ namespace std::ranges
+ {
+     template<class I, class O>
+     struct in_out_result
+     {
+         [[no_unique_address]] I in;
+         [[no_unique_address]] O out;
+
+         template<class I2, class O2>
+         requires std::convertible_to<const I&, I2> && std::convertible_to<const O&, O2>
+         constexpr operator in_out_result<I2, O2>() const &
+         {
+             return {in, out};
+         }
+
+         template<class I2, class O2>
+         requires std::convertible_to<I, I2> && std::convertible_to<O, O2>
+         constexpr operator in_out_result<I2, O2>() &&
+         {
+             return {std::move(in), std::move(out)};
+         }
+     };
+ }
+
+.SH Notes
+
+   Each standard library algorithm that uses this family of return types declares a new
+   alias type, e.g. using merge_result = in_in_out_result<I1, I2, O>;.
+
+   The names for such aliases are formed by adding the suffix "_result" to the
+   algorithm's name. So, the return type of std::ranges::merge can be named as
+   std::ranges::merge_result.
+
+   Unlike std::pair and std::tuple, this class template has data members of meaningful
+   names.
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <array>
+ #include <cctype>
+ #include <iostream>
+ #include <ranges>
+
+ int main()
+ {
+     constexpr char in[] = "transform" "\\n";
+     std::array<char, sizeof(in)> out;
+
+     const auto result = std::ranges::transform(in, out.begin(),
+         [](char c) { return std::toupper(c); });
+
+     auto print = [](char c) { std::cout << c; };
+     std::ranges::for_each(std::cbegin(in), result.in, print);
+     std::ranges::for_each(out.cbegin(), result.out, print);
+ }
+
+.SH Output:
+
+ transform
+ TRANSFORM
+
+.SH See also
+
+   pair    implements binary tuple, i.e. a pair of values
+           \fI(class template)\fP
+   tuple   implements fixed size container, which holds elements of possibly different
+   \fI(C++11)\fP types
+           \fI(class template)\fP

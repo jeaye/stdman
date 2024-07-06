@@ -1,0 +1,136 @@
+.TH std::ranges::views::split,std::ranges::split_view 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::views::split,std::ranges::split_view \- std::ranges::views::split,std::ranges::split_view
+
+.SH Synopsis
+   Defined in header <ranges>
+   template< ranges::forward_range V, ranges::forward_range Pattern >
+
+   requires ranges::view<V> &&
+            ranges::view<Pattern> &&
+            std::indirectly_comparable<ranges::iterator_t<V>,         \fB(1)\fP \fI(since C++20)\fP
+                                       ranges::iterator_t<Pattern>,
+                                       ranges::equal_to>
+   class split_view
+
+       : public ranges::view_interface<split_view<V, Pattern>>
+   namespace views {
+
+       inline constexpr /* unspecified */ split = /* unspecified */;  \fB(2)\fP \fI(since C++20)\fP
+
+   }
+   Call signature
+   template< ranges::viewable_range R, class Pattern >
+
+       requires /* see below */                                           \fI(since C++20)\fP
+
+   constexpr ranges::view auto split( R&& r, Pattern&& pattern );
+   template< class Pattern >                                              \fI(since C++20)\fP
+   constexpr /* range adaptor closure */ split( Pattern&& pattern );
+
+   1) split_view takes a view and a delimiter, and splits the view into subranges on
+   the delimiter.
+   2) RangeAdaptorObject. The expression views::split(e, p) is expression-equivalent to
+   split_view(e, p) for any suitable subexpressions e and p.
+
+   split_view models the concepts forward_range, and common_range when the underlying
+   view V models respective concepts.
+
+   The inner range (ranges::range_reference_t<split_view>) is a
+   ranges::subrange<ranges::iterator_t<V>>, which models common_range, models
+   sized_range when ranges::iterator_t<V> models
+   std::sized_sentinel_for<ranges::iterator_t<V>>, and models contiguous_range,
+   random_access_range, bidirectional_range, and forward_range when V models respective
+   concepts.
+
+.SH Member functions
+
+   constructor   constructs a split_view
+   (C++20)       \fI(public member function)\fP
+   base          returns a copy of the underlying (adapted) view
+   (C++20)       \fI(public member function)\fP
+   begin         returns an iterator to the beginning
+   (C++20)       \fI(public member function)\fP
+   end           returns an iterator or a sentinel to the end
+   (C++20)       \fI(public member function)\fP
+   find_next     searches for the next occurrence of the pattern
+   (C++20)       (exposition-only member function*)
+         Inherited from std::ranges::view_interface
+   empty         returns whether the derived view is empty. Provided if it satisfies
+   (C++20)       sized_range or forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   cbegin        returns a constant iterator to the beginning of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   cend          returns a sentinel for the constant iterator of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator bool returns whether the derived view is not empty. Provided if
+   (C++20)       ranges::empty is applicable to it.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   front         returns the first element in the derived view. Provided if it
+   (C++20)       satisfies forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+
+   Nested classes
+
+   iterator the iterator type
+   (C++20)  (exposition-only member class*)
+   sentinel the sentinel type
+   (C++20)  (exposition-only member class*)
+
+   Deduction guides
+
+.SH Notes
+
+   Before P2210R2, split_view used a lazy mechanism for splitting, and thus could not
+   keep the bidirectional, random access, or contiguous properties of the underlying
+   view, or make the iterator type of the inner range same as that of the underlying
+   view. Consequently, it is redesigned by P2210R2, and the lazy mechanism is moved to
+   lazy_split_view.
+
+   The delimiter pattern generally should not be an ordinary string literal, as it will
+   consider the null terminator to be necessary part of the delimiter; therefore, it is
+   advisable to use a std::string_view literal instead.
+
+.SH Example
+
+
+// Run this code
+
+ #include <iomanip>
+ #include <iostream>
+ #include <ranges>
+ #include <string_view>
+
+ int main()
+ {
+     using std::operator""sv;
+     constexpr auto words{"Hello^_^C++^_^20^_^!"sv};
+     constexpr auto delim{"^_^"sv};
+
+     for (const auto word : std::views::split(words, delim))
+         // with string_view's C++23 range constructor:
+         std::cout << std::quoted(std::string_view(word)) << ' ';
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ "Hello" "C++" "20" "!"
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to              Behavior as published               Correct behavior
+   P2210R2 C++20      the old split_view was too lazy to be easily     it is redesigned
+                      used
+
+.SH See also
+
+   ranges::lazy_split_view a view over the subranges obtained from splitting another
+   views::lazy_split       view using a delimiter
+   (C++20)                 \fI(class template)\fP (range adaptor object)
+   ranges::join_view       a view consisting of the sequence obtained from flattening a
+   views::join             view of ranges
+   (C++20)                 \fI(class template)\fP (range adaptor object)

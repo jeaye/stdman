@@ -1,42 +1,49 @@
-.TH std::logb,std::logbf,std::logbl 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::logb,std::logbf,std::logbl 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::logb,std::logbf,std::logbl \- std::logb,std::logbf,std::logbl
 
 .SH Synopsis
    Defined in header <cmath>
-   float logb ( float arg );             \fB(1)\fP \fI(since C++11)\fP
-                                             (constexpr since C++23)
-   float logbf( float arg );             \fB(2)\fP \fI(since C++11)\fP
-                                             (constexpr since C++23)
-   double logb ( double arg );           \fB(3)\fP \fI(since C++11)\fP
-                                             (constexpr since C++23)
-   long double logb ( long double arg ); \fB(4)\fP \fI(since C++11)\fP
-                                             (constexpr since C++23)
-   long double logbl( long double arg ); \fB(5)\fP \fI(since C++11)\fP
-                                             (constexpr since C++23)
-   double logb ( IntegralType arg );     \fB(6)\fP \fI(since C++11)\fP
-                                             (constexpr since C++23)
+   float       logb ( float num );
 
-   1-5) Extracts the value of the unbiased radix-independent exponent from the
-   floating-point argument arg, and returns it as a floating-point value.
-   6) A set of overloads or a function template accepting an argument of any integral
-   type. Equivalent to \fB(3)\fP (the argument is cast to double).
+   double      logb ( double num );                            (until C++23)
+
+   long double logb ( long double num );
+   constexpr /* floating-point-type */                         (since C++23)
+               logb ( /* floating-point-type */ num );
+   float       logbf( float num );                     \fB(1)\fP \fB(2)\fP \fI(since C++11)\fP
+                                                               (constexpr since C++23)
+   long double logbl( long double num );                   \fB(3)\fP \fI(since C++11)\fP
+                                                               (constexpr since C++23)
+   Additional overloads \fI(since C++11)\fP
+   Defined in header <cmath>
+   template< class Integer >                               (A) (constexpr since C++23)
+   double      logb ( Integer num );
+
+   1-3) Extracts the value of the unbiased radix-independent exponent from the
+   floating-point argument num, and returns it as a floating-point value.
+   The library provides overloads of std::logb for all cv-unqualified floating-point
+   types as the type of the parameter.
+   (since C++23)
+
+   A) Additional overloads are provided for all integer types, which are  \fI(since C++11)\fP
+   treated as double.
 
    Formally, the unbiased exponent is the signed integral part of log
-   r|arg| (returned by this function as a floating-point value), for non-zero arg,
-   where r is std::numeric_limits<T>::radix and T is the floating-point type of arg. If
-   arg is subnormal, it is treated as though it was normalized.
+   r|num| (returned by this function as a floating-point value), for non-zero num,
+   where r is std::numeric_limits<T>::radix and T is the floating-point type of num. If
+   num is subnormal, it is treated as though it was normalized.
 
 .SH Parameters
 
-   arg - floating point value
+   num - floating-point or integer value
 
 .SH Return value
 
-   If no errors occur, the unbiased exponent of arg is returned as a signed
+   If no errors occur, the unbiased exponent of num is returned as a signed
    floating-point value.
 
-   If a domain error occurs, an implementation-defined value is returned
+   If a domain error occurs, an implementation-defined value is returned.
 
    If a pole error occurs, -HUGE_VAL, -HUGE_VALF, or -HUGE_VALL is returned.
 
@@ -44,39 +51,44 @@ std::logb,std::logbf,std::logbl \- std::logb,std::logbf,std::logbl
 
    Errors are reported as specified in math_errhandling.
 
-   Domain or range error may occur if arg is zero.
+   Domain or range error may occur if num is zero.
 
    If the implementation supports IEEE floating-point arithmetic (IEC 60559),
 
-     * If arg is ±0, -∞ is returned and FE_DIVBYZERO is raised.
-     * If arg is ±∞, +∞ is returned
-     * If arg is NaN, NaN is returned.
+     * If num is ±0, -∞ is returned and FE_DIVBYZERO is raised.
+     * If num is ±∞, +∞ is returned.
+     * If num is NaN, NaN is returned.
      * In all other cases, the result is exact (FE_INEXACT is never raised) and the
-       current rounding mode is ignored
+       current rounding mode is ignored.
 
 .SH Notes
 
-   POSIX requires that a pole error occurs if arg is ±0.
+   POSIX requires that a pole error occurs if num is ±0.
 
    The value of the exponent returned by std::logb is always 1 less than the exponent
    returned by std::frexp because of the different normalization requirements: for the
-   exponent e returned by std::logb, |arg*r-e
+   exponent e returned by std::logb, |num*r-e
    | is between 1 and r (typically between 1 and 2), but for the exponent e returned by
-   std::frexp, |arg*2-e
+   std::frexp, |num*2-e
    | is between 0.5 and 1.
+
+   The additional overloads are not required to be provided exactly as (A). They only
+   need to be sufficient to ensure that for their argument num of integer type,
+   std::logb(num) has the same effect as std::logb(static_cast<double>(num)).
 
 .SH Example
 
-   Compares different floating-point decomposition functions
+   Compares different floating-point decomposition functions:
 
 
 // Run this code
 
- #include <iostream>
- #include <cmath>
- #include <limits>
  #include <cfenv>
- #pragma STDC FENV_ACCESS ON
+ #include <cmath>
+ #include <iostream>
+ #include <limits>
+ // #pragma STDC FENV_ACCESS ON
+
  int main()
  {
      double f = 123.45;
@@ -92,12 +104,13 @@ std::logb,std::logbf,std::logbl \- std::logb,std::logbf,std::logbl
      std::cout << "frexp() makes " << f2 << " * 2^" << i << '\\n';
 
      i = std::ilogb(f);
-     std::cout << "logb()/ilogb() make " << f/std::scalbn(1.0, i) << " * "
+     std::cout << "logb()/ilogb() make " << f / std::scalbn(1.0, i) << " * "
                << std::numeric_limits<double>::radix
                << "^" << std::ilogb(f) << '\\n';
 
      // error handling
      std::feclearexcept(FE_ALL_EXCEPT);
+
      std::cout << "logb(0) = " << std::logb(0) << '\\n';
      if (std::fetestexcept(FE_DIVBYZERO))
          std::cout << "    FE_DIVBYZERO raised\\n";
@@ -115,7 +128,7 @@ std::logb,std::logbf,std::logbl \- std::logb,std::logbf,std::logbl
 .SH See also
 
    frexp
-   frexpf   decomposes a number into significand and a power of 2
+   frexpf   decomposes a number into significand and base-2 exponent
    frexpl   \fI(function)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
@@ -137,3 +150,5 @@ std::logb,std::logbf,std::logbl \- std::logb,std::logbf,std::logbl
    \fI(C++11)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
+   C documentation for
+   logb

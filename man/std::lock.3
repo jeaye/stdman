@@ -1,4 +1,4 @@
-.TH std::lock 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::lock 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::lock \- std::lock
 
@@ -37,15 +37,16 @@ std::lock \- std::lock
 
 // Run this code
 
- #include <mutex>
- #include <thread>
- #include <iostream>
- #include <vector>
- #include <functional>
  #include <chrono>
+ #include <functional>
+ #include <iostream>
+ #include <mutex>
  #include <string>
+ #include <thread>
+ #include <vector>
 
- struct Employee {
+ struct Employee
+ {
      Employee(std::string id) : id(id) {}
      std::string id;
      std::vector<std::string> lunch_partners;
@@ -53,19 +54,19 @@ std::lock \- std::lock
      std::string output() const
      {
          std::string ret = "Employee " + id + " has lunch partners: ";
-         for( const auto& partner : lunch_partners )
-             ret += partner + " ";
+         for (auto n{lunch_partners.size()}; const auto& partner : lunch_partners)
+             ret += partner + (--n ? ", " : "");
          return ret;
      }
  };
 
- void send_mail(Employee &, Employee &)
+ void send_mail(Employee&, Employee&)
  {
-     // simulate a time-consuming messaging operation
-     std::this_thread::sleep_for(std::chrono::seconds(1));
+     // Simulate a time-consuming messaging operation
+     std::this_thread::sleep_for(std::chrono::milliseconds(696));
  }
 
- void assign_lunch_partner(Employee &e1, Employee &e2)
+ void assign_lunch_partner(Employee& e1, Employee& e2)
  {
      static std::mutex io_mutex;
      {
@@ -73,18 +74,18 @@ std::lock \- std::lock
          std::cout << e1.id << " and " << e2.id << " are waiting for locks" << std::endl;
      }
 
-     // use std::lock to acquire two locks without worrying about
+     // Use std::lock to acquire two locks without worrying about
      // other calls to assign_lunch_partner deadlocking us
      {
          std::lock(e1.m, e2.m);
          std::lock_guard<std::mutex> lk1(e1.m, std::adopt_lock);
          std::lock_guard<std::mutex> lk2(e2.m, std::adopt_lock);
- // Equivalent code (if unique_locks are needed, e.g. for condition variables)
- //        std::unique_lock<std::mutex> lk1(e1.m, std::defer_lock);
- //        std::unique_lock<std::mutex> lk2(e2.m, std::defer_lock);
- //        std::lock(lk1, lk2);
- // Superior solution available in C++17
- //        std::scoped_lock lk(e1.m, e2.m);
+     // Equivalent code (if unique_locks are needed, e.g. for condition variables)
+     //  std::unique_lock<std::mutex> lk1(e1.m, std::defer_lock);
+     //  std::unique_lock<std::mutex> lk2(e2.m, std::defer_lock);
+     //  std::lock(lk1, lk2);
+     // Superior solution available in C++17
+     //  std::scoped_lock lk(e1.m, e2.m);
          {
              std::lock_guard<std::mutex> lk(io_mutex);
              std::cout << e1.id << " and " << e2.id << " got locks" << std::endl;
@@ -98,9 +99,9 @@ std::lock \- std::lock
 
  int main()
  {
-     Employee alice("alice"), bob("bob"), christina("christina"), dave("dave");
+     Employee alice("Alice"), bob("Bob"), christina("Christina"), dave("Dave");
 
-     // assign in parallel threads because mailing users about lunch assignments
+     // Assign in parallel threads because mailing users about lunch assignments
      // takes a long time
      std::vector<std::thread> threads;
      threads.emplace_back(assign_lunch_partner, std::ref(alice), std::ref(bob));
@@ -108,25 +109,29 @@ std::lock \- std::lock
      threads.emplace_back(assign_lunch_partner, std::ref(christina), std::ref(alice));
      threads.emplace_back(assign_lunch_partner, std::ref(dave), std::ref(bob));
 
-     for (auto &thread : threads) thread.join();
-     std::cout << alice.output() << '\\n'  << bob.output() << '\\n'
-               << christina.output() << '\\n' << dave.output() << '\\n';
+     for (auto& thread : threads)
+         thread.join();
+
+     std::cout << alice.output() << '\\n'
+               << bob.output() << '\\n'
+               << christina.output() << '\\n'
+               << dave.output() << '\\n';
  }
 
 .SH Possible output:
 
- alice and bob are waiting for locks
- alice and bob got locks
- christina and bob are waiting for locks
- christina and bob got locks
- christina and alice are waiting for locks
- christina and alice got locks
- dave and bob are waiting for locks
- dave and bob got locks
- Employee alice has lunch partners: bob christina
- Employee bob has lunch partners: alice christina dave
- Employee christina has lunch partners: bob alice
- Employee dave has lunch partners: bob
+ Alice and Bob are waiting for locks
+ Alice and Bob got locks
+ Christina and Bob are waiting for locks
+ Christina and Bob got locks
+ Christina and Alice are waiting for locks
+ Dave and Bob are waiting for locks
+ Dave and Bob got locks
+ Christina and Alice got locks
+ Employee Alice has lunch partners: Bob, Christina
+ Employee Bob has lunch partners: Alice, Christina, Dave
+ Employee Christina has lunch partners: Bob, Alice
+ Employee Dave has lunch partners: Bob
 
 .SH See also
 

@@ -1,0 +1,209 @@
+.TH std::ranges::views::cartesian_product,std::ranges::cartesian_product_view 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::views::cartesian_product,std::ranges::cartesian_product_view \- std::ranges::views::cartesian_product,std::ranges::cartesian_product_view
+
+.SH Synopsis
+   Defined in header <ranges>
+   template< ranges::input_range First, ranges::forward_range... Vs
+   >
+
+       requires (ranges::view<First> && ... && ranges::view<Vs>)     \fB(1)\fP (since C++23)
+   class cartesian_product_view
+
+       : public ranges::view_interface<cartesian_product_view<First,
+   Vs...>>
+   namespace views {
+
+       inline constexpr /*unspecified*/ cartesian_product =          \fB(2)\fP (since C++23)
+   /*unspecified*/;
+
+   }
+   Call signature
+   template< ranges::viewable_range... Rs >
+
+       requires /* see below */                                          (since C++23)
+
+   constexpr auto cartesian_product( Rs&&... rs );
+   Helper concepts
+   template< bool Const, class First, class... Vs >
+
+   concept __cartesian_product_is_random_access =
+       (ranges::random_access_range<__maybe_const<Const, First>> &&  \fB(3)\fP (exposition
+   ... &&                                                                only*)
+           (ranges::random_access_range<__maybe_const<Const, Vs>> &&
+
+               ranges::sized_range<__maybe_const<Const, Vs>>));
+   template< class R >
+
+   concept __cartesian_product_common_arg =                              (exposition
+       ranges::common_range<R> ||                                    \fB(4)\fP only*)
+
+           (ranges::sized_range<R> &&
+   ranges::random_access_range<R>);
+   template< bool Const, class First, class... Vs >
+
+   concept __cartesian_product_is_bidirectional =
+       (ranges::bidirectional_range<__maybe_const<Const, First>> &&      (exposition
+   ... &&                                                            \fB(5)\fP only*)
+           (ranges::bidirectional_range<__maybe_const<Const, Vs>> &&
+
+               __cartesian_product_common_arg<__maybe_const<Const,
+   Vs>>));
+   template< class First, class... Vs >
+                                                                         (exposition
+   concept __cartesian_product_is_common =                           \fB(6)\fP only*)
+
+       __cartesian_product_common_arg<First>;
+   template< class... Vs >
+                                                                         (exposition
+   concept __cartesian_product_is_sized =                            \fB(7)\fP only*)
+
+       (ranges::sized_range<Vs> && ...);
+   template< bool Const, template<class> class FirstSent, class
+   First, class... Vs >
+
+   concept __cartesian_is_sized_sentinel =
+       (ranges::sized_sentinel_for<FirstSent<__maybe_const<Const,
+   First>>,
+           ranges::iterator_t<__maybe_const<Const, First>>> && ...   \fB(8)\fP (exposition
+   &&                                                                    only*)
+               (ranges::sized_range<__maybe_const<Const, Vs>> &&
+
+   ranges::sized_sentinel_for<iterator_t<__maybe_const<Const, Vs>>,
+
+                       ranges::iterator_t<__maybe_const<Const,
+   Vs>>>));
+   Helper function templates
+   template< __cartesian_product_common_arg R >
+
+   constexpr auto __cartesian_common_arg_end( R& r ) {
+       if constexpr (ranges::common_range<R>)                            (exposition
+           return ranges::end(r);                                    \fB(9)\fP only*)
+       else
+           return ranges::begin(r) + ranges::distance(r);
+
+   }
+
+   1) cartesian_product_view is a range adaptor that takes n views, where n > 0, and
+   produces a view of tuples calculated by the n-ary cartesian product of the provided
+   ranges. The size of produced view is a multiple of sizes of provided ranges, while
+   each element is a tuple (of references) of the size n.
+   2) views::cartesian_product is a customization point object.
+     * When calling with no argument, views::cartesian_product() is
+       expression-equivalent to views::single(std::tuple()).
+     * Otherwise, views::cartesian_product(rs...) is expression-equivalent to
+       ranges::cartesian_product_view<views::all_t<decltype((rs))>...>(rs...).
+   3) Determines if cartesian_product is a random access range (see also
+   random_access_range).
+   4) Determines if cartesian_product is a common range (see also common_range).
+   5) Determines if cartesian_product is a bidirectional range (see also
+   bidirectional_range).
+   6) Determines if cartesian_product satisfies the helper concept
+   __cartesian_product_is_common (see also common_range).
+   7) Determines if cartesian_product is a sized range (see also sized_range).
+   8) Determines if cartesian_product uses sized sentinel.
+   9) Returns the end of the produced view. Participates in overload resolution only if
+   cartesian_product satisfies the helper concept __cartesian_product_common_arg.
+
+   The First range passed to cartesian_product_view is treated specially, since it is
+   only passed through a single time. As a result, several constrains are relaxed on
+   it:
+
+     * First is an input_range instead of forward_range;
+     * First does not have to be a sized_range in order for the cartesian_product_view
+       to be random_access_range or common_range;
+     * First does not have to be common_range in order for the cartesian_product_view
+       to be bidirectional_range.
+
+.SH Member functions
+
+   constructor   constructs a cartesian_product_view
+   (C++23)       \fI(public member function)\fP
+   begin         returns an iterator to the beginning
+   (C++23)       \fI(public member function)\fP
+   end           returns an iterator or a sentinel to the end
+   (C++23)       \fI(public member function)\fP
+   size          returns the number of elements. Provided only if the underlying
+   (C++23)       (adapted) range satisfies sized_range.
+                 \fI(public member function)\fP
+         Inherited from std::ranges::view_interface
+   empty         returns whether the derived view is empty. Provided if it satisfies
+   (C++20)       sized_range or forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   cbegin        returns a constant iterator to the beginning of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   cend          returns a sentinel for the constant iterator of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator bool returns whether the derived view is not empty. Provided if
+   (C++20)       ranges::empty is applicable to it.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   front         returns the first element in the derived view. Provided if it
+   (C++20)       satisfies forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   back          returns the last element in the derived view. Provided if it satisfies
+   (C++20)       bidirectional_range and common_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator[]    returns the n^th element in the derived view. Provided if it satisfies
+   (C++20)       random_access_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+
+   Deduction guides
+
+   Nested classes
+
+   iterator the iterator type
+   (C++23)  (exposition-only member class template*)
+
+.SH Notes
+
+           Feature-test macro          Value    Std                 Feature
+   __cpp_lib_ranges_cartesian_product 202207L (C++23) std::ranges::cartesian_product_view
+
+.SH Example
+
+
+// Run this code
+
+ #include <array>
+ #include <iostream>
+ #include <list>
+ #include <ranges>
+ #include <string>
+ #include <vector>
+
+ void print(std::tuple<char const&, int const&, std::string const&> t, int pos)
+ {
+     const auto& [a, b, c] = t;
+     std::cout << '(' << a << ' ' << b << ' ' << c << ')' << (pos % 4 ? " " : "\\n");
+ }
+
+ int main()
+ {
+     const auto x = std::array{'A', 'B'};
+     const auto y = std::vector{1, 2, 3};
+     const auto z = std::list<std::string>{"α", "β", "γ", "δ"};
+
+     for (int i{1}; auto const& tuple : std::views::cartesian_product(x, y, z))
+         print(tuple, i++);
+ }
+
+.SH Output:
+
+ (A 1 α) (A 1 β) (A 1 γ) (A 1 δ)
+ (A 2 α) (A 2 β) (A 2 γ) (A 2 δ)
+ (A 3 α) (A 3 β) (A 3 γ) (A 3 δ)
+ (B 1 α) (B 1 β) (B 1 γ) (B 1 δ)
+ (B 2 α) (B 2 β) (B 2 γ) (B 2 δ)
+ (B 3 α) (B 3 β) (B 3 γ) (B 3 δ)
+
+.SH References
+
+     * C++23 standard (ISO/IEC 14882:2023):
+
+     * 26.7.31 Cartesian product view [range.stride]
+
+.SH See also
+
+   ranges::zip_view a view consisting of tuples of references to corresponding elements
+   views::zip       of the adapted views
+   (C++23)          \fI(class template)\fP (customization point object)

@@ -1,49 +1,52 @@
-.TH std::prev_permutation 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::prev_permutation 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::prev_permutation \- std::prev_permutation
 
 .SH Synopsis
    Defined in header <algorithm>
-   template< class BidirIt >
-   bool prev_permutation( BidirIt first, BidirIt            \fI(until C++20)\fP
-   last );
-   template< class BidirIt >
-   constexpr bool prev_permutation( BidirIt first,          \fI(since C++20)\fP
-   BidirIt last );                                  \fB(1)\fP
+   template< class BidirIt >                                \fB(1)\fP (constexpr since C++20)
+   bool prev_permutation( BidirIt first, BidirIt last );
    template< class BidirIt, class Compare >
-   bool prev_permutation( BidirIt first, BidirIt                          \fI(until C++20)\fP
-   last, Compare comp );                                \fB(2)\fP
-   template< class BidirIt, class Compare >
-   constexpr bool prev_permutation( BidirIt first,                        \fI(since C++20)\fP
-   BidirIt last, Compare comp );
+   bool prev_permutation( BidirIt first, BidirIt last,      \fB(2)\fP (constexpr since C++20)
+   Compare comp );
 
-   Transforms the range [first, last) into the previous permutation from the set of all
-   permutations that are lexicographically ordered with respect to operator< or comp.
-   Returns true if such permutation exists, otherwise transforms the range into the
-   last permutation (as if by std::sort(first, last); std::reverse(first, last);) and
-   returns false.
+   Transforms the range [first, last) into the previous permutation. Returns true if
+   such permutation exists, otherwise transforms the range into the last permutation
+   (as if by std::sort followed by std::reverse) and returns false.
+
+   1) The set of all permutations is ordered lexicographically with respect to
+   operator<
+   \fI(until C++20)\fP
+   std::less{}
+   \fI(since C++20)\fP.
+   2) The set of all permutations is ordered lexicographically with respect to comp.
+
+   If
+   the type of *first is not Swappable
+   \fI(until C++11)\fP
+   BidirIt is not ValueSwappable
+   \fI(since C++11)\fP, the behavior is undefined.
 
 .SH Parameters
 
    first, last -  the range of elements to permute
                   comparison function object (i.e. an object that satisfies the
-                  requirements of Compare) which returns true if the first argument
-                  is less than the second.
+                  requirements of Compare) which returns true if the first argument is
+                  less than the second.
 
                   The signature of the comparison function should be equivalent to the
                   following:
 
-                  bool cmp(const Type1 &a, const Type2 &b);
+                  bool cmp(const Type1& a, const Type2& b);
    comp        -
-                  While the signature does not need to have const &, the function must
+                  While the signature does not need to have const&, the function must
                   not modify the objects passed to it and must be able to accept all
                   values of type (possibly const) Type1 and Type2 regardless of value
-                  category (thus, Type1 & is not allowed
+                  category (thus, Type1& is not allowed
                   , nor is Type1 unless for Type1 a move is equivalent to a copy
                   \fI(since C++11)\fP).
                   The types Type1 and Type2 must be such that an object of type BidirIt
                   can be dereferenced and then implicitly converted to both of them.
-
 .SH Type requirements
    -
    BidirIt must meet the requirements of ValueSwappable and
@@ -60,29 +63,33 @@ std::prev_permutation \- std::prev_permutation
 
 .SH Complexity
 
-   At most (last-first)/2 swaps. Averaged over the entire sequence of permutations,
-   typical implementations use about 3 comparisons and 1.5 swaps per call.
+   Given \\(\\scriptsize N\\)N as std::distance(first, last):
 
-.SH Notes
+   1,2) At most \\(\\scriptsize \\frac{N}{2}\\)
 
-   Implementations (e.g. MSVC STL) may enable vectorization when the iterator type
-   satisfies LegacyContiguousIterator and swapping its value type calls neither
-   non-trivial special member function nor ADL-found swap.
+   N
+   2
+
+   swaps.
 
 .SH Possible implementation
 
    template<class BidirIt>
    bool prev_permutation(BidirIt first, BidirIt last)
    {
-       if (first == last) return false;
+       if (first == last)
+           return false;
        BidirIt i = last;
-       if (first == --i) return false;
+       if (first == --i)
+           return false;
 
-       while \fB(1)\fP {
+       while \fB(1)\fP
+       {
            BidirIt i1, i2;
 
            i1 = i;
-           if (*i1 < *--i) {
+           if (*i1 < *--i)
+           {
                i2 = last;
                while (!(*--i2 < *i))
                    ;
@@ -90,37 +97,51 @@ std::prev_permutation \- std::prev_permutation
                std::reverse(i1, last);
                return true;
            }
-           if (i == first) {
+
+           if (i == first)
+           {
                std::reverse(first, last);
                return false;
            }
        }
    }
 
+.SH Notes
+
+   Averaged over the entire sequence of permutations, typical implementations use about
+   3 comparisons and 1.5 swaps per call.
+
+   Implementations (e.g. MSVC STL) may enable vectorization when the iterator type
+   satisfies LegacyContiguousIterator and swapping its value type calls neither
+   non-trivial special member function nor ADL-found swap.
+
 .SH Example
 
-   The following code prints all six permutations of the string "abc" in reverse order
+   The following code prints all six permutations of the string "cab" in reverse order.
 
 
 // Run this code
 
  #include <algorithm>
- #include <string>
  #include <iostream>
- #include <functional>
+ #include <string>
+
  int main()
  {
-     std::string s="abc";
-     std::sort(s.begin(), s.end(), std::greater<char>());
-     do {
+     std::string s = "cab";
+
+     do
+     {
          std::cout << s << ' ';
-     } while(std::prev_permutation(s.begin(), s.end()));
-     std::cout << '\\n';
+     }
+     while (std::prev_permutation(s.begin(), s.end()));
+
+     std::cout << s << '\\n';
  }
 
 .SH Output:
 
- cba cab bca bac acb abc
+ cab bca bac acb abc cba
 
 .SH See also
 

@@ -1,0 +1,123 @@
+.TH std::ranges::view_interface 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::view_interface \- std::ranges::view_interface
+
+.SH Synopsis
+   Defined in header <ranges>
+   template< class D >
+
+       requires std::is_class_v<D> && std::same_as<D,                     \fI(since C++20)\fP
+   std::remove_cv_t<D>>
+
+   class view_interface;
+
+   std::ranges::view_interface is a helper class template for defining a view
+   interface.
+
+   view_interface is typically used with CRTP:
+
+ class my_view : public std::ranges::view_interface<my_view>
+ {
+ public:
+     auto begin() const { /*...*/ }
+     auto end() const { /*...*/ }
+     // empty() is provided if begin() returns a forward iterator
+     // and end() returns a sentinel for it.
+ };
+
+.SH Member functions
+
+   empty         returns whether the derived view is empty. Provided if it satisfies
+   (C++20)       sized_range or forward_range.
+                 \fI(public member function)\fP
+   cbegin        returns a constant iterator to the beginning of the range.
+   (C++23)       \fI(public member function)\fP
+   cend          returns a sentinel for the constant iterator of the range.
+   (C++23)       \fI(public member function)\fP
+   operator bool returns whether the derived view is not empty. Provided if
+   (C++20)       ranges::empty is applicable to it.
+                 \fI(public member function)\fP
+   data          gets the address of derived view's data. Provided if its iterator type
+   (C++20)       satisfies contiguous_iterator.
+                 \fI(public member function)\fP
+                 returns the number of elements in the derived view. Provided if it
+   size          satisfies forward_range and its sentinel and iterator type satisfy
+   (C++20)       sized_sentinel_for.
+                 \fI(public member function)\fP
+   front         returns the first element in the derived view. Provided if it
+   (C++20)       satisfies forward_range.
+                 \fI(public member function)\fP
+   back          returns the last element in the derived view. Provided if it satisfies
+   (C++20)       bidirectional_range and common_range.
+                 \fI(public member function)\fP
+   operator[]    returns the n^th element in the derived view. Provided if it satisfies
+   (C++20)       random_access_range.
+                 \fI(public member function)\fP
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <ranges>
+ #include <vector>
+
+ template<class T, class A>
+ class VectorView : public std::ranges::view_interface<VectorView<T, A>>
+ {
+ public:
+     VectorView() = default;
+
+     VectorView(const std::vector<T, A>& vec) :
+         m_begin(vec.cbegin()), m_end(vec.cend())
+     {}
+
+     auto begin() const { return m_begin; }
+
+     auto end() const { return m_end; }
+
+ private:
+     typename std::vector<T, A>::const_iterator m_begin{}, m_end{};
+ };
+
+ int main()
+ {
+     std::vector<int> v = {1, 4, 9, 16};
+
+     VectorView view_over_v{v};
+
+     // We can iterate with begin() and end().
+     for (int n : view_over_v)
+         std::cout << n << ' ';
+     std::cout << '\\n';
+
+     // We get operator[] for free when inheriting from view_interface
+     // since we satisfy the random_access_range concept.
+     for (std::ptrdiff_t i = 0; i != view_over_v.size(); ++i)
+         std::cout << "v[" << i << "] = " << view_over_v[i] << '\\n';
+ }
+
+.SH Output:
+
+ 1 4 9 16
+ v[0] = 1
+ v[1] = 4
+ v[2] = 9
+ v[3] = 16
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to            Behavior as published              Correct behavior
+                       view_interface was required to be derived
+   LWG 3549 C++20      from view_base,                              inheritance removed
+                       which sometimes required multiple view_base
+                       subobjects in a view
+
+.SH See also
+
+   ranges::subrange combines an iterator-sentinel pair into a view
+   (C++20)          \fI(class template)\fP

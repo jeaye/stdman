@@ -1,0 +1,163 @@
+.TH std::basic_string::resize_and_overwrite 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::basic_string::resize_and_overwrite \- std::basic_string::resize_and_overwrite
+
+.SH Synopsis
+   template< class Operation >                                            (since C++23)
+   constexpr void resize_and_overwrite( size_type count, Operation op );
+
+   Resizes the string to contain at most count characters, using the user-provided
+   operation op to modify the possibly indeterminate contents and set the length. This
+   avoids the cost of initializing a suitably-sized std::string when it is intended to
+   be used as a char array to be populated by, e.g., a C API call.
+
+   This function performs following steps:
+
+    1. Obtains contiguous storage that contains count + 1 characters, and makes its
+       first k characters equal to the first k characters of *this, where k is the
+       smaller of count and the result of this->size() before the call to
+       resize_and_overwrite. Let p denote the pointer to the first character in the
+       storage.
+          * The equality is determined as if by checking this->compare(0, k, p, k) ==
+            0.
+          * The characters in [p + k, p + count] may have indeterminate values.
+    2. Evaluates std::move(op)(p, count). Let r be the return value of std::move(op)(p,
+       count).
+    3. Replaces the contents of *this with [p, p + r) (which sets the length of *this
+       to r). Invalidates all pointers and references to the range [p, p + count].
+
+   The program is ill-formed if r does not have an integer-like type. The behavior is
+   undefined if std::move(op)(p, count) throws an exception or modifies p or count, r
+   is not in the range [0, count], or any character in range [p, p + r) has an
+   indeterminate value.
+
+   Implementations are recommended to avoid unnecessary copies and allocations by,
+   e.g., making p equal to the pointer to beginning of storage of characters allocated
+   for *this after the call, which can be identical to the existing storage of *this if
+   count is less than or equal to this->capacity().
+
+.SH Parameters
+
+   count - the maximal possible new size of the string
+   op    - the function object used for setting the new contents of the string
+
+.SH Return value
+
+   \fI(none)\fP
+
+.SH Exceptions
+
+   std::length_error if count > this->max_size(). Any exceptions thrown by
+   corresponding Allocator.
+
+   If an exception is thrown from std::move(op)(p, count), the behavior is undefined.
+   Otherwise, if an exception is thrown, this function has no effect.
+
+.SH Notes
+
+   resize_and_overwrite invalidates all iterators, pointers, and references into *this,
+   regardless whether reallocation occurs. Implementations may assume that the contents
+   of the string are not aliased after the call to resize_and_overwrite.
+
+         Feature-test macro            Value    Std                   Feature
+__cpp_lib_string_resize_and_overwrite 202110L (C++23) std::basic_string::resize_and_overwrite
+
+.SH Example
+
+   Link to test the example: compiler explorer.
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <cassert>
+ #include <cstddef>
+ #include <cstring>
+ #include <iomanip>
+ #include <iostream>
+ #include <string>
+ #include <string_view>
+ static_assert(__cpp_lib_string_resize_and_overwrite);
+
+ constexpr std::string_view fruits[]{"apple", "banana", "coconut", "date", "elderberry"};
+
+ int main()
+ {
+     // A simple case, append only fruits[0]. The string size will be increased.
+     std::string s{"Food: "};
+     s.resize_and_overwrite(16, [sz = s.size()](char* buf, std::size_t buf_size) noexcept
+     {
+         const auto to_copy = std::min(buf_size - sz, fruits[0].size());
+         std::memcpy(buf + sz, fruits[0].data(), to_copy);
+         return sz + to_copy;
+     });
+     std::cout << "1. " << std::quoted(s) << '\\n';
+
+     // The size shrinking case. Note, that the user's lambda is always invoked.
+     s.resize_and_overwrite(10, [](char* buf, int n) noexcept
+     {
+         return std::find(buf, buf + n, ':') - buf;
+     });
+     std::cout << "2. " << std::quoted(s) << '\\n';
+
+     std::cout << "3. Copy data until the buffer is full. Print data and sizes.\\n";
+     std::string food{"Food:"};
+     const auto resize_to{27};
+     std::cout << "Initially, food.size: " << food.size()
+               << ", food.capacity: " << food.capacity()
+               << ", resize_to: " << resize_to
+               << ", food: " << std::quoted(food) << '\\n';
+
+     food.resize_and_overwrite(
+         resize_to,
+         [food_size = food.size()](char* p, std::size_t n) noexcept -> std::size_t
+         {
+             // p[0]..p[n] is the assignable range
+             // p[0]..p[min(n, food_size) - 1] is the readable range
+             // (contents initially equal to the original string)
+
+             // Debug print:
+             std::cout << "In Operation(); n: " << n << '\\n';
+
+             // Copy fruits to the buffer p while there is enough space.
+             char* first = p + food_size;
+
+             for (char* const end = p + n; const std::string_view fruit : fruits)
+             {
+                 char* last = first + fruit.size() + 1;
+                 if (last > end)
+                     break;
+                 *first++ = ' ';
+                 std::ranges::copy(fruit, first);
+                 first = last;
+             }
+
+             const auto final_size{static_cast<std::size_t>(first - p)};
+
+             // Debug print:
+             std::cout << "In Operation(); final_size: " << final_size << '\\n';
+
+             assert(final_size <= n);
+             return final_size; // Return value is the actual new length
+                                // of the string, must be in range 0..n
+         });
+
+     std::cout << "Finally, food.size: " << food.size()
+               << ", food.capacity: " << food.capacity()
+               << ", food: " << std::quoted(food) << '\\n';
+ }
+
+.SH Possible output:
+
+ 1. "Food: apple"
+ 2. "Food"
+ 3. Copy data until the buffer is full. Print data and sizes.
+ Initially, food.size: 5, food.capacity: 15, resize_to: 27, food: "Food:"
+ In Operation(); n: 27
+ In Operation(); final_size: 26
+ Finally, food.size: 26, food.capacity: 30, food: "Food: apple banana coconut"
+
+.SH See also
+
+   resize changes the number of characters stored
+          \fI(public member function)\fP

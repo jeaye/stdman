@@ -1,58 +1,113 @@
-.TH std::lerp 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::lerp 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::lerp \- std::lerp
 
 .SH Synopsis
    Defined in header <cmath>
-   constexpr float lerp( float a, float b, float t ) noexcept;        \fB(1)\fP \fI(since C++20)\fP
-   constexpr double lerp( double a, double b, double t ) noexcept;    \fB(2)\fP \fI(since C++20)\fP
-   constexpr long double lerp( long double a, long double b, long     \fB(3)\fP \fI(since C++20)\fP
-   double t ) noexcept;
-   constexpr Promoted lerp( Arithmetic1 a, Arithmetic2 b, Arithmetic3 \fB(4)\fP \fI(since C++20)\fP
-   t ) noexcept;
+   constexpr float       lerp( float a, float b, float t )
+   noexcept;
 
-   1-3) Computes the linear interpolation between a and b, if the parameter t is inside
-   [0, 1] (the linear extrapolation otherwise), i.e. the result of
-   \\(a+t(b−a)\\)a+t(b−a) with accounting for floating-point calculation imprecision.
-   4) A set of overloads or a function template for all combinations of arguments of
-   arithmetic type not covered by 1-3). If any argument has integral type, it is cast
-   to double. If any other argument is long double, then the return type is long
-   double, otherwise it is double.
+   constexpr double      lerp( double a, double b, double t )             \fI(since C++20)\fP
+   noexcept;                                                              (until C++23)
+   constexpr long double lerp( long double a, long double b,
+
+                               long double t ) noexcept;
+   constexpr /* floating-point-type */
+
+       lerp( /* floating-point-type */ a,                                 (since C++23)
+             /* floating-point-type */ b,                         \fB(1)\fP
+
+             /* floating-point-type */ t ) noexcept;
+   Additional overloads
+   Defined in header <cmath>
+   template< class Arithmetic1, class Arithmetic2, class
+   Arithmetic3 >
+
+   constexpr /* common-floating-point-type */                         (A) \fI(since C++20)\fP
+
+       lerp( Arithmetic1 a, Arithmetic2 b, Arithmetic3 t )
+   noexcept;
+
+   1) Computes the linear interpolation between a and b, if the parameter t is inside
+   [0, 1) (the linear extrapolation otherwise), i.e. the result of \\(a+t(b−a)\\)a+t(b−a)
+   with accounting for floating-point calculation imprecision.
+   The library provides overloads for all cv-unqualified floating-point types as the
+   type of the parameters a, b and t.
+   (since C++23)
+   A) Additional overloads are provided for all other combinations of arithmetic types.
 
 .SH Parameters
 
-   a, b, t - values of floating-point or integral types
+   a, b, t - floating-point or integer values
 
 .SH Return value
 
-   \\(a+t(b−a)\\)a+t(b−a)
+   \\(a + t(b − a)\\)a + t(b − a)
 
-   When isfinite(a) and isfinite(b), the following properties are guaranteed:
+   When std::isfinite(a) && std::isfinite(b) is true, the following properties are
+   guaranteed:
 
      * If t == 0, the result is equal to a.
      * If t == 1, the result is equal to b.
      * If t >= 0 && t <= 1, the result is finite.
-     * If isfinite(t) && a == b, the result is equal to a.
-     * If isfinite(t) || (b - a != 0 and isinf(t)), the result is not NaN.
+     * If std::isfinite(t) && a == b, the result is equal to a.
+     * If std::isfinite(t) || (b - a != 0 && std::isinf(t)), the result is not NaN.
 
-   Let CMP(x,y) be 1 if x > y, -1 if x < y, and 0 otherwise. For any t1 and t2, the
-   product of CMP(lerp(a, b, t2), lerp(a, b, t1)), CMP(t2, t1), and CMP(b, a) is
-   non-negative. (That is, lerp is monotonic.)
+   Let CMP(x, y) be 1 if x > y, -1 if x < y, and 0 otherwise. For any t1 and t2, the
+   product of
+
+     * CMP(std::lerp(a, b, t2), std::lerp(a, b, t1)),
+     * CMP(t2, t1), and
+     * CMP(b, a)
+
+   is non-negative. (That is, std::lerp is monotonic.)
 
 .SH Notes
 
-   lerp is available in the global namespace when <math.h> is included, even if it is
-   not a part of C.
+   The additional overloads are not required to be provided exactly as (A). They only
+   need to be sufficient to ensure that for their first argument num1, second argument
+   num2 and third argument num3:
 
-   Feature-test macro: __cpp_lib_interpolate
+     * If num1, num2 or num3 has type long double, then std::lerp(num1,
+       num2, num3) has the same effect as std::lerp(static_cast<long
+       double>(num1),
+                 static_cast<long double>(num2),
+                 static_cast<long double>(num3)).
+     * Otherwise, if num1, num2 and/or num3 has type double or an integer
+       type, then std::lerp(num1, num2, num3) has the same effect as
+       std::lerp(static_cast<double>(num1),                               (until C++23)
+                 static_cast<double>(num2),
+                 static_cast<double>(num3)).
+     * Otherwise, if num1, num2 or num3 has type float, then
+       std::lerp(num1, num2, num3) has the same effect as
+       std::lerp(static_cast<float>(num1),
+                 static_cast<float>(num2),
+                 static_cast<float>(num3)).
+   If num1, num2 and num3 have arithmetic types, then std::lerp(num1,
+   num2, num3) has the same effect as std::lerp(static_cast</*
+   common-floating-point-type */>(num1),
+             static_cast</* common-floating-point-type */>(num2),
+             static_cast</* common-floating-point-type */>(num3)), where
+   /* common-floating-point-type */ is the floating-point type with the
+   greatest floating-point conversion rank and greatest floating-point    (since C++23)
+   conversion subrank among the types of num1, num2 and num3, arguments
+   of integer type are considered to have the same floating-point
+   conversion rank as double.
+
+   If no such floating-point type with the greatest rank and subrank
+   exists, then overload resolution does not result in a usable candidate
+   from the overloads provided.
+
+    Feature-test macro    Value    Std           Feature
+   __cpp_lib_interpolate 201902L (C++20) std::lerp, std::midpoint
 
 .SH Example
 
 
 // Run this code
 
- #include <cmath>
  #include <cassert>
+ #include <cmath>
  #include <iostream>
 
  float naive_lerp(float a, float b, float t)
@@ -84,10 +139,8 @@ std::lerp \- std::lerp
      assert(not std::isnan(std::lerp(a, b, INFINITY))); // lerp here can be -inf
 
      std::cout << "Extrapolation demo, given std::lerp(5, 10, t):\\n";
-
      for (auto t{-2.0}; t <= 2.0; t += 0.5)
          std::cout << std::lerp(5.0, 10.0, t) << ' ';
-
      std::cout << '\\n';
  }
 

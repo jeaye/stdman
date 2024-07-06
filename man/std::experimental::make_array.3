@@ -1,16 +1,16 @@
-.TH std::experimental::make_array 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::experimental::make_array 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::experimental::make_array \- std::experimental::make_array
 
 .SH Synopsis
    Defined in header <experimental/array>
-   template <class D = void, class... Types>
+   template< class D = void, class... Types >
    constexpr std::array<VT /* see below */,                (library fundamentals TS v2)
-   sizeof...(Types)> make_array(Types&&... t);
+   sizeof...(Types)> make_array( Types&&... t );
 
    Creates a std::array whose size is equal to the number of arguments and whose
    elements are initialized from the corresponding arguments. Returns std::array<VT,
-   sizeof...(Types)>{std::forward<Types>(t)...}
+   sizeof...(Types)>{std::forward<Types>(t)...}.
 
    If D is void, then the deduced type VT is std::common_type_t<Types...>. Otherwise,
    it is D.
@@ -25,29 +25,32 @@ std::experimental::make_array \- std::experimental::make_array
 
 .SH Possible implementation
 
- namespace details {
-   template<class> struct is_ref_wrapper : std::false_type {};
-   template<class T> struct is_ref_wrapper<std::reference_wrapper<T>> : std::true_type {};
+namespace details
+{
+    template<class> struct is_ref_wrapper : std::false_type{};
+    template<class T> struct is_ref_wrapper<std::reference_wrapper<T>> : std::true_type{};
 
-   template<class T>
-   using not_ref_wrapper = std::negation<is_ref_wrapper<std::decay_t<T>>>;
+    template<class T>
+    using not_ref_wrapper = std::negation<is_ref_wrapper<std::decay_t<T>>>;
 
-   template <class D, class...> struct return_type_helper { using type = D; };
-   template <class... Types>
-   struct return_type_helper<void, Types...> : std::common_type<Types...> {
-       static_assert(std::conjunction_v<not_ref_wrapper<Types>...>,
-                     "Types cannot contain reference_wrappers when D is void");
-   };
+    template<class D, class...> struct return_type_helper { using type = D; };
+    template<class... Types>
+    struct return_type_helper<void, Types...> : std::common_type<Types...>
+    {
+        static_assert(std::conjunction_v<not_ref_wrapper<Types>...>,
+                      "Types cannot contain reference_wrappers when D is void");
+    };
 
-   template <class D, class... Types>
-   using return_type = std::array<typename return_type_helper<D, Types...>::type,
-                                  sizeof...(Types)>;
- }
+    template<class D, class... Types>
+    using return_type = std::array<typename return_type_helper<D, Types...>::type,
+                                   sizeof...(Types)>;
+}
 
- template < class D = void, class... Types>
- constexpr details::return_type<D, Types...> make_array(Types&&... t) {
-   return {std::forward<Types>(t)... };
- }
+template<class D = void, class... Types>
+constexpr details::return_type<D, Types...> make_array(Types&&... t)
+{
+    return {std::forward<Types>(t)...};
+}
 
 .SH Example
 
@@ -72,5 +75,7 @@ std::experimental::make_array \- std::experimental::make_array
 
 .SH See also
 
-   to_array Creates a std::array object from a built-in array
+   C++ documentation for
+   std::array deduction guides
+   to_array creates a std::array object from a built-in array
             \fI(function template)\fP

@@ -1,4 +1,4 @@
-.TH std::scoped_lock 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::scoped_lock 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::scoped_lock \- std::scoped_lock
 
@@ -8,7 +8,7 @@ std::scoped_lock \- std::scoped_lock
    class scoped_lock;
 
    The class scoped_lock is a mutex wrapper that provides a convenient RAII-style
-   mechanism for owning one or more mutexes for the duration of a scoped block.
+   mechanism for owning zero or more mutexes for the duration of a scoped block.
 
    When a scoped_lock object is created, it attempts to take ownership of the mutexes
    it is given. When control leaves the scope in which the scoped_lock object was
@@ -25,8 +25,8 @@ std::scoped_lock \- std::scoped_lock
 
 .SH Member types
 
-   Member type                              Definition
-   mutex_type (if sizeof...(MutexTypes)==1) Mutex, the sole type in MutexTypes...
+   Member type                             Definition
+   mutex_type (ifsizeof...(MutexTypes)==1) Mutex, the sole type in MutexTypes...
 
 .SH Member functions
 
@@ -39,7 +39,14 @@ std::scoped_lock \- std::scoped_lock
 
 .SH Notes
 
-   Feature-test macro: __cpp_lib_scoped_lock
+   A common beginner error is to "forget" to give a scoped_lock variable a name, e.g.
+   std::scoped_lock(mtx); (which default constructs a scoped_lock variable named mtx)
+   or std::scoped_lock{mtx}; (which constructs a prvalue object that is immediately
+   destroyed), thereby not actually constructing a lock that holds a mutex for the rest
+   of the scope.
+
+    Feature-test macro    Value    Std       Feature
+   __cpp_lib_scoped_lock 201703L \fI(C++17)\fP std::scoped_lock
 
 .SH Example
 
@@ -49,35 +56,37 @@ std::scoped_lock \- std::scoped_lock
 
 // Run this code
 
- #include <mutex>
- #include <thread>
- #include <iostream>
- #include <vector>
- #include <functional>
  #include <chrono>
+ #include <functional>
+ #include <iostream>
+ #include <mutex>
  #include <string>
+ #include <thread>
+ #include <vector>
+ using namespace std::chrono_literals;
 
- struct Employee {
-     Employee(std::string id) : id(id) {}
-     std::string id;
+ struct Employee
+ {
      std::vector<std::string> lunch_partners;
+     std::string id;
      std::mutex m;
-     std::string output() const
+     Employee(std::string id) : id(id) {}
+     std::string partners() const
      {
          std::string ret = "Employee " + id + " has lunch partners: ";
-         for( const auto& partner : lunch_partners )
-             ret += partner + " ";
+         for (int count{}; const auto& partner : lunch_partners)
+             ret += (count++ ? ", " : "") + partner;
          return ret;
      }
  };
 
- void send_mail(Employee &, Employee &)
+ void send_mail(Employee&, Employee&)
  {
-     // simulate a time-consuming messaging operation
-     std::this_thread::sleep_for(std::chrono::seconds(1));
+     // Simulate a time-consuming messaging operation
+     std::this_thread::sleep_for(1s);
  }
 
- void assign_lunch_partner(Employee &e1, Employee &e2)
+ void assign_lunch_partner(Employee& e1, Employee& e2)
  {
      static std::mutex io_mutex;
      {
@@ -86,7 +95,7 @@ std::scoped_lock \- std::scoped_lock
      }
 
      {
-         // use std::scoped_lock to acquire two locks without worrying about
+         // Use std::scoped_lock to acquire two locks without worrying about
          // other calls to assign_lunch_partner deadlocking us
          // and it also provides a convenient RAII-style mechanism
 
@@ -115,9 +124,9 @@ std::scoped_lock \- std::scoped_lock
 
  int main()
  {
-     Employee alice("alice"), bob("bob"), christina("christina"), dave("dave");
+     Employee alice("Alice"), bob("Bob"), christina("Christina"), dave("Dave");
 
-     // assign in parallel threads because mailing users about lunch assignments
+     // Assign in parallel threads because mailing users about lunch assignments
      // takes a long time
      std::vector<std::thread> threads;
      threads.emplace_back(assign_lunch_partner, std::ref(alice), std::ref(bob));
@@ -125,27 +134,28 @@ std::scoped_lock \- std::scoped_lock
      threads.emplace_back(assign_lunch_partner, std::ref(christina), std::ref(alice));
      threads.emplace_back(assign_lunch_partner, std::ref(dave), std::ref(bob));
 
-     for (auto &thread : threads) thread.join();
-     std::cout << alice.output() << '\\n'  << bob.output() << '\\n'
-               << christina.output() << '\\n' << dave.output() << '\\n';
+     for (auto& thread : threads)
+         thread.join();
+     std::cout << alice.partners() << '\\n'  << bob.partners() << '\\n'
+               << christina.partners() << '\\n' << dave.partners() << '\\n';
  }
 
 .SH Possible output:
 
- alice and bob are waiting for locks
- alice and bob got locks
- christina and bob are waiting for locks
- christina and alice are waiting for locks
- dave and bob are waiting for locks
- dave and bob got locks
- christina and alice got locks
- christina and bob got locks
- Employee alice has lunch partners: bob christina
- Employee bob has lunch partners: alice dave christina
- Employee christina has lunch partners: alice bob
- Employee dave has lunch partners: bob
+ Alice and Bob are waiting for locks
+ Alice and Bob got locks
+ Christina and Bob are waiting for locks
+ Christina and Alice are waiting for locks
+ Dave and Bob are waiting for locks
+ Dave and Bob got locks
+ Christina and Alice got locks
+ Christina and Bob got locks
+ Employee Alice has lunch partners: Bob, Christina
+ Employee Bob has lunch partners: Alice, Dave, Christina
+ Employee Christina has lunch partners: Alice, Bob
+ Employee Dave has lunch partners: Bob
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
@@ -158,6 +168,5 @@ std::scoped_lock \- std::scoped_lock
 
    unique_lock implements movable mutex ownership wrapper
    \fI(C++11)\fP     \fI(class template)\fP
-
-   lock_guard implements a strictly scope-based mutex ownership wrapper
-   \fI(C++11)\fP    \fI(class template)\fP
+   lock_guard  implements a strictly scope-based mutex ownership wrapper
+   \fI(C++11)\fP     \fI(class template)\fP

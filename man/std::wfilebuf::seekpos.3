@@ -1,4 +1,4 @@
-.TH std::basic_filebuf::seekpos 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_filebuf::seekpos 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_filebuf::seekpos \- std::basic_filebuf::seekpos
 
@@ -7,18 +7,18 @@ std::basic_filebuf::seekpos \- std::basic_filebuf::seekpos
 
    virtual pos_type seekpos( pos_type sp,
 
-   std::ios_base::openmode which = std::ios_base::in | std::ios_base::out );
+                             std::ios_base::openmode which = std::ios_base::in |
+   std::ios_base::out );
 
-   Repositions the file pointer, if possible, to the position indicated by sp.
+   Repositions the file pointer, if possible, to the position indicated by sp. If the
+   associated file is not open (is_open() == false), fails immediately.
 
-   If the associated file is not open (is_open()==false), fails immediately.
+   Reposition performs as follows:
 
-   If the file is open for writing, first writes the put area and any unshift sequences
-   required by the currently imbued locale, using overflow()
-
-   Then repositions the file pointer, as if by calling std::fsetpos()
-
-   If the file is open for reading, updates the get area if necessary.
+   1) If the file is open for writing, writes the put area and any unshift sequences
+   required by the currently imbued locale, using overflow().
+   2) Repositions the file pointer, as if by calling std::fsetpos().
+   3) If the file is open for reading, updates the get area if necessary.
 
    If sp was not obtained by calling seekoff() or seekpos() on the same file, the
    behavior is undefined.
@@ -42,15 +42,15 @@ std::basic_filebuf::seekpos \- std::basic_filebuf::seekpos
 
    seekpos() is called by std::basic_streambuf::pubseekpos(), which is called by the
    single-argument versions of std::basic_istream::seekg() and
-   std::basic_ostream::seekp()
+   std::basic_ostream::seekp().
 
    Many implementations do not update the get area in seekpos(), delegating to
-   underflow() that is called by the next sgetc()
+   underflow() that is called by the next sgetc().
 
 .SH Example
 
-   on some implementations, the get area is emptied by seekpos() and the second
-   underflow() is necessary to observe the effects
+   On some implementations, the get area is emptied by seekpos() and the second
+   underflow() is necessary to observe the effects.
 
 
 // Run this code
@@ -60,20 +60,24 @@ std::basic_filebuf::seekpos \- std::basic_filebuf::seekpos
 
  struct mybuf : std::filebuf
  {
-     pos_type seekpos(pos_type sp, std::ios_base::openmode which) {
-          std::cout << "Before seekpos(" << sp << "), size of the get area is "
-                    << egptr()-eback() << " with "
-                    << egptr()-gptr() << " read positions available\\n";
-          pos_type rc = std::filebuf::seekpos(sp, which);
-          std::cout << "seekpos() returns " << rc << ".\\nAfter the call, "
-                    << "size of the get area is "
-                    << egptr()-eback() << " with "
-                    << egptr()-gptr() << " read positions available\\n";
+     pos_type seekpos(pos_type sp, std::ios_base::openmode which)
+     {
+         std::cout << "Before seekpos(" << sp << "), size of the get area is "
+                   << egptr() - eback() << " with "
+                   << egptr() - gptr() << " read positions available.\\n";
+
+         pos_type rc = std::filebuf::seekpos(sp, which);
+
+         std::cout << "seekpos() returns " << rc << ".\\nAfter the call, "
+                   << "size of the get area is "
+                   << egptr() - eback() << " with "
+                   << egptr() - gptr() << " read positions available.\\n";
  // uncomment if get area is emptied by seekpos()
- //         std::filebuf::underflow();
- //         std::cout << "after forced underflow(), size of the get area is "
- //                   << egptr()-eback() << " with "
- //                   << egptr()-gptr() << " read positions available\\n";
+ //        std::filebuf::underflow();
+ //        std::cout << "after forced underflow(), size of the get area is "
+ //                  << egptr() - eback() << " with "
+ //                  << egptr() - gptr() << " read positions available.\\n";
+
          return rc;
      }
  };
@@ -89,9 +93,20 @@ std::basic_filebuf::seekpos \- std::basic_filebuf::seekpos
 
 .SH Possible output:
 
- Before seekpos\fB(2)\fP, size of the get area is 110 with 109 read positions available
+ Before seekpos\fB(2)\fP, size of the get area is 110 with 109 read positions available.
  seekpos() returns 2.
- After the call, size of the get area is 110 with 108 read positions available
+ After the call, size of the get area is 110 with 108 read positions available.
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to           Behavior as published               Correct behavior
+   LWG 55  C++98      seekpos returned an undefined              pos_type(off_type(-1))
+                      invalid stream position on failure         is returned on failure
+   LWG 171 C++98      the sequence of the operations of          made clear
+                      reposition was not clear
 
 .SH See also
 

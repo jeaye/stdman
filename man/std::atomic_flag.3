@@ -1,4 +1,4 @@
-.TH std::atomic_flag 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::atomic_flag 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::atomic_flag \- std::atomic_flag
 
@@ -14,8 +14,8 @@ std::atomic_flag \- std::atomic_flag
 
    constructor   constructs an atomic_flag
                  \fI(public member function)\fP
-   operator=     the assignment operator
-                 \fI(public member function)\fP
+   operator=     the assignment operator (deleted)
+   [deleted]     \fI(public member function)\fP
    clear         atomically sets flag to false
                  \fI(public member function)\fP
    test_and_set  atomically sets the flag to true and obtains its previous value
@@ -37,40 +37,40 @@ std::atomic_flag \- std::atomic_flag
 
 // Run this code
 
+ #include <atomic>
+ #include <iostream>
  #include <thread>
  #include <vector>
- #include <iostream>
- #include <atomic>
 
  std::atomic_flag lock = ATOMIC_FLAG_INIT;
 
  void f(int n)
  {
-     for (int cnt = 0; cnt < 40; ++cnt) {
-         while (lock.test_and_set(std::memory_order_acquire)) {  // acquire lock
-         // Since C++20, it is possible to update atomic_flag's
-         // value only when there is a chance to acquire the lock.
-         // See also: https://stackoverflow.com/questions/62318642
+     for (int cnt = 0; cnt < 40; ++cnt)
+     {
+         while (lock.test_and_set(std::memory_order_acquire)) // acquire lock
+         {
+             // Since C++20, it is possible to update atomic_flag's
+             // value only when there is a chance to acquire the lock.
+             // See also: https://stackoverflow.com/questions/62318642
          #if defined(__cpp_lib_atomic_flag_test)
-             while (lock.test(std::memory_order_relaxed))        // test lock
+             while (lock.test(std::memory_order_relaxed)) // test lock
          #endif
                  ; // spin
          }
          static int out{};
          std::cout << n << ((++out % 40) == 0 ? '\\n' : ' ');
-         lock.clear(std::memory_order_release);                  // release lock
+         lock.clear(std::memory_order_release); // release lock
      }
  }
 
  int main()
  {
      std::vector<std::thread> v;
-     for (int n = 0; n < 10; ++n) {
+     for (int n = 0; n < 10; ++n)
          v.emplace_back(f, n);
-     }
-     for (auto& t : v) {
+     for (auto& t : v)
          t.join();
-     }
  }
 
 .SH Possible output:
@@ -106,3 +106,5 @@ std::atomic_flag \- std::atomic_flag
    (C++20)                           \fI(function)\fP
    ATOMIC_FLAG_INIT                  initializes an std::atomic_flag to false
    \fI(C++11)\fP                           (macro constant)
+   C documentation for
+   atomic_flag

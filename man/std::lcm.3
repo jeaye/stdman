@@ -1,4 +1,4 @@
-.TH std::lcm 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::lcm 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::lcm \- std::lcm
 
@@ -9,6 +9,12 @@ std::lcm \- std::lcm
 
    Computes the least common multiple of the integers m and n.
 
+   If either M or N is not an integer type, or if either is (possibly cv-qualified)
+   bool, the program is ill-formed.
+
+   The behavior is undefined if |m|, |n|, or the least common multiple of |m| and |n|
+   is not representable as a value of type std::common_type_t<M, N>.
+
 .SH Parameters
 
    m, n - integer values
@@ -18,58 +24,56 @@ std::lcm \- std::lcm
    If either m or n is zero, returns zero. Otherwise, returns the least common multiple
    of |m| and |n|.
 
-  Remarks
-
-   If either M or N is not an integer type, or if either is (possibly cv-qualified)
-   bool, the program is ill-formed.
-
-   The behavior is undefined if |m|, |n|, or the least common multiple of |m| and |n|
-   is not representable as a value of type std::common_type_t<M, N>.
-
 .SH Exceptions
 
    Throws no exceptions.
 
 .SH Notes
 
-   Feature-test macro: __cpp_lib_gcd_lcm
+   Feature-test macro  Value    Std        Feature
+   __cpp_lib_gcd_lcm  201606L \fI(C++17)\fP std::gcd, std::lcm
 
 .SH Example
 
 
 // Run this code
 
- #include <numeric>
  #include <iostream>
+ #include <numeric>
 
  #define OUT(...) std::cout << #__VA_ARGS__ << " = " << __VA_ARGS__ << '\\n'
 
- constexpr auto lcm(auto x, auto y) {
-     return std::lcm(x,y);
- }
- constexpr auto lcm(auto head, auto...tail) {
-     return std::lcm(head, lcm(tail...));
+ constexpr auto lcm(auto x, auto... xs)
+ {
+     return ((x = std::lcm(x, xs)), ...);
  }
 
- int main() {
-     constexpr int p {2 * 2 * 3};
-     constexpr int q {2 * 3 * 3};
+ int main()
+ {
+     constexpr int p{2 * 2 * 3};
+     constexpr int q{2 * 3 * 3};
      static_assert(2 * 2 * 3 * 3 == std::lcm(p, q));
      static_assert(225 == std::lcm(45, 75));
 
-     OUT(lcm(2*3, 3*4, 4*5));
-     OUT(lcm(2*3*4, 3*4*5, 4*5*6));
-     OUT(lcm(2*3*4, 3*4*5, 4*5*6, 5*6*7));
+     static_assert(std::lcm( 6,  10) == 30);
+     static_assert(std::lcm( 6, -10) == 30);
+     static_assert(std::lcm(-6, -10) == 30);
+
+     static_assert(std::lcm( 24, 0) == 0);
+     static_assert(std::lcm(-24, 0) == 0);
+
+     OUT(lcm(2 * 3, 3 * 4, 4 * 5));
+     OUT(lcm(2 * 3 * 4, 3 * 4 * 5, 4 * 5 * 6));
+     OUT(lcm(2 * 3 * 4, 3 * 4 * 5, 4 * 5 * 6, 5 * 6 * 7));
  }
 
 .SH Output:
 
- lcm(2*3, 3*4, 4*5) = 60
- lcm(2*3*4, 3*4*5, 4*5*6) = 120
- lcm(2*3*4, 3*4*5, 4*5*6, 5*6*7) = 840
+ lcm(2 * 3, 3 * 4, 4 * 5) = 60
+ lcm(2 * 3 * 4, 3 * 4 * 5, 4 * 5 * 6) = 120
+ lcm(2 * 3 * 4, 3 * 4 * 5, 4 * 5 * 6, 5 * 6 * 7) = 840
 
 .SH See also
 
-   gcd     constexpr function template returning the greatest common divisor of two
-   \fI(C++17)\fP integers
-           \fI(function template)\fP
+   gcd     computes the greatest common divisor of two integers
+   \fI(C++17)\fP \fI(function template)\fP

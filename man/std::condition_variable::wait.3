@@ -1,67 +1,57 @@
-.TH std::condition_variable::wait 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::condition_variable::wait 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::condition_variable::wait \- std::condition_variable::wait
 
 .SH Synopsis
-   void wait( std::unique_lock<std::mutex>& lock );                   \fB(1)\fP \fI(since C++11)\fP
-   template< class Predicate >
-   void wait( std::unique_lock<std::mutex>& lock, Predicate           \fB(2)\fP \fI(since C++11)\fP
-   stop_waiting );
+   void wait( std::unique_lock<std::mutex>& lock );                 \fB(1)\fP \fI(since C++11)\fP
+   template< class Predicate >                                      \fB(2)\fP \fI(since C++11)\fP
+   void wait( std::unique_lock<std::mutex>& lock, Predicate pred );
 
    wait causes the current thread to block until the condition variable is notified or
-   a spurious wakeup occurs, optionally looping until some predicate is satisfied
-   (bool(stop_waiting()) == true).
+   a spurious wakeup occurs. pred can be optionally provided to detect spurious wakeup.
 
-   1) Atomically unlocks lock, blocks the current executing thread, and adds it to the
-   list of threads waiting on *this. The thread will be unblocked when notify_all() or
-   notify_one() is executed. It may also be unblocked spuriously. When unblocked,
-   regardless of the reason, lock is reacquired and wait exits.
+   1) Atomically calls lock.unlock() and blocks on *this.
+   The thread will be unblocked when notify_all() or notify_one() is executed. It may
+   also be unblocked spuriously.
+   When unblocked, calls lock.lock() (possibly blocking on the lock), then returns.
    2) Equivalent to
-
- while (!stop_waiting()) {
-     wait(lock);
- }
-
+   while (!pred())
+       wait(lock);.
    This overload may be used to ignore spurious awakenings while waiting for a specific
    condition to become true.
+   If pred() is ill-formed, or
+   the return value of pred() is not convertible to bool
+   \fI(until C++20)\fP
+   decltype(pred()) does not model boolean-testable
+   \fI(since C++20)\fP, the program is ill-formed.
 
-   Note that lock must be acquired before entering this method, and it is reacquired
-   after wait(lock) exits, which means that lock can be used to guard access to
-   stop_waiting().
+   Right after wait returns, lock.owns_lock() is true, and lock.mutex() is locked by
+   the calling thread. If these postconditions cannot be satisfied^[1], calls
+   std::terminate.
 
-   If these functions fail to meet the postconditions (lock.owns_lock()==true and
-   lock.mutex() is locked by the calling thread), std::terminate is called. For
-   example, this could happen if relocking the mutex throws an exception.
+   If any of the following conditions is satisfied, the behavior is undefined:
+
+     * lock.owns_lock() is false.
+     * lock.mutex() is not locked by the calling thread.
+     * If some other threads are also waiting on *this, lock.mutex() is different from
+       the mutex unlocked by the waiting functions (wait, wait_for and wait_until)
+       called on *this by those threads.
+    1. ↑ This can happen if the re-locking of the mutex throws an exception.
 
 .SH Parameters
 
-   lock         - an object of type std::unique_lock<std::mutex>, which must be locked
-                  by the current thread
-                  predicate which returns false if the waiting should be continued
-                  (bool(stop_waiting()) == false).
-
-   stop_waiting - The signature of the predicate function should be equivalent to the
-                  following:
-
-                  bool pred();
-
-.SH Return value
-
-   \fI(none)\fP
+   lock - an lock which must be locked by the calling thread
+   pred - the predicate to check whether the waiting can be completed
+.SH Type requirements
+   -
+   Predicate must meet the requirements of FunctionObject.
 
 .SH Exceptions
 
-   1) Does not throw
-   2) Same as \fB(1)\fP but may also propagate exceptions thrown by stop_waiting
+   1) Throws nothing.
+   2) Any exception thrown by pred.
 
 .SH Notes
-
-   Calling this function if lock.mutex() is not locked by the current thread is
-   undefined behavior.
-
-   Calling this function if lock.mutex() is not the same mutex as the one used by all
-   other threads that are currently waiting on the same condition variable is undefined
-   behavior.
 
    The effects of notify_one()/notify_all() and each of the three atomic parts of
    wait()/wait_for()/wait_until() (unlock+wait, wakeup, and lock) take place in a
@@ -75,10 +65,10 @@ std::condition_variable::wait \- std::condition_variable::wait
 
 // Run this code
 
- #include <iostream>
- #include <condition_variable>
- #include <thread>
  #include <chrono>
+ #include <condition_variable>
+ #include <iostream>
+ #include <thread>
 
  std::condition_variable cv;
  std::mutex cv_m; // This mutex is used for three purposes:
@@ -91,7 +81,7 @@ std::condition_variable::wait \- std::condition_variable::wait
  {
      std::unique_lock<std::mutex> lk(cv_m);
      std::cerr << "Waiting... \\n";
-     cv.wait(lk, []{return i == 1;});
+     cv.wait(lk, []{ return i == 1; });
      std::cerr << "...finished waiting. i == 1\\n";
  }
 
@@ -134,20 +124,29 @@ std::condition_variable::wait \- std::condition_variable::wait
  ...finished waiting. i == 1
  ...finished waiting. i == 1
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to            Behavior as published              Correct behavior
-   LWG 2135 C++11      wait threw an exception on                  calls std::terminate
-                       unlocking/relocking failure
+      DR    Applied to        Behavior as published              Correct behavior
+   LWG 2135 C++11      the behavior was unclear if         calls std::terminate in this
+                       lock.lock() throws an exception     case
 
 .SH See also
 
-              blocks the current thread until the condition variable is woken up or
+              blocks the current thread until the condition variable is awakened or
    wait_for   after the specified timeout duration
               \fI(public member function)\fP
-              blocks the current thread until the condition variable is woken up or
+              blocks the current thread until the condition variable is awakened or
    wait_until until specified time point has been reached
               \fI(public member function)\fP
+   C documentation for
+   cnd_wait
+
+.SH External links
+
+   1.  The Old New Thing article: Spurious wake-ups in Win32 condition variables.
+
+.SH Hidden category:
+     * Pages with unreviewed LWG DR marker

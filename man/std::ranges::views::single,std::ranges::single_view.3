@@ -1,0 +1,203 @@
+.TH std::ranges::views::single,std::ranges::single_view 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::views::single,std::ranges::single_view \- std::ranges::views::single,std::ranges::single_view
+
+.SH Synopsis
+   Defined in header <ranges>
+   template< std::copy_constructible T >
+
+       requires std::is_object_v<T>                                       \fI(since C++20)\fP
+   class single_view                                                      (until C++23)
+
+       : public ranges::view_interface<single_view<T>>
+   template< std::move_constructible T >
+
+       requires std::is_object_v<T>                                       (since C++23)
+   class single_view
+
+       : public ranges::view_interface<single_view<T>>            \fB(1)\fP
+   namespace views {
+
+       inline constexpr /*unspecified*/ single = /*unspecified*/;     \fB(2)\fP \fI(since C++20)\fP
+
+   }
+   Call signature
+   template< class T >
+
+       requires /* see below */                                           \fI(since C++20)\fP
+
+   constexpr /*see below*/ single( T&& t );
+
+   1) Produces a view that contains exactly one element of a specified value.
+   2) The expression views::single(e) is expression-equivalent to
+   single_view<std::decay_t<decltype((e))>>(e) for any suitable subexpression e.
+
+   The lifetime of the element is bound to the parent single_view. Copying single_view
+   makes a copy of the element.
+
+.SH Member functions
+
+   constructor      constructs a single_view
+   (C++20)          \fI(public member function)\fP
+   begin            returns a pointer to the element
+   (C++20)          \fI(public member function)\fP
+   end              returns a pointer past the element
+   (C++20)          \fI(public member function)\fP
+   size             returns 1 (one)
+   \fB[static]\fP (C++20) \fI(public static member function)\fP
+   data             returns a pointer to the element
+   (C++20)          \fI(public member function)\fP
+         Inherited from std::ranges::view_interface
+   empty            returns whether the derived view is empty. Provided if it satisfies
+   (C++20)          sized_range or forward_range.
+                    \fI(public member function of std::ranges::view_interface<D>)\fP
+   cbegin           returns a constant iterator to the beginning of the range.
+   (C++23)          \fI(public member function of std::ranges::view_interface<D>)\fP
+   cend             returns a sentinel for the constant iterator of the range.
+   (C++23)          \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator bool    returns whether the derived view is not empty. Provided if
+   (C++20)          ranges::empty is applicable to it.
+                    \fI(public member function of std::ranges::view_interface<D>)\fP
+   front            returns the first element in the derived view. Provided if it
+   (C++20)          satisfies forward_range.
+                    \fI(public member function of std::ranges::view_interface<D>)\fP
+   back             returns the last element in the derived view. Provided if it
+   (C++20)          satisfies bidirectional_range and common_range.
+                    \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator[]       returns the n^th element in the derived view. Provided if it
+   (C++20)          satisfies random_access_range.
+                    \fI(public member function of std::ranges::view_interface<D>)\fP
+
+std::ranges::single_view::single_view
+
+   single_view() requires std::default_initializable<T> \fB(1)\fP \fI(since C++20)\fP
+   = default;
+   constexpr explicit single_view( const T& t );                          \fI(since C++20)\fP
+                                                                          (until C++23)
+   constexpr explicit single_view( const T& t )                           (since C++23)
+       requires std::copy_constructible<T>;
+   constexpr explicit single_view( T&& t );                 \fB(3)\fP           \fI(since C++20)\fP
+   template< class... Args >                            \fB(2)\fP
+
+       requires std::constructible_from<T, Args...>         \fB(4)\fP           \fI(since C++20)\fP
+
+   constexpr explicit single_view( std::in_place_t,
+   Args&&... args );
+
+   Constructs a single_view.
+
+   1) Default initializes value_, which value-initializes its contained value.
+   2) Initializes value_ with t.
+   3) Initializes value_ with std::move(t).
+   4) Initializes value_ as if by value_{std::in_place, std::forward<Args>(args)...}.
+
+std::ranges::single_view::begin
+
+   constexpr T* begin() noexcept;              \fI(since C++20)\fP
+   constexpr const T* begin() const noexcept;
+
+   Equivalent to return data();.
+
+std::ranges::single_view::end
+
+   constexpr T* end() noexcept;              \fI(since C++20)\fP
+   constexpr const T* end() const noexcept;
+
+   Equivalent to return data() + 1;.
+
+std::ranges::single_view::size
+
+   static constexpr std::size_t size() noexcept;  \fI(since C++20)\fP
+
+   Equivalent to return 1;.
+
+   This is a static function. This makes single_view model /*tiny-range*/ as required
+   by split_view.
+
+std::ranges::single_view::data
+
+   constexpr T* data() noexcept;              \fI(since C++20)\fP
+   constexpr const T* data() const noexcept;
+
+   Returns a pointer to the contained value of value_. The behavior is undefined if
+   value_ does not contains a value.
+
+   Deduction guides
+
+   template< class T >                  \fI(since C++20)\fP
+   single_view( T ) -> single_view<T>;
+
+.SH Notes
+
+   For a single_view, the inherited empty member function always returns false, and the
+   inherited operator bool conversion function always returns true.
+
+.SH Example
+
+
+// Run this code
+
+ #include <iomanip>
+ #include <iostream>
+ #include <ranges>
+ #include <string>
+ #include <tuple>
+
+ int main()
+ {
+     constexpr std::ranges::single_view sv1{3.1415}; // uses (const T&) constructor
+     static_assert(sv1);
+     static_assert(not sv1.empty());
+
+     std::cout << "1) *sv1.data(): " << *sv1.data() << '\\n'
+               << "2) *sv1.begin(): " << *sv1.begin() << '\\n'
+               << "3)  sv1.size(): " << sv1.size() << '\\n'
+               << "4)  distance: " << std::distance(sv1.begin(), sv1.end()) << '\\n';
+
+     std::string str{"C++20"};
+     std::cout << "5)  str = " << std::quoted(str) << '\\n';
+     std::ranges::single_view sv2{std::move(str)}; // uses (T&&) constructor
+     std::cout << "6) *sv2.data(): " << std::quoted(*sv2.data()) << '\\n'
+               << "7)  str = " << std::quoted(str) << '\\n';
+
+     std::ranges::single_view<std::tuple<int, double, std::string>>
+         sv3{std::in_place, 42, 3.14, "😄"}; // uses (std::in_place_t, Args&&... args)
+
+     std::cout << "8)  sv3 holds a tuple: { "
+               << std::get<0>(sv3[0]) << ", "
+               << std::get<1>(sv3[0]) << ", "
+               << std::get<2>(sv3[0]) << " }\\n";
+ }
+
+.SH Output:
+
+ 1) *sv1.data(): 3.1415
+ 2) *sv1.begin(): 3.1415
+ 3)  sv1.size(): 1
+ 4)  distance: 1
+ 5)  str = "C++20"
+ 6) *sv2.data(): "C++20"
+ 7)  str = ""
+ 8)  sv3 holds a tuple: { 42, 3.14, 😄 }
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to         Behavior as published              Correct behavior
+   LWG 3428 C++20      single_view was convertible from      the constructor is made
+                       std::in_place_t                       explicit
+                       deduction guides for single_view
+   P2367R0  C++20      failed to decay the argument;         a decaying guide provided;
+                       views::single copied but not wrapped  made always wrapping
+                       a single_view
+
+.SH See also
+
+   ranges::empty_view an empty view with no elements
+   views::empty       \fI(class template)\fP (variable template)
+   (C++20)
+   ranges::split_view a view over the subranges obtained from splitting another view
+   views::split       using a delimiter
+   (C++20)            \fI(class template)\fP (range adaptor object)

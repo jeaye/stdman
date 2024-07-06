@@ -1,4 +1,4 @@
-.TH std::fgets 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::fgets 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::fgets \- std::fgets
 
@@ -36,23 +36,37 @@ std::fgets \- std::fgets
    POSIX additionally requires that fgets sets errno if it encounters a failure other
    than the end-of-file condition.
 
-   Although the standard specification is unclear in the cases where count<=1, common
+   Although the standard specification is unclear in the cases where count <= 1, common
    implementations do
 
-     * if count < 1, do nothing, report error
+     * if count < 1, do nothing, report error,
      * if count == 1,
 
-              * some implementations do nothing, report error,
-              * others read nothing, store zero in str[0], report success
+     * some implementations do nothing, report error,
+     * others read nothing, store zero in str[0], report success.
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
  #include <cstdio>
  #include <cstdlib>
+ #include <iomanip>
+ #include <iostream>
+ #include <span>
+
+ void dump(std::span<const char> buf, std::size_t offset)
+ {
+     std::cout << std::dec;
+     for (char ch : buf)
+         std::cout << (ch >= ' ' ? ch : '.'), offset--;
+     std::cout << std::string(offset, ' ') << std::hex
+               << std::setfill('0') << std::uppercase;
+     for (unsigned ch : buf)
+         std::cout << std::setw(2) << ch << ' ';
+     std::cout << std::dec << '\\n';
+ }
 
  int main()
  {
@@ -62,24 +76,19 @@ std::fgets \- std::fgets
      std::fputs("Alonzo Church\\n", tmpf);
 
      std::rewind(tmpf);
-     char buf[8];
-     while (std::fgets(buf, sizeof buf, tmpf) != nullptr) {
-         std::cout << '"' << buf << '"' << '\\n';
-     }
+     for (char buf[8]; std::fgets(buf, sizeof buf, tmpf) != nullptr;)
+         dump(buf, 10);
  }
 
 .SH Output:
 
- "Alan Tu"
- "ring
- "
- "John vo"
- "n Neuma"
- "nn
- "
- "Alonzo "
- "Church
- "
+ Alan Tu.  41 6C 61 6E 20 54 75 00
+ ring..u.  72 69 6E 67 0A 00 75 00
+ John vo.  4A 6F 68 6E 20 76 6F 00
+ n Neuma.  6E 20 4E 65 75 6D 61 00
+ nn..uma.  6E 6E 0A 00 75 6D 61 00
+ Alonzo .  41 6C 6F 6E 7A 6F 20 00
+ Church..  43 68 75 72 63 68 0A 00
 
 .SH See also
 
@@ -91,3 +100,5 @@ std::fgets \- std::fgets
    (removed in C++14)
    fputs                 writes a character string to a file stream
                          \fI(function)\fP
+   C documentation for
+   fgets

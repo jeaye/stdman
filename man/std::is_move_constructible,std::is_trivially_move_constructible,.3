@@ -1,4 +1,4 @@
-.TH std::is_move_constructible,std::is_trivially_move_constructible, 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_move_constructible,std::is_trivially_move_constructible, 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_move_constructible,std::is_trivially_move_constructible, \- std::is_move_constructible,std::is_trivially_move_constructible,
 
@@ -12,40 +12,26 @@ std::is_move_constructible,std::is_trivially_move_constructible, \- std::is_move
    template< class T >                     \fB(3)\fP \fI(since C++11)\fP
    struct is_nothrow_move_constructible;
 
-   1) If T is not a referenceable type (i.e., possibly cv-qualified void or a function
-   type with a cv-qualifier-seq or a ref-qualifier), provides a member constant value
-   equal to false. Otherwise, provides a member constant value equal to
-   std::is_constructible<T, T&&>::value.
-   2) Same as \fB(1)\fP, but uses std::is_trivially_constructible<T, T&&>.
-   3) Same as \fB(1)\fP, but uses std::is_nothrow_constructible<T, T&&>.
+                                The value of the member constant value
+    Type trait            T is a referenceable type                   T is not a
+                                                                 referenceable type
+   \fB(1)\fP          std::is_constructible<T, T&&>::value
+   \fB(2)\fP          std::is_trivially_constructible<T, T&&>::value false
+   \fB(3)\fP          std::is_nothrow_constructible<T, T&&>::value
 
-   T shall be a complete type, (possibly cv-qualified) void, or an array of unknown
-   bound. Otherwise, the behavior is undefined.
+   If T is not a complete type, (possibly cv-qualified) void, or an array of unknown
+   bound, the behavior is undefined.
 
    If an instantiation of a template above depends, directly or indirectly, on an
    incomplete type, and that instantiation could yield a different result if that type
    were hypothetically completed, the behavior is undefined.
 
-   The behavior of a program that adds specializations for any of the templates
-   described on this page is undefined.
-
-  Helper variable templates
-
-   template< class T >
-   inline constexpr bool is_move_constructible_v =                        \fI(since C++17)\fP
-   is_move_constructible<T>::value;
-   template< class T >
-   inline constexpr bool is_trivially_move_constructible_v =              \fI(since C++17)\fP
-   is_trivially_move_constructible<T>::value;
-   template< class T >
-   inline constexpr bool is_nothrow_move_constructible_v =                \fI(since C++17)\fP
-   is_nothrow_move_constructible<T>::value;
-
-Inherited from std::integral_constant
+   If the program adds specializations for any of the templates described on this page,
+   the behavior is undefined.
 
 .SH Member constants
 
-   value    true if T is move-constructible , false otherwise
+   value    true if T is move-constructible, false otherwise
    \fB[static]\fP \fI(public static member constant)\fP
 
 .SH Member functions
@@ -63,16 +49,16 @@ Inherited from std::integral_constant
 
 .SH Possible implementation
 
-  template<class T>
-  struct is_move_constructible :
-        std::is_constructible<T, typename std::add_rvalue_reference<T>::type> {};
+   template<class T>
+   struct is_move_constructible :
+       std::is_constructible<T, typename std::add_rvalue_reference<T>::type> {};
 
-  template<class T>
-  struct is_trivially_move_constructible :
+   template<class T>
+   struct is_trivially_move_constructible :
        std::is_trivially_constructible<T, typename std::add_rvalue_reference<T>::type> {};
 
-  template<class T>
-  struct is_nothrow_move_constructible :
+   template<class T>
+   struct is_nothrow_move_constructible :
        std::is_nothrow_constructible<T, typename std::add_rvalue_reference<T>::type> {};
 
 .SH Notes
@@ -83,57 +69,58 @@ Inherited from std::integral_constant
    Move constructors are usually noexcept, since otherwise they are unusable in any
    code that provides strong exception guarantee.
 
-   In many implementations, is_nothrow_move_constructible also checks if the destructor
-   throws because it is effectively noexcept(T(arg)). Same applies to
-   is_trivially_move_constructible, which, in these implementations, also requires that
-   the destructor is trivial: GCC bug 51452, LWG issue 2116.
+   In many implementations, std::is_nothrow_move_constructible also checks if the
+   destructor throws because it is effectively noexcept(T(arg)). Same applies to
+   std::is_trivially_move_constructible, which, in these implementations, also requires
+   that the destructor is trivial: GCC bug 51452, LWG issue 2116.
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
+ #include <string>
  #include <type_traits>
 
- struct Ex1 {
-     std::string str; // member has a non-trivial but non-throwing move ctor
+ struct Ex1
+ {
+     std::string str; // member has a non-trivial but non-throwing move constructor
  };
+ static_assert(std::is_move_constructible_v<Ex1>);
+ static_assert(!std::is_trivially_move_constructible_v<Ex1>);
+ static_assert(std::is_nothrow_move_constructible_v<Ex1>);
 
- struct Ex2 {
+ struct Ex2
+ {
      int n;
      Ex2(Ex2&&) = default; // trivial and non-throwing
  };
+ static_assert(std::is_move_constructible_v<Ex2>);
+ static_assert(std::is_trivially_move_constructible_v<Ex2>);
+ static_assert(std::is_nothrow_move_constructible_v<Ex2>);
 
- struct NoMove {
-     // prevents implicit declaration of default move constructor
+ struct NoMove1
+ {
+     // prevents implicit declaration of default move constructor;
      // however, the class is still move-constructible because its
      // copy constructor can bind to an rvalue argument
-     NoMove(const NoMove&) {}
+     NoMove1(const NoMove1&) {}
  };
+ static_assert(std::is_move_constructible_v<NoMove1>);
+ static_assert(!std::is_trivially_move_constructible_v<NoMove1>);
+ static_assert(!std::is_nothrow_move_constructible_v<NoMove1>);
 
- #define OUT(...) std::cout << #__VA_ARGS__ << " : " << __VA_ARGS__ << '\\n'
+ struct NoMove2
+ {
+     // Not move-constructible since the lvalue reference
+     // can't bind to the rvalue argument
+     NoMove2(NoMove2&) {}
+ };
+ static_assert(!std::is_move_constructible_v<NoMove2>);
+ static_assert(!std::is_trivially_move_constructible_v<NoMove2>);
+ static_assert(!std::is_nothrow_move_constructible_v<NoMove2>);
 
- int main() {
-     std::cout << std::boolalpha;
-     OUT( std::is_move_constructible_v<Ex1> );
-     OUT( std::is_trivially_move_constructible_v<Ex1> );
-     OUT( std::is_nothrow_move_constructible_v<Ex1> );
-     OUT( std::is_trivially_move_constructible_v<Ex2> );
-     OUT( std::is_nothrow_move_constructible_v<Ex2> );
-     OUT( std::is_move_constructible_v<NoMove> );
-     OUT( std::is_nothrow_move_constructible_v<NoMove> );
- }
-
-.SH Output:
-
- std::is_move_constructible_v<Ex1> : true
- std::is_trivially_move_constructible_v<Ex1> : false
- std::is_nothrow_move_constructible_v<Ex1> : true
- std::is_trivially_move_constructible_v<Ex2> : true
- std::is_nothrow_move_constructible_v<Ex2> : true
- std::is_move_constructible_v<NoMove> : true
- std::is_nothrow_move_constructible_v<NoMove> : false
+ int main() {}
 
 .SH See also
 

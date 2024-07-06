@@ -1,0 +1,132 @@
+.TH std::ranges::for_each_n,std::ranges::for_each_n_result 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::for_each_n,std::ranges::for_each_n_result \- std::ranges::for_each_n,std::ranges::for_each_n_result
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< std::input_iterator I, class Proj = std::identity,
+
+             std::indirectly_unary_invocable<std::projected<I, Proj>> Fun >     (since
+   constexpr for_each_n_result<I, Fun>                                      \fB(1)\fP C++20)
+
+       for_each_n( I first, std::iter_difference_t<I> n, Fun f, Proj proj =
+   {});
+.SH Helper types
+   template< class I, class F >                                             \fB(2)\fP (since
+   using for_each_n_result = ranges::in_fun_result<I, F>;                       C++20)
+
+   1) Applies the given function object f to the projected result by proj of
+   dereferencing each iterator in the range [first, first + n), in order.
+
+   If the iterator type is mutable, f may modify the elements of the range through the
+   dereferenced iterator. If f returns a result, the result is ignored. If n is less
+   than zero, the behavior is undefined.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first - iterator denoting the begin of the range to apply the function to
+   n     - the number of elements to apply the function to
+   f     - the function to apply to the projected range [first, first + n)
+   proj  - projection to apply to the elements
+
+.SH Return value
+
+   An object {first + n, std::move(f)}, where first + n may be evaluated as
+   std::ranges::next(std::move(first), n) depending on iterator category.
+
+.SH Complexity
+
+   Exactly n applications of f and proj.
+
+.SH Possible implementation
+
+ struct for_each_n_fn
+ {
+     template<std::input_iterator I, class Proj = std::identity,
+              std::indirectly_unary_invocable<std::projected<I, Proj>> Fun>
+     constexpr for_each_n_result<I, Fun>
+         operator()(I first, std::iter_difference_t<I> n, Fun fun, Proj proj = Proj{}) const
+     {
+         for (; n-- > 0; ++first)
+             std::invoke(fun, std::invoke(proj, *first));
+         return {std::move(first), std::move(fun)};
+     }
+ };
+
+ inline constexpr for_each_n_fn for_each_n {};
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <array>
+ #include <iostream>
+ #include <ranges>
+ #include <string_view>
+
+ struct P
+ {
+     int first;
+     char second;
+     friend std::ostream& operator<<(std::ostream& os, const P& p)
+     {
+         return os << '{' << p.first << ",'" << p.second << "'}";
+     }
+ };
+
+ auto print = [](std::string_view name, auto const& v)
+ {
+     std::cout << name << ": ";
+     for (auto n = v.size(); const auto& e : v)
+         std::cout << e << (--n ? ", " : "\\n");
+ };
+
+ int main()
+ {
+     std::array a {1, 2, 3, 4, 5};
+     print("a", a);
+     // Negate first three numbers:
+     std::ranges::for_each_n(a.begin(), 3, [](auto& n) { n *= -1; });
+     print("a", a);
+
+     std::array s { P{1,'a'}, P{2, 'b'}, P{3, 'c'}, P{4, 'd'} };
+     print("s", s);
+     // Negate data members 'P::first' using projection:
+     std::ranges::for_each_n(s.begin(), 2, [](auto& x) { x *= -1; }, &P::first);
+     print("s", s);
+     // Capitalize data members 'P::second' using projection:
+     std::ranges::for_each_n(s.begin(), 3, [](auto& c) { c -= 'a'-'A'; }, &P::second);
+     print("s", s);
+ }
+
+.SH Output:
+
+ a: 1, 2, 3, 4, 5
+ a: -1, -2, -3, 4, 5
+ s: {1,'a'}, {2,'b'}, {3,'c'}, {4,'d'}
+ s: {-1,'a'}, {-2,'b'}, {3,'c'}, {4,'d'}
+ s: {-1,'A'}, {-2,'B'}, {3,'C'}, {4,'d'}
+
+.SH See also
+
+   range-for loop\fI(C++11)\fP executes loop over range
+   ranges::for_each      applies a function to a range of elements
+   (C++20)               (niebloid)
+   for_each_n            applies a function object to the first N elements of a
+   \fI(C++17)\fP               sequence
+                         \fI(function template)\fP
+   for_each              applies a function to a range of elements
+                         \fI(function template)\fP

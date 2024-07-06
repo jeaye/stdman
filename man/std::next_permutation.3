@@ -1,116 +1,133 @@
-.TH std::next_permutation 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::next_permutation 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::next_permutation \- std::next_permutation
 
 .SH Synopsis
    Defined in header <algorithm>
-   template< class BidirIt >
-   bool next_permutation( BidirIt first, BidirIt            \fI(until C++20)\fP
-   last );
-   template< class BidirIt >
-   constexpr bool next_permutation( BidirIt first,          \fI(since C++20)\fP
-   BidirIt last );                                  \fB(1)\fP
+   template< class BidirIt >                                \fB(1)\fP (constexpr since C++20)
+   bool next_permutation( BidirIt first, BidirIt last );
    template< class BidirIt, class Compare >
-   bool next_permutation( BidirIt first, BidirIt                          \fI(until C++20)\fP
-   last, Compare comp );                                \fB(2)\fP
-   template< class BidirIt, class Compare >
-   constexpr bool next_permutation( BidirIt first,                        \fI(since C++20)\fP
-   BidirIt last, Compare comp );
+   bool next_permutation( BidirIt first, BidirIt last,      \fB(2)\fP (constexpr since C++20)
+   Compare comp );
 
-   Permutes the range [first, last) into the next permutation, where the set of all
-   permutations is ordered lexicographically with respect to operator< or comp. Returns
-   true if such a "next permutation" exists; otherwise transforms the range into the
-   lexicographically first permutation (as if by std::sort(first, last, comp)) and
-   returns false.
+   Permutes the range [first, last) into the next permutation. Returns true if such a
+   “next permutation” exists; otherwise transforms the range into the lexicographically
+   first permutation (as if by std::sort) and returns false.
+
+   1) The set of all permutations is ordered lexicographically with respect to
+   operator<
+   \fI(until C++20)\fP
+   std::less{}
+   \fI(since C++20)\fP.
+   2) The set of all permutations is ordered lexicographically with respect to comp.
+
+   If
+   the type of *first is not Swappable
+   \fI(until C++11)\fP
+   BidirIt is not ValueSwappable
+   \fI(since C++11)\fP, the behavior is undefined.
 
 .SH Parameters
 
    first, last -  the range of elements to permute
                   comparison function object (i.e. an object that satisfies the
-                  requirements of Compare) which returns true if the first argument
-                  is less than the second.
+                  requirements of Compare) which returns true if the first argument is
+                  less than the second.
 
                   The signature of the comparison function should be equivalent to the
                   following:
 
-                  bool cmp(const Type1 &a, const Type2 &b);
+                  bool cmp(const Type1& a, const Type2& b);
    comp        -
-                  While the signature does not need to have const &, the function must
+                  While the signature does not need to have const&, the function must
                   not modify the objects passed to it and must be able to accept all
                   values of type (possibly const) Type1 and Type2 regardless of value
-                  category (thus, Type1 & is not allowed
+                  category (thus, Type1& is not allowed
                   , nor is Type1 unless for Type1 a move is equivalent to a copy
                   \fI(since C++11)\fP).
                   The types Type1 and Type2 must be such that an object of type BidirIt
                   can be dereferenced and then implicitly converted to both of them.
-
 .SH Type requirements
    -
-   BidirIt must meet the requirements of ValueSwappable and
-   LegacyBidirectionalIterator.
+   BidirIt must meet the requirements of LegacyBidirectionalIterator.
 
 .SH Return value
 
    true if the new permutation is lexicographically greater than the old. false if the
    last permutation was reached and the range was reset to the first permutation.
 
+.SH Complexity
+
+   Given \\(\\scriptsize N\\)N as std::distance(first, last):
+
+   1,2) At most \\(\\scriptsize \\frac{N}{2}\\)
+
+   N
+   2
+
+   swaps.
+
 .SH Exceptions
 
    Any exceptions thrown from iterator operations or the element swap.
-
-.SH Complexity
-
-   At most N/2 swaps, where N = std::distance(first, last). Averaged over the entire
-   sequence of permutations, typical implementations use about 3 comparisons and 1.5
-   swaps per call.
-
-.SH Notes
-
-   Implementations (e.g. MSVC STL) may enable vectorization when the iterator type
-   satisfies LegacyContiguousIterator and swapping its value type calls neither
-   non-trivial special member function nor ADL-found swap.
 
 .SH Possible implementation
 
    template<class BidirIt>
    bool next_permutation(BidirIt first, BidirIt last)
    {
-     auto r_first = std::make_reverse_iterator(last);
-     auto r_last = std::make_reverse_iterator(first);
-     auto left = std::is_sorted_until(r_first, r_last);
-     if(left != r_last){
-       auto right = std::upper_bound(r_first, left, *left);
-       std::iter_swap(left, right);
-     }
-     std::reverse(left.base(), last);
-     return left != r_last;
+       auto r_first = std::make_reverse_iterator(last);
+       auto r_last = std::make_reverse_iterator(first);
+       auto left = std::is_sorted_until(r_first, r_last);
+
+       if (left != r_last)
+       {
+           auto right = std::upper_bound(r_first, left, *left);
+           std::iter_swap(left, right);
+       }
+
+       std::reverse(left.base(), last);
+       return left != r_last;
    }
+
+.SH Notes
+
+   Averaged over the entire sequence of permutations, typical implementations use about
+   3 comparisons and 1.5 swaps per call.
+
+   Implementations (e.g. MSVC STL) may enable vectorization when the iterator type
+   satisfies LegacyContiguousIterator and swapping its value type calls neither
+   non-trivial special member function nor ADL-found swap.
 
 .SH Example
 
-   The following code prints all three permutations of the string "aba"
+   The following code prints all three permutations of the string "aba".
 
 
 // Run this code
 
  #include <algorithm>
- #include <string>
  #include <iostream>
+ #include <string>
 
  int main()
  {
      std::string s = "aba";
-     std::sort(s.begin(), s.end());
-     do {
+
+     do
+     {
          std::cout << s << '\\n';
-     } while(std::next_permutation(s.begin(), s.end()));
+     }
+     while (std::next_permutation(s.begin(), s.end()));
+
+     std::cout << s << '\\n';
  }
 
 .SH Output:
 
- aab
  aba
  baa
+ aab
 
 .SH See also
 

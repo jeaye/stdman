@@ -1,4 +1,4 @@
-.TH std::is_function 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_function 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_function \- std::is_function
 
@@ -7,29 +7,32 @@ std::is_function \- std::is_function
    template< class T >              \fI(since C++11)\fP
    struct is_function;
 
+   std::is_function is a UnaryTypeTrait.
+
    Checks whether T is a function type. Types like std::function, lambdas, classes with
    overloaded operator() and pointers to functions don't count as function types.
    Provides the member constant value which is equal to true, if T is a function type.
    Otherwise, value is equal to false.
 
-   The behavior of a program that adds specializations for is_function
-   or is_function_v
-   \fI(since C++17)\fP is undefined.
+   If the program adds specializations for std::is_function or std::is_function_v, the
+   behavior is undefined.
 
 .SH Template parameters
 
    T - a type to check
 
-  Helper variable template
+   Helper variable template
 
    template< class T >                                           \fI(since C++17)\fP
    inline constexpr bool is_function_v = is_function<T>::value;
+
+
 
 Inherited from std::integral_constant
 
 .SH Member constants
 
-   value    true if T is a function type , false otherwise
+   value    true if T is a function type, false otherwise
    \fB[static]\fP \fI(public static member constant)\fP
 
 .SH Member functions
@@ -63,7 +66,7 @@ Inherited from std::integral_constant
 
    // primary template
    template<class>
-   struct is_function : std::false_type { };
+   struct is_function : std::false_type {};
 
    // specialization for regular functions
    template<class Ret, class... Args>
@@ -122,7 +125,6 @@ Inherited from std::integral_constant
    struct is_function<Ret(Args......) const volatile &&> : std::true_type {};
 
    // specializations for noexcept versions of all the above (C++17 and later)
-
    template<class Ret, class... Args>
    struct is_function<Ret(Args...) noexcept> : std::true_type {};
    template<class Ret, class... Args>
@@ -177,42 +179,39 @@ Inherited from std::integral_constant
 
 // Run this code
 
- #include <iostream>
+ #include <functional>
  #include <type_traits>
 
- struct A {
+ int f();
+ static_assert(std::is_function_v<decltype(f)>);
+
+ static_assert(std::is_function_v<int(int)>);
+ static_assert(!std::is_function_v<int>);
+ static_assert(!std::is_function_v<decltype([]{})>);
+ static_assert(!std::is_function_v<std::function<void()>>);
+
+ struct O { void operator()() {} };
+ static_assert(std::is_function_v<O()>);
+
+ struct A
+ {
+     static int foo();
      int fun() const&;
  };
+ static_assert(!std::is_function_v<A>);
+ static_assert(std::is_function_v<decltype(A::foo)>);
+ static_assert(!std::is_function_v<decltype(&A::fun)>);
 
  template<typename>
  struct PM_traits {};
-
  template<class T, class U>
- struct PM_traits<U T::*> {
-     using member_type = U;
- };
-
- int f();
+ struct PM_traits<U T::*> { using member_type = U; };
 
  int main()
  {
-     std::cout << std::boolalpha;
-     std::cout << "#1 " << std::is_function_v<A> << '\\n';
-     std::cout << "#2 " << std::is_function_v<int(int)> << '\\n';
-     std::cout << "#3 " << std::is_function_v<decltype(f)> << '\\n';
-     std::cout << "#4 " << std::is_function_v<int> << '\\n';
-
      using T = PM_traits<decltype(&A::fun)>::member_type; // T is int() const&
-     std::cout << "#5 " << std::is_function_v<T> << '\\n';
+     static_assert(std::is_function_v<T>);
  }
-
-.SH Output:
-
- #1 false
- #2 true
- #3 true
- #4 false
- #5 true
 
 .SH See also
 

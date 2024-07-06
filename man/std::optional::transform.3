@@ -1,0 +1,116 @@
+.TH std::optional::transform 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::optional::transform \- std::optional::transform
+
+.SH Synopsis
+   template< class F >                        \fB(1)\fP (since C++23)
+   constexpr auto transform( F&& f ) &;
+   template< class F >                        \fB(2)\fP (since C++23)
+   constexpr auto transform( F&& f ) const&;
+   template< class F >                        \fB(3)\fP (since C++23)
+   constexpr auto transform( F&& f ) &&;
+   template< class F >                        \fB(4)\fP (since C++23)
+   constexpr auto transform( F&& f ) const&&;
+
+   If *this contains a value, invokes f with the contained value as an argument, and
+   returns an std::optional that contains the result of that invocation; otherwise,
+   returns an empty std::optional.
+
+   The type of contained value in the result (denoted by U below) must be a non-array
+   object type, and must not be std::in_place_t or std::nullopt_t). Otherwise, the
+   program is ill-formed.
+
+   1) Let U be std::remove_cv_t<std::invoke_result_t<F, T&>>. If *this contains a
+   value, returns a std::optional<U> whose contained value is direct-initialized from
+   std::invoke(std::forward<F>(f), **this) (unlike and_then(), which must return an
+   std::optional directly). Otherwise, returns an empty std::optional<U>.
+   The program is ill-formed if the variable definition U
+   x(std::invoke(std::forward<F>(f), **this)); is ill-formed.
+   2) Same as \fB(1)\fP, except that U is std::remove_cv_t<std::invoke_result_t<F, const
+   T&>>.
+   3) Let U be std::remove_cv_t<std::invoke_result_t<F, T>>. If *this contains a value,
+   returns a std::optional<U> whose contained value is direct-initialized from
+   std::invoke(std::forward<F>(f), std::move(**this)). Otherwise, returns an empty
+   std::optional<U>.
+   The program is ill-formed if the variable definition U
+   x(std::invoke(std::forward<F>(f), std::move(**this))); is ill-formed.
+   4) Same as \fB(3)\fP, except that U is std::remove_cv_t<std::invoke_result_t<F, const T>>.
+
+.SH Parameters
+
+   f - a suitable function or Callable object whose call signature returns a
+       non-reference type
+
+.SH Return value
+
+   An std::optional containing the result of f or an empty std::optional, as described
+   above.
+
+.SH Notes
+
+   Because transform directly constructs a U object at the right location, rather than
+   passing it to a constructor, std::is_move_constructible_v<U> can be false.
+
+   As the callable f can't return a reference type, it cannot be a pointer to data
+   member.
+
+   Some languages call this operation map.
+
+   Feature-test macro  Value    Std                 Feature
+   __cpp_lib_optional 202110L (C++23) Monadic operations in std::optional
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <optional>
+
+ struct A { /* ... */ };
+ struct B { /* ... */ };
+ struct C { /* ... */ };
+ struct D { /* ... */ };
+
+ auto A_to_B(A) -> B { /* ... */ std::cout << "A => B \\n"; return {}; }
+ auto B_to_C(B) -> C { /* ... */ std::cout << "B => C \\n"; return {}; }
+ auto C_to_D(C) -> D { /* ... */ std::cout << "C => D \\n"; return {}; }
+
+ void try_transform_A_to_D(std::optional<A> o_A)
+ {
+     std::cout << (o_A ? "o_A has a value\\n" : "o_A is empty\\n");
+
+     std::optional<D> o_D = o_A.transform(A_to_B)
+                               .transform(B_to_C)
+                               .transform(C_to_D);
+
+     std::cout << (o_D ? "o_D has a value\\n\\n" : "o_D is empty\\n\\n");
+ };
+
+ int main()
+ {
+     try_transform_A_to_D( A{} );
+     try_transform_A_to_D( {} );
+ }
+
+.SH Output:
+
+ o_A has a value
+ A => B
+ B => C
+ C => D
+ o_D has a value
+
+ o_A is empty
+ o_D is empty
+
+.SH See also
+
+   value_or returns the contained value if available, another value otherwise
+            \fI(public member function)\fP
+   and_then returns the result of the given function on the contained value if it
+   (C++23)  exists, or an empty optional otherwise
+            \fI(public member function)\fP
+   or_else  returns the optional itself if it contains a value, or the result of the
+   (C++23)  given function otherwise
+            \fI(public member function)\fP

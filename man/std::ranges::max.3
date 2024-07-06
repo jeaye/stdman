@@ -1,4 +1,4 @@
-.TH std::ranges::max 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::max 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::max \- std::ranges::max
 
@@ -7,27 +7,28 @@ std::ranges::max \- std::ranges::max
    Call signature
    template< class T, class Proj = std::identity,
 
-   std::indirect_strict_weak_order<                                             (since
-   std::projected<const T*, Proj>> Comp = ranges::less >                        C++20)
+             std::indirect_strict_weak_order<                                   (since
+                 std::projected<const T*, Proj>> Comp = ranges::less >      \fB(1)\fP C++20)
+   constexpr const T&
 
-   constexpr const T& max( const T& a, const T& b, Comp comp = {}, Proj proj =
-   {} );
+       max( const T& a, const T& b, Comp comp = {}, Proj proj = {} );
    template< std::copyable T, class Proj = std::identity,
 
-   std::indirect_strict_weak_order<                                             (since
-   std::projected<const T*, Proj>> Comp = ranges::less >                        C++20)
+             std::indirect_strict_weak_order<                                   (since
+                 std::projected<const T*, Proj>> Comp = ranges::less >      \fB(2)\fP C++20)
+   constexpr T
 
-   constexpr const T max( std::initializer_list<T> r, Comp comp = {}, Proj
-   proj = {} );
+       max( std::initializer_list<T> r, Comp comp = {}, Proj proj = {} );
    template< ranges::input_range R, class Proj = std::identity,
 
-   std::indirect_strict_weak_order<
-   std::projected<ranges::iterator_t<R>, Proj>> Comp = ranges::less >           (since
+             std::indirect_strict_weak_order<
+                 std::projected<ranges::iterator_t<R>, Proj>> Comp =
+   ranges::less >                                                           \fB(3)\fP (since
    requires std::indirectly_copyable_storable<ranges::iterator_t<R>,            C++20)
-   ranges::range_value_t<R>*>
+                                              ranges::range_value_t<R>*>
+   constexpr ranges::range_value_t<R>
 
-   constexpr ranges::range_value_t<R> max( R&& r, Comp comp = {}, Proj proj =
-   {} );
+       max( R&& r, Comp comp = {}, Proj proj = {} );
 
    Returns the greater of the given projected values.
 
@@ -37,10 +38,10 @@ std::ranges::max \- std::ranges::max
 
    The function-like entities described on this page are niebloids, that is:
 
-     * Explicit template argument lists may not be specified when calling any of them.
-     * None of them is visible to argument-dependent lookup.
-     * When one of them is found by normal unqualified lookup for the name to the left
-       of the function-call operator, it inhibits argument-dependent lookup.
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
 
    In practice, they may be implemented as function objects, or with special compiler
    extensions.
@@ -56,72 +57,71 @@ std::ranges::max \- std::ranges::max
 
    1) The greater of a and b, according to their respective projected values. If they
    are equivalent, returns a.
-   2-3) The greatest value in r, according to the projection. If several values are
+   2,3) The greatest value in r, according to the projection. If several values are
    equivalent to the greatest, returns the leftmost one. If the range is empty (as
    determined by ranges::distance(r)), the behavior is undefined.
 
 .SH Complexity
 
    1) Exactly one comparison.
-   2-3) Exactly ranges::distance(r) - 1 comparisons.
+   2,3) Exactly ranges::distance(r) - 1 comparisons.
 
 .SH Possible implementation
 
- struct max_fn {
-   template<class T, class Proj = std::identity,
-            std::indirect_strict_weak_order<
-                std::projected<const T*, Proj>> Comp = ranges::less>
-   constexpr
-   const T& operator()(const T& a, const T& b, Comp comp = {}, Proj proj = {}) const
-   {
-       return std::invoke(comp, std::invoke(proj, a), std::invoke(proj, b)) ? b : a;
-   }
+  struct max_fn
+  {
+      template<class T, class Proj = std::identity,
+               std::indirect_strict_weak_order<
+                   std::projected<const T*, Proj>> Comp = ranges::less>
+      constexpr
+      const T& operator()(const T& a, const T& b, Comp comp = {}, Proj proj = {}) const
+      {
+          return std::invoke(comp, std::invoke(proj, a), std::invoke(proj, b)) ? b : a;
+      }
 
-   template<std::copyable T, class Proj = std::identity,
-            std::indirect_strict_weak_order<
-                std::projected<const T*, Proj>> Comp = ranges::less>
-   constexpr
-   const T operator()(std::initializer_list<T> r, Comp comp = {}, Proj proj = {}) const
-   {
-     return *ranges::max_element(r, std::ref(comp), std::ref(proj));
-   }
+      template<std::copyable T, class Proj = std::identity,
+               std::indirect_strict_weak_order<
+                   std::projected<const T*, Proj>> Comp = ranges::less>
+      constexpr
+      T operator()(std::initializer_list<T> r, Comp comp = {}, Proj proj = {}) const
+      {
+          return *ranges::max_element(r, std::ref(comp), std::ref(proj));
+      }
 
-   template<ranges::input_range R, class Proj = std::identity,
-            std::indirect_strict_weak_order<
-                 std::projected<ranges::iterator_t<R>, Proj>> Comp = ranges::less>
-   requires std::indirectly_copyable_storable<ranges::iterator_t<R>,
-                                              ranges::range_value_t<R>*>
-   constexpr
-   ranges::range_value_t<R> operator()(R&& r, Comp comp = {}, Proj proj = {}) const
-   {
-       using V = ranges::range_value_t<R>;
-       if constexpr (ranges::forward_range<R>) {
-           return static_cast<V>(*ranges::max_element(r, std::ref(comp), std::ref(proj)));
-       }
-       else {
-           auto i = ranges::begin(r);
-           auto s = ranges::end(r);
-           V m(*i);
-           while (++i != s) {
-               if (std::invoke(comp, std::invoke(proj, m), std::invoke(proj, *i))) {
-                   m = *i;
-               }
-           }
-           return m;
-       }
-   }
- };
+      template<ranges::input_range R, class Proj = std::identity,
+               std::indirect_strict_weak_order<
+                    std::projected<ranges::iterator_t<R>, Proj>> Comp = ranges::less>
+      requires std::indirectly_copyable_storable<ranges::iterator_t<R>,
+                                                 ranges::range_value_t<R>*>
+      constexpr
+      ranges::range_value_t<R> operator()(R&& r, Comp comp = {}, Proj proj = {}) const
+      {
+          using V = ranges::range_value_t<R>;
+          if constexpr (ranges::forward_range<R>)
+              return
+                  static_cast<V>(*ranges::max_element(r, std::ref(comp), std::ref(proj)));
+          else
+          {
+              auto i = ranges::begin(r);
+              auto s = ranges::end(r);
+              V m(*i);
+              while (++i != s)
+                  if (std::invoke(comp, std::invoke(proj, m), std::invoke(proj, *i)))
+                      m = *i;
+              return m;
+          }
+      }
+  };
 
- inline constexpr max_fn max;
+  inline constexpr max_fn max;
 
 .SH Notes
 
    Capturing the result of std::ranges::max by reference produces a dangling reference
    if one of the parameters is a temporary and that parameter is returned:
 
- int n = 1;
- const int& r = std::ranges::max(n-1, n+1);
- // r is dangling
+ int n = -1;
+ const int& r = std::ranges::max(n + 2, n * 2); // r is dangling
 
 .SH Example
 
@@ -132,14 +132,17 @@ std::ranges::max \- std::ranges::max
  #include <iostream>
  #include <string>
 
+ static_assert(std::ranges::max({0B10, 0X10, 010, 10}) == 16); // overload (2)
+
  int main()
  {
      namespace ranges = std::ranges;
      using namespace std::string_view_literals;
+
      std::cout << "larger of 1 and 9999: " << ranges::max(1, 9999) << '\\n'
                << "larger of 'a', and 'b': '" << ranges::max('a', 'b') << "'\\n"
                << "longest of \\"foo\\", \\"bar\\", and \\"hello\\": \\""
-               << ranges::max({ "foo"sv, "bar"sv, "hello"sv }, {},
+               << ranges::max({"foo"sv, "bar"sv, "hello"sv}, {},
                               &std::string_view::size) << "\\"\\n";
  }
 

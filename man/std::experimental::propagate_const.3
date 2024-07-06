@@ -1,10 +1,10 @@
-.TH std::experimental::propagate_const 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::experimental::propagate_const 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::experimental::propagate_const \- std::experimental::propagate_const
 
 .SH Synopsis
    Defined in header <experimental/propagate_const>
-   template<class T>                                 (library fundamentals TS v2)
+   template< class T >                               (library fundamentals TS v2)
    class propagate_const;
 
    std::experimental::propagate_const is a const-propagating wrapper for pointers and
@@ -17,44 +17,8 @@ std::experimental::propagate_const \- std::experimental::propagate_const
 
 .SH Type requirements
    -
-   T must be an object pointer type or a pointer-like class type, as specified below.
-   The program is ill-formed if T is an array type, reference type, pointer to function
-   type, pointer to (possibly cv-qualified) void, or if decltype(*std::declval<T&>())
-   is not an lvalue reference type.
-
-  Requirements on pointer-like class types
-
-   If T is a class type, it must satisfy the requirements in this subsection.
-
-   Given
-
-     * t, a modifiable lvalue expression of type T
-     * ct, a const T& bound to T
-     * element_type, an object type
-
-   The following expressions must be valid and have their specified effects:
-
-     Expression         Return type         Pre-conditions      Operational semantics
-   t.get()         element_type*
-   ct.get()        element_type* or const                     t.get() == ct.get()
-                   element_type*
-   *t              element_type&          t.get() != nullptr  *t refers to the same
-                                                              object as *(t.get())
-   *ct             element_type& or const ct.get() != nullptr *ct refers to the same
-                   element_type&                              object as *(ct.get())
-   t.operator->()  element_type*          t.get() != nullptr  t.operator->() == t.get()
-   ct.operator->() element_type* or const ct.get() != nullptr ct.operator->() ==
-                   element_type*                              ct.get()
-   (bool)t         bool                                       (bool)t is equivalent to
-                                                              t.get() != nullptr
-   (bool)ct        bool                                       (bool)ct is equivalent to
-                                                              ct.get() != nullptr
-
-   Further, T and const T shall be contextually convertible to bool.
-
-   In addition, if T is implicitly convertible to element_type*, then (element_type*)t
-   shall be equal to t.get(). Similarly, if const T is implicitly convertible to const
-   element_type*, then (const element_type*)ct shall be equal to ct.get().
+   T must be cv-unqualified pointer-to-object type or a cv-unqualified pointer-like
+   class type, as specified below.
 
 .SH Member types
 
@@ -66,7 +30,7 @@ std::experimental::propagate_const \- std::experimental::propagate_const
 
    constructor                  constructs a new propagate_const
                                 \fI(public member function)\fP
-   destructor                   destructs an propagate_const, destroying the contained
+   destructor                   destructs a propagate_const, destroying the contained
    (implicitly declared)        pointer
                                 \fI(public member function)\fP
    operator=                    assigns the propagate_const object
@@ -86,19 +50,21 @@ std::experimental::propagate_const \- std::experimental::propagate_const
 
 .SH Non-member functions
 
-   operator==
-   operator!=                                                  compares to another
-   operator<                                                   propagate_const, another
-   operator<=                                                  pointer, or with nullptr
-   operator>                                                   \fI(function template)\fP
+   operator==                                                  compares to another
+   operator!=                                                  propagate_const, another
+   operator<                                                   pointer, or with nullptr
+   operator<=                                                  \fI(function template)\fP
+   operator>
    operator>=
                                                                specializes the swap
    std::experimental::swap(std::experimental::propagate_const) algorithm
                                                                \fI(function template)\fP
-                                                               Retrieves a reference to
-   get_underlying                                              the wrapped pointer-like
-                                                               object
+
+                                                               retrieves a reference to
+                                                               the wrapped pointer-like
+   get_underlying                                              object
                                                                \fI(function template)\fP
+
 
 .SH Helper classes
 
@@ -106,7 +72,7 @@ std::experimental::propagate_const \- std::experimental::propagate_const
    std::hash<std::experimental::propagate_const>          propagate_const
                                                           (class template
                                                           specialization)
-   std::equal_to<std::experimental::propagate_const>      Specializations of the
+   std::equal_to<std::experimental::propagate_const>      specializations of the
    std::not_equal_to<std::experimental::propagate_const>  standard comparison function
    std::less<std::experimental::propagate_const>          objects for propagate_const
    std::greater<std::experimental::propagate_const>       (class template
@@ -118,33 +84,36 @@ std::experimental::propagate_const \- std::experimental::propagate_const
 
 // Run this code
 
+ #include <experimental/propagate_const>
  #include <iostream>
  #include <memory>
- #include <experimental/propagate_const>
 
  struct X
  {
-     void g() const { std::cout << "g (const)\\n"; }
-     void g() { std::cout << "g (non-const)\\n"; }
+     void g() const { std::cout << "X::g (const)\\n"; }
+     void g() { std::cout << "X::g (non-const)\\n"; }
  };
 
  struct Y
  {
-     Y() : m_ptrX(std::make_unique<X>()) { }
+     Y() : m_propConstX(std::make_unique<X>()), m_autoPtrX(std::make_unique<X>()) {}
 
      void f() const
      {
-         std::cout << "f (const)\\n";
-         m_ptrX->g();
+         std::cout << "Y::f (const)\\n";
+         m_propConstX->g();
+         m_autoPtrX->g();
      }
 
      void f()
      {
-         std::cout << "f (non-const)\\n";
-         m_ptrX->g();
+         std::cout << "Y::f (non-const)\\n";
+         m_propConstX->g();
+         m_autoPtrX->g();
      }
 
-     std::experimental::propagate_const<std::unique_ptr<X>> m_ptrX;
+     std::experimental::propagate_const<std::unique_ptr<X>> m_propConstX;
+     std::unique_ptr<X> m_autoPtrX;
  };
 
  int main()
@@ -158,7 +127,18 @@ std::experimental::propagate_const \- std::experimental::propagate_const
 
 .SH Output:
 
- f (non-const)
- g (non-const)
- f (const)
- g (const)
+ Y::f (non-const)
+ X::g (non-const)
+ X::g (non-const)
+ Y::f (const)
+ X::g (const)
+ X::g (non-const)
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 3136 LFTSv2     meaningless T like int* const, void*, or const  disallowed
+                       PtrLike were allowed

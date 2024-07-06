@@ -1,4 +1,4 @@
-.TH std::ranges::equal_to 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::equal_to 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::equal_to \- std::ranges::equal_to
 
@@ -9,28 +9,6 @@ std::ranges::equal_to \- std::ranges::equal_to
    Function object for performing comparisons. The parameter types of the function call
    operator (but not the return type) are deduced from the arguments.
 
-  Implementation-defined strict total order over pointers
-
-   The function call operator yields the implementation-defined strict total order over
-   pointers if the = operator between arguments invokes a built-in comparison operator
-   for a pointer, even if the built-in = operator does not.
-
-   The implementation-defined strict total order is consistent with the partial order
-   imposed by built-in comparison operators (<=>, <, >, <=, and >=), and consistent
-   among following standard function objects:
-
-     * std::less, std::greater, std::less_equal, and std::greater_equal, when the
-       template argument is a pointer type or void
-
-     * std::ranges::equal_to, std::ranges::not_equal_to, std::ranges::less,
-       std::ranges::greater, std::ranges::less_equal, std::ranges::greater_equal, and
-       std::compare_three_way
-
-.SH Member types
-
-   Member type    Definition
-   is_transparent /* unspecified */
-
 .SH Member functions
 
    operator() checks if the arguments are equal
@@ -39,75 +17,51 @@ std::ranges::equal_to \- std::ranges::equal_to
 std::ranges::equal_to::operator()
 
    template< class T, class U >
+   constexpr bool operator()( T&& t, U&& u ) const;
 
-   requires std::equality_comparable_with<T, U> // with different semantic
-   requirements
+   Given the expression std::forward<T>(t) == std::forward<U>(u) as expr:
 
-   constexpr bool operator()(T&& t, U&& u) const;
+     * If expr results in a call to built-in operator== comparing pointers, given the
+       composite pointer type of t and u as P:
 
-   Compares t and u, equivalent to return std::forward<T>(t) == std::forward<U>(u);,
-   except when that expression resolves to a call to a built-in operator== comparing
-   pointers.
+     * For the two converted pointers (of type P), if one pointer precedes the other in
+       the implementation-defined strict total order over pointers, returns false,
+       otherwise returns true.
+     * If the conversion sequence from T to P or the conversion sequence from U to P is
+       not equality-preserving, the behavior is undefined.
+     * Otherwise:
 
-   When a call would not invoke a built-in operator comparing pointers, the behavior is
-   undefined if std::equality_comparable_with<T, U> is not modeled.
+     * Returns the result of expr.
+     * If std::equality_comparable_with<T, U> is not modeled, the behavior is
+       undefined.
 
-   When a call would invoke a built-in operator comparing pointers of type P, the
-   result is instead determined as follows:
-
-     * Returns false if one of the (possibly converted) value of the first argument and
-       the (possibly converted) value of the second argument precedes the other in the
-       implementation-defined strict total ordering over all pointer values of type P.
-       This strict total ordering is consistent with the partial order imposed by the
-       built-in operators <, >, <=, and >=.
-     * Otherwise (neither precedes the other), returns true.
-
-   The behavior is undefined unless the conversion sequences from both T and U to P are
-   equality-preserving (see below).
-
-  Equality preservation
-
-   An expression is equality preserving if it results in equal outputs given equal
-   inputs.
-
-     * The inputs to an expression consist of its operands.
-     * The outputs of an expression consist of its result and all operands modified by
-       the expression (if any).
-
-   In specification of standard concepts, operands are defined as the largest
-   subexpressions that include only:
-
-     * an id-expression, and
-     * invocations of std::move, std::forward, and std::declval.
-
-   The cv-qualification and value category of each operand is determined by assuming
-   that each template type parameter denotes a cv-unqualified complete non-array object
-   type.
-
-   Every expression required to be equality preserving is further required to be
-   stable: two evaluations of such an expression with the same input objects must have
-   equal outputs absent any explicit intervening modification of those input objects.
+   This overload participates in overload resolution only if
+   std::equality_comparable_with<T, U> is satisfied.
 
 .SH Notes
 
-   Unlike std::equal_to, std::ranges::equal_to requires both == and != to be valid (via
-   the equality_comparable_with constraint).
+   Compared to std::equal_to, std::ranges::equal_to additionally requires != to be
+   valid, and that both argument types are required to be (homogeneously) comparable
+   with themselves (via the equality_comparable_with constraint).
 
 .SH Example
 
     This section is incomplete
     Reason: no example
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to         Behavior as published              Correct behavior
-   LWG 3530 C++20      syntactic checks were relaxed while   only semantic requirements
-                       comparing pointers                    relaxed
+      DR    Applied to       Behavior as published              Correct behavior
+   LWG 3530 C++20      syntactic checks were relaxed     only semantic requirements are
+                       while comparing pointers          relaxed
 
 .SH See also
 
    equal_to function object implementing x == y
             \fI(class template)\fP
+
+.SH Category:
+     * Todo no example

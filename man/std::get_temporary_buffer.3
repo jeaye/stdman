@@ -1,4 +1,4 @@
-.TH std::get_temporary_buffer 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::get_temporary_buffer 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::get_temporary_buffer \- std::get_temporary_buffer
 
@@ -6,19 +6,23 @@ std::get_temporary_buffer \- std::get_temporary_buffer
    Defined in header <memory>
    template< class T >
 
-   std::pair<T*, std::ptrdiff_t>                           \fI(until C++11)\fP
+   std::pair<T*, std::ptrdiff_t>                               \fI(until C++11)\fP
 
-   get_temporary_buffer( std::ptrdiff_t count );
+       get_temporary_buffer( std::ptrdiff_t count );
    template< class T >
-                                                           \fI(since C++11)\fP
-   std::pair<T*, std::ptrdiff_t>                           (deprecated in C++17)
-                                                           (removed in C++20)
-   get_temporary_buffer( std::ptrdiff_t count ) noexcept;
+                                                               \fI(since C++11)\fP
+   std::pair<T*, std::ptrdiff_t>                               (deprecated in C++17)
+                                                               (removed in C++20)
+       get_temporary_buffer( std::ptrdiff_t count ) noexcept;
 
-   Allocates uninitialized contiguous storage, which should be sufficient to store up
-   to count adjacent objects of type T. The request is non-binding and the
-   implementation may allocate less or more than necessary to store count adjacent
-   objects.
+   If count is negative or zero, does nothing.
+
+   Otherwise, requests to allocate uninitialized contiguous storage for count adjacent
+   objects of type T. The request is non-binding, and the implementation may instead
+   allocate the storage for any other number of (including zero) adjacent objects of
+   type T.
+
+   It is implementation-defined whether over-aligned types are supported. \fI(since C++11)\fP
 
 .SH Parameters
 
@@ -26,12 +30,12 @@ std::get_temporary_buffer \- std::get_temporary_buffer
 
 .SH Return value
 
-   A std::pair holding a pointer to the beginning of the allocated storage and the
-   number of objects that fit in the storage that was actually allocated.
+   A std::pair, the member first is a pointer to the beginning of the allocated storage
+   and the member second is the number of objects that fit in the storage that was
+   actually allocated.
 
-   If no memory could be allocated, or allocated storage is not enough to store a
-   single element of type T, the first element of the result is a null pointer and the
-   second element is zero.
+   If count <= 0 or allocated storage is not enough to store a single element of type
+   T, the member first of the result is a null pointer and the member second is zero.
 
 .SH Notes
 
@@ -42,20 +46,27 @@ std::get_temporary_buffer \- std::get_temporary_buffer
 .SH Example
 
 
+
 // Run this code
 
  #include <algorithm>
  #include <iostream>
+ #include <iterator>
  #include <memory>
  #include <string>
- #include <iterator>
 
  int main()
  {
      const std::string s[] = {"string", "1", "test", "..."};
      const auto p = std::get_temporary_buffer<std::string>(4);
      // requires that p.first is passed to return_temporary_buffer
-     // (beware of early exit points and exceptions)
+     // (beware of early exit points and exceptions), or better use:
+     std::unique_ptr<std::string, void(*)(std::string*)> on_exit(p.first,
+     [](std::string* p)
+     {
+         std::cout << "returning temporary buffer...\\n";
+         std::return_temporary_buffer(p);
+     });
 
      std::copy(s, s + p.second,
                std::raw_storage_iterator<std::string*, std::string>(p.first));
@@ -66,11 +77,13 @@ std::get_temporary_buffer \- std::get_temporary_buffer
      std::copy(p.first, p.first + p.second,
                std::ostream_iterator<std::string>{std::cout, "\\n"});
 
-     std::for_each(p.first, p.first + p.second, [](std::string& e) {
+     std::for_each(p.first, p.first + p.second, [](std::string& e)
+     {
          e.~basic_string<char>();
      }); // same as: std::destroy(p.first, p.first + p.second);
 
-     std::return_temporary_buffer(p.first);
+     // manually reclaim memory if unique_ptr-like technique is not used:
+     // std::return_temporary_buffer(p.first);
  }
 
 .SH Output:
@@ -79,9 +92,24 @@ std::get_temporary_buffer \- std::get_temporary_buffer
  1
  test
  ...
+ returning temporary buffer...
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 425  C++98      the behavior when count <= 0 was unclear        made clear
+   LWG 2072 C++98      it was not allowed to allocate insufficient     allowed
+                       memory
 
 .SH See also
 
    return_temporary_buffer frees uninitialized storage
    (deprecated in C++17)   \fI(function template)\fP
    (removed in C++20)
+                           allocates storage at least as large as the requested size
+   allocate_at_least       via an allocator
+   \fB[static]\fP (C++23)        \fI\fI(public static member\fP function of\fP
+                           std::allocator_traits<Alloc>)

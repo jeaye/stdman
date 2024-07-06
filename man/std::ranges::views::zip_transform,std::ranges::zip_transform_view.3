@@ -1,0 +1,180 @@
+.TH std::ranges::views::zip_transform,std::ranges::zip_transform_view 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::views::zip_transform,std::ranges::zip_transform_view \- std::ranges::views::zip_transform,std::ranges::zip_transform_view
+
+.SH Synopsis
+   Defined in header <ranges>
+   template< std::move_constructible F, ranges::input_range... Views
+   >
+
+       requires (ranges::view<Views> && ...) && (sizeof...(Views) >
+   0) &&
+                 std::is_object_v<F> && std::regular_invocable<
+                     F&, ranges::range_reference_t<Views>...> &&      \fB(1)\fP (since C++23)
+                 /*can-reference*/<std::invoke_result_t<
+                     F&, ranges::range_reference_t<Views>...>>
+   class zip_transform_view
+
+        : public ranges::view_interface<zip_transform_view<F,
+   Views...>>
+   namespace views {
+
+       inline constexpr /*unspecified*/ zip_transform =               \fB(2)\fP (since C++23)
+   /*unspecified*/;
+
+   }
+   Call signature
+   template< class F, ranges::viewable_range... Rs >
+
+       requires /* see below */                                           (since C++23)
+
+   constexpr auto zip_transform( F&& f, Rs&&... rs );
+
+   1) zip_transform_view is a range adaptor that takes an invocable object and one or
+   more views, and produces a view whose i^th element is the result of applying the
+   invocable object to the i^th elements of all views.
+   A type T models the exposition-only concept /*can-reference*/ if and only if T& is a
+   valid type.
+   2) views::zip_transform is a customization point object.
+
+   When calling with one argument f, let FD be std::decay_t<decltype(f)>, if:
+
+     * FD models copy_constructible,
+     * FD& models regular_invocable, and
+     * std::invoke_result_t<FD&> is an object type,
+
+   then views::zip_transform(f) is expression-equivalent to ((void)f,
+   auto(views::empty<std::decay_t<std::invoke_result_t<FD&>>>)). Otherwise, the call to
+   views::zip_transform is ill-formed.
+
+   When calling with more than one arguments f and rs..., views::zip_transform(f,
+   rs...) is expression-equivalent to ranges::zip_transform_view(f, rs...).
+
+   zip_transform_view models the concepts random_access_range, bidirectional_range,
+   forward_range, input_range, common_range, and sized_range when the underlying
+   ranges::zip_view<Views...> models respective concepts.
+
+.SH Member functions
+
+   constructor   constructs a zip_transform_view
+   (C++23)       \fI(public member function)\fP
+   begin         returns an iterator to the beginning
+   (C++23)       \fI(public member function)\fP
+   end           returns an iterator or a sentinel to the end
+   (C++23)       \fI(public member function)\fP
+   size          returns the number of elements. Provided only if each underlying
+   (C++23)       (adapted) range satisfies sized_range.
+                 \fI(public member function)\fP
+         Inherited from std::ranges::view_interface
+   empty         returns whether the derived view is empty. Provided if it satisfies
+   (C++20)       sized_range or forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   cbegin        returns a constant iterator to the beginning of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   cend          returns a sentinel for the constant iterator of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator bool returns whether the derived view is not empty. Provided if
+   (C++20)       ranges::empty is applicable to it.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   front         returns the first element in the derived view. Provided if it
+   (C++20)       satisfies forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   back          returns the last element in the derived view. Provided if it satisfies
+   (C++20)       bidirectional_range and common_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator[]    returns the n^th element in the derived view. Provided if it satisfies
+   (C++20)       random_access_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+
+   Deduction guides
+
+.SH Member types
+
+   Member type         Definition
+   InnerView (private) ranges::zip_view<Views...>.
+                       (exposition-only member type*)
+                         * ranges::iterator_t<const InnerView> if Const is true,
+   ziperator (private)     otherwise
+                         * ranges::iterator_t<InnerView>.
+                           (exposition-only member type*)
+                         * ranges::sentinel_t<const InnerView> if Const is true,
+   zentinel (private)      otherwise
+                         * ranges::sentinel_t<InnerView>.
+                           (exposition-only member type*)
+
+   Data members
+
+   Member object  Definition
+   zip_ (private) An underlying view object of type InnerView
+                  (exposition-only member object*)
+   fun_ (private) A wrapped invocable object of type movable-box<F>
+                  (exposition-only member object*)
+
+   Nested classes
+
+   iterator the iterator type
+   (C++23)  (exposition-only member class template*)
+   sentinel the sentinel type used when the underlying zip_view is not a common_range
+   (C++23)  (exposition-only member class template*)
+
+.SH Notes
+
+    Feature-test macro   Value    Std                 Feature
+                                        std::ranges::zip_view,
+   __cpp_lib_ranges_zip 202110L (C++23) std::ranges::zip_transform_view,
+                                        std::ranges::adjacent_view,
+                                        std::ranges::adjacent_transform_view
+
+.SH Example
+
+
+// Run this code
+
+ #include <array>
+ #include <iostream>
+ #include <list>
+ #include <ranges>
+ #include <vector>
+
+ void print(auto const rem, auto const& r)
+ {
+     std::cout << rem << '{';
+     for (char o[]{0,' ',0}; auto const& e : r)
+         std::cout << o << e, *o = ',';
+     std::cout << "}\\n";
+ }
+
+ int main()
+ {
+     auto v1 = std::vector<float>{1, 2, 3};
+     auto v2 = std::list<short>{1, 2, 3, 4};
+     auto v3 = std::to_array({1, 2, 3, 4, 5});
+
+     auto add = [](auto a, auto b, auto c) { return a + b + c; };
+
+     auto sum = std::views::zip_transform(add, v1, v2, v3);
+
+     print("v1:  ", v1);
+     print("v2:  ", v2);
+     print("v3:  ", v3);
+     print("sum: ", sum);
+ }
+
+.SH Output:
+
+ v1:  {1, 2, 3}
+ v2:  {1, 2, 3, 4}
+ v3:  {1, 2, 3, 4, 5}
+ sum: {3, 6, 9}
+
+.SH See also
+
+   ranges::zip_view       a view consisting of tuples of references to corresponding
+   views::zip             elements of the adapted views
+   (C++23)                \fI(class template)\fP (customization point object)
+   ranges::transform_view a view of a sequence that applies a transformation function
+   views::transform       to each element
+   (C++20)                \fI(class template)\fP (range adaptor object)
+   ranges::elements_view  takes a view consisting of tuple-like values and a number N
+   views::elements        and produces a view of N^th element of each tuple
+   (C++20)                \fI(class template)\fP (range adaptor object)

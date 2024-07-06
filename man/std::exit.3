@@ -1,4 +1,4 @@
-.TH std::exit 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::exit 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::exit \- std::exit
 
@@ -11,63 +11,65 @@ std::exit \- std::exit
 
    Several cleanup steps are performed:
 
-   1) destructors of objects with static storage duration are called in
-   reverse order of completion of their constructors or the completion of
-   their dynamic initialization, and the functions passed to std::atexit
-   are called in reverse order they are registered (last one first).
-   a) any static objects whose initialization was completed before the
-   call to std::atexit for some function F will be destroyed after the    \fI(until C++11)\fP
-   call to F during program termination.
-   b) any static objects whose construction began after the call to
-   std::atexit for some function F will be destroyed before the call to F
-   during program termination (this includes the case where std::atexit
-   was called from the constructor of the static object)
+   1) Objects with static storage duration are destroyed and functions
+   registered by calling std::atexit are called:
+   a) Non-local objects with static storage duration are destroyed in the
+   reverse order of the completion of their constructor.
+   b) Functions registered with std::atexit are called in the reverse
+   order of their registration, except that a function is called after
+   any previously registered functions that had already been called at
+   the time it was registered.
+   c) For each function f registered with std::atexit and each non-local
+   object obj of static storage duration,                                 \fI(until C++11)\fP
+
+     * if f is registered before the initialization of obj, f will only
+       be called after the destruction of obj;
+     * if f is registered after the initialization of obj, f will only be
+       called before the destruction of obj.
+   d) For each local object obj with static storage duration, obj is
+   destroyed as if a function calling the destructor of obj were
+   registered with std::atexit at the completion of the constructor of
+   obj.
    1) The destructors of objects with thread local storage duration that
    are associated with the current thread, the destructors of objects
    with static storage duration, and the functions registered with
    std::atexit are executed concurrently, while maintaining the following
    guarantees:
    a) The last destructor for thread-local objects is sequenced-before
-   the first destructor for a static object
+   the first destructor for a static object.
    b) If the completion of the constructor or dynamic initialization for
    thread-local or static object A was sequenced-before thread-local or
    static object B, the completion of the destruction of B is
-   sequenced-before the start of the destruction of A                     \fI(since C++11)\fP
+   sequenced-before the start of the destruction of A.                    \fI(since C++11)\fP
    c) If the completion of the initialization of a static object A was
    sequenced-before the call to std::atexit for some function F, the call
    to F during termination is sequenced-before the start of the
-   destruction of A
+   destruction of A.
    d) If the call to std::atexit for some function F was sequenced-before
    the completion of initialization of a static object A, the start of
    the destruction of A is sequenced-before the call to F during
    termination.
    e) If a call to std::atexit for some function F1 was sequenced-before
    the call to std::atexit for some function F2, then the call to F2
-   during termination is sequenced-before the call to F1
+   during termination is sequenced-before the call to F1.
 
-              * In the above,
+     * In the above,
 
-                           * if any function registered with atexit or any destructor
-                             of static/thread-local object throws an exception,
-                             std::terminate is called
-                           * if the compiler opted to lift dynamic initialization of an
-                             object to the static initialization phase of non-local
-                             initialization, the sequencing of destruction honors its
-                             would-be dynamic initialization.
-                           * If a function-local (block-scope) static object was
-                             destroyed and then that function is called from the
-                             destructor of another static object and the control flow
-                             passes through the definition of that object (or if it is
-                             used indirectly, via pointer or reference), the behavior
-                             is undefined.
-                           * if a function-local (block-scope) static object was
-                             initialized during construction of a subobject of a class
-                             or array, it is only destroyed after all subobjects of
-                             that class or all elements of that array were destroyed.
-
-   2) all C streams are flushed and closed
-   3) files created by std::tmpfile are removed
-   4) control is returned to the host environment. If exit_code is 0 or EXIT_SUCCESS,
+     * If any function registered with atexit or any destructor of static/thread-local
+       object throws an exception, std::terminate is called.
+     * If the compiler opted to lift dynamic initialization of an object to the static
+       initialization phase of non-local initialization, the sequencing of destruction
+       honors its would-be dynamic initialization.
+     * If a function-local (block-scope) static object was destroyed and then that
+       function is called from the destructor of another static object and the control
+       flow passes through the definition of that object (or if it is used indirectly,
+       via pointer or reference), the behavior is undefined.
+     * If a function-local (block-scope) static object was initialized during
+       construction of a subobject of a class or array, it is only destroyed after all
+       subobjects of that class or all elements of that array were destroyed.
+   2) All C streams are flushed and closed.
+   3) Files created by std::tmpfile are removed.
+   4) Control is returned to the host environment. If exit_code is 0 or EXIT_SUCCESS,
    an implementation-defined status indicating successful termination is returned. If
    exit_code is EXIT_FAILURE, an implementation-defined status indicating unsuccessful
    termination is returned. In other cases implementation-defined status value is
@@ -81,8 +83,8 @@ std::exit \- std::exit
    Returning from the main function, either by a return statement or by reaching the
    end of the function performs the normal function termination (calls the destructors
    of the variables with automatic storage durations) and then executes std::exit,
-   passing the argument of the return statement (or 0 if implicit return was
-   used) as exit_code.
+   passing the argument of the return statement (or 0 if implicit return was used) as
+   exit_code.
 
 .SH Parameters
 
@@ -97,24 +99,26 @@ std::exit \- std::exit
 
 // Run this code
 
- #include <iostream>
  #include <cstdlib>
+ #include <iostream>
 
- struct Static {
+ struct Static
+ {
      ~Static()
      {
-         std::cout << "Static dtor\\n";
+         std::cout << "Static destructor\\n";
      }
  };
 
- struct Local {
+ struct Local
+ {
      ~Local()
      {
-         std::cout << "Local dtor\\n";
+         std::cout << "Local destructor\\n";
      }
  };
 
- Static static_variable; // dtor of this object *will* be called
+ Static static_variable; // Destructor of this object *will* be called
 
  void atexit_handler()
  {
@@ -123,10 +127,11 @@ std::exit \- std::exit
 
  int main()
  {
-     Local local_variable; // dtor of this object will *not* be called
-     const int result = std::atexit(atexit_handler); // handler will be called
+     Local local_variable; // Destructor of this object will *not* be called
+     const int result = std::atexit(atexit_handler); // Handler will be called
 
-     if (result != 0) {
+     if (result != 0)
+     {
          std::cerr << "atexit registration failed\\n";
          return EXIT_FAILURE;
      }
@@ -141,7 +146,18 @@ std::exit \- std::exit
 
  test
  atexit handler
- Static dtor
+ Static destructor
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+    DR   Applied to               Behavior as published                Correct behavior
+                    during cleanup, the behavior was unclear when \fB(1)\fP
+   LWG 3 C++98      a function is                                      made clear
+                    registered with std::atexit or \fB(2)\fP a static local
+                    object is initialized
 
 .SH See also
 
@@ -153,3 +169,5 @@ std::exit \- std::exit
    \fI(C++11)\fP       \fI(function)\fP
    at_quick_exit registers a function to be called on std::quick_exit invocation
    \fI(C++11)\fP       \fI(function)\fP
+   C documentation for
+   exit

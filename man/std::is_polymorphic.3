@@ -1,4 +1,4 @@
-.TH std::is_polymorphic 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_polymorphic 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_polymorphic \- std::is_polymorphic
 
@@ -7,31 +7,33 @@ std::is_polymorphic \- std::is_polymorphic
    template< class T >              \fI(since C++11)\fP
    struct is_polymorphic;
 
+   std::is_polymorphic is a UnaryTypeTrait.
+
    If T is a polymorphic class (that is, a non-union class that declares or inherits at
    least one virtual function), provides the member constant value equal to true. For
    any other type, value is false.
 
-   If T is a non-union class type, T shall be a complete type; otherwise, the behavior
-   is undefined.
+   If T is an incomplete non-union class type, the behavior is undefined.
 
-   The behavior of a program that adds specializations for is_polymorphic
-   or is_polymorphic_v
-   \fI(since C++17)\fP is undefined.
+   If the program adds specializations for std::is_polymorphic or
+   std::is_polymorphic_v, the behavior is undefined.
 
 .SH Template parameters
 
    T - a type to check
 
-  Helper variable template
+   Helper variable template
 
    template< class T >                                                 \fI(since C++17)\fP
    inline constexpr bool is_polymorphic_v = is_polymorphic<T>::value;
+
+
 
 Inherited from std::integral_constant
 
 .SH Member constants
 
-   value    true if T is a polymorphic class type , false otherwise
+   value    true if T is a polymorphic class type, false otherwise
    \fB[static]\fP \fI(public static member constant)\fP
 
 .SH Member functions
@@ -49,18 +51,17 @@ Inherited from std::integral_constant
 
 .SH Possible implementation
 
-   namespace detail {
-
-   template <class T>
-   std::true_type detect_is_polymorphic(
-       decltype(dynamic_cast<const volatile void*>(static_cast<T*>(nullptr)))
-   );
-   template <class T>
-   std::false_type detect_is_polymorphic(...);
-
+   namespace detail
+   {
+       template<class T>
+       std::true_type detect_is_polymorphic(
+           decltype(dynamic_cast<const volatile void*>(static_cast<T*>(nullptr)))
+       );
+       template<class T>
+       std::false_type detect_is_polymorphic(...);
    } // namespace detail
 
-   template <class T>
+   template<class T>
    struct is_polymorphic : decltype(detail::detect_is_polymorphic<T>(nullptr)) {};
 
 .SH Example
@@ -68,35 +69,42 @@ Inherited from std::integral_constant
 
 // Run this code
 
- #include <iostream>
  #include <type_traits>
 
- struct A {
-     int m;
- };
+ struct A { int m; };
+ static_assert(!std::is_polymorphic_v<A>);
 
- struct B {
-     virtual void foo();
- };
+ struct B { virtual void foo(); };
+ static_assert(std::is_polymorphic_v<B>);
 
  struct C : B {};
+ static_assert(std::is_polymorphic_v<C>);
 
- struct D {
-     virtual ~D() = default;
- };
+ struct D { virtual ~D() = default; };
+ static_assert(std::is_polymorphic_v<D>);
 
- int main()
- {
-     std::cout << std::boolalpha
-               << std::is_polymorphic<A>::value << ' '
-               << std::is_polymorphic<B>::value << ' '
-               << std::is_polymorphic<C>::value << ' '
-               << std::is_polymorphic<D>::value << '\\n';
- }
+ // Uses inheritance, but not the virtual keyword:
+ struct E : A {};
+ static_assert(!std::is_polymorphic_v<E>);
 
-.SH Output:
+ struct F : virtual A {};
+ static_assert(!std::is_polymorphic_v<F>);
 
- false true true true
+ struct AX : A {};
+ struct AY : A {};
+ struct XY : virtual AX, virtual AY {};
+ static_assert(!std::is_polymorphic_v<XY>);
+
+ int main() {}
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to     Behavior as published           Correct behavior
+   LWG 2015 C++11      the behavior was undefined if the base characteristic is
+                       T is an incomplete union type std::false_type in this case
 
 .SH See also
 

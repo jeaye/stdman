@@ -1,4 +1,4 @@
-.TH std::stack::swap 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::stack::swap 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::stack::swap \- std::stack::swap
 
@@ -6,7 +6,10 @@ std::stack::swap \- std::stack::swap
    void swap( stack& other ) noexcept(/* see below */);  \fI(since C++11)\fP
 
    Exchanges the contents of the container adaptor with those of other. Effectively
-   calls using std::swap; swap(c, other.c);
+   calls
+
+ using std::swap;
+ swap(c, other.c);
 
 .SH Parameters
 
@@ -41,42 +44,51 @@ std::stack::swap \- std::stack::swap
 // Run this code
 
  #include <iostream>
+ #include <concepts>
  #include <stack>
  #include <string>
+ #include <string_view>
  #include <vector>
 
- template <typename Stack>
- void print(Stack stack /* pass by value */, int id)
+ template<typename Adaptor>
+ requires (std::ranges::input_range<typename Adaptor::container_type>)
+ void print(std::string_view name, const Adaptor& adaptor)
  {
-     std::cout << "s" << id << " [" << stack.size() << "]: ";
-     for (; !stack.empty(); stack.pop())
-         std::cout << stack.top() << ' ';
-     std::cout << (id > 1 ? "\\n\\n" : "\\n");
+     struct Printer : Adaptor // to use protected Adaptor::Container c;
+     {
+         void print(std::string_view name) const
+         {
+             std::cout << name << " [" << std::size(this->c) << "]: ";
+             for (auto const& elem : this->c)
+                 std::cout << elem << ' ';
+             std::cout << '\\n';
+         }
+     };
+
+     static_cast<Printer const&>(adaptor).print(name);
  }
 
  int main()
  {
-     std::vector<std::string>
-         v1{"1","2","3","4"},
-         v2{"Ɐ","B","Ɔ","D","Ǝ"};
+     std::vector<std::string> v1{"1","2","3","4"},
+                              v2{"Ɐ","B","Ɔ","D","Ǝ"};
 
-     std::stack s1{std::move(v1)};
-     std::stack s2{std::move(v2)};
+     std::stack s1(std::move(v1));
+     std::stack s2(std::move(v2));
 
-     print(s1, 1);
-     print(s2, 2);
+     print("s1", s1);
+     print("s2", s2);
 
      s1.swap(s2);
 
-     print(s1, 1);
-     print(s2, 2);
+     print("s1", s1);
+     print("s2", s2);
  }
 
 .SH Output:
 
  s1 [4]: 4 3 2 1
  s2 [5]: Ǝ D Ɔ B Ɐ
-
  s1 [5]: Ǝ D Ɔ B Ɐ
  s2 [4]: 4 3 2 1
 
@@ -92,3 +104,6 @@ std::stack::swap \- std::stack::swap
 
    std::swap(std::stack) specializes the std::swap algorithm
    \fI(C++11)\fP               \fI(function template)\fP
+
+.SH Category:
+     * conditionally noexcept

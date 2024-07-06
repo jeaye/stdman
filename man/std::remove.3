@@ -1,23 +1,23 @@
-.TH std::remove 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::remove 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::remove \- std::remove
 
 .SH Synopsis
    Defined in header <cstdio>
-   int remove( const char* fname );
+   int remove( const char* pathname );
 
-   Deletes the file identified by character string pointed to by fname.
+   Deletes the file identified by the character string pointed to by pathname.
 
-   If the file is currently open by the current or another process, the behavior of
-   this function is implementation-defined (in particular, POSIX systems unlink the
-   file name, although the file system space is not reclaimed even if this was the last
-   hardlink to the file until the last running process closes the file, Windows does
-   not allow the file to be deleted)
+   If the file is currently open by any process, the behavior of this function is
+   implementation-defined. POSIX systems unlink the file name (directory entry), but
+   the filesystem space used by the file is not reclaimed while it is open in any
+   process and while other hard links to the file exist. Windows does not allow the
+   file to be deleted in such cases.
 
 .SH Parameters
 
-   fname - pointer to a null-terminated string containing the path identifying the file
-           to delete
+   pathname - pointer to a null-terminated string containing the path identifying the
+              file to delete
 
 .SH Return value
 
@@ -35,19 +35,29 @@ std::remove \- std::remove
 
 // Run this code
 
- #include <iostream>
- #include <fstream>
  #include <cstdio>
+ #include <cstdlib>
+ #include <fstream>
+ #include <iostream>
+
  int main()
  {
-     bool ok = static_cast<bool>(std::ofstream("file1.txt").put('a')); // create file
-     if(!ok) { std::perror("Error creating file1.txt"); return 1; }
+     // create a file, check success using operator! of temporary stream object
+     if (!std::ofstream("file1.txt").put('a'))
+     {
+         std::perror("Error creating file1.txt");
+         return EXIT_FAILURE;
+     }
      std::cout << std::ifstream("file1.txt").rdbuf() << '\\n'; // print file
 
      std::remove("file1.txt"); // delete file
 
-     bool failed = !std::ifstream("file1.txt");
-     if(failed) { std::perror("Error opening deleted file"); return 1; }
+     if (!std::ifstream{"file1.txt"}) // uses operator! of temporary stream object
+     {
+         std::perror("Error opening deleted file");
+         return EXIT_FAILURE;
+     }
+     return EXIT_SUCCESS;
  }
 
 .SH Possible output:
@@ -63,3 +73,5 @@ std::remove \- std::remove
    \fI(C++17)\fP
    rename     renames a file
               \fI(function)\fP
+   C documentation for
+   remove

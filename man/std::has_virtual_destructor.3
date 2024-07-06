@@ -1,4 +1,4 @@
-.TH std::has_virtual_destructor 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::has_virtual_destructor 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::has_virtual_destructor \- std::has_virtual_destructor
 
@@ -7,31 +7,33 @@ std::has_virtual_destructor \- std::has_virtual_destructor
    template< class T >              \fI(since C++11)\fP
    struct has_virtual_destructor;
 
-   If T is a type with a virtual destructor, provides the member constant value equal
-   to true. For any other type, value is false.
+   std::has_virtual_destructor is a UnaryTypeTrait.
 
-   If T is a non-union class type, T shall be a complete type; otherwise, the behavior
-   is undefined.
+   If T is a type with a virtual destructor, the base characteristic is std::true_type.
+   For any other type, the base characteristic is std::false_type.
 
-   The behavior of a program that adds specializations for has_virtual_destructor
-   or has_virtual_destructor_v
-   \fI(since C++17)\fP is undefined.
+   If T is an incomplete non-union class type, the behavior is undefined.
+
+   If the program adds specializations for std::has_virtual_destructor or
+   std::has_virtual_destructor_v, the behavior is undefined.
 
 .SH Template parameters
 
    T - a type to check
 
-  Helper variable template
+   Helper variable template
 
    template< class T >
    inline constexpr bool has_virtual_destructor_v =                       \fI(since C++17)\fP
    has_virtual_destructor<T>::value;
 
+
+
 Inherited from std::integral_constant
 
 .SH Member constants
 
-   value    true if T has a virtual destructor , false otherwise
+   value    true if T has a virtual destructor, false otherwise
    \fB[static]\fP \fI(public static member constant)\fP
 
 .SH Member functions
@@ -49,33 +51,40 @@ Inherited from std::integral_constant
 
 .SH Notes
 
-   If a class has a public virtual destructor, it can be derived from, and the derived
-   object can be safely deleted through a pointer to the base object (GotW #18). When
-   true, is_polymorphic is true.
+   If a class C has a public virtual destructor, it can be derived from, and the
+   derived object can be safely deleted through a pointer to the base object (GotW
+   #18). In this case, std::is_polymorphic<C>::value is true.
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
  #include <type_traits>
- #include <string>
- #include <stdexcept>
+
+ struct S {};
+ static_assert(!std::has_virtual_destructor_v<S>);
+
+ struct B { virtual ~B() {} };
+ static_assert(std::has_virtual_destructor_v<B>);
+
+ struct D : B { ~D() {} };
+ static_assert(std::has_virtual_destructor_v<D>);
 
  int main()
  {
-     std::cout << std::boolalpha
-               << "std::string has a virtual destructor? "
-               << std::has_virtual_destructor<std::string>::value << '\\n'
-               << "std::runtime_error has a virtual destructor? "
-               << std::has_virtual_destructor<std::runtime_error>::value << '\\n';
+     B* pd = new D;
+     delete pd;
  }
 
-.SH Output:
+   Defect reports
 
- std::string has a virtual destructor? false
- std::runtime_error has a virtual destructor? true
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to     Behavior as published           Correct behavior
+   LWG 2015 C++11      the behavior was undefined if the base characteristic is
+                       T is an incomplete union type std::false_type in this case
 
 .SH See also
 

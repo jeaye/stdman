@@ -1,4 +1,4 @@
-.TH std::map 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::map 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::map \- std::map
 
@@ -6,24 +6,37 @@ std::map \- std::map
    Defined in header <map>
    template<
 
-   class Key,
-   class T,                                                      \fB(1)\fP
-   class Compare = std::less<Key>,
-   class Allocator = std::allocator<std::pair<const Key, T> >
+       class Key,
+       class T,                                                       \fB(1)\fP
+       class Compare = std::less<Key>,
+       class Allocator = std::allocator<std::pair<const Key, T>>
 
    > class map;
    namespace pmr {
 
-   template <class Key, class T, class Compare = std::less<Key>>
-   using map = std::map<Key, T, Compare,                         \fB(2)\fP \fI(since C++17)\fP
-   std::pmr::polymorphic_allocator<std::pair<const Key,T>>>
+       template<
+           class Key,
+           class T,
+           class Compare = std::less<Key>                             \fB(2)\fP \fI(since C++17)\fP
+       > using map = std::map<Key, T, Compare,
+
+    std::pmr::polymorphic_allocator<std::pair<const Key, T>>>;
 
    }
 
    std::map is a sorted associative container that contains key-value pairs with unique
    keys. Keys are sorted by using the comparison function Compare. Search, removal, and
    insertion operations have logarithmic complexity. Maps are usually implemented as
-   red-black trees.
+   Red–black trees.
+
+   Iterators of std::map iterate in ascending order of keys, where ascending is defined
+   by the comparison that was used for construction. That is, given
+
+     * m, a std::map
+     * it_l and it_r, dereferenceable iterators to m, with it_l < it_r.
+
+   m.value_comp()(*it_l, *it_r) == true (least to greatest if using the default
+   comparison).
 
    Everywhere the standard library uses the Compare requirements, uniqueness is
    determined by using the equivalence relation. In imprecise terms, two objects a and
@@ -32,6 +45,11 @@ std::map \- std::map
 
    std::map meets the requirements of Container, AllocatorAwareContainer,
    AssociativeContainer and ReversibleContainer.
+
+.SH Template parameters
+
+    This section is incomplete
+    Reason: Add descriptions of the template parameters.
 
 .SH Member types
 
@@ -45,12 +63,16 @@ std::map \- std::map
    allocator_type            Allocator
    reference                 value_type&
    const_reference           const value_type&
-   pointer                   Allocator::pointer                        \fI(until C++11)\fP
-                             std::allocator_traits<Allocator>::pointer \fI(since C++11)\fP
+                             Allocator::pointer                        \fI(until C++11)\fP
+   pointer                   std::allocator_traits<Allocator>::pointer \fI(since C++11)\fP
+
+
                              Allocator::const_pointer                        (until
-   const_pointer                                                             C++11)
-                             std::allocator_traits<Allocator>::const_pointer (since
                                                                              C++11)
+   const_pointer             std::allocator_traits<Allocator>::const_pointer (since
+                                                                             C++11)
+
+
    iterator                  LegacyBidirectionalIterator to value_type
    const_iterator            LegacyBidirectionalIterator to const value_type
    reverse_iterator          std::reverse_iterator<iterator>
@@ -60,11 +82,12 @@ std::map \- std::map
                              type describing the result of inserting a node_type, a
                              specialization of
 
-                             template <class Iter, class NodeType>
-   insert_return_type (since struct /*unspecified*/ {
-   C++17)                    Iter position;
-                             bool inserted;
-                             NodeType node;
+                             template<class Iter, class NodeType>
+                             struct /*unspecified*/
+   insert_return_type (since {
+   C++17)                        Iter     position;
+                                 bool     inserted;
+                                 NodeType node;
                              };
                              instantiated with template arguments iterator and
                              node_type.
@@ -116,6 +139,8 @@ std::map \- std::map
    insert           or nodes
                     \fI(since C++17)\fP
                     \fI(public member function)\fP
+   insert_range     inserts a range of elements
+   (C++23)          \fI(public member function)\fP
    insert_or_assign inserts an element or assigns to the current element if the key
    \fI(C++17)\fP          already exists
                     \fI(public member function)\fP
@@ -162,7 +187,7 @@ std::map \- std::map
    operator<
    operator<=
    operator>
-   operator>=          lexicographically compares the values in the map
+   operator>=          lexicographically compares the values of two maps
    operator<=>         \fI(function template)\fP
    (removed in C++20)
    (removed in C++20)
@@ -172,10 +197,16 @@ std::map \- std::map
    (C++20)
    std::swap(std::map) specializes the std::swap algorithm
                        \fI(function template)\fP
-   erase_if(std::map)  Erases all elements satisfying specific criteria
+   erase_if(std::map)  erases all elements satisfying specific criteria
    (C++20)             \fI(function template)\fP
 
-  Deduction guides \fI(since C++17)\fP
+     Deduction guides \fI(since C++17)\fP
+
+.SH Notes
+
+       Feature-test macro       Value    Std                   Feature
+   __cpp_lib_containers_ranges 202202L (C++23) Ranges construction and insertion for
+                                               containers
 
 .SH Example
 
@@ -189,34 +220,34 @@ std::map \- std::map
 
  void print_map(std::string_view comment, const std::map<std::string, int>& m)
  {
-     std::cout << comment ;
-     // iterate using C++17 facilities
-     for (const auto& [key, value] : m) {
+     std::cout << comment;
+     // Iterate using C++17 facilities
+     for (const auto& [key, value] : m)
          std::cout << '[' << key << "] = " << value << "; ";
-     }
+
  // C++11 alternative:
- //  for (const auto& n : m) {
+ //  for (const auto& n : m)
  //      std::cout << n.first << " = " << n.second << "; ";
- //  }
- // C++98 alternative
- //  for (std::map<std::string, int>::const_iterator it = m.begin(); it != m.end(); it++) {
+ //
+ // C++98 alternative:
+ //  for (std::map<std::string, int>::const_iterator it = m.begin(); it != m.end(); ++it)
  //      std::cout << it->first << " = " << it->second << "; ";
- //  }
+
      std::cout << '\\n';
  }
 
  int main()
  {
-     // Create a map of three (strings, int) pairs
-     std::map<std::string, int> m { {"CPU", 10}, {"GPU", 15}, {"RAM", 20}, };
+     // Create a map of three (string, int) pairs
+     std::map<std::string, int> m{{"CPU", 10}, {"GPU", 15}, {"RAM", 20}};
 
      print_map("1) Initial map: ", m);
 
-     m["CPU"] = 25;  // update an existing value
-     m["SSD"] = 30;  // insert a new value
+     m["CPU"] = 25; // update an existing value
+     m["SSD"] = 30; // insert a new value
      print_map("2) Updated map: ", m);
 
-     // using operator[] with non-existent key always performs an insert
+     // Using operator[] with non-existent key always performs an insert
      std::cout << "3) m[UPS] = " << m["UPS"] << '\\n';
      print_map("4) Updated map: ", m);
 
@@ -242,16 +273,23 @@ std::map \- std::map
  7) m.size() = 3
  8) Map is empty: true
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-     DR    Applied to            Behavior as published               Correct behavior
-   LWG 464 C++98      accessing a const map by key was             at function provided
+     DR    Applied to           Behavior as published              Correct behavior
+                      Key was not required to be
+   LWG 230 C++98      CopyConstructible                         Key is also required to
+                      (a key of type Key might not be able to   be CopyConstructible
+                      be constructed)
+   LWG 464 C++98      accessing a const map by key was          at function provided
                       inconvenient
 
 .SH See also
 
    unordered_map collection of key-value pairs, hashed by keys, keys are unique
    \fI(C++11)\fP       \fI(class template)\fP
+
+.SH Category:
+     * Todo with reason

@@ -1,99 +1,93 @@
-.TH std::filesystem::copy 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::copy 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::copy \- std::filesystem::copy
 
 .SH Synopsis
    Defined in header <filesystem>
+   void copy( const std::filesystem::path& from,       \fB(1)\fP \fI(since C++17)\fP
+              const std::filesystem::path& to );
    void copy( const std::filesystem::path& from,
 
-   const std::filesystem::path& to );
-   void copy( const std::filesystem::path& from, \fB(1)\fP \fI(since C++17)\fP
-   const std::filesystem::path& to,
+              const std::filesystem::path& to,         \fB(2)\fP \fI(since C++17)\fP
 
-   std::error_code& ec );
+              std::error_code& ec );
    void copy( const std::filesystem::path& from,
 
-   const std::filesystem::path& to,
-   std::filesystem::copy_options options );
-   void copy( const std::filesystem::path& from, \fB(2)\fP \fI(since C++17)\fP
-   const std::filesystem::path& to,
-   std::filesystem::copy_options options,
+              const std::filesystem::path& to,         \fB(3)\fP \fI(since C++17)\fP
 
-   std::error_code& ec );
+              std::filesystem::copy_options options );
+   void copy( const std::filesystem::path& from,
 
-   Copies files and directories, with a variety of options
+              const std::filesystem::path& to,         \fB(4)\fP \fI(since C++17)\fP
+              std::filesystem::copy_options options,
 
-   1) The default, equivalent to \fB(2)\fP with copy_options::none used as options
-   2) Copies the file or directory from to file or directory to, using the copy options
-   indicated by options. The behavior is undefined if there is more than one option in
-   any of the copy_options option group present in options (even in the copy_file
-   group).
+              std::error_code& ec );
+
+   Copies files and directories, with a variety of options.
+
+   1,2) The default, equivalent to (3,4) with copy_options::none used as options.
+   3,4) Copies the file or directory from to file or directory to, using the copy
+   options indicated by options. The behavior is undefined if there is more than one
+   option in any of the copy_options option group present in options (even in the
+   copy_file group).
 
    The behavior is as follows:
 
      * First, before doing anything else, obtains type and permissions of from by no
        more than a single call to
 
-              * std::filesystem::symlink_status, if copy_options::skip_symlinks,
-                copy_options::copy_symlinks, or copy_options::create_symlinks is
-                present in options;
-              * std::filesystem::status otherwise.
-
+     * std::filesystem::symlink_status, if copy_options::skip_symlinks,
+       copy_options::copy_symlinks, or copy_options::create_symlinks is present in
+       options;
+     * std::filesystem::status otherwise.
      * If necessary, obtains the status of to, by no more than a single call to
 
-              * std::filesystem::symlink_status, if copy_options::skip_symlinks or
-                copy_options::create_symlinks is present in options;
-              * std::filesystem::status otherwise (including the case where
-                copy_options::copy_symlinks is present in options).
-
+     * std::filesystem::symlink_status, if copy_options::skip_symlinks or
+       copy_options::create_symlinks is present in options;
+     * std::filesystem::status otherwise (including the case where
+       copy_options::copy_symlinks is present in options).
      * If either from or to has an implementation-defined file type, the effects of
        this function are implementation-defined.
      * If from does not exist, reports an error.
      * If from and to are the same file as determined by std::filesystem::equivalent,
-       reports an error
+       reports an error.
      * If either from or to is not a regular file, a directory, or a symlink, as
-       determined by std::filesystem::is_other, reports an error
-     * If from is a directory, but to is a regular file, reports an error
+       determined by std::filesystem::is_other, reports an error.
+     * If from is a directory, but to is a regular file, reports an error.
      * If from is a symbolic link, then
 
-              * If copy_options::skip_symlink is present in options, does nothing.
-              * Otherwise, if to does not exist and copy_options::copy_symlinks is
-                present in options, then behaves as if copy_symlink(from, to)
-              * Otherwise, reports an error
-
+     * If copy_options::skip_symlink is present in options, does nothing.
+     * Otherwise, if to does not exist and copy_options::copy_symlinks is present in
+       options, then behaves as if copy_symlink(from, to).
+     * Otherwise, reports an error.
      * Otherwise, if from is a regular file, then
 
-              * If copy_options::directories_only is present in options, does nothing
-              * Otherwise, if copy_options::create_symlinks is present in options,
-                creates a symlink to to. Note: from must be an absolute path unless to
-                is in the current directory.
-              * Otherwise, if copy_options::create_hard_links is present in options,
-                creates a hard link to to
-              * Otherwise, if to is a directory, then behaves as if copy_file(from,
-                to/from.filename(), options) (creates a copy of from as a file in the
-                directory to)
-              * Otherwise, behaves as if copy_file(from, to, options) (copies the file)
-
+     * If copy_options::directories_only is present in options, does nothing.
+     * Otherwise, if copy_options::create_symlinks is present in options, creates a
+       symlink to to. Note: from must be an absolute path unless to is in the current
+       directory.
+     * Otherwise, if copy_options::create_hard_links is present in options, creates a
+       hard link to to.
+     * Otherwise, if to is a directory, then behaves as if copy_file(from,
+       to/from.filename(), options) (creates a copy of from as a file in the directory
+       to).
+     * Otherwise, behaves as if copy_file(from, to, options) (copies the file).
      * Otherwise, if from is a directory and copy_options::create_symlinks is set in
        options, reports an error with an error code equal to
        std::make_error_code(std::errc::is_a_directory).
      * Otherwise, if from is a directory and either options has copy_options::recursive
        or is copy_options::none,
 
-              * If to does not exist, first executes create_directory(to, from)
-                (creates the new directory with a copy of the old directory's
-                attributes)
-              * Then, whether to already existed or was just created, iterates over the
-                files contained in from as if by for (const
-                std::filesystem::directory_entry& x :
-                std::filesystem::directory_iterator(from)) and for each directory
-                entry, recursively calls copy(x.path(), to/x.path().filename(), options
-                | in-recursive-copy), where in-recursive-copy is a special bit that has
-                no other effect when set in options. (The sole purpose of setting this
-                bit is to prevent recursive copying subdirectories if options is
-                copy_options::none.)
-
-     * Otherwise does nothing
+     * If to does not exist, first executes create_directory(to, from) (creates the new
+       directory with a copy of the old directory's attributes).
+     * Then, whether to already existed or was just created, iterates over the files
+       contained in from as if by for (const std::filesystem::directory_entry& x :
+       std::filesystem::directory_iterator(from)) and for each directory entry,
+       recursively calls copy(x.path(), to/x.path().filename(), options |
+       in-recursive-copy), where in-recursive-copy is a special bit that has no other
+       effect when set in options. (The sole purpose of setting this bit is to prevent
+       recursive copying subdirectories if options is copy_options::none.)
+     * Otherwise does nothing.
 
 .SH Parameters
 
@@ -107,13 +101,14 @@ std::filesystem::copy \- std::filesystem::copy
 
 .SH Exceptions
 
-   The overload that does not take a std::error_code& parameter throws
-   filesystem::filesystem_error on underlying OS API errors, constructed with from as
-   the first path argument, to as the second path argument, and the OS error code as
-   the error code argument. The overload taking a std::error_code& parameter sets it to
-   the OS API error code if an OS API call fails, and executes ec.clear() if no errors
-   occur. Any overload not marked noexcept may throw std::bad_alloc if memory
-   allocation fails.
+   Any overload not marked noexcept may throw std::bad_alloc if memory allocation
+   fails.
+
+   1,3) Throws std::filesystem::filesystem_error on underlying OS API errors,
+   constructed with from as the first path argument, to as the second path argument,
+   and the OS error code as the error code argument.
+   2,4) Sets a std::error_code& parameter to the OS API error code if an OS API call
+   fails, and executes ec.clear() if no errors occur.
 
 .SH Notes
 
@@ -146,9 +141,9 @@ std::filesystem::copy \- std::filesystem::copy
 // Run this code
 
  #include <cstdlib>
- #include <iostream>
- #include <fstream>
  #include <filesystem>
+ #include <fstream>
+ #include <iostream>
  namespace fs = std::filesystem;
 
  int main()
@@ -183,7 +178,7 @@ std::filesystem::copy \- std::filesystem::copy
 
  8 directories, 2 files
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.

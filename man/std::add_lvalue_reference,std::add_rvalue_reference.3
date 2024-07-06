@@ -1,4 +1,4 @@
-.TH std::add_lvalue_reference,std::add_rvalue_reference 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::add_lvalue_reference,std::add_rvalue_reference 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::add_lvalue_reference,std::add_rvalue_reference \- std::add_lvalue_reference,std::add_rvalue_reference
 
@@ -9,21 +9,20 @@ std::add_lvalue_reference,std::add_rvalue_reference \- std::add_lvalue_reference
    template< class T >             \fB(2)\fP \fI(since C++11)\fP
    struct add_rvalue_reference;
 
-   Creates a lvalue or rvalue reference type of T.
+   Creates an lvalue or rvalue reference type of T.
 
-   1) If T is a function type that has no cv- or ref- qualifier or an object type,
-   provides a member typedef type which is T&. If T is an rvalue reference to some type
-   U, then type is U&. Otherwise, type is T.
-   2) If T is a function type that has no cv- or ref- qualifier or an object type,
-   provides a member typedef type which is T&&, otherwise type is T.
+          Type trait           The type referred by the nested type type
+                       T is a referenceable type   T is not a referenceable type
+         \fB(1)\fP          T&^[1]                      T
+         \fB(2)\fP          T&&^[2]
 
-   The behavior of a program that adds specializations for any of the templates
-   described on this page is undefined.
+    1. ↑ This rule reflects the semantics of reference collapsing.
+    2. ↑ This rule reflects the semantics of reference collapsing. Note that
+       std::add_rvalue_reference<T&>::type is T&, which is not an rvalue reference
+       type.
 
-.SH Member types
-
-   Name Definition
-   type reference to T, or T if not allowed
+   If the program adds specializations for any of the templates described on this page,
+   the behavior is undefined.
 
 .SH Helper types
 
@@ -36,84 +35,69 @@ std::add_lvalue_reference,std::add_rvalue_reference \- std::add_lvalue_reference
 
 .SH Notes
 
-   These type transformations honor reference collapse rules:
-
-     * std::add_lvalue_reference<T&>::type is T&
-     * std::add_lvalue_reference<T&&>::type is T&
-     * std::add_rvalue_reference<T&>::type is T&
-     * std::add_rvalue_reference<T&&>::type is T&&
-
-   The major difference to directly using T& is that
-   std::add_lvalue_reference<void>::type is void, while void& leads to a compilation
-   error.
+   The major difference to directly using T& or T&& is that T can be a
+   non-referenceable type. For example, std::add_lvalue_reference<void>::type is void,
+   while void& leads to a compilation error.
 
 .SH Possible implementation
 
-   namespace detail {
+  namespace detail
+  {
+      template<class T>
+      struct type_identity { using type = T; }; // or use std::type_identity \fI(since C++20)\fP
 
-   template <class T>
-   struct type_identity { using type = T; }; // or use std::type_identity \fI(since C++20)\fP
+      template<class T> // Note that “cv void&” is a substitution failure
+      auto try_add_lvalue_reference(int) -> type_identity<T&>;
+      template<class T> // Handle T = cv void case
+      auto try_add_lvalue_reference(...) -> type_identity<T>;
 
-   template <class T> // Note that `cv void&` is a substitution failure
-   auto try_add_lvalue_reference(int) -> type_identity<T&>;
-   template <class T> // Handle T = cv void case
-   auto try_add_lvalue_reference(...) -> type_identity<T>;
+      template<class T>
+      auto try_add_rvalue_reference(int) -> type_identity<T&&>;
+      template<class T>
+      auto try_add_rvalue_reference(...) -> type_identity<T>;
+  } // namespace detail
 
-   template <class T>
-   auto try_add_rvalue_reference(int) -> type_identity<T&&>;
-   template <class T>
-   auto try_add_rvalue_reference(...) -> type_identity<T>;
+  template<class T>
+  struct add_lvalue_reference
+      : decltype(detail::try_add_lvalue_reference<T>\fB(0)\fP) {};
 
-   } // namespace detail
-
-   template <class T>
-   struct add_lvalue_reference : decltype(detail::try_add_lvalue_reference<T>\fB(0)\fP) {};
-
-   template <class T>
-   struct add_rvalue_reference : decltype(detail::try_add_rvalue_reference<T>\fB(0)\fP) {};
+  template<class T>
+  struct add_rvalue_reference
+      : decltype(detail::try_add_rvalue_reference<T>\fB(0)\fP) {};
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
  #include <type_traits>
 
- int main() {
-    using nonref = int;
-    using lref = typename std::add_lvalue_reference<nonref>::type;
-    using rref = typename std::add_rvalue_reference<nonref>::type;
-    using voidref = std::add_lvalue_reference_t<void>;
+ using non_ref = int;
+ static_assert(std::is_lvalue_reference_v<non_ref> == false);
 
-    std::cout << std::boolalpha;
-    std::cout << std::is_lvalue_reference<nonref>::value << '\\n';
-    std::cout << std::is_lvalue_reference<lref>::value << '\\n';
-    std::cout << std::is_rvalue_reference<rref>::value << '\\n';
-    std::cout << std::is_reference_v<voidref> << '\\n';
- }
+ using l_ref = std::add_lvalue_reference_t<non_ref>;
+ static_assert(std::is_lvalue_reference_v<l_ref> == true);
 
-.SH Output:
+ using r_ref = std::add_rvalue_reference_t<non_ref>;
+ static_assert(std::is_rvalue_reference_v<r_ref> == true);
 
- false
- true
- true
- false
+ using void_ref = std::add_lvalue_reference_t<void>;
+ static_assert(std::is_reference_v<void_ref> == false);
 
-  Defect reports
+ int main() {}
+
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to        Behavior as published              Correct behavior
-                       These transformation traits were
-   LWG 2101 C++11      required                             Produce cv-/ref-qualified
-                       to produce reference to              function types themselves.
-                       cv-/ref-qualified function types.
+      DR    Applied to         Behavior as published              Correct behavior
+   LWG 2101 C++11      the program was ill-formed if T is a   the type produced is T in
+                       function type with cv or ref           this case
 
 .SH See also
 
-   is_reference     checks if a type is either a lvalue reference or rvalue reference
+   is_reference     checks if a type is either an lvalue reference or rvalue reference
    \fI(C++11)\fP          \fI(class template)\fP
    remove_reference removes a reference from the given type
    \fI(C++11)\fP          \fI(class template)\fP

@@ -1,0 +1,196 @@
+.TH std::ranges::views::elements,std::ranges::elements_view 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::views::elements,std::ranges::elements_view \- std::ranges::views::elements,std::ranges::elements_view
+
+.SH Synopsis
+   Defined in header <ranges>
+   template< ranges::input_range V, std::size_t N >
+
+       requires ranges::view<V> &&
+                has-tuple-element<ranges::range_value_t<V>,
+   N> &&
+                has-tuple-element<std::remove_reference_t<       (since
+                                                             \fB(1)\fP C++20)
+    ranges::range_reference_t<V>>, N> &&
+
+    returnable-element<ranges::range_reference_t<V>, N>
+
+   class elements_view : public
+   ranges::view_interface<elements_view<V, N>>;
+   namespace views {
+
+       template< std::size_t N >                                 (since
+       inline constexpr /* unspecified */ elements = /*      \fB(2)\fP C++20)
+   unspecified */;
+
+   }
+   Call signature
+   template< ranges::viewable_range R >
+                                                                 (since
+       requires /* see below */                                  C++20)
+
+   constexpr ranges::view auto elements<N>( R&& r );
+   Helper concepts
+   template< class T, std::size_t N >
+
+   concept has-tuple-element =
+       requires(T t) {
+           typename std::tuple_size<T>::type;                            (until C++23)
+           requires N < std::tuple_size_v<T>;                            (exposition
+           typename std::tuple_element_t<N, T>;                          only*)
+           { std::get<N>(t) } -> std::convertible_to<
+                                     const
+   std::tuple_element_t<N, T>&>;
+
+       };                                                    \fB(3)\fP
+   template< class T, std::size_t N >
+                                                                         (since C++23)
+   concept has-tuple-element =                                           (exposition
+                                                                         only*)
+       tuple-like<T> && N < std::tuple_size_v<T>
+   template< class T, std::size_t N >
+
+   concept returnable-element =                                          (exposition
+        std::is_reference_v<T> || std::move_constructible<       \fB(4)\fP     only*)
+
+
+    std::tuple_element_t<N, T>>;
+
+   1) Accepts a view of tuple-like values, and issues a view with a value type of the
+   N-th element of the adapted view's value-type.
+   2) Every specialization of views::elements is a RangeAdaptorObject. The expression
+   views::elements<M>(e) is expression-equivalent to
+   elements_view<views::all_t<decltype((e))>, M>{e} for any suitable subexpression e
+   and constant expression M.
+   3) Ensures that the elements of the underlying view are tuple-like values
+   , see tuple-like
+   (since C++23).
+   4) Ensures that dangling references cannot be returned.
+
+   elements_view models the concepts random_access_range, bidirectional_range,
+   forward_range, input_range, common_range, and sized_range when the underlying view V
+   models respective concepts.
+
+.SH Member functions
+
+   constructor   constructs a elements_view
+   (C++20)       \fI(public member function)\fP
+   base          returns a copy of the underlying (adapted) view
+   (C++20)       \fI(public member function)\fP
+   begin         returns an iterator to the beginning
+   (C++20)       \fI(public member function)\fP
+   end           returns an iterator or a sentinel to the end
+   (C++20)       \fI(public member function)\fP
+   size          returns the number of elements. Provided only if the underlying
+   (C++20)       (adapted) range satisfies sized_range.
+                 \fI(public member function)\fP
+         Inherited from std::ranges::view_interface
+   empty         returns whether the derived view is empty. Provided if it satisfies
+   (C++20)       sized_range or forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   cbegin        returns a constant iterator to the beginning of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   cend          returns a sentinel for the constant iterator of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator bool returns whether the derived view is not empty. Provided if
+   (C++20)       ranges::empty is applicable to it.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   front         returns the first element in the derived view. Provided if it
+   (C++20)       satisfies forward_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   back          returns the last element in the derived view. Provided if it satisfies
+   (C++20)       bidirectional_range and common_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator[]    returns the n^th element in the derived view. Provided if it satisfies
+   (C++20)       random_access_range.
+                 \fI(public member function of std::ranges::view_interface<D>)\fP
+
+   Nested classes
+
+   iterator the iterator type
+   (C++20)  (exposition-only member class template*)
+   sentinel the sentinel type
+   (C++20)  (exposition-only member class template*)
+
+   Helper templates
+
+   template<class T, std::size_t N>
+
+   inline constexpr bool                                                  \fI(since C++20)\fP
+   enable_borrowed_range<std::ranges::elements_view<T, N>> =
+
+       std::ranges::enable_borrowed_range<T>;
+
+   This specialization of std::ranges::enable_borrowed_range makes elements_view
+   satisfy borrowed_range when the underlying view satisfies it.
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <ranges>
+ #include <string>
+ #include <tuple>
+ #include <vector>
+
+ int main()
+ {
+     const std::vector<std::tuple<int, char, std::string>> vt
+     {
+         {1, 'A', "α"},
+         {2, 'B', "β"},
+         {3, 'C', "γ"},
+         {4, 'D', "δ"},
+         {5, 'E', "ε"},
+     };
+
+     for (int const e : std::views::elements<0>(vt))
+         std::cout << e << ' ';
+     std::cout << '\\n';
+
+     for (char const e : vt | std::views::elements<1>)
+         std::cout << e << ' ';
+     std::cout << '\\n';
+
+     for (std::string const& e : std::views::elements<2>(vt))
+         std::cout << e << ' ';
+     std::cout << '\\n';
+ }
+
+.SH Output:
+
+ 1 2 3 4 5
+ A B C D E
+ α β γ δ ε
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to         Behavior as published              Correct behavior
+   LWG 3494 C++20      elements_view was never a              it is a borrowed_range
+                       borrowed_range                         if its underlying view is
+   LWG 3502 C++20      dangling reference could be obtained   such usage is forbidden
+                       from elements_view
+
+.SH See also
+
+   ranges::keys_view          takes a view consisting of pair-like values and produces
+   views::keys                a view of the first elements of each pair
+   (C++20)                    \fI(class template)\fP (range adaptor object)
+   ranges::values_view        takes a view consisting of pair-like values and produces
+   views::values              a view of the second elements of each pair
+   (C++20)                    \fI(class template)\fP (range adaptor object)
+   ranges::zip_view           a view consisting of tuples of references to
+   views::zip                 corresponding elements of the adapted views
+   (C++23)                    \fI(class template)\fP (customization point object)
+   ranges::zip_transform_view a view consisting of tuples of results of application of
+   views::zip_transform       a transformation function to corresponding elements of
+   (C++23)                    the adapted views
+                              \fI(class template)\fP (customization point object)
+                              BLAS-like slice of a valarray: starting index, length,
+   slice                      stride
+                              \fI(class)\fP

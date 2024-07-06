@@ -1,0 +1,101 @@
+.TH std::expected::and_then 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::expected::and_then \- std::expected::and_then
+
+.SH Synopsis
+   template< class F >                       \fB(1)\fP (since C++23)
+   constexpr auto and_then( F&& f ) &;
+   template< class F >                       \fB(2)\fP (since C++23)
+   constexpr auto and_then( F&& f ) const&;
+   template< class F >                       \fB(3)\fP (since C++23)
+   constexpr auto and_then( F&& f ) &&;
+   template< class F >                       \fB(4)\fP (since C++23)
+   constexpr auto and_then( F&& f ) const&&;
+
+   If *this contains an expected value, invokes f and returns its result; otherwise,
+   returns a std::expected object that contains a copy of error().
+
+   If T is not (possibly cv-qualified) void, the contained expected value (obtained
+   from operator*) is passed as an argument to f; otherwise f takes no argument.
+
+   1,2) Given type U as
+     * std::remove_cvref_t<std::invoke_result_t<F>> if T is (possibly cv-qualified)
+       void, or
+     * std::remove_cvref_t<std::invoke_result_t<F, decltype(**this)>> otherwise.
+   If U is not a specialization of std::expected, or std::is_same_v<U::error_type, E>
+   is false, the program is ill-formed.
+   The effect is equivalent to
+
+ if (has_value())
+ {
+     if constexpr (std::is_void_v<T>)
+         return std::invoke(std::forward<F>(f));
+     else
+         return std::invoke(std::forward<F>(f), **this);
+ }
+ else
+     return U(std::unexpect, error());
+
+   These overloads participate in overload resolution only if
+   std::is_constructible_v<E, decltype(error())> is true.
+   3,4) Given type U as
+     * std::remove_cvref_t<std::invoke_result_t<F>> if T is (possibly cv-qualified)
+       void, or
+     * std::remove_cvref_t<std::invoke_result_t<F, decltype(std::move(**this))>>
+       otherwise.
+   If U is not a specialization of std::expected, or std::is_same_v<U::error_type, E>
+   is false, the program is ill-formed.
+   The effect is equivalent to
+
+ if (has_value())
+ {
+     if constexpr (std::is_void_v<T>)
+         return std::invoke(std::forward<F>(f));
+     else
+         return std::invoke(std::forward<F>(f), std::move(**this));
+ }
+ else
+     return U(std::unexpect, std::move(error()));
+
+   These overloads participate in overload resolution only if
+   std::is_constructible_v<E, decltype(std::move(error()))> is true.
+
+.SH Parameters
+
+   f - a suitable function or Callable object that returns a std::expected
+
+.SH Return value
+
+   The result of f or a std::expected object that contains an error value, as described
+   above.
+
+.SH Notes
+
+   Feature-test macro  Value    Std                 Feature
+   __cpp_lib_expected 202211L (C++23) Monadic functions for std::expected
+
+.SH Example
+
+    This section is incomplete
+    Reason: no example
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to             Behavior as published             Correct behavior
+   LWG 3938 C++23      and_then was ill-formed if T is not (possibly made well-formed
+                       cv-qualified) void and E is not copyable
+
+.SH See also
+
+   unexpect   in-place construction tag for unexpected value in expected
+   unexpect_t (tag)
+   (C++23)
+              returns an expected containing the transformed expected value if it
+   transform  exists; otherwise, returns the expected itself
+              \fI(public member function)\fP
+
+.SH Category:
+     * Todo no example

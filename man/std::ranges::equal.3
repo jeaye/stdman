@@ -1,4 +1,4 @@
-.TH std::ranges::equal 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::equal 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::equal \- std::ranges::equal
 
@@ -7,23 +7,25 @@ std::ranges::equal \- std::ranges::equal
    Call signature
    template< std::input_iterator I1, std::sentinel_for<I1> S1,
 
-   std::input_iterator I2, std::sentinel_for<I2> S2,
-   class Pred = ranges::equal_to,                                               (since
-   class Proj1 = std::identity, class Proj2 = std::identity >               \fB(1)\fP C++20)
-   requires std::indirectly_comparable<I1, I2, Pred, Proj1, Proj2>
-   constexpr bool equal( I1 first1, S1 last1, I2 first2, S2 last2,
+             std::input_iterator I2, std::sentinel_for<I2> S2,
+             class Pred = ranges::equal_to,
+             class Proj1 = std::identity, class Proj2 = std::identity >     \fB(1)\fP (since
+   requires std::indirectly_comparable<I1, I2, Pred, Proj1, Proj2>              C++20)
+   constexpr bool
+       equal( I1 first1, S1 last1, I2 first2, S2 last2, Pred pred = {},
 
-   Pred pred = {}, Proj1 proj1 = {}, Proj2 proj2 = {} );
+              Proj1 proj1 = {}, Proj2 proj2 = {} );
    template< ranges::input_range R1, ranges::input_range R2,
 
-   class Pred = ranges::equal_to,
-   class Proj1 = std::identity, class Proj2 = std::identity >
-   requires std::indirectly_comparable<ranges::iterator_t<R1>,              \fB(2)\fP (since
-   ranges::iterator_t<R2>,                                                      C++20)
-   Pred, Proj1, Proj2>
-   constexpr bool equal( R1&& r1, R2&& r2, Pred pred = {},
+             class Pred = ranges::equal_to,
+             class Proj1 = std::identity, class Proj2 = std::identity >
+   requires std::indirectly_comparable<ranges::iterator_t<R1>,                  (since
+   ranges::iterator_t<R2>,                                                  \fB(2)\fP C++20)
+                                       Pred, Proj1, Proj2>
+   constexpr bool
 
-   Proj1 proj1 = {}, Proj2 proj2 = {} );
+       equal( R1&& r1, R2&& r2, Pred pred = {}, Proj1 proj1 = {}, Proj2
+   proj2 = {} );
 
    1) Returns true if the projected values of the range [first1, last1) are equal to
    the projected values of the range [first2, last2), and false otherwise.
@@ -37,10 +39,10 @@ std::ranges::equal \- std::ranges::equal
 
    The function-like entities described on this page are niebloids, that is:
 
-     * Explicit template argument lists may not be specified when calling any of them.
-     * None of them is visible to argument-dependent lookup.
-     * When one of them is found by normal unqualified lookup for the name to the left
-       of the function-call operator, it inhibits argument-dependent lookup.
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
 
    In practice, they may be implemented as function objects, or with special compiler
    extensions.
@@ -87,37 +89,34 @@ std::ranges::equal \- std::ranges::equal
 
 .SH Possible implementation
 
-struct equal_fn {
+struct equal_fn
+{
   template<std::input_iterator I1, std::sentinel_for<I1> S1,
            std::input_iterator I2, std::sentinel_for<I2> S2,
            class Pred = ranges::equal_to,
            class Proj1 = std::identity, class Proj2 = std::identity>
-    requires std::indirectly_comparable<I1, I2, Pred, Proj1, Proj2>
+  requires std::indirectly_comparable<I1, I2, Pred, Proj1, Proj2>
   constexpr bool
-  operator()(I1 first1, S1 last1, I2 first2, S2 last2,
-             Pred pred = {}, Proj1 proj1 = {}, Proj2 proj2 = {}) const
+      operator()(I1 first1, S1 last1, I2 first2, S2 last2,
+                 Pred pred = {}, Proj1 proj1 = {}, Proj2 proj2 = {}) const
   {
-      if constexpr (std::sized_sentinel_for<S1, I1> and std::sized_sentinel_for<S2, I2>) {
-          if (std::ranges::distance(first1, last1) != std::ranges::distance(first2, last2)) {
+      if constexpr (std::sized_sentinel_for<S1, I1> and std::sized_sentinel_for<S2, I2>)
+          if (std::ranges::distance(first1, last1) != std::ranges::distance(first2, last2))
               return false;
-          }
-      }
 
-      for (; first1 != last1; ++first1, (void)++first2) {
-          if (!std::invoke(pred, std::invoke(proj1, *first1), std::invoke(proj2, *first2))) {
+      for (; first1 != last1; ++first1, (void)++first2)
+          if (!std::invoke(pred, std::invoke(proj1, *first1), std::invoke(proj2, *first2)))
               return false;
-          }
-      }
       return true;
   }
 
   template<ranges::input_range R1, ranges::input_range R2,
            class Pred = ranges::equal_to,
            class Proj1 = std::identity, class Proj2 = std::identity>
-    requires std::indirectly_comparable<ranges::iterator_t<R1>, ranges::iterator_t<R2>,
-                                        Pred, Proj1, Proj2>
+  requires std::indirectly_comparable<ranges::iterator_t<R1>, ranges::iterator_t<R2>,
+                                      Pred, Proj1, Proj2>
   constexpr bool
-  operator()(R1&& r1, R2&& r2, Pred pred = {}, Proj1 proj1 = {}, Proj2 proj2 = {}) const
+      operator()(R1&& r1, R2&& r2, Pred pred = {}, Proj1 proj1 = {}, Proj2 proj2 = {}) const
   {
       return (*this)(ranges::begin(r1), ranges::end(r1),
                      ranges::begin(r2), ranges::end(r2),
@@ -137,8 +136,8 @@ inline constexpr equal_fn equal;
  #include <algorithm>
  #include <iomanip>
  #include <iostream>
- #include <string_view>
  #include <ranges>
+ #include <string_view>
 
  constexpr bool is_palindrome(const std::string_view s)
  {
@@ -150,7 +149,7 @@ inline constexpr equal_fn equal;
 
  void test(const std::string_view s)
  {
-     std::cout << quoted(s) << " is "
+     std::cout << std::quoted(s) << " is "
                << (is_palindrome(s) ? "" : "not ")
                << "a palindrome\\n";
  }

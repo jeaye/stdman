@@ -1,4 +1,4 @@
-.TH std::numeric_limits::epsilon 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::numeric_limits::epsilon 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::numeric_limits::epsilon \- std::numeric_limits::epsilon
 
@@ -12,78 +12,90 @@ std::numeric_limits::epsilon \- std::numeric_limits::epsilon
 
 .SH Return value
 
-   T                         std::numeric_limits<T>::epsilon()
-   /* non-specialized */     T()
-   bool                      false
-   char                      0
-   signed char               0
-   unsigned char             0
-   wchar_t                   0
-   char8_t (C++20)           0
-   char16_t \fI(C++11)\fP          0
-   char32_t \fI(C++11)\fP          0
-   short                     0
-   unsigned short            0
-   int                       0
-   unsigned int              0
-   long                      0
-   unsigned long             0
-   long long \fI(C++11)\fP         0
-   unsigned long long\fI(C++11)\fP 0
-   float                     FLT_EPSILON
-   double                    DBL_EPSILON
-   long double               LDBL_EPSILON
+   T                               std::numeric_limits<T>::epsilon()
+   /* non-specialized */           T()
+   bool                            false
+   char                            0
+   signed char                     0
+   unsigned char                   0
+   wchar_t                         0
+   char8_t \fI(since C++20)\fP           0
+   char16_t \fI(since C++11)\fP          0
+   char32_t \fI(since C++11)\fP          0
+   short                           0
+   unsigned short                  0
+   int                             0
+   unsigned int                    0
+   long                            0
+   unsigned long                   0
+   long long \fI(since C++11)\fP         0
+   unsigned long long\fI(since C++11)\fP 0
+   float                           FLT_EPSILON
+   double                          DBL_EPSILON
+   long double                     LDBL_EPSILON
 
 .SH Example
 
    Demonstrates the use of machine epsilon to compare floating-point values for
-   equality
+   equality:
 
 
 // Run this code
 
+ #include <algorithm>
  #include <cmath>
- #include <limits>
+ #include <cstddef>
  #include <iomanip>
  #include <iostream>
+ #include <limits>
  #include <type_traits>
- #include <algorithm>
 
- template<class T>
- typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type
-     almost_equal(T x, T y, int ulp)
+ template <class T>
+ std::enable_if_t<not std::numeric_limits<T>::is_integer, bool>
+ equal_within_ulps(T x, T y, std::size_t n)
  {
-     // the machine epsilon has to be scaled to the magnitude of the values used
-     // and multiplied by the desired precision in ULPs (units in the last place)
-     return std::fabs(x-y) <= std::numeric_limits<T>::epsilon() * std::fabs(x+y) * ulp
-         // unless the result is subnormal
-         || std::fabs(x-y) < std::numeric_limits<T>::min();
+     // Since `epsilon()` is the gap size (ULP, unit in the last place)
+     // of floating-point numbers in interval [1, 2), we can scale it to
+     // the gap size in interval [2^e, 2^{e+1}), where `e` is the exponent
+     // of `x` and `y`.
+
+     // If `x` and `y` have different gap sizes (which means they have
+     // different exponents), we take the smaller one. Taking the bigger
+     // one is also reasonable, I guess.
+     const T m = std::min(std::fabs(x), std::fabs(y));
+
+     // Subnormal numbers have fixed exponent, which is `min_exponent - 1`.
+     const int exp = m < std::numeric_limits<T>::min()
+                   ? std::numeric_limits<T>::min_exponent - 1
+                   : std::ilogb(m);
+
+     // We consider `x` and `y` equal if the difference between them is
+     // within `n` ULPs.
+     return std::fabs(x - y) <= n * std::ldexp(std::numeric_limits<T>::epsilon(), exp);
  }
 
  int main()
  {
-     double d1 = 0.2;
-     double d2 = 1 / std::sqrt(5) / std::sqrt(5);
-     std::cout << std::fixed << std::setprecision(20)
-         << "d1=" << d1 << "\\nd2=" << d2 << '\\n';
-
-     if(d1 == d2)
-         std::cout << "d1 == d2\\n";
-     else
-         std::cout << "d1 != d2\\n";
-
-     if(almost_equal(d1, d2, 2))
-         std::cout << "d1 almost equals d2\\n";
-     else
-         std::cout << "d1 does not almost equal d2\\n";
+     double x = 0.3;
+     double y = 0.1 + 0.2;
+     std::cout << std::hexfloat;
+     std::cout << "x = " << x << '\\n';
+     std::cout << "y = " << y << '\\n';
+     std::cout << (x == y ? "x == y" : "x != y") << '\\n';
+     for (std::size_t n = 0; n <= 10; ++n)
+         if (equal_within_ulps(x, y, n))
+         {
+             std::cout << "x equals y within " << n << " ulps" << '\\n';
+             break;
+         }
  }
 
 .SH Output:
 
- d1=0.20000000000000001110
- d2=0.19999999999999998335
- d1 != d2
- d1 almost equals d2
+ x = 0x1.3333333333333p-2
+ y = 0x1.3333333333334p-2
+ x != y
+ x equals y within 1 ulps
 
 .SH See also
 
@@ -92,7 +104,7 @@ std::numeric_limits::epsilon \- std::numeric_limits::epsilon
    nextafterl
    nexttoward
    nexttowardf
-   nexttowardl next representable floating point value towards the given value
+   nexttowardl next representable floating-point value towards the given value
    \fI(C++11)\fP     \fI(function)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP

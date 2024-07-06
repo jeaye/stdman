@@ -1,0 +1,91 @@
+.TH std::basic_string::replace_with_range 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::basic_string::replace_with_range \- std::basic_string::replace_with_range
+
+.SH Synopsis
+   template< container-compatible-range<CharT> R >
+
+   constexpr std::basic_string& replace_with_range( const_iterator
+   first,                                                                 (since C++23)
+                                                    const_iterator last,
+
+                                                    R&& rg );
+
+   Replaces the characters in the range [first, last) with the characters from the
+   range rg.
+
+   Equivalent to
+
+ return replace(first,
+                last,
+                std::basic_string(
+                    std::from_range,
+                    std::forward<R>(rg),
+                    get_allocator())
+ );
+
+.SH Parameters
+
+   first, last - range of characters that is going to be replaced
+   rg          - a container compatible range
+
+.SH Return value
+
+   *this
+
+.SH Complexity
+
+   Linear in size of rg.
+
+.SH Exceptions
+
+   If the operation would result in size() > max_size(), throws std::length_error.
+
+   If an exception is thrown for any reason, this function has no effect (strong
+   exception safety guarantee).
+
+.SH Notes
+
+       Feature-test macro       Value    Std                   Feature
+   __cpp_lib_containers_ranges 202202L (C++23) member functions that accept container
+                                               compatible range
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <cassert>
+ #include <forward_list>
+ #include <iterator>
+ #include <string>
+
+ int main()
+ {
+     using namespace std::literals;
+
+     auto s{"Today is today!"s};
+     constexpr auto today{"today"sv};
+     constexpr auto tomorrow{"tomorrow's yesterday"sv};
+     std::forward_list<char> rg;
+     std::ranges::reverse_copy(tomorrow, std::front_inserter(rg));
+
+     const auto pos{s.rfind(today)};
+     assert(pos != s.npos);
+     const auto first{std::next(s.begin(), pos)};
+     const auto last{std::next(first, today.length())};
+
+ #ifdef __cpp_lib_containers_ranges
+     s.replace_range(first, last, rg);
+ #else
+     s.replace(first, last, rg.cbegin(), rg.cend());
+ #endif
+
+     assert("Today is tomorrow's yesterday!" == s);
+ }
+
+.SH See also
+
+   replace replaces specified portion of a string
+           \fI(public member function)\fP

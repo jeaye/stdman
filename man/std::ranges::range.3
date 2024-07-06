@@ -1,4 +1,4 @@
-.TH std::ranges::range 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::range 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::range \- std::ranges::range
 
@@ -7,8 +7,8 @@ std::ranges::range \- std::ranges::range
    template< class T >
 
    concept range = requires( T& t ) {
-   ranges::begin(t); // equality-preserving for forward iterators  \fI(since C++20)\fP
-   ranges::end (t);
+       ranges::begin(t); // equality-preserving for forward iterators  \fI(since C++20)\fP
+       ranges::end (t);
 
    };
 
@@ -16,50 +16,50 @@ std::ranges::range \- std::ranges::range
    elements by providing an iterator and sentinel that denote the elements of the
    range.
 
-  Semantic requirements
+.SH Notes
 
-   Given an expression E such that decltype((E)) is T, T models range only if
+   A typical range class only needs to provide two functions:
 
-     * [ranges::begin(E), ranges::end(E)) denotes a range, and
-     * both ranges::begin(E) and ranges::end(E) are amortized constant time and do not
-       alter the value of E in a manner observable to equality-preserving expressions,
-       and
-     * if the type of ranges::begin(E) models forward_iterator, ranges::begin(E) is
-       equality-preserving (in other words, forward iterators support multi-pass
-       algorithms)
+    1. A member function begin() whose return type models input_or_output_iterator.
+    2. A member function end() whose return type models sentinel_for<It>, where It is
+       the return type of begin().
 
-   Note: In the definition above, the required expressions ranges::begin(t) and
-   ranges::end(t) do not require implicit expression variations.
+   Alternatively, they can be non-member functions, to be found by argument-dependent
+   lookup.
 
 .SH Example
 
-
-// Run this code
-
  #include <ranges>
- #include <vector>
- #include <iostream>
 
- template <typename T>
- struct range_t : private T {
-     using T::begin, T::end; /*...*/
+ // A minimum range
+ struct SimpleRange
+ {
+     int* begin();
+     int* end();
  };
- static_assert(std::ranges::range< range_t<std::vector<int>> >);
+ static_assert(std::ranges::range<SimpleRange>);
 
- template <typename T> struct scalar_t { T t{}; /* no begin/end */ };
- static_assert(not std::ranges::range< scalar_t<int> >);
+ // not a range: no begin/end
+ struct NotRange
+ {
+     int t {};
+ };
+ static_assert(!std::ranges::range<NotRange>);
 
- int main() {
-     if constexpr (range_t<std::vector<int>> r; std::ranges::range<decltype(r)>) {
-         std::cout << "r is a range\\n";
-     }
+ // not a range: begin does not return an input_or_output_iterator
+ struct NotRange2
+ {
+     void* begin();
+     int* end();
+ };
+ static_assert(!std::ranges::range<NotRange2>);
 
-     if constexpr (scalar_t<int> s; not std::ranges::range<decltype(s)>) {
-         std::cout << "s is not a range\\n";
-     }
- }
+   Defect reports
 
-.SH Output:
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
 
- r is a range
- s is not a range
+      DR    Applied to           Behavior as published              Correct behavior
+                       ranges::begin(t) and ranges::end(t)        removed the
+   LWG 3915 C++20      did not require implicit expression        redundant description
+                       variations

@@ -1,4 +1,4 @@
-.TH std::set_terminate 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::set_terminate 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::set_terminate \- std::set_terminate
 
@@ -10,11 +10,12 @@ std::set_terminate \- std::set_terminate
    noexcept;
 
    Makes f the new global terminate handler function and returns the previously
-   installed std::terminate_handler.
+   installed std::terminate_handler. f shall terminate execution of the program without
+   returning to its caller, otherwise the behavior is undefined.
 
    This function is thread-safe. Every call to std::set_terminate
-   synchronizes-with (see std::memory_order) the subsequent               \fI(since C++11)\fP
-   std::set_terminate and std::get_terminate
+   synchronizes-with (see std::memory_order) subsequent calls to          \fI(since C++11)\fP
+   std::set_terminate and std::get_terminate.
 
 .SH Parameters
 
@@ -30,14 +31,15 @@ std::set_terminate \- std::set_terminate
 
 // Run this code
 
- #include <iostream>
  #include <cstdlib>
  #include <exception>
+ #include <iostream>
 
  int main()
  {
-     std::set_terminate([](){
-         std::cout << "Unhandled exception" << std::endl;
+     std::set_terminate([]()
+     {
+         std::cout << "Unhandled exception\\n" << std::flush;
          std::abort();
      });
      throw 1;
@@ -47,6 +49,107 @@ std::set_terminate \- std::set_terminate
 
  Unhandled exception
  bash: line 7:  7743 Aborted                 (core dumped) ./a.out
+
+   The terminate handler will also work for launched threads, so it can be used as an
+   alternative to wrapping the thread function with a try/catch block. In the following
+   example, since the exception is unhandled, std::terminate will be called.
+
+
+// Run this code
+
+ #include <iostream>
+ #include <thread>
+
+ void run()
+ {
+     throw std::runtime_error("Thread failure");
+ }
+
+ int main()
+ {
+     try
+     {
+         std::thread t{run};
+         t.join();
+         return EXIT_SUCCESS;
+     }
+     catch (const std::exception& exc)
+     {
+         std::cerr << "Exception: " << exc.what() << '\\n';
+     }
+     catch (...)
+     {
+         std::cerr << "Unknown exception caught\\n";
+     }
+     return EXIT_FAILURE;
+ }
+
+.SH Possible output:
+
+ terminate called after throwing an instance of 'std::runtime_error'
+   what():  Thread failure
+ Aborted (core dumped)
+
+   With the introduction of the terminate handler, the exception thrown from the
+   non-main thread can be analyzed, and exit can be gracefully performed.
+
+
+// Run this code
+
+ #include <iostream>
+ #include <thread>
+
+ class foo
+ {
+ public:
+     foo() { std::cerr << "foo::foo()\\n"; }
+     ~foo() { std::cerr << "foo::~foo()\\n"; }
+ };
+
+ // Static object, expecting destructor on exit
+ foo f;
+
+ void run()
+ {
+     throw std::runtime_error("Thread failure");
+ }
+
+ int main()
+ {
+     std::set_terminate([]()
+     {
+         try
+         {
+             std::exception_ptr eptr{std::current_exception()};
+             if (eptr)
+             {
+                 std::rethrow_exception(eptr);
+             }
+             else
+             {
+                 std::cerr << "Exiting without exception\\n";
+             }
+         }
+         catch (const std::exception& exc)
+         {
+             std::cerr << "Exception: " << exc.what() << '\\n';
+         }
+         catch (...)
+         {
+             std::cerr << "Unknown exception caught\\n";
+         }
+         std::exit(EXIT_FAILURE);
+     });
+
+     std::thread t{run};
+     t.join();
+ }
+
+.SH Output:
+
+ foo::foo()
+ Exception: Thread failure
+ foo::~foo()
 
 .SH See also
 

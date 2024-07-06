@@ -1,0 +1,142 @@
+.TH std::vprint_unicode,std::vprint_unicode_locking 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::vprint_unicode,std::vprint_unicode_locking \- std::vprint_unicode,std::vprint_unicode_locking
+
+.SH Synopsis
+   Defined in header <print>
+   void vprint_unicode( std::string_view fmt, std::format_args args   \fB(1)\fP (since C++23)
+   );
+   void vprint_unicode( std::FILE* stream,
+                        std::string_view fmt, std::format_args args   \fB(2)\fP (since C++23)
+   );
+   void vprint_unicode_locking( std::FILE* stream,
+                                std::string_view fmt,                 \fB(3)\fP (since C++23)
+   std::format_args args );
+
+   Format args according to the format string fmt, and writes the result to the output
+   stream.
+
+   1) Equivalent to std::vprint_unicode(stdout, fmt, args).
+   2) Equivalent to std::string out = std::vformat(fmt, args);
+   std::vprint_unicode_locking(stream, "{}", std::make_format_args(out));.
+   3) Performs the following operations in order:
+    1. Locks stream.
+    2. Let out denote the character representation of formatting arguments provided by
+       args formatted according to specifications given in fmt.
+    3. Writes out to stream:
+
+     * If stream refers to a terminal capable of displaying Unicode, flushes stream and
+       writes out to the terminal using the native Unicode API.
+     * Otherwise, writes unmodified out to the stream.
+   Unconditionally unlocks stream on function exit.
+   If any of the following condition is satisfied, the behavior is undefined:
+     * stream is not a valid pointer to an output C stream.
+     * out contains invalid Unicode code units if the native Unicode API is used.
+
+.SH Parameters
+
+   stream - output file stream to write to
+
+            an object that represents the format string. The format string consists of
+              * ordinary characters (except { and }), which are copied unchanged to the
+                output,
+              * escape sequences {{ and }}, which are replaced with { and }
+                respectively in the output, and
+              * replacement fields.
+
+            Each replacement field has the following format:
+
+            { arg-id (optional) }               \fB(1)\fP
+            { arg-id (optional) : format-spec } \fB(2)\fP
+
+            1) replacement field without a format specification
+            2) replacement field with a format specification
+
+                          specifies the index of the argument in args whose value is to
+                          be used for formatting; if it is omitted, the arguments are
+            arg-id      - used in order.
+
+                          The arg-id s in a format string must all be present or all be
+                          omitted. Mixing manual and automatic indexing is an error.
+   fmt    -               the format specification defined by the std::formatter
+            format-spec - specialization for the corresponding argument. Cannot start
+                          with }.
+
+              * For basic types and standard string types, the format specification is
+                interpreted as standard format specification.
+              * For chrono types, the format specification is interpreted as chrono
+                format specification.
+
+              * For range types, the format specification is interpreted
+                as range format specification.
+              * For std::pair and std::tuple, the format specification is
+                interpreted as tuple format specification.
+              * For std::thread::id and std::stacktrace_entry, see thread (since C++23)
+                id format specification and stacktrace entry format
+                specification.
+              * For std::basic_stacktrace, no format specifier is
+                allowed.
+
+              * For std::filesystem::path, see path format specification. (since C++26)
+
+              * For other formattable types, the format specification is determined by
+                user-defined formatter specializations.
+   args   - arguments to be formatted
+
+.SH Exceptions
+
+     * std::bad_alloc on allocation failure.
+     * std::system_error, if writing to the stream fails.
+     * Propagates any exception thrown by used formatters, e.g. std::format_error.
+
+.SH Notes
+
+   The C++ standard encourages the implementers to produce a diagnostic message if out
+   contains invalid Unicode code units.
+
+   On POSIX, the stream refers to a terminal if the expression isatty(fileno(stream))
+   != 0 holds true (see POSIX documentation for isatty, and fileno).
+
+   On Windows, the stream refers to a terminal if the expression
+   GetConsoleMode(_get_osfhandle(_fileno(stream))) returns nonzero (see Windows
+   documentation for GetConsoleMode, _get_osfhandle, and _fileno). The native Unicode
+   API on Windows is WriteConsoleW.
+
+   If invoking the native Unicode API requires transcoding, the invalid code units are
+   substituted with U+FFFD REPLACEMENT CHARACTER (see "The Unicode Standard Version
+   14.0 - Core Specification", Chapter 3.9).
+
+   Feature-test macro  Value    Std                 Feature
+                      202207L (C++23) Formatted output
+   __cpp_lib_print    202403L (C++26) Formatted output with stream locking
+                              (DR23)
+   __cpp_lib_format   202207L (C++23) Exposing std::basic_format_string
+
+.SH Example
+
+    This section is incomplete
+    Reason: no example
+
+.SH See also
+
+   vprint_nonunicode            prints to stdout or a file stream using type-erased
+   vprint_nonunicode_locking    argument representation
+   (C++23)                      \fI(function)\fP
+   (C++23)
+   vprint_unicode(std::ostream) performs Unicode aware output using type-erased
+   (C++23)                      argument representation
+                                \fI(function)\fP
+   print                        prints to stdout or a file stream using formatted
+   (C++23)                      representation of the arguments
+                                \fI(function template)\fP
+   format                       stores formatted representation of the arguments in a
+   (C++20)                      new string
+                                \fI(function template)\fP
+
+.SH External links
+
+   1.  Unicode
+   2.  The Unicode Standard Version 14.0 - Core Specification
+
+.SH Category:
+     * Todo no example

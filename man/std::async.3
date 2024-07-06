@@ -1,118 +1,172 @@
-.TH std::async 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::async 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::async \- std::async
 
 .SH Synopsis
    Defined in header <future>
-   template< class Function, class... Args >
+   template< class F, class... Args >
                                                                         (since
    std::future<typename std::result_of<typename                         C++11)
-   std::decay<Function>::type(                                          (until
-   typename std::decay<Args>::type...)>::type>                          C++17)
+   std::decay<F>::type(                                                 (until
+           typename std::decay<Args>::type...)>::type>                  C++17)
 
-   async( Function&& f, Args&&... args );
-   template< class Function, class... Args >
+       async( F&& f, Args&&... args );
+   template< class F, class... Args >
                                                                         (since
-   std::future<std::invoke_result_t<std::decay_t<Function>,             C++17)
-   std::decay_t<Args>...>>                                              (until
+   std::future<std::invoke_result_t<std::decay_t<F>,                    C++17)
+                                    std::decay_t<Args>...>>             (until
                                                                         C++20)
-   async( Function&& f, Args&&... args );
-   template< class Function, class... Args >
+       async( F&& f, Args&&... args );
+   template< class F, class... Args >
 
-   [[nodiscard]]                                                        (since
-   std::future<std::invoke_result_t<std::decay_t<Function>,             C++20)
-   std::decay_t<Args>...>>
+   [[nodiscard]]
+   std::future<std::invoke_result_t<std::decay_t<F>,                    (since
+                                                                        C++20)
+    std::decay_t<Args>...>>
 
-   async( Function&& f, Args&&... args );                       \fB(1)\fP
-   template< class Function, class... Args >
+       async( F&& f, Args&&... args );                          \fB(1)\fP
+   template< class F, class... Args >
                                                                                 (since
    std::future<typename std::result_of<typename                                 C++11)
-   std::decay<Function>::type(                                                  (until
-   typename std::decay<Args>::type...)>::type>                                  C++17)
+   std::decay<F>::type(                                                         (until
+           typename std::decay<Args>::type...)>::type>                          C++17)
 
-   async( std::launch policy, Function&& f, Args&&... args );
-   template< class Function, class... Args >
+       async( std::launch policy, F&& f, Args&&... args );
+   template< class F, class... Args >
                                                                                 (since
-   std::future<std::invoke_result_t<std::decay_t<Function>,         \fB(2)\fP         C++17)
-   std::decay_t<Args>...>>                                                      (until
+   std::future<std::invoke_result_t<std::decay_t<F>,                            C++17)
+                                    std::decay_t<Args>...>>         \fB(2)\fP         (until
                                                                                 C++20)
-   async( std::launch policy, Function&& f, Args&&... args );
-   template< class Function, class... Args >
+       async( std::launch policy, F&& f, Args&&... args );
+   template< class F, class... Args >
 
-   [[nodiscard]]                                                                (since
-   std::future<std::invoke_result_t<std::decay_t<Function>,                     C++20)
-   std::decay_t<Args>...>>
+   [[nodiscard]]
+   std::future<std::invoke_result_t<std::decay_t<F>,                            (since
+                                                                                C++20)
+    std::decay_t<Args>...>>
 
-   async( std::launch policy, Function&& f, Args&&... args );
+       async( std::launch policy, F&& f, Args&&... args );
 
-   The function template async runs the function f asynchronously (potentially in a
-   separate thread which might be a part of a thread pool) and returns a std::future
+   The function template std::async runs the function f asynchronously (potentially in
+   a separate thread which might be a part of a thread pool) and returns a std::future
    that will eventually hold the result of that function call.
 
    1) Behaves as if \fB(2)\fP is called with policy being std::launch::async |
    std::launch::deferred.
    2) Calls a function f with arguments args according to a specific launch policy
-   policy.
+   policy (see below).
 
-              * If the async flag is set (i.e. (policy & std::launch::async) != 0),
-                then async executes the callable object f on a new thread of execution
-                (with all thread-locals initialized) as if spawned by
-                std::thread(std::forward<F>(f), std::forward<Args>(args)...), except
-                that if the function f returns a value or throws an exception, it is
-                stored in the shared state accessible through the std::future that
-                async returns to the caller.
-              * If the deferred flag is set (i.e. (policy & std::launch::deferred) !=
-                0), then async converts f and args... the same way as by std::thread
-                constructor, but does not spawn a new thread of execution. Instead,
-                lazy evaluation is performed: the first call to a non-timed wait
-                function on the std::future that async returned to the caller will
-                cause the copy of f to be invoked (as an rvalue) with the copies of
-                args... (also passed as rvalues) in the current thread (which does not
-                have to be the thread that originally called std::async). The result or
-                exception is placed in the shared state associated with the future and
-                only then it is made ready. All further accesses to the same
-                std::future will return the result immediately.
-              * If neither std::launch::async nor std::launch::deferred, nor any
-                implementation-defined policy flag is set in policy, the behavior is
-                undefined.
+   If any of the following conditions is satisfied, the program is
+   ill-formed:
 
-   If more than one flag is set, it is implementation-defined which policy is selected.
-   For the default (both the std::launch::async and std::launch::deferred flags are set
-   in policy), standard recommends (but doesn't require) utilizing available
-   concurrency, and deferring any additional tasks.
+     * F is not MoveConstructible.                                        \fI(until C++20)\fP
+     * Any type in Args is not MoveConstructible.
+     * INVOKE(decay-copy(std::forward<F>(f)),
+              decay-copy(std::forward<Args>(args))...) is not a valid
+       expression.
+   If any of the following is false, the program is ill-formed:
 
-   In any case, the call to std::async synchronizes-with (as defined in
-   std::memory_order) the call to f, and the completion of f is sequenced-before making
-   the shared state ready. If the async policy is chosen, the associated thread
-   completion synchronizes-with the successful return from the first function that is
-   waiting on the shared state, or with the return of the last function that releases
-   the shared state, whichever comes first. If std::decay<Function>::type or each type
-   in std::decay<Args>::type is not constructible from its corresponding argument, the
-   program is ill-formed.
+     * std::is_constructible_v<std::decay_t<F>, F>                        \fI(since C++20)\fP
+     * (std::is_constructible_v<std::decay_t<Args>, Args> && ...)
+     * std::is_invocable_v<std::decay_t<F>, std::decay_t<Args>...>
+
+   The call to std::async synchronizes with the call to f, and the completion of f is
+   sequenced before making the shared state ready.
 
 .SH Parameters
 
-   f       - Callable object to call
-   args... - parameters to pass to f
-             bitmask value, where individual bits control the allowed methods of
-             execution
-   policy  -
-             Bit                   Explanation
-             std::launch::async    enable asynchronous evaluation
-             std::launch::deferred enable lazy evaluation
+   f      - Callable object to call
+   args   - parameters to pass to f
+   policy - bitmask value, where individual bits control the allowed methods of
+            execution
 
 .SH Return value
 
    std::future referring to the shared state created by this call to std::async.
 
+   Launch policies
+
+     Async invocation
+
+   If the async flag is set (i.e. (policy & std::launch::async) != 0), then
+
+   std::async calls INVOKE(decay-copy(std::forward<F>(f)),
+          decay-copy(std::forward<Args>(args))...) as if in a new thread  (until C++23)
+   of execution represented by a std::thread object.
+   std::async calls std::invoke(auto(std::forward<F>(f)),
+               auto(std::forward<Args>(args))...) as if in a new thread   (since C++23)
+   of execution represented by a std::thread object.
+
+   The calls of decay-copy are evaluated
+   (until C++23)
+   The values produced by auto are materialized
+   (since C++23) in the current thread. If the function f returns a value or throws an
+   exception, it is stored in the shared state accessible through the std::future that
+   std::async returns to the caller.
+
+     Deferred invocation
+
+   If the deferred flag is set (i.e. (policy & std::launch::deferred) != 0), then
+   std::async stores
+   decay-copy(std::forward<F>(f)) and decay-copy(std::forward<Args>(args))...
+   (until C++23)
+   auto(std::forward<F>(f)) and auto(std::forward<Args>(args))...
+   (since C++23) in the shared state.
+
+   Lazy evaluation is performed:
+
+     * The first call to a non-timed wait function on the std::future that std::async
+       returned to the caller will evaluate INVOKE(std::move(g), std::move(xyz)) in the
+       current thread (which does not have to be the thread that originally called
+       std::async), where
+
+     * g is the stored value of
+       decay-copy(std::forward<F>(f))
+       (until C++23)
+       auto(std::forward<F>(f))
+       (since C++23) and
+     * xyz is the stored copy of
+       decay-copy(std::forward<Args>(args))...
+       (until C++23)
+       auto(std::forward<Args>(args))...
+       (since C++23).
+     * The result or exception is placed in the shared state associated with the
+       returned std::future and only then it is made ready. All further accesses to the
+       same std::future will return the result immediately.
+
+     Other policies
+
+   If neither std::launch::async nor std::launch::deferred, nor any
+   implementation-defined policy flag is set in policy, the behavior is undefined.
+
+   Policy selection
+
+   If more than one flag is set, it is implementation-defined which policy is selected.
+   For the default (both the std::launch::async and std::launch::deferred flags are set
+   in policy), standard recommends (but does not require) utilizing available
+   concurrency, and deferring any additional tasks.
+
+   If the std::launch::async policy is chosen,
+
+     * a call to a waiting function on an asynchronous return object that shares the
+       shared state created by this std::async call blocks until the associated thread
+       has completed, as if joined, or else time out; and
+     * the associated thread completion synchronizes-with the successful return from
+       the first function that is waiting on the shared state, or with the return of
+       the last function that releases the shared state, whichever comes first.
+
 .SH Exceptions
 
-   Throws std::system_error with error condition
-   std::errc::resource_unavailable_try_again if the launch policy equals
-   std::launch::async and the implementation is unable to start a new thread (if the
-   policy is async|deferred or has additional bits set, it will fall back to deferred
-   or the implementation-defined policies in this case), or std::bad_alloc if memory
-   for the internal data structures could not be allocated.
+   Throws
+
+     * std::bad_alloc, if the memory for the internal data structures cannot be
+       allocated, or
+     * std::system_error with error condition
+       std::errc::resource_unavailable_try_again, if policy == std::launch::async and
+       the implementation is unable to start a new thread.
+          * If policy is std::launch::async | std::launch::deferred or has additional
+            bits set, it will fall back to deferred invocation or the
+            implementation-defined policies in this case.
 
 .SH Notes
 
@@ -120,8 +174,8 @@ std::async \- std::async
    enabling additional (implementation-defined) bits in the default launch policy.
 
    Examples of implementation-defined launch policies are the sync policy (execute
-   immediately, within the async call) and the task policy (similar to async, but
-   thread-locals are not cleared)
+   immediately, within the std::async call) and the task policy (similar to std::async,
+   but thread-locals are not cleared)
 
    If the std::future obtained from std::async is not moved from or bound to a
    reference, the destructor of the std::future will block at the end of the full
@@ -131,47 +185,54 @@ std::async \- std::async
  std::async(std::launch::async, []{ f(); }); // temporary's dtor waits for f()
  std::async(std::launch::async, []{ g(); }); // does not start until f() completes
 
-   (note that the destructors of std::futures obtained by means other than a call to
-   std::async never block)
+   Note that the destructors of std::futures obtained by means other than a call to
+   std::async never block.
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
- #include <vector>
  #include <algorithm>
- #include <numeric>
  #include <future>
- #include <string>
+ #include <iostream>
  #include <mutex>
+ #include <numeric>
+ #include <string>
+ #include <vector>
 
  std::mutex m;
- struct X {
-     void foo(int i, const std::string& str) {
+
+ struct X
+ {
+     void foo(int i, const std::string& str)
+     {
          std::lock_guard<std::mutex> lk(m);
          std::cout << str << ' ' << i << '\\n';
      }
-     void bar(const std::string& str) {
+
+     void bar(const std::string& str)
+     {
          std::lock_guard<std::mutex> lk(m);
          std::cout << str << '\\n';
      }
-     int operator()(int i) {
+
+     int operator()(int i)
+     {
          std::lock_guard<std::mutex> lk(m);
          std::cout << i << '\\n';
          return i + 10;
      }
  };
 
- template <typename RandomIt>
+ template<typename RandomIt>
  int parallel_sum(RandomIt beg, RandomIt end)
  {
      auto len = end - beg;
      if (len < 1000)
          return std::accumulate(beg, end, 0);
 
-     RandomIt mid = beg + len/2;
+     RandomIt mid = beg + len / 2;
      auto handle = std::async(std::launch::async,
                               parallel_sum<RandomIt>, mid, end);
      int sum = parallel_sum(beg, mid);
@@ -205,23 +266,40 @@ std::async \- std::async
  53
  Hello 42
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to           Behavior as published              Correct behavior
-                                                                 corrected return type
-   LWG 2021 C++11      return type incorrect and value category  and
-                       of arguments unclear in the deferred case clarified that rvalues
-                                                                 are used
-                       the behavior was unclear if no standard   the behavior is
-   LWG 2120 C++11      or                                        undefined
-                       implementation-defined policy is set
-                       Function and Args... were required to be
-   LWG 3476 C++11      MoveConstructible                         requirements removed
-                       while no additional move constructions
-                       specified
+      DR    Applied to         Behavior as published              Correct behavior
+                       return type incorrect and value       corrected return type and
+   LWG 2021 C++11      category                              clarified that rvalues are
+                       of arguments unclear in the deferred  used
+                       case
+                       it was unclear whether
+                       std::system_error                     can only be thrown if
+   LWG 2078 C++11      may be thrown if policy specifies     policy ==
+                       other                                 std::launch::async
+                       launch policies besides
+                       std::launch::async
+                       timed waiting functions could not
+   LWG 2100 C++11      timeout                               allowed
+                       if std::launch::async policy is used
+                       the behavior was unclear if no
+   LWG 2120 C++11      standard                              the behavior is
+                       or implementation-defined policy is   undefined in this case
+                       set
+                       std::async might not throw
+   LWG 2752 C++11      std::bad_alloc if the                 throws
+                       memory for the internal data
+                       structures cannot be allocated
+                       (the decayed types of) F and the
+   LWG 3476 C++20      argument types                        removed these
+                       were directly required to be move     requirements^[1]
+                       constructible
+
+    1. ↑ The move-constructibility is already indirectly required by
+       std::is_constructible_v.
 
 .SH See also
 

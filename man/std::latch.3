@@ -1,4 +1,4 @@
-.TH std::latch 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::latch 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::latch \- std::latch
 
@@ -40,7 +40,8 @@ std::latch \- std::latch
 
 .SH Notes
 
-   Feature-test macro: __cpp_lib_latch
+   Feature-test macro  Value    Std    Feature
+   __cpp_lib_latch    201907L (C++20) std::latch
 
 .SH Example
 
@@ -53,54 +54,57 @@ std::latch \- std::latch
  #include <string>
  #include <thread>
 
- int main() {
-   struct job {
+ struct Job
+ {
      const std::string name;
      std::string product{"not worked"};
      std::thread action{};
-   } jobs[] = {{"annika"}, {"buru"}, {"chuck"}};
+ };
 
-   std::latch work_done{std::size(jobs)};
-   std::latch start_clean_up{1};
+ int main()
+ {
+     Job jobs[]{{"Annika"}, {"Buru"}, {"Chuck"}};
 
-   auto work = [&](job& my_job) {
-     my_job.product = my_job.name + " worked";
-     work_done.count_down();
-     start_clean_up.wait();
-     my_job.product = my_job.name + " cleaned";
-   };
+     std::latch work_done{std::size(jobs)};
+     std::latch start_clean_up{1};
 
-   std::cout << "Work starting... ";
-   for (auto& job : jobs) {
-     job.action = std::thread{work, std::ref(job)};
-   }
-   work_done.wait();
-   std::cout << "done:\\n";
-   for (auto const& job : jobs) {
-     std::cout << "  " << job.product << '\\n';
-   }
+     auto work = [&](Job& my_job)
+     {
+         my_job.product = my_job.name + " worked";
+         work_done.count_down();
+         start_clean_up.wait();
+         my_job.product = my_job.name + " cleaned";
+     };
 
-   std::cout << "Workers cleaning up... ";
-   start_clean_up.count_down();
-   for (auto& job : jobs) {
-     job.action.join();
-   }
-   std::cout << "done:\\n";
-   for (auto const& job : jobs) {
-     std::cout << "  " << job.product << '\\n';
-   }
+     std::cout << "Work is starting... ";
+     for (auto& job : jobs)
+         job.action = std::thread{work, std::ref(job)};
+
+     work_done.wait();
+     std::cout << "done:\\n";
+     for (auto const& job : jobs)
+         std::cout << "  " << job.product << '\\n';
+
+     std::cout << "Workers are cleaning up... ";
+     start_clean_up.count_down();
+     for (auto& job : jobs)
+         job.action.join();
+
+     std::cout << "done:\\n";
+     for (auto const& job : jobs)
+         std::cout << "  " << job.product << '\\n';
  }
 
 .SH Output:
 
- Work starting... done:
-   annika worked
-   buru worked
-   chuck worked
- Workers cleaning up... done:
-   annika cleaned
-   buru cleaned
-   chuck cleaned
+ Work is starting... done:
+   Annika worked
+   Buru worked
+   Chuck worked
+ Workers are cleaning up... done:
+   Annika cleaned
+   Buru cleaned
+   Chuck cleaned
 
 .SH See also
 

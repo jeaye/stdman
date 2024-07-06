@@ -1,0 +1,139 @@
+.TH std::flat_set::emplace_hint 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::flat_set::emplace_hint \- std::flat_set::emplace_hint
+
+.SH Synopsis
+   template< class... Args >                                      (since C++23)
+   iterator emplace_hint( const_iterator hint, Args&&... args );
+
+   Inserts a new element into the container as close as possible to the position just
+   before hint.
+
+   The constructors of the key and mapped value are called with exactly the same
+   arguments as supplied to the function, forwarded with std::forward<Args>(args)....
+
+    Information on iterator invalidation is copied from here
+
+.SH Parameters
+
+   hint - iterator to the position before which the new element will be inserted
+   args - arguments to forward to the constructor of the element
+
+.SH Return value
+
+   An iterator to the inserted element, or to the element that prevented the insertion.
+
+.SH Exceptions
+
+   If an exception is thrown for any reason, this function has no effect (strong
+   exception safety guarantee).
+
+.SH Complexity
+
+    This section is incomplete
+
+.SH Example
+
+
+// Run this code
+
+ #include <chrono>
+ #include <cstddef>
+ #include <functional>
+ #include <iomanip>
+ #include <iostream>
+ #include <flat_set>
+
+ const int n_operations = 100'500'0;
+
+ std::size_t set_emplace()
+ {
+     std::flat_set<int> set;
+     for (int i = 0; i < n_operations; ++i)
+         set.emplace(i);
+     return set.size();
+ }
+
+ std::size_t set_emplace_hint()
+ {
+     std::flat_set<int> set;
+     auto it = set.begin();
+     for (int i = 0; i < n_operations; ++i)
+     {
+         set.emplace_hint(it, i);
+         it = set.end();
+     }
+     return set.size();
+ }
+
+ std::size_t set_emplace_hint_wrong()
+ {
+     std::flat_set<int> set;
+     auto it = set.begin();
+     for (int i = n_operations; i > 0; --i)
+     {
+         set.emplace_hint(it, i);
+         it = set.end();
+     }
+     return set.size();
+ }
+
+ std::size_t set_emplace_hint_corrected()
+ {
+     std::flat_set<int> set;
+     auto it = set.begin();
+     for (int i = n_operations; i > 0; --i)
+     {
+         set.emplace_hint(it, i);
+         it = set.begin();
+     }
+     return set.size();
+ }
+
+ std::size_t set_emplace_hint_closest()
+ {
+     std::flat_set<int> set;
+     auto it = set.begin();
+     for (int i = 0; i < n_operations; ++i)
+         it = set.emplace_hint(it, i);
+     return set.size();
+ }
+
+ double time_it(std::function<std::size_t()> set_test,
+                const char* what = nullptr,
+                double ratio = 0.0)
+ {
+     const auto start = std::chrono::system_clock::now();
+     const std::size_t setsize = set_test();
+     const auto stop = std::chrono::system_clock::now();
+     const std::chrono::duration<double, std::milli> time = stop - start;
+     if (what != nullptr && setsize > 0)
+         std::cout << std::setw(8) << time << " for " << what << " (ratio: "
+                   << (ratio == 0.0 ? 1.0 : ratio / time.count()) << ")\\n";
+     return time.count();
+ }
+
+ int main()
+ {
+     std::cout << std::fixed << std::setprecision(2);
+     time_it(set_emplace); // cache warmup
+     const auto x = time_it(set_emplace, "plain emplace");
+     time_it(set_emplace_hint, "emplace with correct hint", x);
+     time_it(set_emplace_hint_wrong, "emplace with wrong hint", x);
+     time_it(set_emplace_hint_corrected, "corrected emplace", x);
+     time_it(set_emplace_hint_closest, "emplace using returned iterator", x);
+ }
+
+.SH Possible output:
+
+ ...TODO...
+
+.SH See also
+
+   emplace constructs element in-place
+           \fI(public member function)\fP
+   insert  inserts elements
+           \fI(public member function)\fP
+
+.SH Category:
+     * Todo without reason

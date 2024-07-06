@@ -1,19 +1,20 @@
-.TH std::at_quick_exit 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::at_quick_exit 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::at_quick_exit \- std::at_quick_exit
 
 .SH Synopsis
    Defined in header <cstdlib>
-   int at_quick_exit( /*atexit-handler*/* func ) noexcept;            \fB(1)\fP \fI(since C++11)\fP
+   int at_quick_exit( /*atexit-handler*/* func ) noexcept;   \fB(1)\fP \fI(since C++11)\fP
    int at_quick_exit( /*c-atexit-handler*/* func ) noexcept;
-   extern "C++" using /*atexit-handler*/ = void(); // exposition-only \fB(2)\fP
-   extern "C" using /*c-atexit-handler*/ = void(); // exposition-only
+   extern "C++" using /*atexit-handler*/ = void();           \fB(2)\fP (exposition only*)
+   extern "C" using /*c-atexit-handler*/ = void();
 
    Registers the function pointed to by func to be called on quick program termination
    (via std::quick_exit).
 
    Calling the function from several threads does not induce a data race. The
-   implementation shall support the registration of at least 32 functions.
+   implementation is guaranteed to support the registration of at least 32 functions.
+   The exact limit is implementation-defined.
 
    The registered functions will not be called on normal program termination. If a
    function need to be called in that case, std::atexit must be used.
@@ -29,12 +30,44 @@ std::at_quick_exit \- std::at_quick_exit
 .SH Notes
 
    The two overloads are distinct because the types of the parameter func are distinct
-   (language linkage is part of its type)
+   (language linkage is part of its type).
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <cstdlib>
+ #include <iostream>
+
+ void f1()
+ {
+     std::cout << "pushed first" << std::endl; // flush is intentional
+ }
+
+ extern "C" void f2()
+ {
+     std::cout << "pushed second\\n";
+ }
+
+ int main()
+ {
+     auto f3 = []
+     {
+         std::cout << "pushed third\\n";
+     };
+
+     std::at_quick_exit(f1);
+     std::at_quick_exit(f2);
+     std::at_quick_exit(f3);
+     std::quick_exit(0);
+ }
+
+.SH Output:
+
+ pushed third
+ pushed second
+ pushed first
 
 .SH See also
 
@@ -46,3 +79,5 @@ std::at_quick_exit \- std::at_quick_exit
               \fI(function)\fP
    quick_exit causes quick program termination without completely cleaning up
    \fI(C++11)\fP    \fI(function)\fP
+   C documentation for
+   at_quick_exit

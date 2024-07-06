@@ -1,4 +1,4 @@
-.TH std::ios_base::xalloc 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ios_base::xalloc 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ios_base::xalloc \- std::ios_base::xalloc
 
@@ -9,25 +9,18 @@ std::ios_base::xalloc \- std::ios_base::xalloc
    one void* elements in the private storage of std::ios_base by calling iword() and
    pword(). The call to xalloc does not allocate memory.
 
-   This function is thread-safe; concurrent access by multiple threads does not result
-   in a data race.
-   \fI(since C++14)\fP
+   This function is thread-safe: concurrent access by multiple threads    \fI(since C++11)\fP
+   does not result in a data race.
 
-   Effectively increments a private static data member of std::ios_base, as if by
-   executing return index++;, if index is the name of that static member
-   (which may be std::atomic to support concurrent access by multiple threads, or
-   otherwise synchronized)
-   \fI(since C++14)\fP
-
-.SH Parameters
-
-   \fI(none)\fP
+   Effectively increments the next available unique index.
 
 .SH Return value
 
    Unique integer for use as pword/iword index.
 
 .SH Example
+
+
 
    Uses base class pword storage for runtime type identification of derived stream
    objects.
@@ -37,15 +30,16 @@ std::ios_base::xalloc \- std::ios_base::xalloc
 
  #include <iostream>
 
- template<class charT, class traits = std::char_traits<charT> >
- class mystream : public std::basic_ostream<charT, traits>
+ template<class CharT, class Traits = std::char_traits<CharT>>
+ class mystream : public std::basic_ostream<CharT, Traits>
  {
-  public:
+ public:
      static const int xindex;
-     mystream(std::basic_ostream<charT, traits>& ostr) :
-         std::basic_ostream<charT, traits>(ostr.rdbuf())
+
+     mystream(std::basic_ostream<CharT, Traits>& ostr) :
+         std::basic_ostream<CharT, Traits>(ostr.rdbuf())
      {
-          this->pword(xindex) = this;
+         this->pword(xindex) = this;
      }
 
      void myfn()
@@ -54,18 +48,18 @@ std::ios_base::xalloc \- std::ios_base::xalloc
      }
  };
 
- // each specialization of mystream obtains a unique index from xalloc()
- template<class charT, class traits>
- const int mystream<charT, traits>::xindex = std::ios_base::xalloc();
+ // Each specialization of mystream obtains a unique index from xalloc()
+ template<class CharT, class Traits>
+ const int mystream<CharT, Traits>::xindex = std::ios_base::xalloc();
 
  // This I/O manipulator will be able to recognize ostreams that are mystreams
  // by looking up the pointer stored in pword
- template<class charT, class traits>
- std::basic_ostream<charT,traits>& mymanip(std::basic_ostream<charT,traits>& os)
+ template<class CharT, class Traits>
+ std::basic_ostream<CharT, Traits>& mymanip(std::basic_ostream<CharT, Traits>& os)
  {
-  if (os.pword(mystream<charT,traits>::xindex) == &os)
-     static_cast<mystream<charT,traits>&>(os).myfn();
-  return os;
+     if (os.pword(mystream<CharT, Traits>::xindex) == &os)
+         static_cast<mystream<CharT, Traits>&>(os).myfn();
+     return os;
  }
 
  int main()
@@ -87,6 +81,14 @@ std::ios_base::xalloc \- std::ios_base::xalloc
  myout, narrow-character test [special handling for mystream]
  wcout, wide-character test
  mywout, wide-character test [special handling for mystream]
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to   Behavior as published    Correct behavior
+   LWG 2143 C++11      xalloc was not thread-safe made thread-safe
 
 .SH See also
 

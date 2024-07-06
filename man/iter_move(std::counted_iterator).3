@@ -1,0 +1,103 @@
+.TH iter_move(std::counted_iterator) 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+iter_move(std::counted_iterator) \- iter_move(std::counted_iterator)
+
+.SH Synopsis
+   friend constexpr decltype(auto) iter_move( const
+   std::counted_iterator& i )
+                                                                          \fI(since C++20)\fP
+       noexcept(noexcept(ranges::iter_move(i.base())))
+
+           requires std::input_iterator<I>;
+
+   Casts the result of dereferencing the underlying iterator to its associated rvalue
+   reference type.
+
+   The function body is equivalent to return ranges::iter_move(i.base());.
+
+   This function is not visible to ordinary unqualified or qualified lookup, and can
+   only be found by argument-dependent lookup when std::counted_iterator<I> is an
+   associated class of the arguments.
+
+   If i.count() is equal to 0, the behavior is undefined.
+
+.SH Parameters
+
+   i - a source iterator adaptor
+
+.SH Return value
+
+   An rvalue reference or a prvalue temporary.
+
+.SH Complexity
+
+   Constant.
+
+.SH Example
+
+
+// Run this code
+
+ #include <iomanip>
+ #include <iostream>
+ #include <iterator>
+ #include <string>
+ #include <vector>
+
+ void print(auto const& rem, auto const& v)
+ {
+     std::cout << rem << '[' << size(v) << "] {";
+     for (char comma[]{0, ' ', 0}; auto const& s : v)
+         std::cout << comma << std::quoted(s), *comma = ',';
+     std::cout << "}\\n";
+ }
+
+ int main()
+ {
+     std::vector<std::string> p{"Alpha", "Bravo", "Charlie"}, q;
+     print("p", p);
+     print("q", q);
+
+     using RI = std::counted_iterator<std::vector<std::string>::iterator>;
+
+     for (RI iter{p.begin(), 2}; iter != std::default_sentinel; ++iter)
+         q.emplace_back(/* ADL */ iter_move(iter));
+
+     print("p", p);
+     print("q", q);
+ }
+
+.SH Possible output:
+
+ p[3] {"Alpha", "Bravo", "Charlie"}
+ q[0] {}
+ p[3] {"", "", "Charlie"}
+ q[2] {"Alpha", "Bravo"}
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to             Behavior as published              Correct behavior
+   LWG 3953 C++20      the return type was                            changed to
+                       std::iter_rvalue_reference_t<I>                decltype(auto)
+
+.SH See also
+
+   iter_move             casts the result of dereferencing an object to its associated
+   (C++20)               rvalue reference type
+                         (customization point object)
+   iter_swap             swaps the objects pointed to by two underlying iterators
+   (C++20)               \fI(function template)\fP
+   move                  obtains an rvalue reference
+   \fI(C++11)\fP               \fI(function template)\fP
+   move_if_noexcept      obtains an rvalue reference if the move constructor does not
+   \fI(C++11)\fP               throw
+                         \fI(function template)\fP
+   forward               forwards a function argument
+   \fI(C++11)\fP               \fI(function template)\fP
+   ranges::move          moves a range of elements to a new location
+   (C++20)               (niebloid)
+   ranges::move_backward moves a range of elements to a new location in backwards order
+   (C++20)               (niebloid)

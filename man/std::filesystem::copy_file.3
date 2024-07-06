@@ -1,57 +1,52 @@
-.TH std::filesystem::copy_file 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::copy_file 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::copy_file \- std::filesystem::copy_file
 
 .SH Synopsis
    Defined in header <filesystem>
+   bool copy_file( const std::filesystem::path& from,       \fB(1)\fP \fI(since C++17)\fP
+                   const std::filesystem::path& to );
    bool copy_file( const std::filesystem::path& from,
 
-   const std::filesystem::path& to );
-   bool copy_file( const std::filesystem::path& from, \fB(1)\fP \fI(since C++17)\fP
-   const std::filesystem::path& to,
+                   const std::filesystem::path& to,         \fB(2)\fP \fI(since C++17)\fP
 
-   std::error_code& ec );
+                   std::error_code& ec );
    bool copy_file( const std::filesystem::path& from,
 
-   const std::filesystem::path& to,
-   std::filesystem::copy_options options );
-   bool copy_file( const std::filesystem::path& from, \fB(2)\fP \fI(since C++17)\fP
-   const std::filesystem::path& to,
-   std::filesystem::copy_options options,
+                   const std::filesystem::path& to,         \fB(3)\fP \fI(since C++17)\fP
 
-   std::error_code& ec );
+                   std::filesystem::copy_options options );
+   bool copy_file( const std::filesystem::path& from,
 
-   1) The default, equivalent to \fB(2)\fP with copy_options::none used as options
-   2) Copies a single file from from to to, using the copy options indicated by
+                   const std::filesystem::path& to,         \fB(4)\fP \fI(since C++17)\fP
+                   std::filesystem::copy_options options,
+
+                   std::error_code& ec );
+
+   1,2) The default, equivalent to (3,4) with copy_options::none used as options.
+   3,4) Copies a single file from from to to, using the copy options indicated by
    options. The behavior is undefined if there is more than one option in any of the
    copy_options option group present in options (even in the groups not relevant to
-   filesystem::copy_file)
-
+   filesystem::copy_file).
      * If !filesystem::is_regular_file(from) (either because the source file doesn't
-       exist or because it is not a regular file), report an error
+       exist or because it is not a regular file), report an error.
      * Otherwise, if the destination file does not exist,
 
-              * copies the contents and the attributes of the file to which from
-                resolves to the file to which to resolves (symlinks are followed)
+     * copies the contents and the attributes of the file to which from resolves to the
+       file to which to resolves (symlinks are followed).
+     * Otherwise, if the destination file already exists,
 
-     * Otherwise, if the destination file already exists...
+     * report an error if any of the following is true:
 
-              * Report an error if any of the following is true:
-
-                           * to and from are the same as determined by
-                             filesystem::equivalent(from, to);
-                           * to is not a regular file as determined by
-                             !filesystem::is_regular_file(to)
-                           * none of the filesystem::copy_file control options are set
-                             in options
-
-              * Otherwise, if copy_options::skip_existing is set in options, do nothing
-              * Otherwise, if copy_options::overwrite_existing is set in options, copy
-                the contents and the attributes of the file to which from resolves to
-                the file to which to resolves
-              * Otherwise, if copy_options::update_existing is set in options, only
-                copy the file if from is newer than to, as defined by
-                filesystem::last_write_time().
+     * to and from are the same as determined by filesystem::equivalent(from, to);
+     * to is not a regular file as determined by !filesystem::is_regular_file(to);
+     * none of the filesystem::copy_file control options are set in options.
+     * Otherwise, if copy_options::skip_existing is set in options, do nothing.
+     * Otherwise, if copy_options::overwrite_existing is set in options, copy the
+       contents and the attributes of the file to which from resolves to the file to
+       which to resolves.
+     * Otherwise, if copy_options::update_existing is set in options, only copy the
+       file if from is newer than to, as defined by filesystem::last_write_time().
 
    The non-throwing overloads return false if an error occurs.
 
@@ -67,13 +62,14 @@ std::filesystem::copy_file \- std::filesystem::copy_file
 
 .SH Exceptions
 
-   The overload that does not take a std::error_code& parameter throws
-   filesystem::filesystem_error on underlying OS API errors, constructed with from as
-   the first path argument, to as the second path argument, and the OS error code as
-   the error code argument. The overload taking a std::error_code& parameter sets it to
-   the OS API error code if an OS API call fails, and executes ec.clear() if no errors
-   occur. Any overload not marked noexcept may throw std::bad_alloc if memory
-   allocation fails.
+   Any overload not marked noexcept may throw std::bad_alloc if memory allocation
+   fails.
+
+   1,3) Throws std::filesystem::filesystem_error on underlying OS API errors,
+   constructed with from as the first path argument, to as the second path argument,
+   and the OS error code as the error code argument.
+   2,4) Sets a std::error_code& parameter to the OS API error code if an OS API call
+   fails, and executes ec.clear() if no errors occur.
 
 .SH Notes
 
@@ -87,14 +83,14 @@ std::filesystem::copy_file \- std::filesystem::copy_file
    filesystem::copy_file follows symlinks: use filesystem::copy_symlink or
    filesystem::copy with filesystem::copy_options::copy_symlinks for that.
 
-.SH Examples
+.SH Example
 
 
 // Run this code
 
+ #include <filesystem>
  #include <fstream>
  #include <iostream>
- #include <filesystem>
  namespace fs = std::filesystem;
 
  int main()
@@ -105,16 +101,19 @@ std::filesystem::copy_file \- std::filesystem::copy_file
      fs::copy_file("sandbox/file1.txt", "sandbox/file2.txt");
 
      // now there are two files in sandbox:
-     std::cout << "file1.txt holds : "
+     std::cout << "file1.txt holds: "
                << std::ifstream("sandbox/file1.txt").rdbuf() << '\\n';
-     std::cout << "file2.txt holds : "
+     std::cout << "file2.txt holds: "
                << std::ifstream("sandbox/file2.txt").rdbuf() << '\\n';
 
      // fail to copy directory
      fs::create_directory("sandbox/abc");
-     try {
+     try
+     {
          fs::copy_file("sandbox/abc", "sandbox/def");
-     } catch(fs::filesystem_error& e) {
+     }
+     catch (fs::filesystem_error& e)
+     {
          std::cout << "Could not copy sandbox/abc: " << e.what() << '\\n';
      }
      fs::remove_all("sandbox");
@@ -122,11 +121,11 @@ std::filesystem::copy_file \- std::filesystem::copy_file
 
 .SH Possible output:
 
- file1.txt holds : a
- file2.txt holds : a
+ file1.txt holds: a
+ file2.txt holds: a
  Could not copy sandbox/abc: copy_file: Is a directory: "sandbox/abc", "sandbox/def"
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.

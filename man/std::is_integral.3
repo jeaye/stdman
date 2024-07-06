@@ -1,4 +1,4 @@
-.TH std::is_integral 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_integral 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_integral \- std::is_integral
 
@@ -7,6 +7,8 @@ std::is_integral \- std::is_integral
    template< class T >              \fI(since C++11)\fP
    struct is_integral;
 
+   std::is_integral is a UnaryTypeTrait.
+
    Checks whether T is an integral type. Provides the member constant value which is
    equal to true, if T is the type bool, char
    , char8_t
@@ -14,24 +16,25 @@ std::is_integral \- std::is_integral
    implementation-defined extended integer types, including any signed, unsigned, and
    cv-qualified variants. Otherwise, value is equal to false.
 
-   The behavior of a program that adds specializations for is_integral
-   or is_integral_v
-   \fI(since C++17)\fP is undefined.
+   If the program adds specializations for std::is_integral or std::is_integral_v, the
+   behavior is undefined.
 
 .SH Template parameters
 
    T - a type to check
 
-  Helper variable template
+   Helper variable template
 
    template< class T >                                           \fI(since C++17)\fP
    inline constexpr bool is_integral_v = is_integral<T>::value;
+
+
 
 Inherited from std::integral_constant
 
 .SH Member constants
 
-   value    true if T is an integral type , false otherwise
+   value    true if T is an integral type, false otherwise
    \fB[static]\fP \fI(public static member constant)\fP
 
 .SH Member functions
@@ -47,50 +50,55 @@ Inherited from std::integral_constant
    value_type bool
    type       std::integral_constant<bool, value>
 
+.SH Possible implementation
+
+   // Note: this implementation uses C++20 facilities
+   template<class T>
+   struct is_integral : std::bool_constant<
+       requires (T t, T* p, void (*f)(T)) // T* parameter excludes reference types
+       {
+           reinterpret_cast<T>(t); // Exclude class types
+           f\fB(0)\fP; // Exclude enumeration types
+           p + t; // Exclude everything not yet excluded but integral types
+       }> {};
+
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
- #include <iomanip>
  #include <type_traits>
 
+ static_assert
+ (
+     std::is_integral_v<float> == false &&
+     std::is_integral_v<int*> == false &&
+     std::is_integral_v<int> == true &&
+     std::is_integral_v<const int> == true &&
+     std::is_integral_v<bool> == true &&
+     std::is_integral_v<char> == true
+ );
+
  class A {};
+ static_assert(std::is_integral_v<A> == false);
+
+ struct B { int x:4; };
+ static_assert(std::is_integral_v<B> == false);
+ using BF = decltype(B::x); // bit-field's type
+ static_assert(std::is_integral_v<BF> == true);
 
  enum E : int {};
+ static_assert(std::is_integral_v<E> == false);
 
  template <class T>
- T f(T i)
+ constexpr T same(T i)
  {
      static_assert(std::is_integral<T>::value, "Integral required.");
      return i;
  }
+ static_assert(same('"') == 042);
 
- #define SHOW(...) std::cout << std::setw(29) << #__VA_ARGS__ << " == " << __VA_ARGS__ << '\\n'
-
- int main()
- {
-     std::cout << std::boolalpha;
-
-     SHOW( std::is_integral<A>::value );
-     SHOW( std::is_integral_v<E> );
-     SHOW( std::is_integral_v<float> );
-     SHOW( std::is_integral_v<int> );
-     SHOW( std::is_integral_v<const int> );
-     SHOW( std::is_integral_v<bool> );
-     SHOW( f(123) );
- }
-
-.SH Output:
-
-    std::is_integral<A>::value == false
-         std::is_integral_v<E> == false
-     std::is_integral_v<float> == false
-       std::is_integral_v<int> == true
- std::is_integral_v<const int> == true
-      std::is_integral_v<bool> == true
-                        f(123) == 123
+ int main() {}
 
 .SH See also
 

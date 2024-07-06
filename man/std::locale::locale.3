@@ -1,4 +1,4 @@
-.TH std::locale::locale 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::locale::locale 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::locale::locale \- std::locale::locale
 
@@ -11,40 +11,46 @@ std::locale::locale \- std::locale::locale
    explicit locale( const char* std_name );                 \fB(3)\fP
    explicit locale( const std::string& std_name );          \fB(4)\fP           \fI(since C++11)\fP
    locale( const locale& other, const char*         \fB(1)\fP     \fB(5)\fP
-   std_name, category cat );                            \fB(2)\fP
+   std_name, category cats );                           \fB(2)\fP
    locale( const locale& other, const std::string&          \fB(6)\fP           \fI(since C++11)\fP
-   std_name, category cat );
+   std_name, category cats );
    template< class Facet >                                  \fB(7)\fP
    locale( const locale& other, Facet* f );
    locale( const locale& other, const locale& one,          \fB(8)\fP
-   category cat );
+   category cats );
 
-   Contstructs a new locale object.
+   Constructs a new locale object.
 
    1) Default constructor. Constructs a copy of the global C++ locale, which is the
    locale most recently used as the argument to std::locale::global or a copy of
-   std::locale::classic if no call to std::locale::global has been made.
+   std::locale::classic() if no call to std::locale::global has been made.
    2) Copy constructor. Constructs a copy of other.
-   3-4) Constructs a copy of the system locale with specified std_name (such as "C", or
+   3,4) Constructs a copy of the system locale with specified std_name (such as "C", or
    "POSIX", or "en_US.UTF-8", or "English_US.1251"), if such locale is supported by the
    operating system. The locale constructed in this manner has a name.
-   5-6) Constructs a copy of other except for all the facets identified by the cat
+   4) Equivalent to locale(std_name.c_str()).
+   5) Constructs a copy of other except for all the facets identified by the cats
    argument, which are copied from the system locale identified by its std_name. The
    locale constructed in this manner has a name if and only if other has a name.
+   6) Equivalent to locale(other, std_name.c_str(), cats).
    7) Constructs a copy of other except for the facet of type Facet (typically deduced
-   from the type of the argument) which is installed from the argument facet. If facet
-   is a null pointer, the constructed locale is a full copy of other. The locale
-   constructed in this manner has no name.
-   8) Constructs a copy of other except for all the facets identified by the cat
-   argument, which are copied from one. If both other and one have names, then the
-   resulting locale also has a name.
+   from the type of the argument) which is installed from f. If f is a null pointer,
+   the constructed locale is a full copy of other. The program is ill-formed if Facet
+   is not a facet or it is a volatile-qualified facet.
+   If f is null, the constructed locale has the same name as other. Otherwise, the
+   constructed locale has no name.
+   8) Constructs a copy of other except for all the facets identified by the cats
+   argument, which are copied from one.
+   If cats is equal to locale::none, the constructed locale has a name if and only if
+   other has a name. Otherwise, the constructed locale has a name if and only if other
+   and one both have names.
 
 .SH Parameters
 
    other    - another locale to copy
    std_name - name of the system locale to use
    f        - pointer to a facet to merge with other
-   cat      - the locale category used to identify the facets to merge with other
+   cats     - the facet categories used to identify the facets to merge with other
    one      - another locale to take facets from
 
 .SH Exceptions
@@ -52,12 +58,11 @@ std::locale::locale \- std::locale::locale
    3,5) std::runtime_error if the operating system has no locale named std_name or if
    std_name is a null pointer.
    4,6) std::runtime_error if the operating system has no locale named std_name.
-   7,8) May throw implementation-defined exceptions.
 
 .SH Notes
 
-   Overload 7 is typically called with its second argument, f, obtained directly from a
-   new-expression: the locale is responsible for calling the matching delete from its
+   Overload \fB(7)\fP is typically called with its second argument, f, obtained directly from
+   a new-expression: the locale is responsible for calling the matching delete from its
    own destructor.
 
 .SH Example
@@ -71,25 +76,25 @@ std::locale::locale \- std::locale::locale
 
  std::ostream& operator<< (std::ostream& os, std::locale const& loc)
  {
-     if (loc.name().length() <= 80) { return os << loc.name() << '\\n'; }
+     if (loc.name().length() <= 80)
+         return os << loc.name() << '\\n';
 
      for (const auto c : loc.name())
-     {
          c != ';' ? os << c : os << "\\n    ";
-     }
      return os << '\\n';
  }
 
  int main()
  {
+     // l1 is a copy of the classic "C" locale
      std::locale l1;
-         // l1 is a copy of the classic "C" locale
+     // l2 is a unicode locale
      std::locale l2("en_US.UTF-8");
-         // l2 is a unicode locale
+     // l3 is "C" except for ctype, which is unicode
      std::locale l3(l1, l2, std::locale::ctype);
-         // l3 is "C" except for ctype, which is unicode
+     // l4 is "C" except for codecvt
      std::locale l4(l1, new std::codecvt_utf8<wchar_t>);
-         // l4 is "C" except for codecvt
+
      std::cout
          << "Locale names:\\n"
          << "l1: " << l1 << "l2: " << l2
@@ -115,7 +120,23 @@ std::locale::locale \- std::locale::locale
      LC_IDENTIFICATION=C
  l4: *
 
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to         Behavior as published              Correct behavior
+   LWG 436  C++98      for overload \fB(7)\fP, it was unclear      it can be const-qualified,
+                       whether Facet can be cv-qualified     but not volatile-qualified
+   LWG 2295 C++98      for overload \fB(7)\fP, the constructed     it has the name of other
+                       locale had no name even if f is null
+
 .SH See also
 
    destructor   destructs the locale and the facets whose reference count becomes zero
                 \fI(public member function)\fP
+
+.SH External links
+
+   1.  List of Windows locale names.
+   2.  List of Linux locale names.

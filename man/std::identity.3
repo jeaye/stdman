@@ -1,4 +1,4 @@
-.TH std::identity 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::identity 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::identity \- std::identity
 
@@ -9,11 +9,6 @@ std::identity \- std::identity
    std::identity is a function object type whose operator() returns its argument
    unchanged.
 
-.SH Member types
-
-   Member type    Definition
-   is_transparent /* unspecified */
-
 .SH Member functions
 
    operator() returns the argument unchanged
@@ -21,7 +16,7 @@ std::identity \- std::identity
 
 std::identity::operator()
 
-   template< class T>
+   template< class T >
    constexpr T&& operator()( T&& t ) const noexcept;
 
    Returns std::forward<T>(t).
@@ -36,13 +31,6 @@ std::identity::operator()
 
 .SH Notes
 
-   The member type is_transparent indicates to the caller that this function object is
-   a transparent function object: it accepts arguments of arbitrary types and uses
-   perfect forwarding, which avoids unnecessary copying and conversion when the
-   function object is used in heterogeneous context, or with rvalue arguments. In
-   particular, template functions such as std::set::find and std::set::lower_bound make
-   use of this member type on their Compare types.
-
    std::identity serves as the default projection in constrained algorithms. Its direct
    usage is usually not needed.
 
@@ -56,27 +44,34 @@ std::identity::operator()
  #include <iostream>
  #include <ranges>
  #include <string>
- #include <vector>
 
- struct Pair {
-     int n; std::string s;
-     friend std::ostream& operator<< (std::ostream& os, const Pair& p) {
-         return os << "{ " << p.n << ", " << p.s << " }";
+ struct Pair
+ {
+     int n;
+     std::string s;
+     friend std::ostream& operator<<(std::ostream& os, const Pair& p)
+     {
+         return os << '{' << p.n << ", " << p.s << '}';
      }
  };
 
  // A range-printer that can print projected (modified) elements of a range.
- template <std::ranges::input_range R,
-           typename Projection = std::identity> //<- Notice the default projection
- void print(std::string_view const rem, R&& r, Projection proj = {}) {
-     std::cout << rem << "{ ";
-     std::ranges::for_each(r, [](const auto& o){ std::cout << o << ' '; }, proj);
+ template<std::ranges::input_range R,
+          typename Projection = std::identity> //<- Notice the default projection
+ void print(std::string_view const rem, R&& range, Projection projection = {})
+ {
+     std::cout << rem << '{';
+     std::ranges::for_each(
+         range,
+         [O = 0](const auto& o) mutable { std::cout << (O++ ? ", " : "") << o; },
+         projection
+     );
      std::cout << "}\\n";
  }
 
  int main()
  {
-     const std::vector<Pair> v{ {1, "one"}, {2, "two"}, {3, "three"} };
+     const auto v = {Pair{1, "one"}, {2, "two"}, {3, "three"}};
 
      print("Print using std::identity as a projection: ", v);
      print("Project the Pair::n: ", v, &Pair::n);
@@ -87,10 +82,10 @@ std::identity::operator()
 
 .SH Output:
 
- Print using std::identity as a projection: { { 1, one } { 2, two } { 3, three } }
- Project the Pair::n: { 1 2 3 }
- Project the Pair::s: { one two three }
- Print using custom closure as a projection: { 1:one 2:two 3:three }
+ Print using std::identity as a projection: {{1, one}, {2, two}, {3, three}}
+ Project the Pair::n: {1, 2, 3}
+ Project the Pair::s: {one, two, three}
+ Print using custom closure as a projection: {1:one, 2:two, 3:three}
 
 .SH See also
 

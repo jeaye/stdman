@@ -1,0 +1,262 @@
+.TH std::ranges::search_n 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::search_n \- std::ranges::search_n
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< std::forward_iterator I, std::sentinel_for<I> S,
+   class T,
+
+             class Pred = ranges::equal_to, class Proj =
+   std::identity >                                                      (since
+   requires std::indirectly_comparable<I, const T*, Pred, Proj>         C++20)
+   constexpr ranges::subrange<I>                                        (until
+       search_n( I first, S last, std::iter_difference_t<I>             C++26)
+   count,
+
+                 const T& value, Pred pred = {}, Proj proj = {}
+   );
+   template< std::forward_iterator I, std::sentinel_for<I> S,
+
+             class Pred = ranges::equal_to, class Proj =
+   std::identity,
+             class T = std::projected_value_t<I, Proj> >
+   requires std::indirectly_comparable<I, const T*, Pred, Proj>         (since
+   constexpr ranges::subrange<I>                                        C++26)
+       search_n( I first, S last, std::iter_difference_t<I>
+   count,
+
+                 const T& value, Pred pred = {}, Proj proj = {}
+   );                                                           \fB(1)\fP
+   template< ranges::forward_range R, class T,
+
+             class Pred = ranges::equal_to, class Proj =
+   std::identity >                                                              (since
+   requires std::indirectly_comparable                                          C++20)
+       <ranges::iterator_t<R>, const T*, Pred, Proj>                            (until
+   constexpr ranges::borrowed_subrange_t<R>                                     C++26)
+       search_n( R&& r, ranges::range_difference_t<R> count,
+
+                 const T& value, Pred pred = {}, Proj proj = {}
+   );
+   template< ranges::forward_range R,                               \fB(2)\fP
+
+             class Pred = ranges::equal_to, class Proj =
+   std::identity,
+             class T =
+   std::projected_value_t<ranges::iterator_t<R>, Proj> >                        (since
+   requires std::indirectly_comparable                                          C++26)
+       <ranges::iterator_t<R>, const T*, Pred, Proj>
+   constexpr ranges::borrowed_subrange_t<R>
+       search_n( R&& r, ranges::range_difference_t<R> count,
+
+                 const T& value, Pred pred = {}, Proj proj = {}
+   );
+
+   1) Searches the range [first, last) for the first sequence of count elements whose
+   projected values are each equal to the given value according to the binary predicate
+   pred.
+   2) Same as \fB(1)\fP, but uses r as the source range, as if using ranges::begin(r) as
+   first and ranges::end(r) as last.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first, last - the range of elements to examine (aka haystack)
+   r           - the range of elements to examine (aka haystack)
+   count       - the length of the sequence to search for
+   value       - the value to search for (aka needle)
+   pred        - the binary predicate that compares the projected elements with value
+   proj        - the projection to apply to the elements of the range to examine
+
+.SH Return value
+
+   1) Returns std::ranges::subrange object that contains a pair of iterators in the
+   range [first, last) that designate the found subsequence.
+
+   If no such subsequence is found, returns std::ranges::subrange{last, last}.
+
+   If count <= 0, returns std::ranges::subrange{first, first}.
+   2) Same as \fB(1)\fP but the return type is ranges::borrowed_subrange_t<R>.
+
+.SH Complexity
+
+   Linear: at most ranges::distance(first, last) applications of the predicate and the
+   projection.
+
+.SH Notes
+
+   An implementation can improve efficiency of the search in average if the iterators
+   model std::random_access_iterator.
+
+             Feature-test macro           Value    Std              Feature
+   __cpp_lib_algorithm_default_value_type 202403 (C++26) List-initialization for
+                                                         algorithms
+
+.SH Possible implementation
+
+   struct search_n_fn
+   {
+       template<std::forward_iterator I, std::sentinel_for<I> S,
+                class Pred = ranges::equal_to, class Proj = std::identity,
+                class T = std::projected_value_t<I, Proj>>
+       requires std::indirectly_comparable<I, const T*, Pred, Proj>
+       constexpr ranges::subrange<I>
+           operator()(I first, S last, std::iter_difference_t<I> count,
+                      const T& value, Pred pred = {}, Proj proj = {}) const
+       {
+           if (count <= 0)
+               return {first, first};
+           for (; first != last; ++first)
+               if (std::invoke(pred, std::invoke(proj, *first), value))
+               {
+                   I start = first;
+                   std::iter_difference_t<I> n{1};
+                   for (;;)
+                   {
+                       if (n++ == count)
+                           return {start, std::next(first)}; // found
+                       if (++first == last)
+                           return {first, first}; // not found
+                       if (!std::invoke(pred, std::invoke(proj, *first), value))
+                           break; // not equ to value
+                   }
+               }
+           return {first, first};
+       }
+
+       template<ranges::forward_range R,
+                class Pred = ranges::equal_to, class Proj = std::identity,
+                class T = std::projected_value_t<ranges::iterator_t<R>, Proj>>
+       requires std::indirectly_comparable<ranges::iterator_t<R>, const T*, Pred, Proj>
+       constexpr ranges::borrowed_subrange_t<R>
+           operator()(R&& r, ranges::range_difference_t<R> count,
+                      const T& value, Pred pred = {}, Proj proj = {}) const
+       {
+           return (*this)(ranges::begin(r), ranges::end(r),
+                          std::move(count), value,
+                          std::move(pred), std::move(proj));
+       }
+   };
+
+   inline constexpr search_n_fn search_n {};
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <cassert>
+ #include <complex>
+ #include <iomanip>
+ #include <iostream>
+ #include <iterator>
+ #include <string>
+ #include <vector>
+
+ int main()
+ {
+     namespace ranges = std::ranges;
+
+     static constexpr auto nums = {1, 2, 2, 3, 4, 1, 2, 2, 2, 1};
+     constexpr int count{3};
+     constexpr int value{2};
+     typedef int count_t, value_t;
+
+     constexpr auto result1 = ranges::search_n
+     (
+         nums.begin(), nums.end(), count, value
+     );
+     static_assert // found
+     (
+         result1.size() == count &&
+         std::distance(nums.begin(), result1.begin()) == 6 &&
+         std::distance(nums.begin(), result1.end()) == 9
+     );
+
+     constexpr auto result2 = ranges::search_n(nums, count, value);
+     static_assert // found
+     (
+         result2.size() == count &&
+         std::distance(nums.begin(), result2.begin()) == 6 &&
+         std::distance(nums.begin(), result2.end()) == 9
+     );
+
+     constexpr auto result3 = ranges::search_n(nums, count, value_t{5});
+     static_assert // not found
+     (
+         result3.size() == 0 &&
+         result3.begin() == result3.end() &&
+         result3.end() == nums.end()
+     );
+
+     constexpr auto result4 = ranges::search_n(nums, count_t{0}, value_t{1});
+     static_assert // not found
+     (
+         result4.size() == 0 &&
+         result4.begin() == result4.end() &&
+         result4.end() == nums.begin()
+     );
+
+     constexpr char symbol{'B'};
+     auto to_ascii = [](const int z) -> char { return 'A' + z - 1; };
+     auto is_equ = [](const char x, const char y) { return x == y; };
+
+     std::cout << "Find a sub-sequence " << std::string(count, symbol) << " in the ";
+     std::ranges::transform(nums, std::ostream_iterator<char>(std::cout, ""), to_ascii);
+     std::cout << '\\n';
+
+     auto result5 = ranges::search_n(nums, count, symbol, is_equ, to_ascii);
+     if (not result5.empty())
+         std::cout << "Found at position "
+                   << ranges::distance(nums.begin(), result5.begin()) << '\\n';
+
+     std::vector<std::complex<double>> nums2{{4, 2}, {4, 2}, {1, 3}};
+     #ifdef __cpp_lib_algorithm_default_value_type
+         auto it = ranges::search_n(nums2, 2, {4, 2});
+     #else
+         auto it = ranges::search_n(nums2, 2, std::complex<double>{4, 2});
+     #endif
+     assert(it.size() == 2);
+ }
+
+.SH Output:
+
+ Find a sub-sequence BBB in the ABBCDABBBA
+ Found at position 6
+
+.SH See also
+
+   ranges::adjacent_find finds the first two adjacent items that are equal (or satisfy
+   (C++20)               a given predicate)
+                         (niebloid)
+   ranges::find
+   ranges::find_if
+   ranges::find_if_not   finds the first element satisfying specific criteria
+   (C++20)               (niebloid)
+   (C++20)
+   (C++20)
+   ranges::find_end      finds the last sequence of elements in a certain range
+   (C++20)               (niebloid)
+   ranges::find_first_of searches for any one of a set of elements
+   (C++20)               (niebloid)
+   ranges::includes      returns true if one sequence is a subsequence of another
+   (C++20)               (niebloid)
+   ranges::mismatch      finds the first position where two ranges differ
+   (C++20)               (niebloid)
+   ranges::search        searches for a range of elements
+   (C++20)               (niebloid)
+                         searches a range for a number of consecutive copies of an
+   search_n              element
+                         \fI(function template)\fP

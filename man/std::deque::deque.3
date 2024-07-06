@@ -1,4 +1,4 @@
-.TH std::deque::deque 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::deque::deque 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::deque::deque \- std::deque::deque
 
@@ -7,30 +7,37 @@ std::deque::deque \- std::deque::deque
    explicit deque( const Allocator& alloc );        \fB(2)\fP
    explicit deque( size_type count,
 
-   const T& value = T(),                                    \fI(until C++11)\fP
+                   const T& value = T(),                    \fI(until C++11)\fP
 
-   const Allocator& alloc = Allocator());
+                   const Allocator& alloc =
+   Allocator() );
    deque( size_type count,
 
-   const T& value,                                          \fI(since C++11)\fP
+          const T& value,                                   \fI(since C++11)\fP
 
-   const Allocator& alloc = Allocator());
+          const Allocator& alloc = Allocator() );
    explicit deque( size_type count );                                     \fI(since C++11)\fP
                                                                           \fI(until C++14)\fP
-   explicit deque( size_type count, const           \fB(3)\fP                   \fI(since C++14)\fP
-   Allocator& alloc = Allocator() );
-   template< class InputIt >
+   explicit deque( size_type count,
+                   const Allocator& alloc =                               \fI(since C++14)\fP
+   Allocator() );
+   template< class InputIt >                        \fB(3)\fP
 
    deque( InputIt first, InputIt last,                      \fB(5)\fP
-                                                        \fB(4)\fP
-   const Allocator& alloc = Allocator() );
-   deque( const deque& other );                             \fB(6)\fP
+
+          const Allocator& alloc = Allocator() );
+   deque( const deque& other );                         \fB(4)\fP \fB(6)\fP
    deque( const deque& other, const Allocator&              \fB(7)\fP           \fI(since C++11)\fP
    alloc );
    deque( deque&& other );                                  \fB(8)\fP           \fI(since C++11)\fP
    deque( deque&& other, const Allocator& alloc );          \fB(9)\fP           \fI(since C++11)\fP
    deque( std::initializer_list<T> init,                    \fB(10)\fP          \fI(since C++11)\fP
-   const Allocator& alloc = Allocator() );
+          const Allocator& alloc = Allocator() );
+   template< container-compatible-range<T> R >
+
+   deque( std::from_range_t, R&& rg,                        \fB(11)\fP          (since C++23)
+
+          const Allocator& alloc = Allocator() );
 
    Constructs a new container from a variety of data sources, optionally using a user
    supplied allocator alloc.
@@ -55,13 +62,14 @@ std::deque::deque \- std::deque::deque
 
    The allocator is obtained as if by calling                                    (since
    std::allocator_traits<allocator_type>::select_on_container_copy_construction( C++11)
-   other.get_allocator()).
+       other.get_allocator()).
 
    7) Constructs the container with the copy of the contents of other, using alloc as
    the allocator.
 
-   The template parameter Allocator is only deduced from the first        (since C++23)
-   argument while used in class template argument deduction.
+   During class template argument deduction, only the first argument
+   contributes to the deduction of the container's Allocator template     (since C++23)
+   parameter.
 
    8) Move constructor. Constructs the container with the contents of other using move
    semantics. Allocator is obtained by move-construction from the allocator belonging
@@ -70,30 +78,35 @@ std::deque::deque \- std::deque::deque
    container, moving the contents from other; if alloc != other.get_allocator(), this
    results in an element-wise move.
 
-   The template parameter Allocator is only deduced from the first        (since C++23)
-   argument while used in class template argument deduction.
+   During class template argument deduction, only the first argument
+   contributes to the deduction of the container's Allocator template     (since C++23)
+   parameter.
 
    10) Constructs the container with the contents of the initializer list init.
+   11) Constructs the container with the contents of the range rg.
 
 .SH Parameters
 
    alloc       - allocator to use for all memory allocations of this container
    count       - the size of the container
    value       - the value to initialize elements of the container with
-   first, last - the range to copy the elements from
+   first, last - the range [first, last) to copy the elements from
    other       - another container to be used as source to initialize the elements of
                  the container with
    init        - initializer list to initialize the elements of the container with
+   rg          - a container compatible range, that is, an input_range whose elements
+                 are convertible to T
 
 .SH Complexity
 
-   1-2) Constant
-   3-4) Linear in count
-   5) Linear in distance between first and last
-   6-7) Linear in size of other
+   1,2) Constant.
+   3,4) Linear in count.
+   5) Linear in distance between first and last.
+   6,7) Linear in size of other.
    8) Constant.
    9) Linear if alloc != other.get_allocator(), otherwise constant.
    10) Linear in size of init.
+   11) Linear in ranges::distance(rg).
 
 .SH Exceptions
 
@@ -104,62 +117,82 @@ std::deque::deque \- std::deque::deque
    After container move construction (overload \fB(8)\fP), references, pointers, and
    iterators (other than the end iterator) to other remain valid, but refer to elements
    that are now in *this. The current standard makes this guarantee via the blanket
-   statement in [container.requirements.general]/12, and a more direct guarantee is
-   under consideration via LWG 2321.
+   statement in [container.reqmts]/67, and a more direct guarantee is under
+   consideration via LWG issue 2321.
+
+       Feature-test macro       Value    Std                   Feature
+   __cpp_lib_containers_ranges 202202L (C++23) Ranges-aware construction and insertion;
+                                               overload \fB(11)\fP
 
 .SH Example
 
 
 // Run this code
 
- #include <deque>
- #include <string>
  #include <iostream>
+ #include <string>
+ #include <deque>
 
  template<typename T>
  std::ostream& operator<<(std::ostream& s, const std::deque<T>& v)
  {
-     s.put('[');
-     char comma[3] = {'\\0', ' ', '\\0'};
-     for (const auto& e : v) {
-         s << comma << e;
-         comma[0] = ',';
-     }
-     return s << ']';
+     s.put('{');
+     for (char comma[]{'\\0', ' ', '\\0'}; const auto& e : v)
+         s << comma << e, comma[0] = ',';
+     return s << "}\\n";
  }
 
  int main()
  {
-     // c++11 initializer list syntax:
-     std::deque<std::string> words1 {"the", "frogurt", "is", "also", "cursed"};
-     std::cout << "words1: " << words1 << '\\n';
+     // C++11 initializer list syntax:
+     std::deque<std::string> words1{"the", "frogurt", "is", "also", "cursed"};
+     std::cout << "1: " << words1;
 
      // words2 == words1
      std::deque<std::string> words2(words1.begin(), words1.end());
-     std::cout << "words2: " << words2 << '\\n';
+     std::cout << "2: " << words2;
 
      // words3 == words1
      std::deque<std::string> words3(words1);
-     std::cout << "words3: " << words3 << '\\n';
+     std::cout << "3: " << words3;
 
      // words4 is {"Mo", "Mo", "Mo", "Mo", "Mo"}
      std::deque<std::string> words4(5, "Mo");
-     std::cout << "words4: " << words4 << '\\n';
+     std::cout << "4: " << words4;
+
+     auto const rg = {"cat", "cow", "crow"};
+ #ifdef __cpp_lib_containers_ranges
+     std::deque<std::string> words5(std::from_range, rg); // overload (11)
+ #else
+     std::deque<std::string> words5(rg.begin(), rg.end()); // overload (5)
+ #endif
+     std::cout << "5: " << words5;
  }
 
 .SH Output:
 
- words1: [the, frogurt, is, also, cursed]
- words2: [the, frogurt, is, also, cursed]
- words3: [the, frogurt, is, also, cursed]
- words4: [Mo, Mo, Mo, Mo, Mo]
+ 1: {the, frogurt, is, also, cursed}
+ 2: {the, frogurt, is, also, cursed}
+ 3: {the, frogurt, is, also, cursed}
+ 4: {Mo, Mo, Mo, Mo, Mo}
+ 5: {cat, cow, crow}
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to        Behavior as published        Correct behavior
+      DR    Applied to        Behavior as published              Correct behavior
+                       the complexity requirement of
+   LWG 144  C++98      overload \fB(5)\fP was the same           changed to linear complexity
+                       as that of the corresponding
+                       overload of std::vector
+                       the complexity requirement of       changed to linear in
+   LWG 237  C++98      overload                            std::distance(first, last)
+                       \fB(5)\fP was linear in first - last
+                       for overload \fB(4)\fP, the elements in
+   LWG 868  C++98      the container were default          they are value-initialized
+                       constructed
    LWG 2193 C++11      the default constructor is explicit made non-explicit
 
 .SH See also

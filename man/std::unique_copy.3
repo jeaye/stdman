@@ -1,88 +1,94 @@
-.TH std::unique_copy 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::unique_copy 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unique_copy \- std::unique_copy
 
 .SH Synopsis
    Defined in header <algorithm>
    template< class InputIt, class OutputIt >
+   OutputIt unique_copy( InputIt first, InputIt last,       \fB(1)\fP (constexpr since C++20)
+   OutputIt d_first );
+   template< class ExecutionPolicy, class ForwardIt1, class
+   ForwardIt2 >
 
-   OutputIt unique_copy( InputIt first, InputIt             \fI(until C++20)\fP
+   ForwardIt2 unique_copy( ExecutionPolicy&& policy,        \fB(2)\fP \fI(since C++17)\fP
+   ForwardIt1 first,
+
+                           ForwardIt1 last, ForwardIt2
+   d_first );
+   template< class InputIt, class OutputIt, class
+   BinaryPred >
+                                                            \fB(3)\fP (constexpr since C++20)
+   OutputIt unique_copy( InputIt first, InputIt last,
+
+                         OutputIt d_first, BinaryPred p );
+   template< class ExecutionPolicy, class ForwardIt1,
+
+             class ForwardIt2, class BinaryPred >
+   ForwardIt2 unique_copy( ExecutionPolicy&& policy,
+                           ForwardIt1 first, ForwardIt1     \fB(4)\fP \fI(since C++17)\fP
    last,
 
-   OutputIt d_first );
-   template< class InputIt, class OutputIt >
-
-   constexpr OutputIt unique_copy( InputIt first,           \fI(since C++20)\fP
-   InputIt last,
-
-   OutputIt d_first );
-   template< class ExecutionPolicy, class
-   ForwardIt1, class ForwardIt2 >
-
-   ForwardIt2 unique_copy( ExecutionPolicy&&            \fB(2)\fP \fI(since C++17)\fP
-   policy, ForwardIt1 first, ForwardIt1 last,
-
-   ForwardIt2 d_first );
-   template< class InputIt, class OutputIt, class
-   BinaryPredicate >                                \fB(1)\fP
-
-   OutputIt unique_copy( InputIt first, InputIt                           \fI(until C++20)\fP
-   last,
-
-   OutputIt d_first, BinaryPredicate p );
-   template< class InputIt, class OutputIt, class
-   BinaryPredicate >
-
-   constexpr OutputIt unique_copy( InputIt first,       \fB(3)\fP               \fI(since C++20)\fP
-   InputIt last,
-
-   OutputIt d_first, BinaryPredicate p );
-   template< class ExecutionPolicy, class
-   ForwardIt1, class ForwardIt2, class
-   BinaryPredicate >
-                                                            \fB(4)\fP           \fI(since C++17)\fP
-   ForwardIt2 unique_copy( ExecutionPolicy&&
-   policy, ForwardIt1 first, ForwardIt1 last,
-
-   ForwardIt2 d_first, BinaryPredicate p );
+                           ForwardIt2 d_first, BinaryPred p
+   );
 
    Copies the elements from the range [first, last), to another range beginning at
    d_first in such a way that there are no consecutive equal elements. Only the first
    element of each group of equal elements is copied.
 
-   1) Elements are compared using operator==. The behavior is undefined if it is not an
-   equivalence relation.
-   3) Elements are compared using the given binary predicate p. The behavior is
-   undefined if it is not an equivalence relation.
-   2,4) Same as (1,3), but executed according to policy. These overloads do not
-   participate in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
+   1) Elements are compared using operator==.
+   If operator== does not establish an equivalence relation, the behavior is undefined.
+   3) Elements are compared using the given binary predicate p.
+   If p does not establish an equivalence relation, the behavior is undefined.
+   2,4) Same as (1,3), but executed according to policy.
+   These overloads participate in overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
+
+   If
+   *d_first = *first is invalid
    \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+   *first is not writable to d_first
+   \fI(since C++20)\fP, the program is ill-formed.
+
+   If source and destination ranges overlap, the behavior is undefined.
+
+   Given T as the value type of InputIt, if overload \fB(1)\fP or \fB(3)\fP does not satisfy all of
+   the following conditions, the behavior is undefined:
+
+     * InputIt meets the requirements of LegacyForwardIterator.   \fI(until C++20)\fP
+     * InputIt models forward_iterator.                           \fI(since C++20)\fP
+
+     * T is both CopyConstructible and CopyAssignable.
+     * All following conditions are satisfied:
+
+     * OutputIt meets the requirements of LegacyForwardIterator.
+     * The value type of OutputIt is also T.
+     * T is CopyAssignable.
 
 .SH Parameters
 
-   first, last   -  the range of elements to process
-   d_first       -  the beginning of the destination range
-   policy        -  the execution policy to use. See execution policy for details.
-                    binary predicate which returns true if the elements should be
-                    treated as equal.
+   first, last - the range of elements to process
+   d_first     - the beginning of the destination range
+   policy      - the execution policy to use. See execution policy for details.
+                 binary predicate which returns true if the elements should be treated
+                 as equal.
 
-                    The signature of the predicate function should be equivalent to the
-                    following:
+                 The signature of the predicate function should be equivalent to the
+                 following:
 
-                    bool pred(const Type1 &a, const Type2 &b);
-
-   p             -  While the signature does not need to have const &, the function
-                    must not modify the objects passed to it and must be able to accept
-                    all values of type (possibly const) Type1 and Type2 regardless of
-                    value category (thus, Type1 & is not allowed
-                    , nor is Type1 unless for Type1 a move is equivalent to a copy
-                    \fI(since C++11)\fP).
-                    The types Type1 and Type2 must be such that an object of type
-                    InputIt can be dereferenced and then implicitly converted to both
-                    of them.
+                  bool pred(const Type1 &a, const Type2 &b);
+   p           -
+                 While the signature does not need to have const &, the function must
+                 not modify the objects passed to it and must be able to accept all
+                 values of type (possibly const) Type1 and Type2 regardless of value
+                 category (thus, Type1 & is not allowed
+                 , nor is Type1 unless for Type1 a move is equivalent to a copy
+                 \fI(since C++11)\fP).
+                 The types Type1 and Type2 must be such that an object of type InputIt
+                 can be dereferenced and then implicitly converted to both of them.
 .SH Type requirements
    -
    InputIt must meet the requirements of LegacyInputIterator.
@@ -90,14 +96,6 @@ std::unique_copy \- std::unique_copy
    OutputIt must meet the requirements of LegacyOutputIterator.
    -
    ForwardIt1, ForwardIt2 must meet the requirements of LegacyForwardIterator.
-   -
-   The type of dereferenced InputIt must meet the requirements of CopyAssignable. if
-   InputIt does not satisfy LegacyForwardIterator
-   -
-   The type of dereferenced InputIt must meet the requirements of CopyConstructible. if
-   neither InputIt nor OutputIt satisfies LegacyForwardIterator, or if InputIt does not
-   satisfy LegacyForwardIterator and the value type of InputIt differs from that of
-   OutputIt.
 
 .SH Return value
 
@@ -105,8 +103,13 @@ std::unique_copy \- std::unique_copy
 
 .SH Complexity
 
-   For nonempty ranges, exactly std::distance(first, last) - 1 applications of the
-   corresponding predicate.
+   Given \\(\\scriptsize N\\)N as std::distance(first, last):
+
+   1,2) Exactly \\(\\scriptsize max(0,N-1)\\)max(0,N-1) comparisons using operator==.
+   3,4) Exactly \\(\\scriptsize max(0,N-1)\\)max(0,N-1) applications of the predicate p.
+
+   For overloads (2,4), there may be a performance cost if the value type of ForwardIt1
+   is not both CopyConstructible and CopyAssignable.
 
 .SH Exceptions
 
@@ -118,6 +121,10 @@ std::unique_copy \- std::unique_copy
        For any other ExecutionPolicy, the behavior is implementation-defined.
      * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
+.SH Possible implementation
+
+   See also the implementations in libstdc++ and libc++.
+
 .SH Notes
 
    If InputIt satisfies LegacyForwardIterator, this function rereads the input in order
@@ -128,39 +135,49 @@ std::unique_copy \- std::unique_copy
 
    Otherwise, this function compares *first to a local element copy.
 
-   For the overloads with an ExecutionPolicy, there may be a performance cost if the
-   value type of ForwardIterator1 is not both CopyConstructible and CopyAssignable.
-
-.SH Possible implementation
-
-   See also the implementations in libstdc++ and libc++.
-
 .SH Example
 
 
 // Run this code
 
- #include <string>
- #include <iostream>
  #include <algorithm>
+ #include <iostream>
  #include <iterator>
+ #include <string>
 
  int main()
  {
-     std::string s1 = "The      string    with many       spaces!";
-     std::cout << "before: " << s1 << '\\n';
+     std::string s1 {"A string with mmmany letters!"};
+     std::cout << "Before: " << s1 << '\\n';
 
      std::string s2;
      std::unique_copy(s1.begin(), s1.end(), std::back_inserter(s2),
-                      [](char c1, char c2){ return c1 == ' ' && c2 == ' '; });
+                      [](char c1, char c2) { return c1 == 'm' && 'm' == c2; });
 
-     std::cout << "after:  " << s2 << '\\n';
+     std::cout << "After:  " << s2 << '\\n';
  }
 
 .SH Output:
 
- before: The      string    with many       spaces!
- after:  The string with many spaces!
+ Before: A string with mmmany letters!
+ After:  A string with many letters!
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to           Behavior as published              Correct behavior
+   LWG 239  C++98      the predicate was applied                 applied one time fewer
+                       std::distance(first, last) times          (for non-empty ranges)
+   LWG 241  C++98      the value type of InputIt was not         conditionally required
+                       required to be CopyConstructible
+   LWG 538  C++98      the value type of InputIt was not         conditionally required
+                       required to be CopyAssignable
+                       the value type of InputIt was not
+   LWG 2439 C++98      required to be                            conditionally required
+                       CopyConstructible if OutputIt is a
+                       LegacyForwardIterator
 
 .SH See also
 

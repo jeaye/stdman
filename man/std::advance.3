@@ -1,4 +1,4 @@
-.TH std::advance 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::advance 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::advance \- std::advance
 
@@ -44,55 +44,51 @@ std::advance \- std::advance
 
    See also the implementations in libstdc++ and libc++.
 
-.SH First version
-   // implementation via tag dispatch, available in C++98 with constexpr removed
-   namespace detail {
-
-   template<class It>
-   constexpr // required since C++17
-   void do_advance(It& it, typename std::iterator_traits<It>::difference_type n,
-                   std::input_iterator_tag)
+                                  Non-constexpr version
+   namespace detail
    {
-       while (n > 0) {
-           --n;
-           ++it;
+       template<class It>
+       void do_advance(It& it, typename std::iterator_traits<It>::difference_type n,
+                       std::input_iterator_tag)
+       {
+           while (n > 0)
+           {
+               --n;
+               ++it;
+           }
        }
-   }
 
-   template<class It>
-   constexpr // required since C++17
-   void do_advance(It& it, typename std::iterator_traits<It>::difference_type n,
-                   std::bidirectional_iterator_tag)
-   {
-       while (n > 0) {
-           --n;
-           ++it;
+       template<class It>
+       void do_advance(It& it, typename std::iterator_traits<It>::difference_type n,
+                       std::bidirectional_iterator_tag)
+       {
+           while (n > 0)
+           {
+               --n;
+               ++it;
+           }
+           while (n < 0)
+           {
+               ++n;
+               --it;
+           }
        }
-       while (n < 0) {
-           ++n;
-           --it;
+
+       template<class It>
+       void do_advance(It& it, typename std::iterator_traits<It>::difference_type n,
+                       std::random_access_iterator_tag)
+       {
+           it += n;
        }
-   }
-
-   template<class It>
-   constexpr // required since C++17
-   void do_advance(It& it, typename std::iterator_traits<It>::difference_type n,
-                   std::random_access_iterator_tag)
-   {
-       it += n;
-   }
-
    } // namespace detail
 
    template<class It, class Distance>
-   constexpr // since C++17
    void advance(It& it, Distance n)
    {
        detail::do_advance(it, typename std::iterator_traits<It>::difference_type(n),
                           typename std::iterator_traits<It>::iterator_category());
    }
-.SH Second version
-   // implementation via constexpr if, available in C++17
+                                    constexpr version
    template<class It, class Distance>
    constexpr void advance(It& it, Distance n)
    {
@@ -102,17 +98,19 @@ std::advance \- std::advance
        auto dist = typename std::iterator_traits<It>::difference_type(n);
        if constexpr (std::is_base_of_v<std::random_access_iterator_tag, category>)
            it += dist;
-       else {
-           while (dist > 0) {
+       else
+       {
+           while (dist > 0)
+           {
                --dist;
                ++it;
            }
-           if constexpr (std::is_base_of_v<std::bidirectional_iterator_tag, category>) {
-               while (dist < 0) {
+           if constexpr (std::is_base_of_v<std::bidirectional_iterator_tag, category>)
+               while (dist < 0)
+               {
                    ++dist;
                    --it;
                }
-           }
        }
    }
 
@@ -127,7 +125,7 @@ std::advance \- std::advance
 
  int main()
  {
-     std::vector<int> v{ 3, 1, 4 };
+     std::vector<int> v{3, 1, 4};
 
      auto vi = v.begin();
      std::advance(vi, 2);

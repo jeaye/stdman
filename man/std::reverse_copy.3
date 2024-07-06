@@ -1,34 +1,36 @@
-.TH std::reverse_copy 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::reverse_copy 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::reverse_copy \- std::reverse_copy
 
 .SH Synopsis
    Defined in header <algorithm>
    template< class BidirIt, class OutputIt >
-   OutputIt reverse_copy( BidirIt first, BidirIt last, OutputIt           \fI(until C++20)\fP
-   d_first );
-   template< class BidirIt, class OutputIt >
-   constexpr OutputIt reverse_copy( BidirIt first, BidirIt last,          \fI(since C++20)\fP
-   OutputIt d_first );                                            \fB(1)\fP
+
+   OutputIt reverse_copy( BidirIt first, BidirIt last,      \fB(1)\fP (constexpr since C++20)
+
+                          OutputIt d_first );
    template< class ExecutionPolicy, class BidirIt, class
    ForwardIt >
-                                                                      \fB(2)\fP \fI(since C++17)\fP
-   ForwardIt reverse_copy( ExecutionPolicy&& policy,
 
-   BidirIt first, BidirIt last, ForwardIt d_first );
+   ForwardIt reverse_copy( ExecutionPolicy&& policy,        \fB(2)\fP \fI(since C++17)\fP
+                           BidirIt first, BidirIt last,
 
-   1) Copies the elements from the range [first, last) to another range beginning at
-   d_first in such a way that the elements in the new range are in reverse order.
-   Behaves as if by executing the assignment *(d_first + (last - first) - 1 - i) =
-   *(first + i) once for each non-negative i < (last - first).
-   If the source and destination ranges (that is, [first, last) and [d_first,
-   d_first+(last-first)), respectively) overlap, the behavior is undefined.
-   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
-   in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+                           ForwardIt d_first );
+
+   1) Given \\(\\scriptsize N\\)N as std::distance(first, last). Copies the elements from
+   the range [first, last) (source range) to another range of \\(\\scriptsize N\\)N
+   elements beginning at d_first (destination range) in such a way that the elements in
+   the destination range are in reverse order.
+   Behaves as if by executing the assignment *(d_first + N - 1 - i) = *(first + i)^[1]
+   once for each integer i in [0, N).
+   If source and destination ranges overlap, the behavior is undefined.
+   2) Same as \fB(1)\fP, but executed according to policy.
+   This overload participates in overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
 
 .SH Parameters
 
@@ -48,7 +50,7 @@ std::reverse_copy \- std::reverse_copy
 
 .SH Complexity
 
-   Exactly last - first assignments.
+   Exactly \\(\\scriptsize N\\)N assignments.
 
 .SH Exceptions
 
@@ -60,12 +62,6 @@ std::reverse_copy \- std::reverse_copy
        For any other ExecutionPolicy, the behavior is implementation-defined.
      * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
-.SH Notes
-
-   Implementations (e.g. MSVC STL) may enable vectorization when the both iterator
-   types satisfy LegacyContiguousIterator and have the same value type, and the value
-   type is TriviallyCopyable.
-
 .SH Possible implementation
 
    See also the implementations in libstdc++, libc++, and MSVC STL.
@@ -74,30 +70,36 @@ std::reverse_copy \- std::reverse_copy
    constexpr // since C++20
    OutputIt reverse_copy(BidirIt first, BidirIt last, OutputIt d_first)
    {
-       while (first != last) {
-           *(d_first++) = *(--last);
-       }
+       for (; first != last; ++d_first)
+           *d_first = *(--last);
        return d_first;
    }
+
+.SH Notes
+
+   Implementations (e.g. MSVC STL) may enable vectorization when the both iterator
+   types satisfy LegacyContiguousIterator and have the same value type, and the value
+   type is TriviallyCopyable.
 
 .SH Example
 
 
 // Run this code
 
- #include <vector>
- #include <iostream>
  #include <algorithm>
+ #include <iostream>
+ #include <vector>
 
  int main()
  {
-     auto print = [](std::vector<int> const& v) {
+     auto print = [](const std::vector<int>& v)
+     {
          for (const auto& value : v)
              std::cout << value << ' ';
-         std::cout << '\\t';
+         std::cout << '\\n';
      };
 
-     std::vector<int> v({1,2,3});
+     std::vector<int> v{1, 2, 3};
      print(v);
 
      std::vector<int> destination(3);
@@ -110,7 +112,25 @@ std::reverse_copy \- std::reverse_copy
 
 .SH Output:
 
- 1 2 3   3 2 1   1 2 3
+ 1 2 3
+ 3 2 1
+ 1 2 3
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to         Behavior as published              Correct behavior
+                       for each i, the assignment was        corrected to
+   LWG 2074 C++98      *(d_first + N - i) = *(first + i)^[1] *(d_first + N - 1 - i) =
+                                                             *(first + i)^[1]
+   LWG 2150 C++98      only one element was required to be   corrected the requirement
+                       assigned
+
+    1. ↑ ^1.0 ^1.1 ^1.2 LegacyOutputIterator is not required to support binary + and -.
+       The usages of + and - here are exposition-only: the actual computation does not
+       need to use them.
 
 .SH See also
 

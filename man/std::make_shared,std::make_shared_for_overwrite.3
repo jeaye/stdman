@@ -1,4 +1,4 @@
-.TH std::make_shared,std::make_shared_for_overwrite 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::make_shared,std::make_shared_for_overwrite 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::make_shared,std::make_shared_for_overwrite \- std::make_shared,std::make_shared_for_overwrite
 
@@ -30,7 +30,7 @@ std::make_shared,std::make_shared_for_overwrite \- std::make_shared,std::make_sh
    type T.
 
    This overload participates in overload resolution only if T is not an  \fI(since C++20)\fP
-   array type
+   array type.
 
    2,3) Same as \fB(1)\fP, but the object constructed is a possibly-multidimensional array
    whose non-array elements of type std::remove_all_extents_t<T> are value-initialized
@@ -57,7 +57,7 @@ std::make_shared,std::make_shared_for_overwrite \- std::make_shared,std::make_sh
 
 .SH Parameters
 
-   args - list of arguments with which an instance of T will be constructed.
+   args - list of arguments with which an instance of T will be constructed
    N    - array size to use
    u    - the initial value to initialize every element of the array
 
@@ -81,7 +81,7 @@ std::make_shared,std::make_shared_for_overwrite \- std::make_shared,std::make_sh
      * std::shared_ptr<T>(new T(args...)) performs at least two allocations (one for
        the object T and one for the control block of the shared pointer), while
        std::make_shared<T> typically performs only one allocation (the standard
-       recommends, but does not require this; all known implementations do this)
+       recommends, but does not require this; all known implementations do this).
      * If any std::weak_ptr references the control block created by std::make_shared
        after the lifetime of all shared owners ended, the memory occupied by T persists
        until all weak owners get destroyed as well, which may be undesirable if
@@ -97,7 +97,7 @@ std::make_shared,std::make_shared_for_overwrite \- std::make_shared,std::make_sh
 
      * std::shared_ptr supports array types (as of C++17), but
        std::make_shared does not. This functionality is supported by      \fI(until C++20)\fP
-       boost::make_shared
+       boost::make_shared.
 
      * code such as f(std::shared_ptr<int>(new int\fB(42)\fP), g()) can cause a
        memory leak if g gets called after new int\fB(42)\fP and throws an       \fI(until C++17)\fP
@@ -111,8 +111,8 @@ std::make_shared,std::make_shared_for_overwrite \- std::make_shared,std::make_sh
    and if so, the constructor evaluates the statement:
 
  if (ptr != nullptr && ptr->weak_this.expired())
-   ptr->weak_this = std::shared_ptr<std::remove_cv_t<U>>(*this,
-                                   const_cast<std::remove_cv_t<U>*>(ptr));
+     ptr->weak_this = std::shared_ptr<std::remove_cv_t<U>>(
+                          *this, const_cast<std::remove_cv_t<U>*>(ptr));
 
    Where weak_this is the hidden mutable std::weak_ptr member of
    std::enable_shared_from_this. The assignment to the weak_this member is not atomic
@@ -124,19 +124,25 @@ std::make_shared,std::make_shared_for_overwrite \- std::make_shared,std::make_sh
    weak_this is not reassigned if it already indicates an owner. This test is required
    as of C++17.
 
-   Feature-test macro: __cpp_lib_shared_ptr_arrays (for overloads (2-5))
-
-   Feature-test macro: __cpp_lib_smart_ptr_for_overwrite (for overloads (6,7))
+          Feature-test macro          Value    Std                 Feature
+   __cpp_lib_shared_ptr_arrays       201707L (C++20) Array support of std::make_shared;
+                                                     overloads (2-5)
+                                                     Smart pointer creation with default
+                                                     initialization
+   __cpp_lib_smart_ptr_for_overwrite 202002L (C++20) (std::allocate_shared_for_overwrite,
+                                                     std::make_shared_for_overwrite,
+                                                     std::make_unique_for_overwrite);
+                                                     overloads (6,7)
 
 .SH Example
 
 
 // Run this code
 
- #include <memory>
- #include <vector>
  #include <iostream>
+ #include <memory>
  #include <type_traits>
+ #include <vector>
 
  struct C
  {
@@ -160,9 +166,6 @@ std::make_shared,std::make_shared_for_overwrite \- std::make_shared,std::make_sh
      static_assert(std::is_same_v<decltype(sp1), decltype(sp2)>);
      std::cout << "sp2->{ i:" << sp2->i << ", f:" << sp2->f << " }\\n";
 
-
-     // see https://wandbox.org/permlink/wVZT5Gl2omZrhxte
-
      // shared_ptr to a value-initialized float[64]; overload (2):
      std::shared_ptr<float[]> sp3 = std::make_shared<float[]>(64);
 
@@ -178,20 +181,26 @@ std::make_shared,std::make_shared_for_overwrite \- std::make_shared,std::make_sh
      // shared_ptr to a double[256], where each element is 2.0; overload (4):
      std::shared_ptr<double[]> sp7 = std::make_shared<double[]>(256, 2.0);
 
-     // shared_ptr to a double[7][2], where each double[2] element is {3.0, 4.0}; overload (4):
+     // shared_ptr to a double[7][2], where each double[2]
+     // element is {3.0, 4.0}; overload (4):
      std::shared_ptr<double[][2]> sp8 = std::make_shared<double[][2]>(7, {3.0, 4.0});
 
-     // shared_ptr to a vector<int>[4], where each vector has contents {5, 6}; overload (4):
-     std::shared_ptr<std::vector<int>[]> sp9 = std::make_shared<std::vector<int>[]>(4, {5, 6});
+     // shared_ptr to a vector<int>[4], where each vector
+     // has contents {5, 6}; overload (4):
+     std::shared_ptr<std::vector<int>[]> sp9 =
+         std::make_shared<std::vector<int>[]>(4, {5, 6});
 
      // shared_ptr to a float[512], where each element is 1.0; overload (5):
      std::shared_ptr<float[512]> spA = std::make_shared<float[512]>(1.0);
 
-     // shared_ptr to a double[6][2], where each double[2] element is {1.0, 2.0}; overload (5):
+     // shared_ptr to a double[6][2], where each double[2] element
+     // is {1.0, 2.0}; overload (5):
      std::shared_ptr<double[6][2]> spB = std::make_shared<double[6][2]>({1.0, 2.0});
 
-     // shared_ptr to a vector<int>[4], where each vector has contents {5, 6}; overload (5):
-     std::shared_ptr<std::vector<int>[4]> spC = std::make_shared<std::vector<int>[4]>({5, 6});
+     // shared_ptr to a vector<int>[4], where each vector
+     // has contents {5, 6}; overload (5):
+     std::shared_ptr<std::vector<int>[4]> spC =
+         std::make_shared<std::vector<int>[4]>({5, 6});
  }
 
 .SH Output:
@@ -206,6 +215,9 @@ std::make_shared,std::make_shared_for_overwrite \- std::make_shared,std::make_sh
    allocate_shared               creates a shared pointer that manages a new object
    allocate_shared_for_overwrite allocated using an allocator
    (C++20)                       \fI(function template)\fP
+   enable_shared_from_this       allows an object to create a shared_ptr referring to
+   \fI(C++11)\fP                       itself
+                                 \fI(class template)\fP
    make_unique
    make_unique_for_overwrite     creates a unique pointer that manages a new object
    \fI(C++14)\fP                       \fI(function template)\fP

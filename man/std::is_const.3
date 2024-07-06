@@ -1,4 +1,4 @@
-.TH std::is_const 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_const 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_const \- std::is_const
 
@@ -7,27 +7,30 @@ std::is_const \- std::is_const
    template< class T >              \fI(since C++11)\fP
    struct is_const;
 
+   std::is_const is a UnaryTypeTrait.
+
    If T is a const-qualified type (that is, const, or const volatile), provides the
    member constant value equal to true. For any other type, value is false.
 
-   The behavior of a program that adds specializations for is_const
-   or is_const_v
-   \fI(since C++17)\fP is undefined.
+   If the program adds specializations for std::is_const or std::is_const_v, the
+   behavior is undefined.
 
 .SH Template parameters
 
    T - a type to check
 
-  Helper variable template
+   Helper variable template
 
    template< class T >                                     \fI(since C++17)\fP
    inline constexpr bool is_const_v = is_const<T>::value;
+
+
 
 Inherited from std::integral_constant
 
 .SH Member constants
 
-   value    true if T is a const-qualified type , false otherwise
+   value    true if T is a const-qualified type, false otherwise
    \fB[static]\fP \fI(public static member constant)\fP
 
 .SH Member functions
@@ -59,31 +62,45 @@ Inherited from std::integral_constant
 
 // Run this code
 
- #include <iostream>
  #include <type_traits>
+
+ static_assert(std::is_same_v<const int*, int const*>,
+     "Remember, const-ness binds tightly inside pointers.");
+ static_assert(!std::is_const_v<int>);
+ static_assert(std::is_const_v<const int>);
+ static_assert(!std::is_const_v<int*>);
+ static_assert(std::is_const_v<int* const>,
+     "Because the pointer itself can't be changed but the int pointed at can.");
+ static_assert(!std::is_const_v<const int*>,
+     "Because the pointer itself can be changed but not the int pointed at.");
+ static_assert(!std::is_const_v<const int&>);
+ static_assert(std::is_const_v<std::remove_reference_t<const int&>>);
+
+ struct S
+ {
+     void foo() const {}
+     void bar() const {}
+ };
 
  int main()
  {
-     std::cout << std::boolalpha
-         << std::is_const_v<int> << '\\n' // false
-         << std::is_const_v<const int> << '\\n' // true
-         << std::is_const_v<const int*> // false
-         << " because the pointer itself can be changed but not the int pointed at\\n"
-         << std::is_const_v<int* const> // true
-         << " because the pointer itself can't be changed but the int pointed at can\\n"
-         << std::is_const_v<const int&> << '\\n' // false
-         << std::is_const_v<std::remove_reference_t<const int&>> << '\\n' // true
-         ;
+     // A const member function is const in a different way:
+
+     static_assert(!std::is_const_v<decltype(&S::foo)>,
+         "Because &S::foo is a pointer.");
+
+     using S_mem_fun_ptr = void(S::*)() const;
+
+     S_mem_fun_ptr sfp = &S::foo;
+     sfp = &S::bar; // OK, can be re-pointed
+     static_assert(!std::is_const_v<decltype(sfp)>,
+         "Because sfp is the same pointer type and thus can be re-pointed.");
+
+     const S_mem_fun_ptr csfp = &S::foo;
+     // csfp = &S::bar; // Error
+     static_assert(std::is_const_v<decltype(csfp)>,
+         "Because csfp cannot be re-pointed.");
  }
-
-.SH Output:
-
- false
- true
- false because the pointer itself can be changed but not the int pointed at
- true because the pointer itself can't be changed but the int pointed at can
- false
- true
 
 .SH See also
 

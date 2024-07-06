@@ -1,26 +1,28 @@
-.TH std::erase_if(std::map) 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::erase_if(std::map) 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::erase_if(std::map) \- std::erase_if(std::map)
 
 .SH Synopsis
    Defined in header <map>
-   template< class Key, class T, class Compare, class Alloc, class Pred
-   >
-                                                                          \fI(since C++20)\fP
-   typename std::map<Key,T,Compare,Alloc>::size_type
+   template< class Key, class T, class Compare, class Alloc,
 
-   erase_if( std::map<Key,T,Compare,Alloc>& c, Pred pred );
+             class Pred >
+   std::map<Key, T, Compare, Alloc>::size_type                \fI(since C++20)\fP
+       erase_if( std::map<Key, T, Compare, Alloc>& c,
 
-   Erases all elements that satisfy the predicate pred from the container. Equivalent
-   to
+                 Pred pred );
+
+   Erases all elements that satisfy the predicate pred from c.
+
+   Equivalent to
 
  auto old_size = c.size();
- for (auto i = c.begin(), last = c.end(); i != last; ) {
-   if (pred(*i)) {
-     i = c.erase(i);
-   } else {
-     ++i;
-   }
+ for (auto first = c.begin(), last = c.end(); first != last;)
+ {
+     if (pred(*first))
+         first = c.erase(first);
+     else
+         ++first;
  }
  return old_size - c.size();
 
@@ -42,40 +44,42 @@ std::erase_if(std::map) \- std::erase_if(std::map)
 
 // Run this code
 
- #include <map>
  #include <iostream>
+ #include <map>
 
- template<typename Os, typename Container>
- inline Os& operator<<(Os& os, Container const& cont)
+ void println(auto rem, auto const& container)
  {
-     os << "{";
-     for (const auto& item : cont) {
-         os << "{" << item.first << ", " << item.second << "}";
-     }
-     return os << "}";
+     std::cout << rem << '{';
+     for (char sep[]{0, ' ', 0}; const auto& [key, value] : container)
+         std::cout << sep << '{' << key << ", " << value << '}', *sep = ',';
+     std::cout << "}\\n";
  }
 
  int main()
  {
-     std::map<int, char> data {{1, 'a'},{2, 'b'},{3, 'c'},{4, 'd'},
-                               {5, 'e'},{4, 'f'},{5, 'g'},{5, 'g'}};
-     std::cout << "Original:\\n" << data << '\\n';
+     std::map<int, char> data
+     {
+         {1, 'a'}, {2, 'b'}, {3, 'c'}, {4, 'd'},
+         {5, 'e'}, {4, 'f'}, {5, 'g'}, {5, 'g'},
+     };
+     println("Original:\\n", data);
 
-     const auto count = std::erase_if(data, [](const auto& item) {
+     const auto count = std::erase_if(data, [](const auto& item)
+     {
          auto const& [key, value] = item;
          return (key & 1) == 1;
      });
 
-     std::cout << "Erase items with odd keys:\\n" << data << '\\n'
-               << count << " items removed.\\n";
+     println("Erase items with odd keys:\\n", data);
+     std::cout << count << " items removed.\\n";
  }
 
 .SH Output:
 
  Original:
- {{1, a}{2, b}{3, c}{4, d}{5, e}}
+ {{1, a}, {2, b}, {3, c}, {4, d}, {5, e}}
  Erase items with odd keys:
- {{2, b}{4, d}}
+ {{2, b}, {4, d}}
  3 items removed.
 
 .SH See also

@@ -1,53 +1,82 @@
-.TH std::binary_search 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::binary_search 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::binary_search \- std::binary_search
 
 .SH Synopsis
    Defined in header <algorithm>
    template< class ForwardIt, class T >
-   bool binary_search( ForwardIt first, ForwardIt           \fI(until C++20)\fP
-   last, const T& value );
-   template< class ForwardIt, class T >
-   constexpr bool binary_search( ForwardIt first,           \fI(since C++20)\fP
-   ForwardIt last, const T& value );
-   template< class ForwardIt, class T, class        \fB(1)\fP
-   Compare >                                                              \fI(until C++20)\fP
-   bool binary_search( ForwardIt first, ForwardIt
-   last, const T& value, Compare comp );                \fB(2)\fP
+                                                      (constexpr since
+   bool binary_search( ForwardIt first,               C++20)
+   ForwardIt last,                                    (until C++26)
+
+                       const T& value );
+   template< class ForwardIt, class T =
+   typename std::iterator_traits
+
+
+    <ForwardIt>::value_type >                         (since C++26)
+   constexpr bool binary_search( ForwardIt
+   first, ForwardIt last,
+
+                                 const T&
+   value );
    template< class ForwardIt, class T, class
-   Compare >                                                              \fI(since C++20)\fP
-   constexpr bool binary_search( ForwardIt first,
-   ForwardIt last, const T& value, Compare comp );
+   Compare >                                  \fB(1)\fP
+                                                                       (constexpr since
+   bool binary_search( ForwardIt first,                                C++20)
+   ForwardIt last,                                                     (until C++26)
 
-   Checks if an element equivalent to value appears within the range [first, last).
+                       const T& value,
+   Compare comp );
+   template< class ForwardIt, class T =
+   typename std::iterator_traits                  \fB(2)\fP
 
-   For std::binary_search to succeed, the range [first, last) must be at least
-   partially ordered with respect to value, i.e. it must satisfy all of the following
-   requirements:
 
-     * partitioned with respect to element < value or comp(element, value) (that is,
-       all elements for which the expression is true precede all elements for which the
-       expression is false)
-     * partitioned with respect to !(value < element) or !comp(value, element)
-     * for all elements, if element < value or comp(element, value) is true then
-       !(value < element) or !comp(value, element) is also true
+    <ForwardIt>::value_type,
+             class Compare >                                           (since C++26)
+   constexpr bool binary_search( ForwardIt
+   first, ForwardIt last,
 
-   A fully-sorted range meets these criteria.
+                                 const T&
+   value, Compare comp );
 
-   The first version uses operator< to compare the elements, the second version uses
-   the given comparison function comp.
+   Checks if an element equivalent to value appears within the partitioned range
+   [first, last).
+
+   1) The equivalence is checked using operator<:
+
+   If !bool(*iter < value) && !bool(value < *iter) is true for some
+   iterator iter in [first, last), returns true. Otherwise returns false.
+
+   If any of the following conditions is satisfied, the behavior is
+   undefined:                                                             \fI(until C++20)\fP
+
+     * For any element elem of [first, last), bool(elem < value) does not
+       imply !bool(value < elem).
+     * The elements elem of [first, last) are not partitioned with
+       respect to expressions bool(elem < value) and !bool(value < elem).
+   Equivalent to std::binary_search(first, last, value, std::less{}).     \fI(since C++20)\fP
+
+   2) The equivalence is checked using comp:
+   If !bool(comp(*iter, value)) && !bool(comp(value, *iter)) is true for some iterator
+   iter in [first, last), returns true. Otherwise returns false.
+   If any of the following conditions is satisfied, the behavior is undefined:
+     * For any element elem of [first, last), bool(comp(elem, value)) does not imply
+       !bool(comp(value, elem)).
+     * The elements elem of [first, last) are not partitioned with respect to
+       expressions bool(comp(elem, value)) and !bool(comp(value, elem)).
 
 .SH Parameters
 
-   first, last - the range of elements to examine
+   first, last - the partitioned range of elements to examine
    value       - value to compare the elements to
-                 binary predicate which returns true if the first argument is less
-                 than (i.e. is ordered before) the second.
+                 binary predicate which returns true if the first argument is ordered
+                 before the second.
 
                  The signature of the predicate function should be equivalent to the
                  following:
 
-                 bool pred(const Type1 &a, const Type2 &b);
+                  bool pred(const Type1 &a, const Type2 &b);
 
    comp        - While the signature does not need to have const &, the function must
                  not modify the objects passed to it and must be able to accept all
@@ -63,61 +92,93 @@ std::binary_search \- std::binary_search
    -
    ForwardIt must meet the requirements of LegacyForwardIterator.
    -
-   Compare must meet the requirements of BinaryPredicate. it is not required to satisfy
-   Compare
+   Compare must meet the requirements of BinaryPredicate. It is not required to satisfy
+   Compare.
 
 .SH Return value
 
-   true if an element equal to value is found, false otherwise.
+   true if an element equivalent to value is found, false otherwise.
 
 .SH Complexity
 
-   The number of comparisons performed is logarithmic in the distance between first and
-   last (At most log
-   2(last - first) + O(1) comparisons). However, for non-LegacyRandomAccessIterators,
-   number of iterator increments is linear.
+   Given \\(\\scriptsize N\\)N as std::distance(first, last):
+
+   1) At most \\(\\scriptsize \\log_{2}(N)+O(1)\\)log
+   2(N)+O(1) comparisons with value using
+   operator<
+   \fI(until C++20)\fP
+   std::less{}
+   \fI(since C++20)\fP.
+   2) At most \\(\\scriptsize \\log_{2}(N)+O(1)\\)log
+   2(N)+O(1) applications of the comparator comp.
+
+   However, if ForwardIt is not a LegacyRandomAccessIterator, the number of iterator
+   increments is linear in \\(\\scriptsize N\\)N.
+
+.SH Notes
+
+   Although std::binary_search only requires [first, last) to be partitioned, this
+   algorithm is usually used in the case where [first, last) is sorted, so that the
+   binary search is valid for any value.
+
+   std::binary_search only checks whether an equivalent element exists. To obtain an
+   iterator to that element (if exists), std::lower_bound should be used instead.
+
+             Feature-test macro           Value    Std              Feature
+   __cpp_lib_algorithm_default_value_type 202403 (C++26) List-initialization for
+                                                         algorithms (1,2)
 
 .SH Possible implementation
 
    See also the implementations in libstdc++ and libc++.
 
-.SH First version
-   template<class ForwardIt, class T>
-   bool binary_search(ForwardIt first, ForwardIt last, const T& value)
-   {
-       first = std::lower_bound(first, last, value);
-       return (!(first == last) && !(value < *first));
-   }
-.SH Second version
-   template<class ForwardIt, class T, class Compare>
-   bool binary_search(ForwardIt first, ForwardIt last, const T& value, Compare comp)
-   {
-       first = std::lower_bound(first, last, value, comp);
-       return (!(first == last) && !(comp(value, *first)));
-   }
+                                     binary_search \fB(1)\fP
+ template<class ForwardIt, class T = typename std::iterator_traits<ForwardIt>::value_type>
+ bool binary_search(ForwardIt first, ForwardIt last, const T& value)
+ {
+     return std::binary_search(first, last, value, std::less{});
+ }
+                                     binary_search \fB(2)\fP
+ template<class ForwardIt, class T = typename std::iterator_traits<ForwardIt>::value_type,
+          class Compare>
+ bool binary_search(ForwardIt first, ForwardIt last, const T& value, Compare comp)
+ {
+     first = std::lower_bound(first, last, value, comp);
+     return (!(first == last) and !(comp(value, *first)));
+ }
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
  #include <algorithm>
+ #include <cassert>
+ #include <complex>
+ #include <iostream>
  #include <vector>
 
  int main()
  {
-     std::vector<int> haystack {1, 3, 4, 5, 9};
-     std::vector<int> needles {1, 2, 3};
+     const auto haystack = {1, 3, 4, 5, 9};
 
-     for (auto needle : needles) {
+     for (const auto needle : {1, 2, 3})
+     {
          std::cout << "Searching for " << needle << '\\n';
-         if (std::binary_search(haystack.begin(), haystack.end(), needle)) {
+         if (std::binary_search(haystack.begin(), haystack.end(), needle))
              std::cout << "Found " << needle << '\\n';
-         } else {
-             std::cout << "no dice!\\n";
-         }
+         else
+             std::cout << "No dice!\\n";
      }
+
+     using CD = std::complex<double>;
+     std::vector<CD> nums{{1, 1}, {2, 3}, {4, 2}, {4, 3}};
+     auto cmpz = [](CD x, CD y){ return abs(x) < abs(y); };
+     #ifdef __cpp_lib_algorithm_default_value_type
+         assert(std::binary_search(nums.cbegin(), nums.cend(), {4, 2}, cmpz));
+     #else
+         assert(std::binary_search(nums.cbegin(), nums.cend(), CD{4, 2}, cmpz));
+     #endif
  }
 
 .SH Output:
@@ -129,14 +190,19 @@ std::binary_search \- std::binary_search
  Searching for 3
  Found 3
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-     DR    Applied to    Behavior as published               Correct behavior
-   LWG 270 C++98      Compare was required to be a only a partitioning is needed;
-                      strict weak ordering         heterogeneous comparisons permitted
+     DR    Applied to      Behavior as published               Correct behavior
+                      Compare was required to satisfy  only a partitioning is required;
+   LWG 270 C++98      Compare and T was required       heterogeneous comparisons
+                      to be LessThanComparable (strict permitted
+                      weak ordering required)
+                      at most \\(\\scriptsize            corrected to \\(\\scriptsize
+   LWG 787 C++98      \\log_{2}(N)+2\\)log               \\log_{2}(N)+O(1)\\)log
+                      2(N)+2 comparisons were allowed  2(N)+O(1)
 
 .SH See also
 

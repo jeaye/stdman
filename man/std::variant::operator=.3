@@ -1,4 +1,4 @@
-.TH std::variant::operator= 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::variant::operator= 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::variant::operator= \- std::variant::operator=
 
@@ -16,7 +16,6 @@ std::variant::operator= \- std::variant::operator=
    Assigns a new value to an existing variant object.
 
    1) Copy-assignment:
-
      * If both *this and rhs are valueless by exception, does nothing.
      * Otherwise, if rhs is valueless, but *this is not, destroys the value contained
        in *this and makes it valueless.
@@ -27,29 +26,29 @@ std::variant::operator= \- std::variant::operator=
      * Otherwise, if the alternative held by rhs is either nothrow copy constructible
        or not nothrow move constructible (as determined by
        std::is_nothrow_copy_constructible and std::is_nothrow_move_constructible,
-       respectively), equivalent to this->emplace<rhs.index()>(get<rhs.index()>(rhs)).
+       respectively), equivalent to
+       this->emplace<rhs.index()>(*std::get_if<rhs.index()>(std::addressof(rhs))).
        *this may become valueless_by_exception if an exception is thrown on the
        copy-construction inside emplace.
      * Otherwise, equivalent to this->operator=(variant(rhs)).
-
    This overload is defined as deleted unless std::is_copy_constructible_v<T_i> and
    std::is_copy_assignable_v<T_i> are both true for all T_i in Types.... This overload
    is trivial if
    std::is_trivially_copy_constructible_v<T_i>,std::is_trivially_copy_assignable_v<T_i>
    and std::is_trivially_destructible_v<T_i> are all true for all T_i in Types....
    2) Move-assignment:
-
-     * If both *this and rhs are valueless by exception, does nothing
+     * If both *this and rhs are valueless by exception, does nothing.
      * Otherwise, if rhs is valueless, but *this is not, destroys the value contained
-       in *this and makes it valueless
+       in *this and makes it valueless.
      * Otherwise, if rhs holds the same alternative as *this, assigns
-       std::get<j>(std::move(rhs)) to the value contained in *this, with j being
-       index(). If an exception is thrown, *this does not become valueless: the value
-       depends on the exception safety guarantee of the alternative's move assignment.
+       std::move(*std::get_if<j>(std::addressof(rhs))) to the value contained in *this,
+       with j being index(). If an exception is thrown, *this does not become
+       valueless: the value depends on the exception safety guarantee of the
+       alternative's move assignment.
      * Otherwise (if rhs and *this hold different alternatives), equivalent to
-       this->emplace<rhs.index()>(get<rhs.index()>(std::move(rhs))). If an exception is
-       thrown by T_i's move constructor, *this becomes valueless_by_exception.
-
+       this->emplace<rhs.index()>(std::move(*std::get_if<rhs.index()>(std::addressof(rhs)))).
+       If an exception is thrown by T_i's move constructor, *this becomes
+       valueless_by_exception.
    This overload participates in overload resolution only if
    std::is_move_constructible_v<T_i> and std::is_move_assignable_v<T_i> are both true
    for all T_i in Types.... This overload is trivial if
@@ -57,15 +56,13 @@ std::variant::operator= \- std::variant::operator=
    std::is_trivially_move_assignable_v<T_i>, and std::is_trivially_destructible_v<T_i>
    are all true for all T_i in Types....
    3) Converting assignment.
-
      * Determines the alternative type T_j that would be selected by overload
        resolution for the expression F(std::forward<T>(t)) if there was an overload of
        imaginary function F(T_i) for every T_i from Types... in scope at the same time,
        except that:
 
-              * An overload F(T_i) is only considered if the declaration T_i x[] = {
-                std::forward<T>(t) }; is valid for some invented variable x;
-
+     * An overload F(T_i) is only considered if the declaration T_i x[] = {
+       std::forward<T>(t) }; is valid for some invented variable x;
      * If *this already holds a T_j, assigns std::forward<T>(t) to the value contained
        in *this. If an exception is thrown, *this does not become valueless: the value
        depends on the exception safety guarantee of the assignment called.
@@ -109,7 +106,7 @@ std::variant::operator= \- std::variant::operator=
    2)
    noexcept specification:
    noexcept(((std::is_nothrow_move_constructible_v<Types> &&
-   std::is_nothrow_move_assignable_v<Types>) && ...))
+              std::is_nothrow_move_assignable_v<Types>) && ...))
    3)
    noexcept specification:
    noexcept(std::is_nothrow_assignable_v<T_j&, T> &&
@@ -130,7 +127,8 @@ std::variant::operator= \- std::variant::operator=
  {
      os << ": { ";
 
-     std::visit([&](auto&& arg) {
+     std::visit([&](auto&& arg)
+     {
          using T = std::decay_t<decltype(arg)>;
          if constexpr (std::is_same_v<T, int>)
              os << arg;
@@ -186,7 +184,7 @@ std::variant::operator= \- std::variant::operator=
  a: { "CppNow" };
  s: ""
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
@@ -215,3 +213,6 @@ std::variant::operator= \- std::variant::operator=
 
    emplace constructs a value in the variant, in place
            \fI(public member function)\fP
+
+.SH Category:
+     * conditionally noexcept

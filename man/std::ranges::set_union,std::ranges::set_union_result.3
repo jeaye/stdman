@@ -1,0 +1,224 @@
+.TH std::ranges::set_union,std::ranges::set_union_result 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::set_union,std::ranges::set_union_result \- std::ranges::set_union,std::ranges::set_union_result
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< std::input_iterator I1, std::sentinel_for<I1> S1,
+
+             std::input_iterator I2, std::sentinel_for<I2> S2,
+             std::weakly_incrementable O, class Comp = ranges::less,
+             class Proj1 = std::identity, class Proj2 = std::identity
+   >                                                                   \fB(1)\fP (since
+   requires std::mergeable<I1, I2, O, Comp, Proj1, Proj2>                  C++20)
+   constexpr set_union_result<I1, I2, O>
+       set_union( I1 first1, S1 last1, I2 first2, S2 last2,
+                  O result, Comp comp = {},
+
+                  Proj1 proj1 = {}, Proj2 proj2 = {} );
+   template< ranges::input_range R1, ranges::input_range R2,
+
+             std::weakly_incrementable O, class Comp = ranges::less,
+             class Proj1 = std::identity, class Proj2 = std::identity
+   >
+   requires std::mergeable<ranges::iterator_t<R1>,                         (since
+   ranges::iterator_t<R2>,                                             \fB(2)\fP C++20)
+                           O, Comp, Proj1, Proj2>
+   constexpr set_union_result<ranges::borrowed_iterator_t<R1>,
+                              ranges::borrowed_iterator_t<R2>, O>
+       set_union( R1&& r1, R2&& r2, O result, Comp comp = {},
+
+                  Proj1 proj1 = {}, Proj2 proj2 = {} );
+.SH Helper types
+   template< class I1, class I2, class O >                             \fB(3)\fP (since
+   using set_union_result = ranges::in_in_out_result<I1, I2, O>;           C++20)
+
+   Constructs a sorted union beginning at result consisting of the set of elements
+   present in one or both sorted input ranges [first1, last1) and [first2, last2).
+
+   If some element is found m times in [first1, last1) and n times in [first2, last2),
+   then all m elements will be copied from [first1, last1) to result, preserving order,
+   and then exactly max(n - m, 0) elements will be copied from [first2, last2) to
+   result, also preserving order.
+
+   The behavior is undefined if
+
+     * the input ranges are not sorted with respect to comp and proj1 or proj2,
+       respectively, or
+     * the resulting range overlaps with either of the input ranges.
+   1) Elements are compared using the given binary comparison function comp.
+   2) Same as \fB(1)\fP, but uses r1 as the first range and r2 as the second range, as if
+   using ranges::begin(r1) as first1, ranges::end(r1) as last1, ranges::begin(r2) as
+   first2, and ranges::end(r2) as last2.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first1, last1 - iterator-sentinel pair denoting the first input sorted range
+   first2, last2 - iterator-sentinel pair denoting the second input sorted range
+   r1            - the first input sorted range
+   r2            - the second input sorted range
+   result        - the beginning of the output range
+   comp          - comparison to apply to the projected elements
+   proj1         - projection to apply to the elements in the first range
+   proj2         - projection to apply to the elements in the second range
+
+.SH Return value
+
+   {last1, last2, result_last}, where result_last is the end of the constructed range.
+
+.SH Complexity
+
+   At most \\(\\scriptsize 2\\cdot(N_1+N_2)-1\\)2·(N
+   1+N
+   2)-1 comparisons and applications of each projection, where \\(\\scriptsize N_1\\)N
+   1 and \\(\\scriptsize N_2\\)N
+   2 are ranges::distance(first1, last1) and ranges::distance(first2, last2),
+   respectively.
+
+.SH Notes
+
+   This algorithm performs a similar task as ranges::merge does. Both consume two
+   sorted input ranges and produce a sorted output with elements from both inputs. The
+   difference between these two algorithms is with handling values from both input
+   ranges which compare equivalent (see notes on LessThanComparable). If any equivalent
+   values appeared n times in the first range and m times in the second, ranges::merge
+   would output all n+m occurrences whereas ranges::set_union would output std::max(n,
+   m) ones only. So ranges::merge outputs exactly \\(\\scriptsize (N_1+N_2)\\)(N
+   1+N
+   2) values and ranges::set_union may produce less.
+
+.SH Possible implementation
+
+struct set_union_fn
+{
+    template<std::input_iterator I1, std::sentinel_for<I1> S1,
+             std::input_iterator I2, std::sentinel_for<I2> S2,
+             std::weakly_incrementable O, class Comp = ranges::less,
+             class Proj1 = std::identity, class Proj2 = std::identity>
+    requires std::mergeable<I1, I2, O, Comp, Proj1, Proj2>
+    constexpr ranges::set_union_result<I1, I2, O>
+        operator()(I1 first1, S1 last1, I2 first2, S2 last2,
+                   O result, Comp comp = {},
+                   Proj1 proj1 = {}, Proj2 proj2 = {}) const
+    {
+        for (; !(first1 == last1 or first2 == last2); ++result)
+        {
+            if (std::invoke(comp, std::invoke(proj1, *first1),
+                                  std::invoke(proj2, *first2)))
+            {
+                *result = *first1;
+                ++first1;
+            }
+            else if (std::invoke(comp, std::invoke(proj2, *first2),
+                                       std::invoke(proj1, *first1)))
+            {
+                *result = *first2;
+                ++first2;
+            }
+            else
+            {
+                *result = *first1;
+                ++first1;
+                ++first2;
+            }
+        }
+        auto res1 = ranges::copy(std::move(first1), std::move(last1), std::move(result));
+        auto res2 = ranges::copy(std::move(first2), std::move(last2), std::move(res1.out));
+        return {std::move(res1.in), std::move(res2.in), std::move(res2.out)};
+    }
+
+    template<ranges::input_range R1, ranges::input_range R2,
+             std::weakly_incrementable O, class Comp = ranges::less,
+             class Proj1 = std::identity, class Proj2 = std::identity>
+    requires std::mergeable<ranges::iterator_t<R1>, ranges::iterator_t<R2>,
+                            O, Comp, Proj1, Proj2>
+    constexpr ranges::set_union_result<ranges::borrowed_iterator_t<R1>,
+                                       ranges::borrowed_iterator_t<R2>, O>
+        operator()(R1&& r1, R2&& r2, O result, Comp comp = {},
+                   Proj1 proj1 = {}, Proj2 proj2 = {}) const
+    {
+        return (*this)(ranges::begin(r1), ranges::end(r1),
+                       ranges::begin(r2), ranges::end(r2),
+                       std::move(result), std::move(comp),
+                       std::move(proj1), std::move(proj2));
+    }
+};
+
+inline constexpr set_union_fn set_union {};
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <iostream>
+ #include <iterator>
+ #include <vector>
+
+ void print(const auto& in1, const auto& in2, auto first, auto last)
+ {
+     std::cout << "{ ";
+     for (const auto& e : in1)
+         std::cout << e << ' ';
+     std::cout << "} ∪ { ";
+     for (const auto& e : in2)
+         std::cout << e << ' ';
+     std::cout << "} =\\n{ ";
+     while (!(first == last))
+         std::cout << *first++ << ' ';
+     std::cout << "}\\n\\n";
+ }
+
+ int main()
+ {
+     std::vector<int> in1, in2, out;
+
+     in1 = {1, 2, 3, 4, 5};
+     in2 = {      3, 4, 5, 6, 7};
+     out.resize(in1.size() + in2.size());
+     const auto ret = std::ranges::set_union(in1, in2, out.begin());
+     print(in1, in2, out.begin(), ret.out);
+
+     in1 = {1, 2, 3, 4, 5, 5, 5};
+     in2 = {      3, 4, 5, 6, 7};
+     out.clear();
+     out.reserve(in1.size() + in2.size());
+     std::ranges::set_union(in1, in2, std::back_inserter(out));
+     print(in1, in2, out.cbegin(), out.cend());
+ }
+
+.SH Output:
+
+ { 1 2 3 4 5 } ∪ { 3 4 5 6 7 } =
+ { 1 2 3 4 5 6 7 }
+
+ { 1 2 3 4 5 5 5 } ∪ { 3 4 5 6 7 } =
+ { 1 2 3 4 5 5 5 6 7 }
+
+.SH See also
+
+   ranges::set_difference           computes the difference between two sets
+   (C++20)                          (niebloid)
+   ranges::set_intersection         computes the intersection of two sets
+   (C++20)                          (niebloid)
+   ranges::set_symmetric_difference computes the symmetric difference between two sets
+   (C++20)                          (niebloid)
+   ranges::merge                    merges two sorted ranges
+   (C++20)                          (niebloid)
+   ranges::includes                 returns true if one sequence is a subsequence of
+   (C++20)                          another
+                                    (niebloid)
+   set_union                        computes the union of two sets
+                                    \fI(function template)\fP

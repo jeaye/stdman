@@ -1,0 +1,234 @@
+.TH std::ranges::iota_view::iterator 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::iota_view::iterator \- std::ranges::iota_view::iterator
+
+.SH Synopsis
+   struct /*iterator*/;                                      \fB(1)\fP \fI(since C++20)\fP
+                                                                 (exposition only*)
+   Helper alias templates
+   template< class I >                                       \fB(2)\fP (exposition only*)
+   using /*iota-diff-t*/ = /* see below */;
+   Helper concepts
+   template< class I >
+
+   concept /*decrementable*/ =
+     std::incrementable<I> && requires(I i) {                \fB(3)\fP (exposition only*)
+       { --i } -> std::same_as<I&>;
+       { i-- } -> std::same_as<I>;
+
+     };
+   template< class I >
+
+   concept /*advanceable*/ =
+     /*decrementable*/<I> && std::totally_ordered<I> &&
+     requires(I i, const I j, const /*iota-diff-t*/<I> n) {
+       { i += n } -> std::same_as<I&>;
+       { i -= n } -> std::same_as<I&>;                       \fB(4)\fP (exposition only*)
+       I(j + n);
+       I(n + j);
+       I(j - n);
+       { j - j } -> std::convertible_to</*iota-diff-t*/<I>>;
+
+     };
+
+   1) The return type of iota_view::begin.
+   2) The alias template /*iota-diff-t*/ calculates the difference type for both
+   iterator types and integer-like types.
+     * If W is not an integral type, or if it is an integral type and
+       sizeof(std::iter_difference_t<I>) is greater than sizeof(I), then
+       /*iota-diff-t*/<I> is std::iter_difference_t<I>.
+     * Otherwise, /*iota-diff-t*/<I> is a signed integer type of width greater than the
+       width of I if such a type exists.
+     * Otherwise, I is one of the widest integral types, and /*iota-diff-t*/<I> is an
+       unspecified signed-integer-like type of width not less than the width of I. It
+       is unspecified whether /*iota-diff-t*/<I> models weakly_incrementable in this
+       case.
+   3) The concept decrementable specifies that a type is incrementable, and pre- and
+   post- operator-- for the type have common meaning.
+   4) The concept advanceable specifies that a type is both decrementable and
+   totally_ordered, and operator+=, operator-=, operator+, and operator- among the type
+   and its different type have common meaning.
+
+.SH Member types
+
+   Member type       Definition
+                       * std::random_access_iterator_tag if W models advanceable.
+                         Otherwise,
+                       * std::bidirectional_iterator_tag if W models decrementable.
+   iterator_concept      Otherwise,
+                       * std::forward_iterator_tag if W models incrementable.
+                         Otherwise,
+                       * std::input_iterator_tag.
+   iterator_category std::input_iterator_tag if W models incrementable.
+                     Otherwise, there is no member type iterator_category.
+   value_type        W
+   difference_type   /*iota-diff-t*/<W>
+
+   Notes: /*iterator*/ is
+
+     * random_access_iterator if W models advanceable,
+     * bidirectional_iterator if W models decrementable,
+     * forward_iterator if W models incrementable, and
+     * input_iterator otherwise.
+
+   However, it only satisfies LegacyInputIterator if W models incrementable, and does
+   not satisfy LegacyInputIterator otherwise.
+
+   Data members
+
+   Member name      Definition
+   value_ (private) The value of type W used for dereferencing.
+                    (exposition-only member object*)
+
+.SH Member functions
+
+std::ranges::iota_view::iterator::iterator
+
+   /*iterator*/() requires std::default_initializable<W> = default; \fB(1)\fP \fI(since C++20)\fP
+   constexpr explicit /*iterator*/( W value );                      \fB(2)\fP \fI(since C++20)\fP
+
+   1) Value initializes the data member value_ via its default member initializer (=
+   W()).
+   2) Initializes the data member value_ with value. This value will be returned by
+   operator* and incremented by operator++.
+
+std::ranges::iota_view::iterator::operator*
+
+   constexpr W operator*() const                           \fI(since C++20)\fP
+       noexcept(std::is_nothrow_copy_constructible_v<W>);
+
+   Returns the current value, by value (in other words, this is a read-only view).
+
+std::ranges::iota_view::iterator::operator++
+
+   constexpr /*iterator*/& operator++();                              \fB(1)\fP \fI(since C++20)\fP
+   constexpr void operator++(int);                                    \fB(2)\fP \fI(since C++20)\fP
+   constexpr /*iterator*/ operator++(int) requires                    \fB(3)\fP \fI(since C++20)\fP
+   std::incrementable<W>;
+
+   1) Equivalent to ++value_; return *this;.
+   2) Equivalent to ++value_;.
+   3) Equivalent to auto tmp = *this; ++value_; return tmp;.
+
+std::ranges::iota_view::iterator::operator--
+
+   constexpr /*iterator*/& operator--() requires                      \fB(1)\fP \fI(since C++20)\fP
+   /*decrementable*/<W>;
+   constexpr /*iterator*/operator--(int) requires                     \fB(2)\fP \fI(since C++20)\fP
+   /*decrementable*/<W>;
+
+   1) Equivalent to --value_; return *this;.
+   2) Equivalent to auto tmp = *this; --value_; return tmp;.
+
+std::ranges::iota_view::iterator::operator+=
+
+   constexpr /*iterator*/& operator+=( difference_type n )  \fI(since C++20)\fP
+       requires /*advanceable*/<W>;
+
+   If W is unsigned-integer-like, performs value_ += static_cast<W>(n) if n is
+   non-negative, value -= static_cast<W>(-n) otherwise, and then returns *this.
+
+   Otherwise, equivalent to value_ += n; return *this;.
+
+std::ranges::iota_view::iterator::operator-=
+
+   constexpr /*iterator*/& operator-=( difference_type n )  \fI(since C++20)\fP
+       requires /*advanceable*/<W>;
+
+   If W is unsigned-integer-like, performs value_ -= static_cast<W>(n) if n is
+   non-negative, or value += static_cast<W>(-n) otherwise, and then returns *this.
+
+   Otherwise, equivalent to value_ -= n; return *this;.
+
+std::ranges::iota_view::iterator::operator[]
+
+   constexpr W operator[]( difference_type n ) const  \fI(since C++20)\fP
+       requires /*advanceable*/<W>;
+
+   Equivalent to return W(value_ + n);.
+
+.SH Non-member functions
+
+operator==, <, >, <=, >=, <=>(std::ranges::iota_view::iterator)
+
+   friend constexpr bool operator== ( const /*iterator*/& x, const
+   /*iterator*/& y )                                                  \fB(1)\fP \fI(since C++20)\fP
+       requires std::equality_comparable<W>;
+   friend constexpr bool operator<  ( const /*iterator*/& x, const
+   /*iterator*/& y )                                                  \fB(2)\fP \fI(since C++20)\fP
+       requires std::totally_ordered<W>;
+   friend constexpr bool operator>  ( const /*iterator*/& x, const
+   /*iterator*/& y )                                                  \fB(3)\fP \fI(since C++20)\fP
+       requires std::totally_ordered<W>;
+   friend constexpr bool operator<= ( const /*iterator*/& x, const
+   /*iterator*/& y )                                                  \fB(4)\fP \fI(since C++20)\fP
+       requires std::totally_ordered<W>;
+   friend constexpr bool operator>= ( const /*iterator*/& x, const
+   /*iterator*/& y )                                                  \fB(5)\fP \fI(since C++20)\fP
+       requires std::totally_ordered<W>;
+   friend constexpr bool operator<=>( const /*iterator*/& x, const
+   /*iterator*/& y )                                                  \fB(6)\fP \fI(since C++20)\fP
+       requires std::totally_ordered<W> &&
+   std::three_way_comparable<W>;
+
+   1) Equivalent to return x.value_ == y.value_;.
+   2) Equivalent to return x.value_ < y.value_;.
+   3) Equivalent to return y < x;.
+   4) Equivalent to return !(y < x);.
+   5) Equivalent to return !(x < y);.
+   6) Equivalent to return x.value_ <=> y.value_;.
+
+   The != operator is synthesized from operator==.
+
+   These functions are not visible to ordinary unqualified or qualified lookup, and can
+   only be found by argument-dependent lookup when iterator is an associated class of
+   the arguments.
+
+operator+(std::ranges::iota_view::iterator)
+
+   friend constexpr /*iterator*/ operator+( /*iterator*/ i,
+   difference_type n )                                                \fB(1)\fP \fI(since C++20)\fP
+       requires /*advanceable*/<W>;
+   friend constexpr /*iterator*/ operator+( difference_type n,
+   /*iterator*/ i )                                                   \fB(2)\fP \fI(since C++20)\fP
+       requires /*advanceable*/<W>;
+
+   Equivalent to i += n; return i;.
+
+   These functions are not visible to ordinary unqualified or qualified lookup, and can
+   only be found by argument-dependent lookup when iterator is an associated class of
+   the arguments.
+
+operator-(std::ranges::iota_view::iterator)
+
+   friend constexpr /*iterator*/ operator-( /*iterator*/ i,
+   difference_type n )                                                \fB(1)\fP \fI(since C++20)\fP
+       requires /*advanceable*/<W>;
+   friend constexpr difference_type operator-( const /*iterator*/& x,
+
+                                               const /*iterator*/& y  \fB(2)\fP \fI(since C++20)\fP
+   )
+
+       requires /*advanceable*/<W>;
+
+   1) Equivalent to i -= n; return i;.
+   2) Let D be difference_type.
+     * If W is signed-integer-like, equivalent to return D(D(x.value_) - D(y.value_));.
+     * Otherwise, if W is unsigned-integer-like, equivalent to return y.value_ >
+       x.value_ ? D(-D(y.value_ - x.value_)) : D(x.value_ - y.value_);.
+     * Otherwise, equivalent to return x.value_ - y.value_;.
+
+   These functions are not visible to ordinary unqualified or qualified lookup, and can
+   only be found by argument-dependent lookup when iterator is an associated class of
+   the arguments.
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to        Behavior as published              Correct behavior
+   P2259R1  C++20      member iterator_category is always   defined only if W satisfies
+                       defined                              incrementable
+   LWG 3580 C++20      bodies of operator+ and operator-    made suitable for implicit
+                       rule out implicit move               move

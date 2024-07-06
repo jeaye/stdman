@@ -1,19 +1,20 @@
-.TH std::ranges::rbegin 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::rbegin 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::rbegin \- std::ranges::rbegin
 
 .SH Synopsis
    Defined in header <ranges>
-   inline namespace /*unspecified*/ {
+   Defined in header <iterator>
+   inline namespace /* unspecified */ {
 
-   inline constexpr /*unspecified*/ rbegin =               \fI(since C++20)\fP
-   /*unspecified*/;                                        (customization point object)
+       inline constexpr /* unspecified */ rbegin = /*      \fI(since C++20)\fP
+   unspecified */;                                         (customization point object)
 
    }
    Call signature
    template< class T >
 
-   requires /* see below */                                \fI(since C++20)\fP
+       requires /* see below */                            \fI(since C++20)\fP
 
    constexpr std::input_or_output_iterator auto rbegin(
    T&& t );
@@ -22,21 +23,24 @@ std::ranges::rbegin \- std::ranges::rbegin
 
    range-rbegin-rend.svg
 
-   Let t be an object of type T. If the argument is an lvalue or
-   ranges::enable_borrowed_range<std::remove_cv_t<T>> is true, then a call to
-   ranges::rbegin is expression-equivalent to:
+   If T is an array type and std::remove_all_extents_t<std::remove_reference_t<T>> is
+   incomplete, then the call to ranges::rbegin is ill-formed, no diagnostic required.
 
-    1. t.rbegin() converted to its decayed type, if that expression with conversion is
-       valid, and its converted type models std::input_or_output_iterator.
-    2. Otherwise, rbegin(t) converted to its decayed type, if T is a class or
-       enumeration type, the aforementioned unqualified call with conversion is valid,
-       its converted type models std::input_or_output_iterator, where the overload
-       resolution is performed with the following candidates:
+   If the argument is an lvalue or ranges::enable_borrowed_range<std::remove_cv_t<T>>
+   is true, then a call to ranges::rbegin is expression-equivalent to:
 
-          * void rbegin(auto&) = delete;
-          * void rbegin(const auto&) = delete;
-          * any declarations of rbegin found by argument-dependent lookup.
-
+    1. decay-copy(t.rbegin())
+       (until C++23)
+       auto(t.rbegin())
+       (since C++23), if that expression is valid and its type models
+       std::input_or_output_iterator.
+    2. Otherwise,
+       decay-copy(rbegin(t))
+       (until C++23)
+       auto(rbegin(t))
+       (since C++23), if T is a class or enumeration type, that expression is valid and
+       its type models std::input_or_output_iterator, where the meaning of rbegin is
+       established as if by performing argument-dependent lookup only.
     3. Otherwise, std::make_reverse_iterator(ranges::end(t)) if both ranges::begin(t)
        and ranges::end(t) are valid expressions, have the same type, and that type
        models std::bidirectional_iterator.
@@ -44,39 +48,6 @@ std::ranges::rbegin \- std::ranges::rbegin
    In all other cases, a call to ranges::rbegin is ill-formed, which can result in
    substitution failure when ranges::rbegin(t) appears in the immediate context of a
    template instantiation.
-
-  Expression-equivalent
-
-   Expression e is expression-equivalent to expression f, if
-
-     * e and f have the same effects, and
-     * either both are constant subexpressions or else neither is a constant
-       subexpression, and
-     * either both are potentially-throwing or else neither is potentially-throwing
-       (i.e. noexcept(e) == noexcept(f)).
-
-  Customization point objects
-
-   The name ranges::rbegin denotes a customization point object, which is a const
-   function object of a literal semiregular class type. For exposition purposes, the
-   cv-unqualified version of its type is denoted as __rbegin_fn.
-
-   All instances of __rbegin_fn are equal. The effects of invoking different instances
-   of type __rbegin_fn on the same arguments are equivalent, regardless of whether the
-   expression denoting the instance is an lvalue or rvalue, and is const-qualified or
-   not (however, a volatile-qualified instance is not required to be invocable). Thus,
-   ranges::rbegin can be copied freely and its copies can be used interchangeably.
-
-   Given a set of types Args..., if std::declval<Args>()... meet the requirements for
-   arguments to ranges::rbegin above, __rbegin_fn models
-
-     * std::invocable<__rbegin_fn, Args...>,
-     * std::invocable<const __rbegin_fn, Args...>,
-     * std::invocable<__rbegin_fn&, Args...>, and
-     * std::invocable<const __rbegin_fn&, Args...>.
-
-   Otherwise, no function call operator of __rbegin_fn participates in overload
-   resolution.
 
 .SH Notes
 
@@ -97,26 +68,26 @@ std::ranges::rbegin \- std::ranges::rbegin
 // Run this code
 
  #include <iostream>
- #include <vector>
  #include <ranges>
  #include <span>
+ #include <vector>
 
  int main()
  {
-     std::vector<int> v = { 3, 1, 4 };
+     std::vector<int> v = {3, 1, 4};
      auto vi = std::ranges::rbegin(v);
      std::cout << *vi << '\\n';
      *vi = 42; // OK
 
-     int a[] = { -5, 10, 15 };
+     int a[] = {-5, 10, 15};
      auto ai = std::ranges::rbegin(a);
      std::cout << *ai << '\\n';
      *ai = 42; // OK
 
-     // auto x_x = std::ranges::rbegin(std::vector{6,6,6});
+     // auto x_x = std::ranges::rbegin(std::vector{6, 6, 6});
      // ill-formed: the argument is an rvalue (see Notes ↑)
 
-     auto si = std::ranges::rbegin(std::span{a}); // OK:
+     auto si = std::ranges::rbegin(std::span{a}); // OK
      static_assert(std::ranges::enable_borrowed_range<
          std::remove_cv_t<decltype(std::span{a})>>);
      *si = 42; // OK
@@ -126,6 +97,15 @@ std::ranges::rbegin \- std::ranges::rbegin
 
  4
  15
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to           Behavior as published               Correct behavior
+   P2602R2 C++20      there's machinery to prohibit certain      removed such machinery
+                      non-member rbegin found by ADL
 
 .SH See also
 

@@ -1,0 +1,166 @@
+.TH std::ranges::copy_backward,std::ranges::copy_backward_result 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::copy_backward,std::ranges::copy_backward_result \- std::ranges::copy_backward,std::ranges::copy_backward_result
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< std::bidirectional_iterator I1, std::sentinel_for<I1> S1,
+
+             std::bidirectional_iterator I2 >                                   (since
+   requires std::indirectly_copyable<I1, I2>                                \fB(1)\fP C++20)
+   constexpr copy_backward_result<I1, I2>
+
+       copy_backward( I1 first, S1 last, I2 result );
+   template< ranges::bidirectional_range R, std::bidirectional_iterator I >
+
+   requires std::indirectly_copyable<ranges::iterator_t<R>, I>              \fB(2)\fP (since
+   constexpr copy_backward_result<ranges::borrowed_iterator_t<R>, I>            C++20)
+
+       copy_backward( R&& r, I result );
+.SH Helper types
+   template< class I1, class I2 >                                           \fB(3)\fP (since
+   using copy_backward_result = ranges::in_out_result<I1, I2>;                  C++20)
+
+   1) Copies the elements from the range, defined by [first, last), to another range
+   [result - N, result), where N = ranges::distance(first, last). The elements are
+   copied in reverse order (the last element is copied first), but their relative order
+   is preserved. The behavior is undefined if result is within (first, last]. In such a
+   case std::ranges::copy can be used instead.
+   2) Same as \fB(1)\fP, but uses r as the source range, as if using ranges::begin(r) as
+   first, and ranges::end(r) as last.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first  - the beginning of the range of elements to copy from
+   last   - the end of the range of elements to copy from
+   r      - the range of the elements to copy from
+   result - the end of the destination range
+
+.SH Return value
+
+   {last, result - N}
+
+.SH Complexity
+
+   Exactly N assignments.
+
+.SH Notes
+
+   When copying overlapping ranges, ranges::copy is appropriate when copying to the
+   left (beginning of the destination range is outside the source range) while
+   ranges::copy_backward is appropriate when copying to the right (end of the
+   destination range is outside the source range).
+
+.SH Possible implementation
+
+   struct copy_backward_fn
+   {
+       template<std::bidirectional_iterator I1, std::sentinel_for<I1> S1,
+                std::bidirectional_iterator I2>
+       requires std::indirectly_copyable<I1, I2>
+       constexpr ranges::copy_backward_result<I1, I2>
+           operator()(I1 first, S1 last, I2 result) const
+       {
+           I1 last1 {ranges::next(first, std::move(last))};
+           for (I1 i {last1}; i != first;)
+               *--result = *--i;
+           return {std::move(last1), std::move(result)};
+       }
+
+       template<ranges::bidirectional_range R, std::bidirectional_iterator I>
+       requires std::indirectly_copyable<ranges::iterator_t<R>, I>
+       constexpr ranges::copy_backward_result<ranges::borrowed_iterator_t<R>, I>
+           operator()(R&& r, I result) const
+       {
+           return (*this)(ranges::begin(r), ranges::end(r), std::move(result));
+       }
+   };
+
+   inline constexpr copy_backward_fn copy_backward{};
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <iostream>
+ #include <ranges>
+ #include <string_view>
+ #include <vector>
+
+ void print(std::string_view rem, std::ranges::forward_range auto const& r)
+ {
+     for (std::cout << rem << ": "; auto const& elem : r)
+         std::cout << elem << ' ';
+     std::cout << '\\n';
+ }
+
+ int main()
+ {
+     const auto src = {1, 2, 3, 4};
+     print("src", src);
+
+     std::vector<int> dst(src.size() + 2);
+     std::ranges::copy_backward(src, dst.end());
+     print("dst", dst);
+
+     std::ranges::fill(dst, 0);
+     const auto [in, out] =
+         std::ranges::copy_backward(src.begin(), src.end() - 2, dst.end());
+     print("dst", dst);
+
+     std::cout
+         << "(in - src.begin) == " << std::distance(src.begin(), in) << '\\n'
+         << "(out - dst.begin) == " << std::distance(dst.begin(), out) << '\\n';
+ }
+
+.SH Output:
+
+ src: 1 2 3 4
+ dst: 0 0 1 2 3 4
+ dst: 0 0 0 0 1 2
+ (in - src.begin) == 2
+ (out - dst.begin) == 4
+
+.SH See also
+
+   ranges::copy
+   ranges::copy_if         copies a range of elements to a new location
+   (C++20)                 (niebloid)
+   (C++20)
+   ranges::copy_n          copies a number of elements to a new location
+   (C++20)                 (niebloid)
+   ranges::remove_copy     copies a range of elements omitting those that satisfy
+   ranges::remove_copy_if  specific criteria
+   (C++20)                 (niebloid)
+   (C++20)
+   ranges::replace_copy    copies a range, replacing elements satisfying specific
+   ranges::replace_copy_if criteria with another value
+   (C++20)                 (niebloid)
+   (C++20)
+   ranges::reverse_copy    creates a copy of a range that is reversed
+   (C++20)                 (niebloid)
+   ranges::rotate_copy     copies and rotate a range of elements
+   (C++20)                 (niebloid)
+   ranges::unique_copy     creates a copy of some range of elements that contains no
+   (C++20)                 consecutive duplicates
+                           (niebloid)
+   ranges::move            moves a range of elements to a new location
+   (C++20)                 (niebloid)
+   ranges::move_backward   moves a range of elements to a new location in backwards
+   (C++20)                 order
+                           (niebloid)
+   copy_backward           copies a range of elements in backwards order
+                           \fI(function template)\fP

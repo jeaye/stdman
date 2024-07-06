@@ -1,4 +1,4 @@
-.TH std::ranges::clamp 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::clamp 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::clamp \- std::ranges::clamp
 
@@ -7,24 +7,25 @@ std::ranges::clamp \- std::ranges::clamp
    Call signature
    template< class T, class Proj = std::identity,
 
-   std::indirect_strict_weak_order<std::projected<const T*, Proj>> Comp =
-   ranges::less >                                                               (since
-   constexpr const T&                                                           C++20)
+             std::indirect_strict_weak_order<std::projected<const T*, Proj>>
+   Comp =                                                                       (since
+                 ranges::less >                                                 C++20)
+   constexpr const T&
 
-   clamp( const T& v, const T& lo, const T& hi, Comp comp = {}, Proj proj = {}
-   );
+       clamp( const T& v, const T& lo, const T& hi, Comp comp = {}, Proj proj
+   = {} );
 
-   If v compares less than lo, returns lo; otherwise if hi compares less than v,
-   returns hi; otherwise returns v.
+   If the value of v is within [lo, hi], returns v; otherwise returns the nearest
+   boundary.
 
    The behavior is undefined if lo is greater than hi.
 
    The function-like entities described on this page are niebloids, that is:
 
-     * Explicit template argument lists may not be specified when calling any of them.
-     * None of them is visible to argument-dependent lookup.
-     * When one of them is found by normal unqualified lookup for the name to the left
-       of the function-call operator, it inhibits argument-dependent lookup.
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
 
    In practice, they may be implemented as function objects, or with special compiler
    extensions.
@@ -48,34 +49,55 @@ std::ranges::clamp \- std::ranges::clamp
 
 .SH Possible implementation
 
-   struct clamp_fn {
-     template<class T, class Proj = std::identity,
-              std::indirect_strict_weak_order<std::projected<const T*, Proj>>
-                  Comp = ranges::less>
-     constexpr const T& operator()(const T& v, const T& lo, const T& hi,
-                                   Comp comp = {}, Proj proj = {}) const
-     {
-       auto&& pv = std::invoke(proj, v);
+   struct clamp_fn
+   {
+       template<class T, class Proj = std::identity,
+                std::indirect_strict_weak_order<std::projected<const T*, Proj>>
+                    Comp = std::ranges::less>
+       constexpr const T& operator()(const T& v, const T& lo, const T& hi,
+                                     Comp comp = {}, Proj proj = {}) const
+       {
+           auto&& pv = std::invoke(proj, v);
 
-       return
-         std::invoke(comp, std::forward<decltype(pv)>(pv), std::invoke(proj, lo)) ? lo
-         : std::invoke(comp, std::invoke(proj, hi), std::forward<decltype(pv)>(pv)) ? hi
-         : v;
-     }
+           if (std::invoke(comp, std::forward<decltype(pv)>(pv), std::invoke(proj, lo)))
+               return lo;
+
+           if (std::invoke(comp, std::invoke(proj, hi), std::forward<decltype(pv)>(pv)))
+               return hi;
+
+           return v;
+       }
    };
 
    inline constexpr clamp_fn clamp;
 
 .SH Notes
 
+
    Capturing the result of std::ranges::clamp by reference produces a dangling
    reference if one of the parameters is a temporary and that parameter is returned:
 
- int n = 1;
- const int& r = std::ranges::clamp(n-1, n+1);
- // r is dangling
+ int n = -1;
+ const int& r = std::ranges::clamp(n, 0, 255); // r is dangling
 
    If v compares equivalent to either bound, returns a reference to v, not the bound.
+
+   This function should not be used with both a projection the returns by value and
+   comparator that takes arguments by value unless a move from the projection result
+   type to the comparator parameter type is equivalent to a copy. If the comparison via
+   std::invoke would change the result of projection, the behavior is undefined due to
+   the semantic requirements of std::regular_invocable (subsumed by
+   std::indirect_strict_weak_order).
+
+   The standard requires that the value category of the result of the projection be
+   preserved, and proj can only be called on v once, which means that a projection
+   result that is a prvalue has to be cached and moved from twice for the two calls to
+   the comparator.
+
+     * libstdc++ does not conform to this and always passes the projection result as an
+.SH lvalue.
+     * libc++ used to run the projection twice, which was corrected in Clang 18.
+     * MSVC STL used to run the projection twice, which was corrected in VS 2022 17.2.
 
 .SH Example
 
@@ -84,8 +106,8 @@ std::ranges::clamp \- std::ranges::clamp
 
  #include <algorithm>
  #include <cstdint>
- #include <iostream>
  #include <iomanip>
+ #include <iostream>
  #include <string>
 
  using namespace std::literals;
@@ -93,49 +115,48 @@ std::ranges::clamp \- std::ranges::clamp
 
  int main()
  {
-     std::cout << " raw   clamped to int8_t   clamped to uint8_t\\n";
-     for(int const v: {-129, -128, -1, 0, 42, 127, 128, 255, 256}) {
-         std::cout << std::setw(04) << v
-                   << std::setw(20) << ranges::clamp(v, INT8_MIN, INT8_MAX)
-                   << std::setw(21) << ranges::clamp(v, 0, UINT8_MAX) << '\\n';
-     }
-     std::cout << '\\n';
+     std::cout << "[raw] [" << INT8_MIN << ',' << INT8_MAX << "] "
+                  "[0" << ',' << UINT8_MAX << "]\\n";
+     for (int const v : {-129, -128, -1, 0, 42, 127, 128, 255, 256})
+         std::cout << std::setw(4) << v
+                   << std::setw(11) << ranges::clamp(v, INT8_MIN, INT8_MAX)
+                   << std::setw(8) << ranges::clamp(v, 0, UINT8_MAX) << '\\n';
+     std::cout << std::string(23, '-') << '\\n';
 
      // Projection function
      const auto stoi = [](std::string s) { return std::stoi(s); };
 
      // Same as above, but with strings
-     for(std::string const v: {"-129", "-128", "-1", "0", "42",
-                               "127", "128", "255", "256"}) {
-         std::cout << std::setw(04) << v
-                   << std::setw(20) << ranges::clamp(v, "-128"s, "127"s, {}, stoi)
-                   << std::setw(21) << ranges::clamp(v, "0"s, "255"s, {}, stoi)
+     for (std::string const v : {"-129", "-128", "-1", "0", "42",
+                                 "127", "128", "255", "256"})
+         std::cout << std::setw(4) << v
+                   << std::setw(11) << ranges::clamp(v, "-128"s, "127"s, {}, stoi)
+                   << std::setw(8) << ranges::clamp(v, "0"s, "255"s, {}, stoi)
                    << '\\n';
-     }
  }
 
 .SH Output:
 
-  raw   clamped to int8_t   clamped to uint8_t
- -129                -128                    0
- -128                -128                    0
-   -1                  -1                    0
-    0                   0                    0
-   42                  42                   42
-  127                 127                  127
-  128                 127                  128
-  255                 127                  255
-  256                 127                  255
-
- -129                -128                    0
- -128                -128                    0
-   -1                  -1                    0
-    0                   0                    0
-   42                  42                   42
-  127                 127                  127
-  128                 127                  128
-  255                 127                  255
-  256                 127                  255
+ [raw] [-128,127] [0,255]
+ -129       -128       0
+ -128       -128       0
+   -1         -1       0
+    0          0       0
+   42         42      42
+  127        127     127
+  128        127     128
+  255        127     255
+  256        127     255
+ -----------------------
+ -129       -128       0
+ -128       -128       0
+   -1         -1       0
+    0          0       0
+   42         42      42
+  127        127     127
+  128        127     128
+  255        127     255
+  256        127     255
 
 .SH See also
 

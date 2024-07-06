@@ -1,4 +1,4 @@
-.TH std::unique_lock::try_lock 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::unique_lock::try_lock 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unique_lock::try_lock \- std::unique_lock::try_lock
 
@@ -22,13 +22,11 @@ std::unique_lock::try_lock \- std::unique_lock::try_lock
 .SH Exceptions
 
      * Any exceptions thrown by mutex()->try_lock() (Mutex types do not throw in
-       try_lock, but a custom Lockable might)
-
+       try_lock, but a custom Lockable might).
      * If there is no associated mutex, std::system_error with an error code of
-       std::errc::operation_not_permitted
-
+       std::errc::operation_not_permitted.
      * If the mutex is already locked by this std::unique_lock, std::system_error with
-       an error code of std::errc::resource_deadlock_would_occur
+       an error code of std::errc::resource_deadlock_would_occur.
 
 .SH Example
 
@@ -37,50 +35,55 @@ std::unique_lock::try_lock \- std::unique_lock::try_lock
 
 // Run this code
 
+ #include <chrono>
+ #include <iostream>
  #include <mutex>
  #include <thread>
- #include <iostream>
  #include <vector>
- #include <chrono>
+
+ using namespace std::chrono_literals;
 
  int main()
  {
      std::mutex counter_mutex;
      std::vector<std::thread> threads;
+     using Id = int;
 
-     auto worker_task = [&](int id, int wait_seconds, int acquire_seconds) {
+     auto worker_task = [&](Id id, std::chrono::seconds wait, std::chrono::seconds acquire)
+     {
          // wait for a few seconds before acquiring lock.
-         std::this_thread::sleep_for(std::chrono::seconds(wait_seconds));
+         std::this_thread::sleep_for(wait);
 
          std::unique_lock<std::mutex> lock(counter_mutex, std::defer_lock);
-         if (lock.try_lock()) {
-             std::cout << id << ", lock acquired.\\n";
-         } else {
-             std::cout << id << ", failed acquiring lock.\\n";
+         if (lock.try_lock())
+             std::cout << '#' << id << ", lock acquired.\\n";
+         else
+         {
+             std::cout << '#' << id << ", failed acquiring lock.\\n";
              return;
          }
 
          // keep the lock for a while.
-         std::this_thread::sleep_for(std::chrono::seconds(acquire_seconds));
+         std::this_thread::sleep_for(acquire);
 
-         std::cout << id << ", releasing lock.\\n";
-         lock.unlock();
+         std::cout << '#' << id << ", releasing lock (via destructor).\\n";
      };
 
-     threads.emplace_back(worker_task, 0, 0, 2);
-     threads.emplace_back(worker_task, 1, 1, 0);
-     threads.emplace_back(worker_task, 2, 3, 0);
+     threads.emplace_back(worker_task, Id{0}, 0s, 2s);
+     threads.emplace_back(worker_task, Id{1}, 1s, 0s);
+     threads.emplace_back(worker_task, Id{2}, 3s, 0s);
 
-     for (auto &thread : threads) thread.join();
+     for (auto& thread : threads)
+         thread.join();
  }
 
 .SH Output:
 
- 0, lock acquired.
- 1, failed acquiring lock.
- 0, releasing lock.
- 2, lock acquired.
- 2, releasing lock.
+ #0, lock acquired.
+ #1, failed acquiring lock.
+ #0, releasing lock (via destructor).
+ #2, lock acquired.
+ #2, releasing lock (via destructor).
 
 .SH See also
 

@@ -1,37 +1,64 @@
-.TH std::equality_comparable,std::equality_comparable_with 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::equality_comparable,std::equality_comparable_with 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::equality_comparable,std::equality_comparable_with \- std::equality_comparable,std::equality_comparable_with
 
 .SH Synopsis
    Defined in header <concepts>
-   template < class T >
-   concept equality_comparable = __WeaklyEqualityComparableWith<T,    \fB(1)\fP \fI(since C++20)\fP
-   T>;
-   template <class T, class U>
+   template< class T >                                          (since
+   concept equality_comparable =                            \fB(1)\fP C++20)
+   __WeaklyEqualityComparableWith<T, T>;
+   template< class T, class U >
 
    concept equality_comparable_with =
-   std::equality_comparable<T> &&
-   std::equality_comparable<U> &&
-   std::common_reference_with<
-   const std::remove_reference_t<T>&,                                 \fB(2)\fP \fI(since C++20)\fP
-   const std::remove_reference_t<U>&> &&
-   std::equality_comparable<
-   std::common_reference_t<
-   const std::remove_reference_t<T>&,
-   const std::remove_reference_t<U>&>> &&
+       std::equality_comparable<T> &&
+       std::equality_comparable<U> &&
+       __ComparisonCommonTypeWith<T, U> &&                  \fB(2)\fP (since
+       std::equality_comparable<                                C++20)
+           std::common_reference_t<
+               const std::remove_reference_t<T>&,
+               const std::remove_reference_t<U>&>> &&
 
-   __WeaklyEqualityComparableWith<T, U>;
-   template<class T, class U>
+       __WeaklyEqualityComparableWith<T, U>;
+   template< class T, class U >
 
-   concept __WeaklyEqualityComparableWith = // exposition only
-   requires(const std::remove_reference_t<T>& t,
-   const std::remove_reference_t<U>& u) {
-   { t == u } -> boolean-testable;                                    \fB(3)\fP \fI(since C++20)\fP
-   { t != u } -> boolean-testable;
-   { u == t } -> boolean-testable;
-   { u != t } -> boolean-testable;
+   concept __WeaklyEqualityComparableWith =
+       requires(const std::remove_reference_t<T>& t,
+                const std::remove_reference_t<U>& u) {          (exposition
+           { t == u } -> boolean-testable;                  \fB(3)\fP only*)
+           { t != u } -> boolean-testable;
+           { u == t } -> boolean-testable;
+           { u != t } -> boolean-testable;
 
-   };
+       };
+   template< class T, class U >
+                                                                            (until
+   concept __ComparisonCommonTypeWith =                                     C++23)
+       std::common_reference_with<                                          (exposition
+           const std::remove_reference_t<T>&,                               only*)
+
+           const std::remove_reference_t<U>&>;
+   template< class T, class U, class C =
+   std::common_reference_t<const T&, const U&> >
+
+   concept _ComparisonCommonTypeWithImpl =
+       std::same_as<std::common_reference_t<const T&, const
+   U&>,
+                    std::common_reference_t<const U&, const
+   T&>> &&                                                  \fB(4)\fP
+       requires {
+           requires std::convertible_to<const T&, const C&>                 (since
+   ||                                                                       C++23)
+               std::convertible_to<T, const C&>;                            (exposition
+           requires std::convertible_to<const U&, const C&>                 only*)
+   ||
+               std::convertible_to<U, const C&>;
+       };
+   template< class T, class U >
+   concept __ComparisonCommonTypeWith =
+
+
+   _ComparisonCommonTypeWithImpl<std::remove_cvref_t<T>,
+   std::remove_cvref_t<U>>;
 
    1) The concept std::equality_comparable specifies that the comparison operators ==
    and != on T reflects equality: == yields true if and only if the operands are equal.
@@ -43,68 +70,74 @@ std::equality_comparable,std::equality_comparable_with \- std::equality_comparab
    object of type T and an object of type U can be compared for equality with each
    other (in either order) using both == and !=, and the results of the comparisons are
    consistent.
+   4) The exposition-only concept __ComparisonCommonTypeWith specifies that two types
+   share a common type, and a const lvalue
+   or a non-const rvalue
+   (since C++23) of either type is convertible to that common type.
 
-  Semantic requirements
+   Semantic requirements
 
-   These concepts are modeled only if they are satisified and all concepts they subsume
+   These concepts are modeled only if they are satisfied and all concepts they subsume
    are modeled.
+
+   In the following paragraphs, given an expression E and a type C, CONVERT_TO<C>(E) is
+   defined as:
+
+     * static_cast<C>(std::as_const(E)).                                  (until C++23)
+     * static_cast<const C&>(std::as_const(E)) if that is a valid
+       expression,                                                        (since C++23)
+     * static_cast<const C&>(std::move(E)) otherwise.
 
    1) std::equality_comparable<T> is modeled only if, given objects a and b of type T,
    bool(a == b) is true if and only if a and b are equal. Together with the requirement
-   that a == b is equality preserving, this implies that == is symmetric and
+   that a == b is equality-preserving, this implies that == is symmetric and
    transitive, and further that == is reflexive for all objects a that are equal to at
    least one other object.
-   2) std::equality_comparable_with<T, U> is modeled only if, given any lvalue t of
-   type const std::remove_reference_t<T> and any lvalue u of type const
-   std::remove_reference_t<U>, and let C be std::common_reference_t<const
-   std::remove_reference_t<T>&, const std::remove_reference_t<U>&>, bool(t == u) ==
-   bool(C(t) == C(u)).
-   3) __WeaklyEqualityComparableWith<T, U> is modeled only if given
+   2) std::equality_comparable_with<T, U> is modeled only if, let
+     * t and t2 be lvalues denoting distinct equal objects of types const
+       std::remove_reference_t<T> and std::remove_cvref_t<T> respectively,
+     * u and u2 be lvalues denoting distinct equal objects of types const
+       std::remove_reference_t<U> and std::remove_cvref_t<U> respectively,
+     * C be std::common_reference_t<const std::remove_reference_t<T>&, const
+       std::remove_reference_t<U>&>,
 
+   the following expression is true:
+
+     * bool(t == u) == bool(CONVERT_TO<C>(t2) == CONVERT_TO<C>(u2)).
+   3) __WeaklyEqualityComparableWith<T, U> is modeled only if given
      * t, an lvalue of type const std::remove_reference_t<T> and
      * u, an lvalue of type const std::remove_reference_t<U>,
 
    the following are true:
 
-     * t == u, u == t, t != u,u != t have the same domain;
+     * t == u, u == t, t != u, u != t have the same domain;
      * bool(u == t) == bool(t == u);
      * bool(t != u) == !bool(t == u); and
      * bool(u != t) == bool(t != u).
+   4) __WeaklyEqualityComparableWith<T, U> is modeled only if:
 
-  Equality preservation
+   The corresponding common_reference_with concept is modeled.            (until C++23)
+   Let
 
-   An expression is equality preserving if it results in equal outputs given equal
-   inputs.
+     * C be std::common_reference_t<const T&, const U&>,
+     * t1 and t2 be equality-preserving expressions that are lvalues of
+       type std::remove_cvref_t<T>,
+     * u1 and u2 be equality-preserving expressions that are lvalues of
+       type std::remove_cvref_t<U>,                                       (since C++23)
 
-     * The inputs to an expression consist of its operands.
-     * The outputs of an expression consist of its result and all operands modified by
-       the expression (if any).
+   the following conditions hold:
 
-   In specification of standard concepts, operands are defined as the largest
-   subexpressions that include only:
+     * CONVERT_TO<C>(t1) equals CONVERT_TO<C>(t2) if and only if t1
+       equals t2; and
+     * CONVERT_TO<C>(u1) equals CONVERT_TO<C>(u2) if and only if u1
+       equals u2.
 
-     * an id-expression, and
-     * invocations of std::move, std::forward, and std::declval.
+   Equality preservation
 
-   The cv-qualification and value category of each operand is determined by assuming
-   that each template type parameter denotes a cv-unqualified complete non-array object
-   type.
+   Expressions declared in requires expressions of the standard library concepts are
+   required to be equality-preserving (except where stated otherwise).
 
-   Every expression required to be equality preserving is further required to be
-   stable: two evaluations of such an expression with the same input objects must have
-   equal outputs absent any explicit intervening modification of those input objects.
+   Implicit expression variations
 
-   Unless noted otherwise, every expression used in a requires-expression is required
-   to be equality preserving and stable, and the evaluation of the expression may
-   modify only its non-constant operands. Operands that are constant must not be
-   modified.
-
-  Implicit expression variations
-
-   A requires-expression that uses an expression that is non-modifying for some
-   constant lvalue operand also implicitly requires additional variations of that
-   expression that accept a non-constant lvalue or (possibly constant) rvalue for the
-   given operand unless such an expression variation is explicitly required with
-   differing semantics. These implicit expression variations must meet the same
-   semantic requirements of the declared expression. The extent to which an
-   implementation validates the syntax of the variations is unspecified.
+   A requires expression that uses an expression that is non-modifying for some
+   constant lvalue operand also requires implicit expression variations.

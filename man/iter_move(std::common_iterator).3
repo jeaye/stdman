@@ -1,0 +1,107 @@
+.TH iter_move(std::common_iterator) 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+iter_move(std::common_iterator) \- iter_move(std::common_iterator)
+
+.SH Synopsis
+   friend constexpr decltype(auto) iter_move( const std::common_iterator&
+   i )
+                                                                           (since
+       noexcept(noexcept(ranges::iter_move(std::declval<const I&>()))      C++20)
+
+           requires std::input_iterator<I>;
+
+   Casts the result of dereferencing the underlying iterator to its associated rvalue
+   reference type.
+
+   The function body is equivalent to: return
+   std::ranges::iter_move(std::get<I>(i.var));.
+
+   This function is not visible to ordinary unqualified or qualified lookup, and can
+   only be found by argument-dependent lookup when std::common_iterator<I, S> is an
+   associated class of the arguments.
+
+   If i.var does not hold an I object (i.e. an iterator), the behavior is undefined.
+
+.SH Parameters
+
+   i - a source iterator adaptor
+
+.SH Return value
+
+   An rvalue reference or a prvalue temporary.
+
+.SH Complexity
+
+   Constant.
+
+.SH Example
+
+
+// Run this code
+
+ #include <iomanip>
+ #include <iostream>
+ #include <iterator>
+ #include <string>
+ #include <vector>
+
+ void print(auto const& rem, auto const& v)
+ {
+     std::cout << rem << '[' << size(v) << "] { ";
+     for (int o{}; auto const& s : v)
+         std::cout << (o++ ? ", " : "") << std::quoted(s);
+     std::cout << " }\\n";
+ }
+
+ int main()
+ {
+     std::vector<std::string> p{"Andromeda", "Cassiopeia", "Phoenix"}, q;
+     print("p", p);
+     print("q", q);
+
+     using CTI = std::counted_iterator<std::vector<std::string>::iterator>;
+     using CI = std::common_iterator<CTI, std::default_sentinel_t>;
+     CI last{std::default_sentinel};
+
+     for (CI first{{p.begin(), 2}}; first != last; ++first)
+         q.emplace_back(/* ADL */ iter_move(first));
+
+     print("p", p);
+     print("q", q);
+ }
+
+.SH Possible output:
+
+ p[3] { "Andromeda", "Cassiopeia", "Phoenix" }
+ q[0] {  }
+ p[3] { "", "", "Phoenix" }
+ q[2] { "Andromeda", "Cassiopeia" }
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to             Behavior as published              Correct behavior
+   LWG 3953 C++20      the return type was                            changed to
+                       std::iter_rvalue_reference_t<I>                decltype(auto)
+
+.SH See also
+
+   iter_move             casts the result of dereferencing an object to its associated
+   (C++20)               rvalue reference type
+                         (customization point object)
+   iter_move             casts the result of dereferencing the underlying iterator to
+   (C++20)               its associated rvalue reference type
+                         \fI(function)\fP
+   move                  obtains an rvalue reference
+   \fI(C++11)\fP               \fI(function template)\fP
+   move_if_noexcept      obtains an rvalue reference if the move constructor does not
+   \fI(C++11)\fP               throw
+                         \fI(function template)\fP
+   forward               forwards a function argument
+   \fI(C++11)\fP               \fI(function template)\fP
+   ranges::move          moves a range of elements to a new location
+   (C++20)               (niebloid)
+   ranges::move_backward moves a range of elements to a new location in backwards order
+   (C++20)               (niebloid)

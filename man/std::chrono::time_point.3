@@ -1,4 +1,4 @@
-.TH std::chrono::time_point 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::chrono::time_point 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::chrono::time_point \- std::chrono::time_point
 
@@ -6,8 +6,8 @@ std::chrono::time_point \- std::chrono::time_point
    Defined in header <chrono>
    template<
 
-   class Clock,                               \fI(since C++11)\fP
-   class Duration = typename Clock::duration
+       class Clock,                               \fI(since C++11)\fP
+       class Duration = typename Clock::duration
 
    > class time_point;
 
@@ -80,6 +80,8 @@ std::chrono::time_point \- std::chrono::time_point
 
    std::common_type<std::chrono::time_point> specializes the std::common_type trait
    \fI(C++11)\fP                                   \fI(class template specialization)\fP
+   std::hash<std::chrono::time_point>        hash support for std::chrono::time_point
+   (C++26)                                   \fI(class template specialization)\fP
 
 .SH Example
 
@@ -87,22 +89,21 @@ std::chrono::time_point \- std::chrono::time_point
 // Run this code
 
  #include <algorithm>
- #include <iostream>
- #include <iomanip>
- #include <ctime>
  #include <chrono>
+ #include <ctime>
+ #include <iomanip>
+ #include <iostream>
 
  void slow_motion()
  {
-     static int a[] {1,2,3,4,5,6,7,8,9,10,11,12};
-     while (std::ranges::next_permutation(a).found)
-     { } // generates 12! permutations
+     static int a[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+     // Generate Γ(13) == 12! permutations:
+     while (std::ranges::next_permutation(a).found) {}
  }
 
  int main()
  {
-     using namespace std::literals; // enables the usage of 24h, 1ms, 1s instead of
-                                    // e.g. std::chrono::hours(24), accordingly
+     using namespace std::literals; // enables literal suffixes, e.g. 24h, 1ms, 1s.
 
      const std::chrono::time_point<std::chrono::system_clock> now =
          std::chrono::system_clock::now();
@@ -114,23 +115,31 @@ std::chrono::time_point \- std::chrono::time_point
      const std::chrono::time_point<std::chrono::steady_clock> start =
          std::chrono::steady_clock::now();
 
+     std::cout << "Different clocks are not comparable: \\n"
+                  "  System time: " << now.time_since_epoch() << "\\n"
+                  "  Steady time: " << start.time_since_epoch() << '\\n';
+
      slow_motion();
 
      const auto end = std::chrono::steady_clock::now();
-
      std::cout
-       << "Slow calculations took "
-       << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << "µs ≈ "
-       << (end - start) / 1ms << "ms ≈ " // almost equivalent form of the above, but
-       << (end - start) / 1s << "s.\\n";  // using milliseconds and seconds accordingly
+         << "Slow calculations took "
+         << std::chrono::duration_cast<std::chrono::microseconds>(end - start) << " ≈ "
+         << (end - start) / 1ms << "ms ≈ " // almost equivalent form of the above, but
+         << (end - start) / 1s << "s.\\n";  // using milliseconds and seconds accordingly
  }
 
 .SH Possible output:
 
  24 hours ago, the time was 2021-02-15 18:28:52.
+ Different clocks are not comparable:
+   System time: 1666497022681282572ns
+   Steady time: 413668317434475ns
  Slow calculations took 2090448µs ≈ 2090ms ≈ 2s.
 
 .SH See also
 
-   duration a time interval
-   \fI(C++11)\fP  \fI(class template)\fP
+   duration       a time interval
+   \fI(C++11)\fP        \fI(class template)\fP
+   year_month_day represents a specific year, month, and day
+   (C++20)        \fI(class)\fP

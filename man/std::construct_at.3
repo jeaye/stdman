@@ -1,10 +1,10 @@
-.TH std::construct_at 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::construct_at 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::construct_at \- std::construct_at
 
 .SH Synopsis
    Defined in header <memory>
-   template<class T, class... Args>                    \fI(since C++20)\fP
+   template< class T, class... Args >                  \fI(since C++20)\fP
    constexpr T* construct_at( T* p, Args&&... args );
 
    Creates a T object initialized with arguments args... at given address p.
@@ -14,8 +14,7 @@ std::construct_at \- std::construct_at
 
    Equivalent to
 
- return ::new (const_cast<void*>(static_cast<const volatile void*>(p)))
-     T(std::forward<Args>(args)...);
+ return ::new (static_cast<void*>(p)) T(std::forward<Args>(args)...);
 
    except that construct_at may be used in evaluation of constant expressions.
 
@@ -38,38 +37,42 @@ std::construct_at \- std::construct_at
 
 // Run this code
 
- #include <iostream>
+ #include <bit>
  #include <memory>
 
- struct S {
-     int x;
-     float y;
-     double z;
-
-     S(int x, float y, double z) : x{x}, y{y}, z{z} { std::cout << "S::S();\\n"; }
-
-     ~S() { std::cout << "S::~S();\\n"; }
-
-     void print() const {
-         std::cout << "S { x=" << x << "; y=" << y << "; z=" << z << "; };\\n";
-     }
+ class S
+ {
+     int x_;
+     float y_;
+     double z_;
+ public:
+     constexpr S(int x, float y, double z) : x_{x}, y_{y}, z_{z} {}
+     [[nodiscard("no side-effects!")]]
+     constexpr bool operator==(const S&) const noexcept = default;
  };
 
- int main()
+ consteval bool test()
  {
-     alignas(S) unsigned char storage[sizeof(S)];
-
-     S* ptr = std::construct_at(reinterpret_cast<S*>(storage), 42, 2.71828f, 3.1415);
-     ptr->print();
-
+     alignas(S) unsigned char storage[sizeof(S)]{};
+     S uninitialized = std::bit_cast<S>(storage);
+     std::destroy_at(&uninitialized);
+     S* ptr = std::construct_at(std::addressof(uninitialized), 42, 2.71f, 3.14);
+     const bool res{*ptr == S{42, 2.71f, 3.14}};
      std::destroy_at(ptr);
+     return res;
  }
+ static_assert(test());
 
-.SH Output:
+ int main() {}
 
- S::S();
- S { x=42; y=2.71828; z=3.1415; };
- S::~S();
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to       Behavior as published              Correct behavior
+   LWG 3870 C++20      construct_at could create objects  only cv-unqualified types are
+                       of a cv-qualified types            permitted
 
 .SH See also
 

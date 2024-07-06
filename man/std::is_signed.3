@@ -1,4 +1,4 @@
-.TH std::is_signed 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_signed 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_signed \- std::is_signed
 
@@ -7,30 +7,33 @@ std::is_signed \- std::is_signed
    template< class T >              \fI(since C++11)\fP
    struct is_signed;
 
+   std::is_signed is a UnaryTypeTrait.
+
    If T is an arithmetic type, provides the member constant value equal to true if
    T(-1) < T\fB(0)\fP: this results in true for the floating-point types and the signed
    integer types, and in false for the unsigned integer types and the type bool.
 
    For any other type, value is false.
 
-   The behavior of a program that adds specializations for is_signed
-   or is_signed_v
-   \fI(since C++17)\fP is undefined.
+   If the program adds specializations for std::is_signed or std::is_signed_v, the
+   behavior is undefined.
 
 .SH Template parameters
 
    T - a type to check
 
-  Helper variable template
+   Helper variable template
 
    template< class T >                                       \fI(since C++17)\fP
    inline constexpr bool is_signed_v = is_signed<T>::value;
+
+
 
 Inherited from std::integral_constant
 
 .SH Member constants
 
-   value    true if T is a signed arithmetic type , false otherwise
+   value    true if T is a signed arithmetic type, false otherwise
    \fB[static]\fP \fI(public static member constant)\fP
 
 .SH Member functions
@@ -48,13 +51,14 @@ Inherited from std::integral_constant
 
 .SH Possible implementation
 
-   namespace detail {
-   template<typename T,bool = std::is_arithmetic<T>::value>
-   struct is_signed : std::integral_constant<bool, T(-1) < T\fB(0)\fP> {};
+   namespace detail
+   {
+       template<typename T, bool = std::is_arithmetic<T>::value>
+       struct is_signed : std::integral_constant<bool, T(-1) < T\fB(0)\fP> {};
 
-   template<typename T>
-   struct is_signed<T,false> : std::false_type {};
-   } // namespace detail
+       template<typename T>
+       struct is_signed<T, false> : std::false_type {};
+   }
 
    template<typename T>
    struct is_signed : detail::is_signed<T>::type {};
@@ -68,36 +72,38 @@ Inherited from std::integral_constant
  #include <type_traits>
 
  class A {};
- enum B : int {};
- enum class C : int {};
+ static_assert(std::is_signed_v<A> == false);
+
+ class B { int i; };
+ static_assert(std::is_signed_v<B> == false);
+
+ enum C : int {};
+ static_assert(std::is_signed_v<C> == false);
+
+ enum class D : int {};
+ static_assert(std::is_signed_v<D> == false);
+
+ static_assert(
+     std::is_signed<signed int>::value == true and // C++11
+     std::is_signed<signed int>() == true and      // C++11
+     std::is_signed<signed int>{} == true and      // C++11
+     std::is_signed_v<signed int> == true and      // C++17
+     std::is_signed_v<unsigned int> == false and
+     std::is_signed_v<float> == true and
+     std::is_signed_v<bool> == false and
+     std::is_signed_v<signed char> == true and
+     std::is_signed_v<unsigned char> == false
+ );
 
  int main()
  {
-     std::cout << std::boolalpha;
-     std::cout << std::is_signed<A>::value << '\\n'; // false
-     std::cout << std::is_signed<float>::value << '\\n'; // true
-     std::cout << std::is_signed<signed int>::value << '\\n'; // true
-     std::cout << std::is_signed<unsigned int>::value << '\\n'; // false
-     std::cout << std::is_signed<B>::value << '\\n'; // false
-     std::cout << std::is_signed<C>::value << '\\n'; // false
-
-     // shorter:
-     std::cout << std::is_signed_v<bool> << '\\n'; // false
-     std::cout << std::is_signed<signed int>() << '\\n'; // true
-     std::cout << std::is_signed<unsigned int>{} << '\\n'; // false
+     // signedness of char is implementation-defined:
+     std::cout << std::boolalpha << std::is_signed_v<char> << '\\n';
  }
 
-.SH Output:
+.SH Possible output:
 
- false
  true
- true
- false
- false
- false
- false
- true
- false
 
 .SH See also
 

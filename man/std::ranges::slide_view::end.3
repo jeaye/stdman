@@ -1,0 +1,69 @@
+.TH std::ranges::slide_view::end 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::slide_view::end \- std::ranges::slide_view::end
+
+.SH Synopsis
+   constexpr auto end()
+       requires (!(__simple_view<V> && __slide_caches_nothing<const   \fB(1)\fP (since C++23)
+   V>));
+   constexpr auto end() const                                         \fB(2)\fP (since C++23)
+       requires __slide_caches_nothing<const V>;
+
+   Returns a sentinel or an iterator representing the end of the slide_view.
+
+   1) Let base_ and n_ be the underlying data members. Equivalent to:
+     * If V models __slide_caches_nothing, return iterator<false>(ranges::begin(base_)
+       + ranges::range_difference_t<V>(size()), n_);.
+     * Otherwise, if V models __slide_caches_last, return
+       iterator<false>(ranges::prev(ranges::end(base_), n_ - 1, ranges::begin(base_)),
+       n_);.
+     * Otherwise, if V models common_range, return iterator<false>(ranges::end(base_),
+       ranges::end(base_), n_);.
+     * Otherwise, return sentinel(ranges::end(base_));.
+   If V models __slide_caches_last, this function caches the result within the
+   slide_view::cached_end_ for use on subsequent calls. This is necessary to provide
+   the amortized constant-time complexity required by the range.
+   2) Equivalent to begin() + ranges::range_difference_t<const V>(size()).
+
+.SH Parameters
+
+   \fI(none)\fP
+
+.SH Return value
+
+   A sentinel or an iterator representing the end of the slide_view.
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <ranges>
+
+ int main()
+ {
+     static constexpr auto source = {'A', 'B', 'C', 'D'};
+
+     for (const auto subrange: source | std::views::slide(3))
+     {
+         std::cout << "[ ";
+         for (auto it = subrange.begin(); it != subrange.end(); ++it)
+             std::cout << *it << ' ';
+         std::cout << "]\\n";
+     }
+ }
+
+.SH Output:
+
+ [ A B C ]
+ [ B C D ]
+
+.SH See also
+
+   begin         returns an iterator to the beginning
+   (C++23)       \fI(public member function)\fP
+   ranges::begin returns an iterator to the beginning of a range
+   (C++20)       (customization point object)
+   ranges::end   returns a sentinel indicating the end of a range
+   (C++20)       (customization point object)

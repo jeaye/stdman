@@ -1,4 +1,4 @@
-.TH std::shared_ptr 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::shared_ptr 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::shared_ptr \- std::shared_ptr
 
@@ -31,12 +31,12 @@ std::shared_ptr \- std::shared_ptr
    CopyAssignable, and LessThanComparable and are contextually convertible to bool.
 
    All member functions (including copy constructor and copy assignment) can be called
-   by multiple threads on different instances of shared_ptr without additional
-   synchronization even if these instances are copies and share ownership of the same
-   object. If multiple threads of execution access the same instance of shared_ptr
-   without synchronization and any of those accesses uses a non-const member function
-   of shared_ptr then a data race will occur; the shared_ptr overloads of atomic
-   functions can be used to prevent the data race.
+   by multiple threads on different shared_ptr objects without additional
+   synchronization even if these objects are copies and share ownership of the same
+   object. If multiple threads of execution access the same shared_ptr object without
+   synchronization and any of those accesses uses a non-const member function of
+   shared_ptr then a data race will occur; the std::atomic<shared_ptr> can be used to
+   prevent the data race.
 
 .SH Member types
 
@@ -69,12 +69,16 @@ std::shared_ptr \- std::shared_ptr
    use_count     object
                  \fI(public member function)\fP
    unique        checks whether the managed object is managed only by the current
-   \fI(until C++20)\fP shared_ptr instance
+   \fI(until C++20)\fP shared_ptr object
                  \fI(public member function)\fP
    operator bool checks if the stored pointer is not null
                  \fI(public member function)\fP
    owner_before  provides owner-based ordering of shared pointers
                  \fI(public member function)\fP
+   owner_hash    provides owner-based hashing of shared pointers
+   (C++26)       \fI(public member function)\fP
+   owner_equal   provides owner-based equal comparison of shared pointers
+   (C++26)       \fI(public member function)\fP
 
 .SH Non-member functions
 
@@ -105,7 +109,7 @@ std::shared_ptr \- std::shared_ptr
    (removed in C++20)
    (C++20)
                                  outputs the value of the stored pointer to an output
-   operator<<                    stream
+   operator<<(std::shared_ptr)   stream
                                  \fI(function template)\fP
    std::swap(std::shared_ptr)    specializes the std::swap algorithm
    \fI(C++11)\fP                       \fI(function template)\fP
@@ -122,6 +126,7 @@ std::shared_ptr \- std::shared_ptr
    std::atomic_compare_exchange_weak_explicit(std::shared_ptr)
    std::atomic_compare_exchange_strong_explicit(std::shared_ptr)
    (deprecated in C++20)
+   (removed in C++26)
 
 .SH Helper classes
 
@@ -130,7 +135,7 @@ std::shared_ptr \- std::shared_ptr
    std::hash<std::shared_ptr>   hash support for std::shared_ptr
    \fI(C++11)\fP                      \fI(class template specialization)\fP
 
-  Deduction guides\fI(since C++17)\fP
+   Deduction guides \fI(since C++17)\fP
 
 .SH Notes
 
@@ -149,10 +154,13 @@ std::shared_ptr \- std::shared_ptr
    dynamic library or a plugin loaded as long as any of its functions are referenced:
 
  void del(void(*)()) {}
+
  void fun() {}
- int main(){
-   std::shared_ptr<void()> ee(fun, del);
-   (*ee)();
+
+ int main()
+ {
+     std::shared_ptr<void()> ee(fun, del);
+     (*ee)();
  }
 
 .SH Implementation notes
@@ -199,36 +207,44 @@ std::shared_ptr \- std::shared_ptr
 
 // Run this code
 
+ #include <chrono>
  #include <iostream>
  #include <memory>
- #include <thread>
- #include <chrono>
  #include <mutex>
+ #include <thread>
+
+ using namespace std::chrono_literals;
 
  struct Base
  {
-     Base() { std::cout << "  Base::Base()\\n"; }
+     Base() { std::cout << "Base::Base()\\n"; }
+
      // Note: non-virtual destructor is OK here
-     ~Base() { std::cout << "  Base::~Base()\\n"; }
+     ~Base() { std::cout << "Base::~Base()\\n"; }
  };
 
- struct Derived: public Base
+ struct Derived : public Base
  {
-     Derived() { std::cout << "  Derived::Derived()\\n"; }
-     ~Derived() { std::cout << "  Derived::~Derived()\\n"; }
+     Derived() { std::cout << "Derived::Derived()\\n"; }
+
+     ~Derived() { std::cout << "Derived::~Derived()\\n"; }
  };
+
+ void print(auto rem, std::shared_ptr<Base> const& sp)
+ {
+     std::cout << rem << "\\n\\tget() = " << sp.get()
+               << ", use_count() = " << sp.use_count() << '\\n';
+ }
 
  void thr(std::shared_ptr<Base> p)
  {
-     std::this_thread::sleep_for(std::chrono::seconds(1));
+     std::this_thread::sleep_for(987ms);
      std::shared_ptr<Base> lp = p; // thread-safe, even though the
                                    // shared use_count is incremented
      {
          static std::mutex io_mutex;
          std::lock_guard<std::mutex> lk(io_mutex);
-         std::cout << "local pointer in a thread:\\n"
-                   << "  lp.get() = " << lp.get()
-                   << ", lp.use_count() = " << lp.use_count() << '\\n';
+         print("Local pointer in a thread:", lp);
      }
  }
 
@@ -236,37 +252,172 @@ std::shared_ptr \- std::shared_ptr
  {
      std::shared_ptr<Base> p = std::make_shared<Derived>();
 
-     std::cout << "Created a shared Derived (as a pointer to Base)\\n"
-               << "  p.get() = " << p.get()
-               << ", p.use_count() = " << p.use_count() << '\\n';
-     std::thread t1(thr, p), t2(thr, p), t3(thr, p);
+     print("Created a shared Derived (as a pointer to Base)", p);
+
+     std::thread t1{thr, p}, t2{thr, p}, t3{thr, p};
      p.reset(); // release ownership from main
-     std::cout << "Shared ownership between 3 threads and released\\n"
-               << "ownership from main:\\n"
-               << "  p.get() = " << p.get()
-               << ", p.use_count() = " << p.use_count() << '\\n';
-     t1.join(); t2.join(); t3.join();
-     std::cout << "All threads completed, the last one deleted Derived\\n";
+
+     print("Shared ownership between 3 threads and released ownership from main:", p);
+
+     t1.join();
+     t2.join();
+     t3.join();
+
+     std::cout << "All threads completed, the last one deleted Derived.\\n";
  }
 
 .SH Possible output:
 
  Base::Base()
-   Derived::Derived()
+ Derived::Derived()
  Created a shared Derived (as a pointer to Base)
-   p.get() = 0x2299b30, p.use_count() = 1
- Shared ownership between 3 threads and released
- ownership from main:
-   p.get() = 0, p.use_count() = 0
- local pointer in a thread:
-   lp.get() = 0x2299b30, lp.use_count() = 5
- local pointer in a thread:
-   lp.get() = 0x2299b30, lp.use_count() = 3
- local pointer in a thread:
-   lp.get() = 0x2299b30, lp.use_count() = 2
-   Derived::~Derived()
-   Base::~Base()
- All threads completed, the last one deleted Derived
+         get() = 0x118ac30, use_count() = 1
+ Shared ownership between 3 threads and released ownership from main:
+         get() = 0, use_count() = 0
+ Local pointer in a thread:
+         get() = 0x118ac30, use_count() = 5
+ Local pointer in a thread:
+         get() = 0x118ac30, use_count() = 4
+ Local pointer in a thread:
+         get() = 0x118ac30, use_count() = 2
+ Derived::~Derived()
+ Base::~Base()
+ All threads completed, the last one deleted Derived.
+
+.SH Example
+
+
+// Run this code
+
+ #include <iostream>
+ #include <memory>
+
+ struct MyObj
+ {
+     MyObj() { std::cout << "MyObj constructed\\n"; }
+
+     ~MyObj() { std::cout << "MyObj destructed\\n"; }
+ };
+
+ struct Container : std::enable_shared_from_this<Container> // note: public inheritance
+ {
+     std::shared_ptr<MyObj> memberObj;
+
+     void CreateMember() { memberObj = std::make_shared<MyObj>(); }
+
+     std::shared_ptr<MyObj> GetAsMyObj()
+     {
+         // Use an alias shared ptr for member
+         return std::shared_ptr<MyObj>(shared_from_this(), memberObj.get());
+     }
+ };
+
+ #define COUT(str) std::cout << '\\n' << str << '\\n'
+
+ #define DEMO(...) std::cout << #__VA_ARGS__ << " = " << __VA_ARGS__ << '\\n'
+
+ int main()
+ {
+     COUT("Creating shared container");
+     std::shared_ptr<Container> cont = std::make_shared<Container>();
+     DEMO(cont.use_count());
+     DEMO(cont->memberObj.use_count());
+
+     COUT("Creating member");
+     cont->CreateMember();
+     DEMO(cont.use_count());
+     DEMO(cont->memberObj.use_count());
+
+     COUT("Creating another shared container");
+     std::shared_ptr<Container> cont2 = cont;
+     DEMO(cont.use_count());
+     DEMO(cont->memberObj.use_count());
+     DEMO(cont2.use_count());
+     DEMO(cont2->memberObj.use_count());
+
+     COUT("GetAsMyObj");
+     std::shared_ptr<MyObj> myobj1 = cont->GetAsMyObj();
+     DEMO(myobj1.use_count());
+     DEMO(cont.use_count());
+     DEMO(cont->memberObj.use_count());
+     DEMO(cont2.use_count());
+     DEMO(cont2->memberObj.use_count());
+
+     COUT("Copying alias obj");
+     std::shared_ptr<MyObj> myobj2 = myobj1;
+     DEMO(myobj1.use_count());
+     DEMO(myobj2.use_count());
+     DEMO(cont.use_count());
+     DEMO(cont->memberObj.use_count());
+     DEMO(cont2.use_count());
+     DEMO(cont2->memberObj.use_count());
+
+     COUT("Resetting cont2");
+     cont2.reset();
+     DEMO(myobj1.use_count());
+     DEMO(myobj2.use_count());
+     DEMO(cont.use_count());
+     DEMO(cont->memberObj.use_count());
+
+     COUT("Resetting myobj2");
+     myobj2.reset();
+     DEMO(myobj1.use_count());
+     DEMO(cont.use_count());
+     DEMO(cont->memberObj.use_count());
+
+     COUT("Resetting cont");
+     cont.reset();
+     DEMO(myobj1.use_count());
+     DEMO(cont.use_count());
+ }
+
+.SH Output:
+
+ Creating shared container
+ cont.use_count() = 1
+ cont->memberObj.use_count() = 0
+
+ Creating member
+ MyObj constructed
+ cont.use_count() = 1
+ cont->memberObj.use_count() = 1
+
+ Creating another shared container
+ cont.use_count() = 2
+ cont->memberObj.use_count() = 1
+ cont2.use_count() = 2
+ cont2->memberObj.use_count() = 1
+
+ GetAsMyObj
+ myobj1.use_count() = 3
+ cont.use_count() = 3
+ cont->memberObj.use_count() = 1
+ cont2.use_count() = 3
+ cont2->memberObj.use_count() = 1
+
+ Copying alias obj
+ myobj1.use_count() = 4
+ myobj2.use_count() = 4
+ cont.use_count() = 4
+ cont->memberObj.use_count() = 1
+ cont2.use_count() = 4
+ cont2->memberObj.use_count() = 1
+
+ Resetting cont2
+ myobj1.use_count() = 3
+ myobj2.use_count() = 3
+ cont.use_count() = 3
+ cont->memberObj.use_count() = 1
+
+ Resetting myobj2
+ myobj1.use_count() = 2
+ cont.use_count() = 2
+ cont->memberObj.use_count() = 1
+
+ Resetting cont
+ myobj1.use_count() = 1
+ cont.use_count() = 0
+ MyObj destructed
 
 .SH See also
 

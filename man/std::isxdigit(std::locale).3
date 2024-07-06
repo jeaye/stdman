@@ -1,11 +1,11 @@
-.TH std::isxdigit(std::locale) 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::isxdigit(std::locale) 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::isxdigit(std::locale) \- std::isxdigit(std::locale)
 
 .SH Synopsis
    Defined in header <locale>
-   template< class charT >
-   bool isxdigit( charT ch, const locale& loc );
+   template< class CharT >
+   bool isxdigit( CharT ch, const locale& loc );
 
    Checks if the given character is classified as a hexadecimal digit by the given
    locale's std::ctype facet.
@@ -21,19 +21,63 @@ std::isxdigit(std::locale) \- std::isxdigit(std::locale)
 
 .SH Possible implementation
 
-   template< class charT >
-   bool isxdigit( charT ch, const std::locale& loc ) {
-       return std::use_facet<std::ctype<charT>>(loc).is(std::ctype_base::xdigit, ch);
+   template<class CharT>
+   bool isxdigit(CharT ch, const std::locale& loc)
+   {
+       return std::use_facet<std::ctype<CharT>>(loc).is(std::ctype_base::xdigit, ch);
    }
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <iostream>
+ #include <locale>
+ #include <string>
+ #include <unordered_set>
+
+ struct gxdigit_ctype : std::ctype<wchar_t>
+ {
+     std::unordered_set<wchar_t> greek_digits{L'α', L'β', L'γ', L'δ', L'ε', L'ζ'};
+
+     bool do_is(mask m, char_type c) const override
+     {
+         return (m & xdigit) && greek_digits.contains(c)
+             ? true // 6 first Greek small letters will be classified as digits
+             : ctype::do_is(m, c); // leave the rest to the parent class
+     }
+ };
+
+ int main()
+ {
+     std::wstring text = L"0123456789abcdefABCDEFαβγδεζηθικλμ";
+     std::locale loc(std::locale(""), new gxdigit_ctype);
+
+     std::locale::global(std::locale("en_US.utf8"));
+     std::wcout.imbue(std::locale());
+
+     std::wcout << "Hexadecimal digits in text: ";
+     for (const wchar_t c : text)
+         if (std::isxdigit(c, loc))
+             std::wcout << c << L' ';
+     std::wcout << L'\\n';
+
+     std::wcout << "Not hexadecimal digits in text: ";
+     for (const wchar_t c : text)
+         if (not std::isxdigit(c, loc))
+             std::wcout << c << L' ';
+     std::wcout << L'\\n';
+ }
+
+.SH Output:
+
+ Hexadecimal digits in text: 0 1 2 3 4 5 6 7 8 9 a b c d e f A B C D E F α β γ δ ε ζ
+ Not hexadecimal digits in text: η θ ι κ λ μ
 
 .SH See also
 
    isxdigit  checks if a character is a hexadecimal character
              \fI(function)\fP
-   iswxdigit checks if a character is a hexadecimal character
+   iswxdigit checks if a wide character is a hexadecimal character
              \fI(function)\fP

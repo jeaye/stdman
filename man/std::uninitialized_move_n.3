@@ -1,4 +1,4 @@
-.TH std::uninitialized_move_n 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_move_n 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_move_n \- std::uninitialized_move_n
 
@@ -7,40 +7,37 @@ std::uninitialized_move_n \- std::uninitialized_move_n
    template< class InputIt, class Size, class NoThrowForwardIt >
 
    std::pair<InputIt, NoThrowForwardIt>                               \fB(1)\fP \fI(since C++17)\fP
+       uninitialized_move_n( InputIt first, Size count,
 
-   uninitialized_move_n( InputIt first, Size count, NoThrowForwardIt
-   d_first );
-   template< class ExecutionPolicy, class ForwardIt, class Size,
-   class NoThrowForwardIt >
+                             NoThrowForwardIt d_first );
+   template< class ExecutionPolicy, class ForwardIt,
 
+             class Size, class NoThrowForwardIt >
    std::pair<ForwardIt, NoThrowForwardIt>                             \fB(2)\fP \fI(since C++17)\fP
-   uninitialized_move_n( ExecutionPolicy&& policy, ForwardIt first,
-   Size count,
+       uninitialized_move_n( ExecutionPolicy&& policy, ForwardIt
+   first,
 
-   NoThrowForwardIt d_first );
+                             Size count, NoThrowForwardIt d_first );
 
    1) Moves count elements from a range beginning at first to an uninitialized memory
-   area beginning at d_first as if by
+   area beginning at d_first as if by for (; n > 0; ++d_first, (void) ++first, --n)
+       ::new (static_cast<void*>(std::addressof(*d_first)))
+           typename
+   std::iterator_traits<NoThrowForwardIt>::value_type(std::move(*first));
+   If an exception is thrown during the initialization, some objects in first + [0, n)
+   are left in a valid but unspecified state, and the objects already constructed are
+   destroyed in an unspecified order.
 
- for ( ; n > 0; ++d_first, (void) ++first, --n)
-    ::new (/*VOIDIFY*/(*d_first))
-       typename std::iterator_traits<NoThrowForwardIt>::value_type(std::move(*first));
+   If d_first + [0, n) overlaps with first + [0, n), the behavior is      \fI(since C++20)\fP
+   undefined.
 
-   where /*VOIDIFY*/(e) is:
+   2) Same as \fB(1)\fP, but executed according to policy. This overload participates in
+   overload resolution only if
 
-      static_cast<void*>(std::addressof(e))                               \fI(until C++20)\fP
-      const_cast<void*>(static_cast<const volatile                        \fI(since C++20)\fP
-      void*>(std::addressof(e)))
-
-   If an exception is thrown during the initialization, some objects in the source
-   range are left in a valid but unspecified state, and the objects already constructed
-   are destroyed in an unspecified order.
-   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
-   in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
 
 .SH Parameters
 
@@ -82,23 +79,24 @@ std::uninitialized_move_n \- std::uninitialized_move_n
 
 .SH Possible implementation
 
-   template<class InputIt, class Size, class NoThrowForwardIt>
-   std::pair<InputIt, NoThrowForwardIt>
-       uninitialized_move_n(InputIt first, Size count, NoThrowForwardIt d_first)
-   {
-       using Value = typename std::iterator_traits<NoThrowForwardIt>::value_type;
-       NoThrowForwardIt current = d_first;
-       try {
-           for (; count > 0; ++first, (void) ++current, --count) {
-               ::new (const_cast<void*>(static_cast<const volatile void*>(
-                   std::addressof(*current)))) Value(std::move(*first));
-           }
-       } catch (...) {
-           std::destroy(d_first, current);
-           throw;
-       }
-       return {first, current};
-   }
+template<class InputIt, class Size, class NoThrowForwardIt>
+std::pair<InputIt, NoThrowForwardIt>
+    uninitialized_move_n(InputIt first, Size count, NoThrowForwardIt d_first)
+{
+    using Value = typename std::iterator_traits<NoThrowForwardIt>::value_type;
+    NoThrowForwardIt current = d_first;
+    try
+    {
+        for (; count > 0; ++first, (void) ++current, --count)
+            ::new (static_cast<void*>(std::addressof(*current))) Value(std::move(*first));
+    }
+    catch (...)
+    {
+        std::destroy(d_first, current);
+        throw;
+    }
+    return {first, current};
+}
 
 .SH Example
 
@@ -111,23 +109,26 @@ std::uninitialized_move_n \- std::uninitialized_move_n
  #include <memory>
  #include <string>
 
- void print(auto rem, auto first, auto last) {
+ void print(auto rem, auto first, auto last)
+ {
      for (std::cout << rem; first != last; ++first)
          std::cout << std::quoted(*first) << ' ';
      std::cout << '\\n';
  }
 
- int main() {
-     std::string in[] { "One", "Definition", "Rule" };
+ int main()
+ {
+     std::string in[]{"One", "Definition", "Rule"};
      print("initially, in: ", std::begin(in), std::end(in));
 
      if (
          constexpr auto sz = std::size(in);
-         void* out = std::aligned_alloc(alignof(std::string), sizeof(std::string) * sz)
-     ) {
-         try {
-             auto first {static_cast<std::string*>(out)};
-             auto last {first + sz};
+         void* out = std::aligned_alloc(alignof(std::string), sizeof(std::string) * sz))
+     {
+         try
+         {
+             auto first{static_cast<std::string*>(out)};
+             auto last{first + sz};
              std::uninitialized_move_n(std::begin(in), sz, first);
 
              print("after move, in: ", std::begin(in), std::end(in));
@@ -135,7 +136,8 @@ std::uninitialized_move_n \- std::uninitialized_move_n
 
              std::destroy(first, last);
          }
-         catch (...) {
+         catch (...)
+         {
              std::cout << "Exception!\\n";
          }
          std::free(out);
@@ -147,6 +149,15 @@ std::uninitialized_move_n \- std::uninitialized_move_n
  initially, in: "One" "Definition" "Rule"
  after move, in: "" "" ""
  after move, out: "One" "Definition" "Rule"
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 3870 C++20      this algorithm might create objects on a const  kept disallowed
+                       storage
 
 .SH See also
 

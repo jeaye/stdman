@@ -1,37 +1,45 @@
-.TH std::forward_list::splice_after 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::forward_list::splice_after 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::forward_list::splice_after \- std::forward_list::splice_after
 
 .SH Synopsis
-   void splice_after( const_iterator pos, forward_list& other );  \fB(1)\fP \fI(since C++11)\fP
-   void splice_after( const_iterator pos, forward_list&& other ); \fB(1)\fP \fI(since C++11)\fP
-   void splice_after( const_iterator pos, forward_list& other,    \fB(2)\fP \fI(since C++11)\fP
-   const_iterator it );
-   void splice_after( const_iterator pos, forward_list&& other,   \fB(2)\fP \fI(since C++11)\fP
-   const_iterator it );
-   void splice_after( const_iterator pos, forward_list& other,    \fB(3)\fP \fI(since C++11)\fP
-   const_iterator first, const_iterator last );
-   void splice_after( const_iterator pos, forward_list&& other,   \fB(3)\fP \fI(since C++11)\fP
-   const_iterator first, const_iterator last );
+   void splice_after( const_iterator pos, forward_list& other );   \fB(1)\fP \fI(since C++11)\fP
+   void splice_after( const_iterator pos, forward_list&& other );  \fB(2)\fP \fI(since C++11)\fP
+   void splice_after( const_iterator pos, forward_list& other,     \fB(3)\fP \fI(since C++11)\fP
+                      const_iterator it );
+   void splice_after( const_iterator pos, forward_list&& other,    \fB(4)\fP \fI(since C++11)\fP
+                      const_iterator it );
+   void splice_after( const_iterator pos, forward_list& other,     \fB(5)\fP \fI(since C++11)\fP
+                      const_iterator first, const_iterator last );
+   void splice_after( const_iterator pos, forward_list&& other,    \fB(6)\fP \fI(since C++11)\fP
+                      const_iterator first, const_iterator last );
 
-   Moves elements from another forward_list to *this.
+   Moves elements from another forward_list to *this. The elements are inserted after
+   the element pointed to by pos.
 
-   No elements are copied. pos must be either a deferenceable valid iterator into *this
-   or the before_begin() iterator (in particular, end() is not a valid argument for
-   pos). The behavior is undefined if get_allocator() != other.get_allocator(). No
-   iterators or references become invalidated, the iterators to the moved elements now
-   refer into *this, not into other.
+   No elements are copied. No iterators or references become invalidated. The iterators
+   to the moved elements now refer into *this, not into other.
 
-   1) Moves all elements from other into *this. The elements are inserted after the
-   element pointed to by pos. The container other becomes empty after the operation.
-   The behavior is undefined if other refers to the same object as *this.
-   2) Moves the element pointed to by the iterator following it from other into *this.
-   The element is inserted after the element pointed to by pos. Has no effect if
-   pos==it or if pos==++it.
-   3) Moves the elements in the range (first, last) from other into *this. The elements
-   are inserted after the element pointed to by pos. The element pointed-to by first is
-   not moved. The behavior is undefined if pos is an iterator in the range
-   (first,last).
+   1,2) Moves all elements from other into *this. The container other becomes empty
+   after the operation.
+   3,4) Moves the element pointed to by the iterator following it from other into
+   *this. Has no effect if pos == it or if pos == ++it.
+   5,6) Moves the elements in the range (first, last) from other into *this. The
+   element pointed-to by first is not moved.
+
+   The behavior is undefined if
+
+     * get_allocator() != other.get_allocator(),
+     * pos is neither before_begin() nor a dereferenceable iterator in
+       [begin(), end()),
+     * for overloads (1,2), *this and other refer to the same object,
+     * for overloads (3,4), the iterator following it is not a dereferenceable iterator
+       into other, or
+     * for overloads (5,6),
+
+     * (first, last) is not a valid range in other,
+     * some iterators in (first, last) are not dereferenceable, or
+     * pos is in (first, last).
 
 .SH Parameters
 
@@ -51,91 +59,71 @@ std::forward_list::splice_after \- std::forward_list::splice_after
 
 .SH Complexity
 
-   1) Linear in the size of other
-   2) Constant
-   3) Linear in std::distance(first, last)
+   1,2) Linear in the size of other.
+   3,4) Constant.
+   5,6) Linear in std::distance(first, last).
 
 .SH Example
-
-   Demonstrates the meaning of open interval (first, last) in the third form of
-   splice_after(): the first element of l1 is not moved.
 
 
 // Run this code
 
- #include <algorithm>
  #include <cassert>
  #include <forward_list>
- #include <initializer_list>
- #include <iostream>
-
- using F = std::forward_list<int>;
-
- std::ostream& operator<< (std::ostream& os, F const& l) {
-     for (int e : l) os << e << ' ';
-     return os;
- }
 
  int main()
  {
-     {
-         F l1 = { 1, 2, 3, 4, 5 };
-         F l2 = { 10, 11, 12 };
+     using F = std::forward_list<int>;
 
-         l2.splice_after(l2.cbegin(), l1, l1.cbegin(), l1.cend());
-         // not equivalent to l2.splice_after(l2.cbegin(), l1);
-         // which is equivalent to
-         // l2.splice_after(l2.cbegin(), l1, l1.cbefore_begin(), l1.end());
+     // Demonstrate the meaning of open range (first, last)
+     // in overload (5): the first element of l1 is not moved.
+     F l1 = {1, 2, 3, 4, 5};
+     F l2 = {10, 11, 12};
 
-         std::cout << "l1: " << l1 << "\\n"
-                      "l2: " << l2 << '\\n';
-     }
+     l2.splice_after(l2.cbegin(), l1, l1.cbegin(), l1.cend());
+     // Not equivalent to l2.splice_after(l2.cbegin(), l1);
+     // which is equivalent to
+     // l2.splice_after(l2.cbegin(), l1, l1.cbefore_begin(), l1.end());
 
+     assert((l1 == F{1}));
+     assert((l2 == F{10, 2, 3, 4, 5, 11, 12}));
 
-     // Compare two given lists and abort the program if they are not equal.
-     auto equ = [] (F const& p, std::initializer_list<int> const& q) {
-         assert(std::ranges::equal(p, q));
-     };
+     // Overload (1)
+     F x = {1, 2, 3, 4, 5};
+     F y = {10, 11, 12};
+     x.splice_after(x.cbegin(), y);
+     assert((x == F{1, 10, 11, 12, 2, 3, 4, 5}));
+     assert((y == F{}));
 
-     // The following code demonstrates all three overloads (1),..(3).
+     // Overload (3)
+     x = {1, 2, 3, 4, 5};
+     y = {10, 11, 12};
+     x.splice_after(x.cbegin(), y, y.cbegin());
+     assert((x == F{1, 11, 2, 3, 4, 5}));
+     assert((y == F{10, 12}));
 
-     {
-         F x = { 1, 2, 3, 4, 5 };
-         F y = { 10, 11, 12 };
-         x.splice_after(x.cbegin(), y); // (1)
-         equ( x, { 1, 10, 11, 12, 2, 3, 4, 5 } );
-         equ( y, { } );
-     }
-
-     {
-         F x = { 1, 2, 3, 4, 5 };
-         F y = { 10, 11, 12 };
-         x.splice_after(x.cbegin(), y, y.cbegin()); // (2)
-         equ( x, { 1, 11, 2, 3, 4, 5 } );
-         equ( y, { 10, 12 } );
-     }
-
-     {
-         F x = { 1, 2, 3, 4, 5 };
-         F y = { 10, 11, 12 };
-         x.splice_after(x.cbegin(), y, y.cbegin(), y.cend()); // (3)
-         equ( x, { 1, 11, 12, 2, 3, 4, 5 } );
-         equ( y, { 10 } );
-     }
+     // Overload (5)
+     x = {1, 2, 3, 4, 5};
+     y = {10, 11, 12};
+     x.splice_after(x.cbegin(), y, y.cbegin(), y.cend());
+     assert((x == F{1, 11, 12, 2, 3, 4, 5}));
+     assert((y == F{10}));
  }
 
-.SH Output:
+   Defect reports
 
- l1: 1
- l2: 10 2 3 4 5 11 12
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to          Behavior as published              Correct behavior
+   LWG 2045 C++11      O(1) splicing could not be guaranteed if the behavior is
+                       get_allocator() != other.get_allocator() undefined in this case
 
 .SH See also
 
    merge         merges two sorted lists
-   \fI(C++11)\fP       \fI(public member function)\fP
+                 \fI(public member function)\fP
    remove        removes elements satisfying specific criteria
    remove_if     \fI(public member function)\fP
-   \fI(C++11)\fP
    before_begin  returns an iterator to the element before beginning
    cbefore_begin \fI(public member function)\fP
-   \fI(C++11)\fP

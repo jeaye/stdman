@@ -1,4 +1,4 @@
-.TH std::ranges::views::filter,std::ranges::filter_view 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::views::filter,std::ranges::filter_view 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::views::filter,std::ranges::filter_view \- std::ranges::views::filter,std::ranges::filter_view
 
@@ -6,54 +6,33 @@ std::ranges::views::filter,std::ranges::filter_view \- std::ranges::views::filte
    Defined in header <ranges>
    template< ranges::input_range V,
 
-   std::indirect_unary_predicate<ranges::iterator_t<V>> Pred >             (since
-   requires ranges::view<V> && std::is_object_v<Pred>                  \fB(1)\fP C++20)
+             std::indirect_unary_predicate<ranges::iterator_t<V>> Pred
+   >                                                                   \fB(1)\fP (since
+       requires ranges::view<V> && std::is_object_v<Pred>                  C++20)
+   class filter_view
 
-   class filter_view : public ranges::view_interface<filter_view<V,
-   Pred>>
+       : public ranges::view_interface<filter_view<V, Pred>>
    namespace views {
                                                                            (since
-   inline constexpr /* unspecified */ filter = /* unspecified */;      \fB(2)\fP C++20)
+       inline constexpr /* unspecified */ filter = /* unspecified */;  \fB(2)\fP C++20)
 
    }
    Call signature
    template< ranges::viewable_range R, class Pred >
                                                                            (since
-   requires /* see below */                                                C++20)
+       requires /* see below */                                            C++20)
 
    constexpr ranges::view auto filter( R&& r, Pred&& pred );
    template< class Pred >                                                  (since
-   constexpr /*range adaptor closure*/ filter( Pred&& pred );              C++20)
+   constexpr /* range adaptor closure */ filter( Pred&& pred );            C++20)
 
    1) A range adaptor that represents view of an underlying sequence without the
    elements that fail to satisfy a predicate.
-   2) Ranges adaptor object. The expression views::filter(e, p) is
-   expression-equivalent to filter_view(e, p) for any suitable subexpressions e and p.
+   2) RangeAdaptorObject. The expression views::filter(e, p) is expression-equivalent
+   to filter_view(e, p) for any suitable subexpressions e and p.
 
    filter_view models the concepts bidirectional_range, forward_range, input_range, and
    common_range when the underlying view V models respective concepts.
-
-  Expression-equivalent
-
-   Expression e is expression-equivalent to expression f, if
-
-     * e and f have the same effects, and
-     * either both are constant subexpressions or else neither is a constant
-       subexpression, and
-     * either both are potentially-throwing or else neither is potentially-throwing
-       (i.e. noexcept(e) == noexcept(f)).
-
-  Data members
-
-   Typical implementations of filter_view hold two or three non-static data members:
-
-     * the underlying view of type V (shown here as base_ for exposition only),
-     * a wrapper that wraps the predicate used to filter out elements of base_ of type
-       /*copyable-box*/<Pred> (shown here as pred_ for exposition only), where
-       copyable-box is a wrapper class template that always satisfies copyable,
-     * an object of std::optional-like type (shown here as begin_ for exposition only)
-       that caches an iterator to the first element of base_ that satisfies the pred_.
-       The begin_ may be present only if filter_view models forward_range.
 
 .SH Member functions
 
@@ -68,24 +47,28 @@ std::ranges::views::filter,std::ranges::filter_view \- std::ranges::views::filte
    end           returns the sentinel of the filter_view
    (C++20)       \fI(public member function)\fP
          Inherited from std::ranges::view_interface
-   empty         Returns whether the derived view is empty. Provided if it satisfies
+   empty         returns whether the derived view is empty. Provided if it satisfies
    (C++20)       sized_range or forward_range.
                  \fI(public member function of std::ranges::view_interface<D>)\fP
-   operator bool Returns whether the derived view is not empty. Provided if
+   cbegin        returns a constant iterator to the beginning of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   cend          returns a sentinel for the constant iterator of the range.
+   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+   operator bool returns whether the derived view is not empty. Provided if
    (C++20)       ranges::empty is applicable to it.
                  \fI(public member function of std::ranges::view_interface<D>)\fP
-   front         Returns the first element in the derived view. Provided if it
+   front         returns the first element in the derived view. Provided if it
    (C++20)       satisfies forward_range.
                  \fI(public member function of std::ranges::view_interface<D>)\fP
-   back          Returns the last element in the derived view. Provided if it satisfies
+   back          returns the last element in the derived view. Provided if it satisfies
    (C++20)       bidirectional_range and common_range.
                  \fI(public member function of std::ranges::view_interface<D>)\fP
 
 std::ranges::filter_view::filter_view
 
-   filter_view() requires std::default_initializable<V> && \fB(1)\fP \fI(since C++20)\fP
-   std::default_initializable<Pred> = default;
-   constexpr filter_view( V base, Pred pred );             \fB(2)\fP \fI(since C++20)\fP
+   filter_view() requires std::default_initializable<V> &&            \fB(1)\fP \fI(since C++20)\fP
+                          std::default_initializable<Pred> = default;
+   constexpr explicit filter_view( V base, Pred pred );               \fB(2)\fP \fI(since C++20)\fP
 
    1) Value-initializes base_ via its default member initializer (= V()) and
    default-initializes pred_ (which value-initializes the contained Pred).
@@ -114,45 +97,46 @@ std::ranges::filter_view::pred
 
 std::ranges::filter_view::begin
 
-   constexpr /*iterator*/ begin();  \fI(since C++20)\fP
+   constexpr /* iterator */ begin();  (exposition only*)
 
    In order to provide the amortized constant time complexity required by the range
    concept, this function caches the result within the filter_view object for use on
    subsequent calls. Equivalent to
 
- if constexpr (!ranges::forward_range<V>) {
-     return /*iterator*/{*this, ranges::find_if(base_, std::ref(*pred_))};
- } else {
+ if constexpr (!ranges::forward_range<V>)
+     return /* iterator */{*this, ranges::find_if(base_, std::ref(*pred_))};
+ else
+ {
      if (!begin_.has_value())
          begin_ = ranges::find_if(base_, std::ref(*pred_)); // caching
-     return /*iterator*/{*this, begin_.value())};
+     return /* iterator */{*this, begin_.value())};
  }
 
    The behavior is undefined if pred_ does not contain a value.
 
 std::ranges::filter_view::end
 
-   constexpr auto end() {
+   constexpr auto end();  \fI(since C++20)\fP
 
-   if constexpr (ranges::common_range<V>)
-   return /*iterator*/{*this, ranges::end(base_)};  \fI(since C++20)\fP
-   else
-   return /*sentinel*/{*this};
+   Returns an iterator to the end. Equivalent to
 
-   }
+ if constexpr (ranges::common_range<V>)
+     return /* iterator */{*this, ranges::end(base_)};
+ else
+     return /* sentinel */{*this};
 
-  Deduction guides
+   Deduction guides
 
    template< class R, class Pred >                                  \fI(since C++20)\fP
    filter_view( R&&, Pred ) -> filter_view<views::all_t<R>, Pred>;
 
-  Nested classes
+   Nested classes
 
    iterator the iterator type of filter_view
-   (C++20)  (exposition-only member class)
+   (C++20)  (exposition-only member class*)
    sentinel the sentinel type of filter_view when the underlying view is not a
    (C++20)  common_range
-            (exposition-only member class)
+            (exposition-only member class*)
 
 .SH Example
 
@@ -162,31 +146,34 @@ std::ranges::filter_view::end
  #include <iostream>
  #include <ranges>
 
- int main() {
+ int main()
+ {
      auto even = [](int i) { return 0 == i % 2; };
      auto square = [](int i) { return i * i; };
 
      for (int i : std::views::iota(0, 6)
                 | std::views::filter(even)
-                | std::views::transform(square)) {
+                | std::views::transform(square))
          std::cout << i << ' ';
-     }
+     std::cout << '\\n';
  }
 
 .SH Output:
 
  0 4 16
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-     DR    Applied to          Behavior as published              Correct behavior
-                      if Pred is not default_initializable,
-   P2325R3 C++20      the default constructor                 the filter_view is also
-                      constructs a filter_view which does not not default_initializable
-                      contain an Pred
+      DR     Applied to         Behavior as published             Correct behavior
+   LWG 3714  C++20      the multi-parameter constructor was   made explicit
+   (P2711R1)            not explicit
+                        if Pred is not default_initializable,
+   P2325R3   C++20      the default constructor               the filter_view is also
+                        constructs a filter_view which does   not default_initializable
+                        not contain a Pred
 
 .SH See also
 

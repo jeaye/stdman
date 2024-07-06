@@ -1,65 +1,68 @@
-.TH std::nth_element 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::nth_element 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::nth_element \- std::nth_element
 
 .SH Synopsis
    Defined in header <algorithm>
    template< class RandomIt >
-   void nth_element( RandomIt first, RandomIt nth,          \fI(until C++20)\fP
-   RandomIt last );
-   template< class RandomIt >
-   constexpr void nth_element( RandomIt first,              \fI(since C++20)\fP
-   RandomIt nth, RandomIt last );
-   template< class ExecutionPolicy, class RandomIt
-   >
-                                                        \fB(2)\fP \fI(since C++17)\fP
-   void nth_element( ExecutionPolicy&& policy,
+   void nth_element( RandomIt first, RandomIt nth, RandomIt \fB(1)\fP (constexpr since C++20)
+   last );
+   template< class ExecutionPolicy, class RandomIt >
 
-   RandomIt first, RandomIt nth, RandomIt last );
+   void nth_element( ExecutionPolicy&& policy,              \fB(2)\fP \fI(since C++17)\fP
+
+                     RandomIt first, RandomIt nth, RandomIt
+   last );
    template< class RandomIt, class Compare >
 
-   void nth_element( RandomIt first, RandomIt nth,                        \fI(until C++20)\fP
-   RandomIt last,                                   \fB(1)\fP
+   void nth_element( RandomIt first, RandomIt nth, RandomIt \fB(3)\fP (constexpr since C++20)
+   last,
 
-   Compare comp );
-   template< class RandomIt, class Compare >
+                     Compare comp );
+   template< class ExecutionPolicy, class RandomIt, class
+   Compare >
 
-   constexpr void nth_element( RandomIt first,                            \fI(since C++20)\fP
-   RandomIt nth, RandomIt last,                         \fB(3)\fP
+   void nth_element( ExecutionPolicy&& policy,              \fB(4)\fP \fI(since C++17)\fP
+                     RandomIt first, RandomIt nth, RandomIt
+   last,
 
-   Compare comp );
-   template< class ExecutionPolicy, class RandomIt,
-   class Compare >
+                     Compare comp );
 
-   void nth_element( ExecutionPolicy&& policy,              \fB(4)\fP           \fI(since C++17)\fP
-   RandomIt first, RandomIt nth, RandomIt last,
-
-   Compare comp );
-
-   nth_element is a partial sorting algorithm that rearranges elements in [first, last)
-   such that:
+   nth_element rearranges elements in [first, last) such that after the rearrangement:
 
      * The element pointed at by nth is changed to whatever element would occur in that
        position if [first, last) were sorted.
-     * All of the elements before this new nth element are less than or equal to the
-       elements after the new nth element.
-
-   More formally, nth_element partially sorts the range [first, last) in ascending
-   order so that the condition !(*j < *i) (for (1-2), or comp(*j, *i) == false for
-   (3-4)) is met for any i in the range [first, nth) and for any j in the range [nth,
-   last). The element placed in the nth position is exactly the element that would
-   occur in this position if the range was fully sorted.
-
-   nth may be the end iterator, in this case the function has no effect.
-
-   1) Elements are compared using operator<.
-   3) Elements are compared using the given binary comparison function comp.
-   2,4) Same as (1,3), but executed according to policy. These overloads do not
-   participate in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
+     * For every iterator i in [first, nth) and every iterator j in [nth, last), the
+       following condition is met:
+   1,2)
+   bool(*j < *i)
    \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+   std::less{}(*j, *i)
+   \fI(since C++20)\fP is false.
+   3,4) bool(comp(*j, *i)) is false.
+
+   1) Elements are hypothetically sorted with respect to
+   operator<
+   \fI(until C++20)\fP
+   std::less{}
+   \fI(since C++20)\fP.
+   3) Elements are hypothetically sorted with respect to comp.
+   2,4) Same as (1,3), but executed according to policy.
+   These overloads participate in overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
+
+   If any of the following conditions is satisfied, the behavior is undefined:
+
+     * [first, nth) or [nth, last) is not a valid range.
+
+     * The type of *first is not Swappable.           \fI(until C++11)\fP
+     * RandomIt is not ValueSwappable.
+     * The type of *first is not MoveConstructible.   \fI(since C++11)\fP
+     * The type of *first is not MoveAssignable.
 
 .SH Parameters
 
@@ -67,18 +70,18 @@ std::nth_element \- std::nth_element
    nth         -  random access iterator defining the sort partition point
    policy      -  the execution policy to use. See execution policy for details.
                   comparison function object (i.e. an object that satisfies the
-                  requirements of Compare) which returns true if the first argument
-                  is less than (i.e. is ordered before) the second.
+                  requirements of Compare) which returns true if the first argument is
+                  less than (i.e. is ordered before) the second.
 
                   The signature of the comparison function should be equivalent to the
                   following:
 
-                  bool cmp(const Type1 &a, const Type2 &b);
+                  bool cmp(const Type1& a, const Type2& b);
    comp        -
-                  While the signature does not need to have const &, the function must
+                  While the signature does not need to have const&, the function must
                   not modify the objects passed to it and must be able to accept all
                   values of type (possibly const) Type1 and Type2 regardless of value
-                  category (thus, Type1 & is not allowed
+                  category (thus, Type1& is not allowed
                   , nor is Type1 unless for Type1 a move is equivalent to a copy
                   \fI(since C++11)\fP).
                   The types Type1 and Type2 must be such that an object of type
@@ -86,21 +89,27 @@ std::nth_element \- std::nth_element
                   them.
 .SH Type requirements
    -
-   RandomIt must meet the requirements of ValueSwappable and
-   LegacyRandomAccessIterator.
+   RandomIt must meet the requirements of LegacyRandomAccessIterator.
    -
-   The type of dereferenced RandomIt must meet the requirements of MoveAssignable and
-   MoveConstructible.
-
-.SH Return value
-
-   \fI(none)\fP
+   Compare must meet the requirements of Compare.
 
 .SH Complexity
 
-   1,3) Linear in std::distance(first, last) on average.
-   2,4) O(N) applications of the predicate, and O(N log N) swaps, where N = last -
-   first.
+   Given \\(\\scriptsize N\\)N as last - first:
+
+   1) \\(\\scriptsize O(N)\\)O(N) comparisons using
+   operator<
+   \fI(until C++20)\fP
+   std::less{}
+   \fI(since C++20)\fP on average.
+   2) \\(\\scriptsize O(N)\\)O(N) comparisons using
+   operator<
+   \fI(until C++20)\fP
+   std::less{}
+   \fI(since C++20)\fP, and \\(\\scriptsize O(N \\cdot \\log(N))\\)O(N·log(N)) swaps.
+   3) \\(\\scriptsize O(N)\\)O(N) applications of the comparator comp on average.
+   4) \\(\\scriptsize O(N)\\)O(N) applications of the comparator comp, and \\(\\scriptsize
+   O(N \\cdot \\log(N))\\)O(N·log(N)) swaps.
 
 .SH Exceptions
 
@@ -112,33 +121,33 @@ std::nth_element \- std::nth_element
        For any other ExecutionPolicy, the behavior is implementation-defined.
      * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
-.SH Notes
-
-   The algorithm used is typically introselect although other selection algorithms with
-   suitable average-case complexity are allowed.
-
 .SH Possible implementation
 
-   See also the implementations in libstdc++ and libc++.
+   See also the implementations in libstdc++, libc++, and msvc stl.
+
+.SH Notes
+
+   The algorithm used is typically Introselect although other Selection algorithm with
+   suitable average-case complexity are allowed.
 
 .SH Example
 
 
 // Run this code
 
- #include <vector>
- #include <cassert>
- #include <numeric>
- #include <iostream>
  #include <algorithm>
+ #include <cassert>
  #include <functional>
+ #include <iostream>
+ #include <numeric>
+ #include <vector>
 
- void printVec(const std::vector<int> &vec)
+ void printVec(const std::vector<int>& vec)
  {
-     std::cout << "v= {";
-     for (int i : vec)
-         std::cout << i << ", ";
-     std::cout << "}\\n";
+     std::cout << "v = {";
+     for (char sep[]{0, ' ', 0}; const int i : vec)
+         std::cout << sep << i, sep[0] = ',';
+     std::cout << "};\\n";
  }
 
  int main()
@@ -146,15 +155,15 @@ std::nth_element \- std::nth_element
      std::vector<int> v{5, 10, 6, 4, 3, 2, 6, 7, 9, 3};
      printVec(v);
 
-     auto m = v.begin() + v.size()/2;
+     auto m = v.begin() + v.size() / 2;
      std::nth_element(v.begin(), m, v.end());
-     std::cout << "\\nThe median is " << v[v.size()/2] << '\\n';
+     std::cout << "\\nThe median is " << v[v.size() / 2] << '\\n';
      // The consequence of the inequality of elements before/after the Nth one:
      assert(std::accumulate(v.begin(), m, 0) < std::accumulate(m, v.end(), 0));
      printVec(v);
 
      // Note: comp function changed
-     std::nth_element(v.begin(), v.begin()+1, v.end(), std::greater{});
+     std::nth_element(v.begin(), v.begin() + 1, v.end(), std::greater{});
      std::cout << "\\nThe second largest element is " << v[1] << '\\n';
      std::cout << "The largest element is " << v[0] << '\\n';
      printVec(v);
@@ -162,14 +171,27 @@ std::nth_element \- std::nth_element
 
 .SH Possible output:
 
- v= {5, 10, 6, 4, 3, 2, 6, 7, 9, 3, }
+ v = {5, 10, 6, 4, 3, 2, 6, 7, 9, 3};
 
  The median is 6
- v= {3, 2, 3, 4, 5, 6, 10, 7, 9, 6, }
+ v = {3, 2, 3, 4, 5, 6, 10, 7, 9, 6};
 
  The second largest element is 9
  The largest element is 10
- v= {10, 9, 6, 7, 6, 3, 5, 4, 3, 2, }
+ v = {10, 9, 6, 7, 6, 3, 5, 4, 3, 2};
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to         Behavior as published              Correct behavior
+                       after the rearrangement, only one
+   LWG 2150 C++98      element before nth                     corrected the
+                       was required to be not greater than    requirement
+                       one element after nth
+   P0896R4  C++98      [first, nth) and [nth, last)           the behavior is undefined
+                       were not required to be valid ranges   if any of them is invalid
 
 .SH See also
 

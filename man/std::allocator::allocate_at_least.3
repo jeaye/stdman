@@ -1,0 +1,90 @@
+.TH std::allocator::allocate_at_least 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::allocator::allocate_at_least \- std::allocator::allocate_at_least
+
+.SH Synopsis
+   [[nodiscard]] constexpr std::allocation_result<T*, std::size_t>  (since C++23)
+       allocate_at_least( std::size_t n );
+
+   Allocates count * sizeof(T) bytes of uninitialized storage, where count is an
+   unspecified integer value not less than n, by calling ::operator new (an additional
+   std::align_val_t argument might be provided), but it is unspecified when and how
+   this function is called.
+
+   Then, this function creates an array of type T[count] in the storage and starts its
+   lifetime, but does not start lifetime of any of its elements.
+
+   In order to use this function in a constant expression, the allocated storage must
+   be deallocated within the evaluation of the same expression.
+
+   Use of this function is ill-formed if T is an incomplete type.
+
+.SH Parameters
+
+   n - the lower bound of number of objects to allocate storage for
+
+.SH Return value
+
+   std::allocation_result<T*>{p, count}, where p points to the first element of an
+   array of count objects of type T whose elements have not been constructed yet.
+
+.SH Exceptions
+
+   Throws std::bad_array_new_length if std::numeric_limits<std::size_t>::max() /
+   sizeof(T) < n, or std::bad_alloc if allocation fails.
+
+.SH Notes
+
+   allocate_at_least is mainly provided for contiguous containers, e.g. std::vector and
+   std::basic_string, in order to reduce reallocation by making their capacity match
+   the actually allocated size when possible.
+
+   The "unspecified when and how" wording makes it possible to combine or optimize away
+   heap allocations made by the standard library containers, even though such
+   optimizations are disallowed for direct calls to ::operator new. For example, this
+   is implemented by libc++ ([1] and [2]).
+
+   After calling allocate_at_least and before construction of elements, pointer
+   arithmetic of T* is well-defined within the allocated array, but the behavior is
+   undefined if elements are accessed.
+
+       Feature-test macro       Value    Std          Feature
+   __cpp_lib_allocate_at_least 202302L (C++23) allocate_at_least etc.
+
+.SH Example
+
+
+// Run this code
+
+ #include <memory>
+ #include <print>
+
+ int main()
+ {
+     const std::size_t count{69};
+     std::allocator<int> alloc;
+     std::allocation_result res{alloc.allocate_at_least(count)};
+     std::print("count: {}\\n"
+                "res.ptr: {}\\n"
+                "res.count: {}\\n", count, res.ptr, res.count);
+
+     /* construct, use, then destroy elements */
+
+     alloc.deallocate(res.ptr, res.count);
+ }
+
+.SH Possible output:
+
+ count: 69
+ res.ptr: 0x555a486a0960
+ res.count: 96
+
+.SH See also
+
+   allocation_result records the address and the actual size of storage allocated by
+   (C++23)           allocate_at_least
+                     \fI(class template)\fP
+                     allocates storage at least as large as the requested size via an
+   allocate_at_least allocator
+   \fB[static]\fP (C++23)  \fI(public static member function of std::allocator_traits<Alloc>)\fP
+

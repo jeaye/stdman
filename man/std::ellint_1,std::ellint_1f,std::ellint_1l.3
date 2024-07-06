@@ -1,32 +1,43 @@
-.TH std::ellint_1,std::ellint_1f,std::ellint_1l 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ellint_1,std::ellint_1f,std::ellint_1l 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ellint_1,std::ellint_1f,std::ellint_1l \- std::ellint_1,std::ellint_1f,std::ellint_1l
 
 .SH Synopsis
    Defined in header <cmath>
-   double ellint_1( double k, double φ );
+   float       ellint_1 ( float k, float phi );
+                                                                          \fI(since C++17)\fP
+   double      ellint_1 ( double k, double phi );                         (until C++23)
 
-   float ellint_1f( float k, float φ );                   \fB(1)\fP \fI(since C++17)\fP
+   long double ellint_1 ( long double k, long double phi );
+   /* floating-point-type */ ellint_1( /* floating-point-type */
+   k,                                                                     (since C++23)
+                                       /* floating-point-type */
+   phi );                                                         \fB(1)\fP
+   float       ellint_1f( float k, float phi );                       \fB(2)\fP \fI(since C++17)\fP
+   long double ellint_1l( long double k, long double phi );           \fB(3)\fP \fI(since C++17)\fP
+   Additional overloads
+   Defined in header <cmath>
+   template< class Arithmetic1, class Arithmetic2 >
 
-   long double ellint_1l( long double k, long double φ );
-   Promoted ellint_1( Arithmetic k, Arithmetic φ );       \fB(2)\fP \fI(since C++17)\fP
+   /* common-floating-point-type */                                   (A) \fI(since C++17)\fP
 
-   1) Computes the incomplete elliptic integral of the first kind of k and φ.
-   2) A set of overloads or a function template for all combinations of arguments of
-   arithmetic type not covered by \fB(1)\fP. If any argument has integral type, it is cast to
-   double. If any argument is long double, then the return type Promoted is also long
-   double, otherwise the return type is always double.
+       ellint_1( Arithmetic1 k, Arithmetic2 phi );
+
+   1-3) Computes the incomplete elliptic integral of the first kind of k and phi.
+   The library provides overloads of std::ellint_1 for all cv-unqualified
+   floating-point types as the type of the parameters k and phi.
+   (since C++23)
+   A) Additional overloads are provided for all other combinations of arithmetic types.
 
 .SH Parameters
 
-   k  - elliptic modulus or eccentricity (a value of a floating-point or integral type)
-   φ - Jacobi amplitude (a value of floating-point or integral type, measured in
-        radians)
+   k   - elliptic modulus or eccentricity (a floating-point or integer value)
+   phi - Jacobi amplitude (a floating-point or integer value, measured in radians)
 
 .SH Return value
 
    If no errors occur, value of the incomplete elliptic integral of the first kind of k
-   and φ, that is ∫φ
+   and phi, that is ∫phi
    0
 
    dθ
@@ -41,8 +52,8 @@ std::ellint_1,std::ellint_1f,std::ellint_1l \- std::ellint_1,std::ellint_1f,std:
 
    Errors may be reported as specified in math_errhandling:
 
-     * If the argument is NaN, NaN is returned and domain error is not reported
-     * If |k|>1, a domain error may occur
+     * If the argument is NaN, NaN is returned and domain error is not reported.
+     * If |k|>1, a domain error may occur.
 
 .SH Notes
 
@@ -54,7 +65,37 @@ std::ellint_1,std::ellint_1f,std::ellint_1l \- std::ellint_1,std::ellint_1f,std:
    Implementations that do not support ISO 29124:2010 but support TR 19768:2007 (TR1),
    provide this function in the header tr1/cmath and namespace std::tr1.
 
-   An implementation of this function is also available in boost.math
+   An implementation of this function is also available in boost.math.
+
+   The additional overloads are not required to be provided exactly as (A). They only
+   need to be sufficient to ensure that for their first argument num1 and second
+   argument num2:
+
+     * If num1 or num2 has type long double, then std::ellint_1(num1,
+       num2) has the same effect as std::ellint_1(static_cast<long
+       double>(num1),
+                     static_cast<long double>(num2)).
+     * Otherwise, if num1 and/or num2 has type double or an integer type,
+       then std::ellint_1(num1, num2) has the same effect as              (until C++23)
+       std::ellint_1(static_cast<double>(num1),
+                     static_cast<double>(num2)).
+     * Otherwise, if num1 or num2 has type float, then
+       std::ellint_1(num1, num2) has the same effect as
+       std::ellint_1(static_cast<float>(num1),
+                     static_cast<float>(num2)).
+   If num1 and num2 have arithmetic types, then std::ellint_1(num1, num2)
+   has the same effect as std::ellint_1(static_cast</*
+   common-floating-point-type */>(num1),
+                 static_cast</* common-floating-point-type */>(num2)),
+   where /* common-floating-point-type */ is the floating-point type with
+   the greatest floating-point conversion rank and greatest
+   floating-point conversion subrank between the types of num1 and num2,  (since C++23)
+   arguments of integer type are considered to have the same
+   floating-point conversion rank as double.
+
+   If no such floating-point type with the greatest rank and subrank
+   exists, then overload resolution does not result in a usable candidate
+   from the overloads provided.
 
 .SH Example
 
@@ -63,21 +104,24 @@ std::ellint_1,std::ellint_1f,std::ellint_1l \- std::ellint_1,std::ellint_1f,std:
 
  #include <cmath>
  #include <iostream>
+ #include <numbers>
+
  int main()
  {
-     double hpi = std::acos(-1)/2;
-     std::cout << "F(0,π/2) = " << std::ellint_1(0, hpi) << '\\n'
+     const double hpi = std::numbers::pi / 2.0;
+
+     std::cout << "F(0,π/2)  = " << std::ellint_1(0, hpi) << '\\n'
                << "F(0,-π/2) = " << std::ellint_1(0, -hpi) << '\\n'
-               << "π/2 = " << hpi << '\\n'
-               << "F(0.7,0) = " << std::ellint_1(0.7, 0) << '\\n';
+               << "π/2       = " << hpi << '\\n'
+               << "F(0.7,0)  = " << std::ellint_1(0.7, 0) << '\\n';
  }
 
 .SH Output:
 
- F(0,π/2) = 1.5708
+ F(0,π/2)  = 1.5708
  F(0,-π/2) = -1.5708
- π/2 = 1.5708
- F(0.7,0) = 0
+ π/2       = 1.5708
+ F(0.7,0)  = 0
 
 .SH See also
 
@@ -90,5 +134,5 @@ std::ellint_1,std::ellint_1f,std::ellint_1l \- std::ellint_1,std::ellint_1f,std:
 
 .SH External links
 
-   Weisstein, Eric W. "Elliptic Integral of the First Kind." From MathWorld — A
-   Wolfram Web Resource.
+   Weisstein, Eric W. "Elliptic Integral of the First Kind." From MathWorld — A Wolfram
+   Web Resource.

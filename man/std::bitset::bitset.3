@@ -1,77 +1,80 @@
-.TH std::bitset::bitset 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::bitset::bitset 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::bitset::bitset \- std::bitset::bitset
 
 .SH Synopsis
-   bitset();                                                 (until
-                                                             C++11)
-   constexpr bitset() noexcept;                              (since
-                                                             C++11)
-   bitset( unsigned long val );                                      (until
-                                                                     C++11)
-   constexpr bitset( unsigned long long val )                        (since
-   noexcept;                                                         C++11)
-   template< class CharT, class Traits, class Alloc
-   >
+   bitset();                                                   (until
+                                                               C++11)
+   constexpr bitset() noexcept;                                (since
+                                                               C++11)
+   bitset( unsigned long val );                                        \fI(until C++11)\fP
+   constexpr bitset( unsigned long long val )                          \fI(since C++11)\fP
+   noexcept;
+   template< class CharT, class Traits, class Alloc >
 
-   explicit bitset( const
-   std::basic_string<CharT,Traits,Alloc>& str,
-   typename                                                                  (until
-   std::basic_string<CharT,Traits,Alloc>::size_type                          C++11)
-   pos = 0,
-   typename
-   std::basic_string<CharT,Traits,Alloc>::size_type
+   explicit bitset( const std::basic_string<CharT,
+   Traits, Alloc>& str,
+                    typename std::basic_string<CharT,
+   Traits, Alloc>::size_type
+                        pos = 0,                               \fB(3)\fP     (constexpr since
+                    typename std::basic_string<CharT,                  C++23)
+   Traits, Alloc>::size_type
+                        n = std::basic_string<CharT,
+   Traits, Alloc>::npos,
+                    CharT zero = CharT('0'),
+                                                       \fB(1)\fP
+                    CharT one = CharT('1') );
+   template< class CharT, class Traits >                   \fB(2)\fP
 
-   n = std::basic_string<CharT,Traits,Alloc>::npos
+   constexpr explicit bitset(
+   std::basic_string_view<CharT, Traits> str,
+                              std::size_t pos = 0,
+                              std::size_t n =                  \fB(4)\fP     (since C++26)
+   std::size_t(-1),
+                              CharT zero = CharT('0'),
+
+                              CharT one = CharT('1')
    );
-   template< class CharT, class Traits, class Alloc  \fB(1)\fP
-   >
-                                                         \fB(2)\fP
-   explicit bitset( const
-   std::basic_string<CharT,Traits,Alloc>& str,               \fB(3)\fP             (since
-   typename                                                                  C++11)
-   std::basic_string<CharT,Traits,Alloc>::size_type                          (constexpr
-   pos = 0,                                                                  since
-   typename                                                                  C++23)
-   std::basic_string<CharT,Traits,Alloc>::size_type
-   n = std::basic_string<CharT,Traits,Alloc>::npos,
-   CharT zero = CharT('0'),
-
-   CharT one = CharT('1') );
    template< class CharT >
-                                                                             (since
-   explicit bitset( const CharT* str,                                        C++11)
-   typename std::basic_string<CharT>::size_type                      \fB(4)\fP     (constexpr
-   n = std::basic_string<CharT>::npos,                                       since
-   CharT zero = CharT('0'),                                                  C++23)
 
-   CharT one = CharT('1') );
+   explicit bitset( const CharT* str,                                  \fI(since C++11)\fP
+                    std::size_t n = std::size_t(-1),           \fB(5)\fP     (constexpr since
+                    CharT zero = CharT('0'),                           C++23)
+
+                    CharT one = CharT('1') );
 
    Constructs a new bitset from one of several optional data sources:
 
    1) Default constructor. Constructs a bitset with all bits set to zero.
    2) Constructs a bitset, initializing the first (rightmost, least significant) M bit
-   positions to the corresponding bit values of val, where M is the smaller of the
-   number of bits in an unsigned long long and the number of bits N in the bitset being
-   constructed. If M is less than N (the bitset is longer than
-   32
-   \fI(until C++11)\fP
-   64
-   \fI(since C++11)\fP bits, for typical implementations of unsigned
-   long
-   \fI(since C++11)\fPlong), the remaining bit positions are initialized to zeroes.
+   positions to the corresponding bit values of val, where M is the smaller of
+     * N, and
+
+     * the number of bits in the value representation of unsigned long.   \fI(until C++11)\fP
+       For typical implementations, it is 32 or 64.
+     * the number of bits in the value representation of unsigned long    \fI(since C++11)\fP
+       long. For typical implementations, it is 64.
+
+   If M is less than N, the remaining bit positions are initialized to zeroes.
    3) Constructs a bitset using the characters in the std::basic_string str. An
    optional starting position pos and length n can be provided, as well as characters
    denoting alternate values for set (one) and unset (zero) bits. Traits::eq() is used
    to compare the character values.
-   The effective length of the initializing string is min(n, str.size() - pos).
-   If pos > str.size(), this constructor throws std::out_of_range. If any characters
-   examined in str are not zero or one, it throws std::invalid_argument.
-   4) Similar to \fB(3)\fP, but uses a CharT* instead of a std::basic_string. Equivalent to
+   The effective length of the initializing string is std::min(n, str.size() - pos).
+   If pos > str.size(), this constructor throws std::out_of_range. If any character
+   examined in str is not zero or one, this constructor throws std::invalid_argument.
+   4) Similar to \fB(3)\fP, but uses a std::basic_string_view instead of a std::basic_string.
+   5) Similar to \fB(3)\fP, but uses a const CharT* instead of a std::basic_string.
+   Equivalent to
 
- bitset(n == basic_string<CharT>::npos
+ bitset(n == std::size_t(-1)
            ? basic_string<CharT>(str)
            : basic_string<CharT>(str, n), 0, n, zero, one)
+
+   This constructor may dynamically allocate memory, although             (until C++26)
+   implementations generally avoid dynamic allocation.
+   This constructor does not dynamically allocate memory, as if only      (since C++26)
+   std::basic_string_view is involved.
 
 .SH Parameters
 
@@ -84,9 +87,17 @@ std::bitset::bitset \- std::bitset::bitset
 
 .SH Exceptions
 
-   3) std::out_of_range if pos > str.size(), std::invalid_argument if any character is
-   not one or zero
-   4) std::invalid_argument if any character is not one or zero
+   3,4) std::out_of_range if pos > str.size(), std::invalid_argument if any character
+   is not one or zero.
+   5) std::invalid_argument if any character is not one or zero.
+
+.SH Notes
+
+       Feature-test macro      Value    Std                    Feature
+   __cpp_lib_constexpr_bitset 202207L (C++23) A more constexpr std::bitset, overloads
+                                              (3,5)
+   __cpp_lib_bitset           202306L (C++26) Interfacing std::bitset with
+                                              std::string_view, \fB(4)\fP
 
 .SH Example
 
@@ -94,32 +105,32 @@ std::bitset::bitset \- std::bitset::bitset
 // Run this code
 
  #include <bitset>
- #include <string>
- #include <iostream>
  #include <climits>
+ #include <iostream>
+ #include <string>
 
  int main()
  {
-     // empty constructor
+     // empty constructor (1)
      std::bitset<8> b1; // [0,0,0,0,0,0,0,0]
 
-     // unsigned long long constructor
+     // unsigned long long constructor (2)
      std::bitset<8> b2(42);          // [0,0,1,0,1,0,1,0]
      std::bitset<70> bl(ULLONG_MAX); // [0,0,0,0,0,0,1,1,1,...,1,1,1] in C++11
      std::bitset<8> bs(0xfff0);      // [1,1,1,1,0,0,0,0]
 
-     // string constructor
+     // string constructor (3)
      std::string bit_string = "110010";
      std::bitset<8> b3(bit_string);       // [0,0,1,1,0,0,1,0]
      std::bitset<8> b4(bit_string, 2);    // [0,0,0,0,0,0,1,0]
      std::bitset<8> b5(bit_string, 2, 3); // [0,0,0,0,0,0,0,1]
 
-     // string constructor using custom zero/one digits
+     // string constructor using custom zero/one digits (3)
      std::string alpha_bit_string = "aBaaBBaB";
      std::bitset<8> b6(alpha_bit_string, 0, alpha_bit_string.size(),
                        'a', 'B');         // [0,1,0,0,1,1,0,1]
 
-     // char* constructor using custom digits
+     // char* constructor using custom digits (5)
      std::bitset<8> b7("XXXXYYYY", 8, 'X', 'Y'); // [0,0,0,0,1,1,1,1]
 
      std::cout <<   "b1: " << b1 << "\\nb2: " << b2 << "\\nbl: " << bl
@@ -138,6 +149,23 @@ std::bitset::bitset \- std::bitset::bitset
  b5: 00000001
  b6: 01001101
  b7: 00001111
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to           Behavior as published              Correct behavior
+                      the values of the zero and one characters added parameters to
+   LWG 396 C++98      for overload \fB(3)\fP                          provide
+                      were 0 and 1 (which do not correspond to  values for these
+                      '0' and '1')                              characters
+                      M is the smaller of N and the value
+                      CHAR_BIT * sizeof(unsigned long)          consider the number
+   LWG 457 C++98      for overload \fB(2)\fP, but unsigned long is    of bits of the value
+                      not                                       representation instead
+                      guaranteed to use all its bits to
+                      represent its value
 
 .SH See also
 

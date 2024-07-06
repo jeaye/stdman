@@ -1,4 +1,4 @@
-.TH std::basic_string 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_string 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_string \- std::basic_string
 
@@ -6,39 +6,46 @@ std::basic_string \- std::basic_string
    Defined in header <string>
    template<
 
-   class CharT,
-   class Traits = std::char_traits<CharT>,                        \fB(1)\fP
-   class Allocator = std::allocator<CharT>
+       class CharT,
+       class Traits = std::char_traits<CharT>,                        \fB(1)\fP
+       class Allocator = std::allocator<CharT>
 
    > class basic_string;
    namespace pmr {
 
-   template <class CharT, class Traits = std::char_traits<CharT>>
-   using basic_string = std::basic_string< CharT, Traits,         \fB(2)\fP \fI(since C++17)\fP
-   std::pmr::polymorphic_allocator<CharT> >;
+   template<
+       class CharT,
+       class Traits = std::char_traits<CharT>                         \fB(2)\fP \fI(since C++17)\fP
+   > using basic_string =
+       std::basic_string<CharT, Traits,
+   std::pmr::polymorphic_allocator<CharT>>;
 
    }
 
-   The class template basic_string stores and manipulates sequences of char-like
-   objects, which are non-array objects of trivial standard-layout type. The class is
-   dependent neither on the character type nor on the nature of operations on that
-   type. The definitions of the operations are supplied via the Traits template
+   The class template basic_string stores and manipulates sequences of character-like
+   objects, which are non-array objects of TrivialType and StandardLayoutType. The
+   class is dependent neither on the character type nor on the nature of operations on
+   that type. The definitions of the operations are supplied via the Traits template
    parameter - a specialization of std::char_traits or a compatible traits class.
-   Traits::char_type and CharT must name the same type; otherwise the program is
-   ill-formed.
 
    The elements of a basic_string are stored contiguously, that is, for a basic_string
-   s, &*(s.begin() + n) == &*s.begin() + n for any n in [0, s.size()), or,
-   equivalently, a pointer to s[0] can be passed to functions that expect a pointer to
-   the first element of a
-   null-terminated
-   \fI(since C++11)\fPCharT[] array.
+   s, &*(s.begin() + n) == &*s.begin() + n for any n in [0, s.size())
+   , and *(s.begin() + s.size()) has value CharT() (a null terminator)
+   \fI(since C++11)\fP; or, equivalently, a pointer to s[0] can be passed to functions that
+   expect a pointer to the first element of
+   an array
+   \fI(until C++11)\fP
+   a null-terminated array
+   \fI(since C++11)\fP of CharT.
 
    std::basic_string satisfies the requirements of AllocatorAwareContainer (except that
    customized construct/destroy are not used for construction/destruction of elements),
    SequenceContainer
    and ContiguousContainer
-   \fI(since C++17)\fP
+   \fI(since C++17)\fP.
+
+   If any of Traits::char_type and Allocator::char_type is different from CharT, the
+   program is ill-formed.
 
    Member functions of std::basic_string are constexpr: it is possible to
    create and use std::string objects in the evaluation of a constant
@@ -75,28 +82,40 @@ std::basic_string \- std::basic_string
    traits_type            Traits
    value_type             CharT
    allocator_type         Allocator
-   size_type              Allocator::size_type                        \fI(until C++11)\fP
-                          std::allocator_traits<Allocator>::size_type \fI(since C++11)\fP
+                          Allocator::size_type                        \fI(until C++11)\fP
+   size_type              std::allocator_traits<Allocator>::size_type \fI(since C++11)\fP
+
+
                           Allocator::difference_type                        (until
-   difference_type                                                          C++11)
-                          std::allocator_traits<Allocator>::difference_type (since
                                                                             C++11)
+   difference_type        std::allocator_traits<Allocator>::difference_type (since
+                                                                            C++11)
+
+
    reference              value_type&
    const_reference        const value_type&
-   pointer                Allocator::pointer                        \fI(until C++11)\fP
-                          std::allocator_traits<Allocator>::pointer \fI(since C++11)\fP
-   const_pointer          Allocator::const_pointer                        \fI(until C++11)\fP
-                          std::allocator_traits<Allocator>::const_pointer \fI(since C++11)\fP
+                          Allocator::pointer                        \fI(until C++11)\fP
+   pointer                std::allocator_traits<Allocator>::pointer \fI(since C++11)\fP
+
+
+                          Allocator::const_pointer                        \fI(until C++11)\fP
+   const_pointer          std::allocator_traits<Allocator>::const_pointer \fI(since C++11)\fP
+
+
                           LegacyRandomAccessIterator and                  \fI(until C++20)\fP
                           LegacyContiguousIterator to value_type
-   iterator               LegacyRandomAccessIterator,
-                          contiguous_iterator, and ConstexprIterator to   \fI(since C++20)\fP
+                          LegacyRandomAccessIterator,
+   iterator               contiguous_iterator, and ConstexprIterator to   \fI(since C++20)\fP
                           value_type
+
+
                           LegacyRandomAccessIterator and                  \fI(until C++20)\fP
                           LegacyContiguousIterator to const value_type
-   const_iterator         LegacyRandomAccessIterator,
-                          contiguous_iterator, and ConstexprIterator to   \fI(since C++20)\fP
+                          LegacyRandomAccessIterator,
+   const_iterator         contiguous_iterator, and ConstexprIterator to   \fI(since C++20)\fP
                           const value_type
+
+
    reverse_iterator       std::reverse_iterator<iterator>
    const_reverse_iterator std::reverse_iterator<const_iterator>
 
@@ -111,6 +130,8 @@ std::basic_string \- std::basic_string
                               \fI(public member function)\fP
    assign                     assign characters to a string
                               \fI(public member function)\fP
+   assign_range               assign a range of characters to a string
+   (C++23)                    \fI(public member function)\fP
    get_allocator              returns the associated allocator
                               \fI(public member function)\fP
 .SH Element access
@@ -119,9 +140,9 @@ std::basic_string \- std::basic_string
    operator[]                 accesses the specified character
                               \fI(public member function)\fP
    front                      accesses the first character
-   \fI(C++11)\fP                    \fI(public member function)\fP
+   (DR*)                      \fI(public member function)\fP
    back                       accesses the last character
-   \fI(C++11)\fP                    \fI(public member function)\fP
+   (DR*)                      \fI(public member function)\fP
    data                       returns a pointer to the first character of a string
                               \fI(public member function)\fP
                               returns a non-modifiable standard C character array
@@ -156,34 +177,30 @@ std::basic_string \- std::basic_string
    capacity                   currently allocated storage
                               \fI(public member function)\fP
    shrink_to_fit              reduces memory usage by freeing unused memory
-   \fI(C++11)\fP                    \fI(public member function)\fP
-.SH Operations
+   (DR*)                      \fI(public member function)\fP
+.SH Modifiers
    clear                      clears the contents
                               \fI(public member function)\fP
    insert                     inserts characters
                               \fI(public member function)\fP
+   insert_range               inserts a range of characters
+   (C++23)                    \fI(public member function)\fP
    erase                      removes characters
                               \fI(public member function)\fP
    push_back                  appends a character to the end
                               \fI(public member function)\fP
    pop_back                   removes the last character
-   \fI(C++11)\fP                    \fI(public member function)\fP
+   (DR*)                      \fI(public member function)\fP
    append                     appends characters to the end
                               \fI(public member function)\fP
+   append_range               appends a range of characters to the end
+   (C++23)                    \fI(public member function)\fP
    operator+=                 appends characters to the end
-                              \fI(public member function)\fP
-   compare                    compares two strings
-                              \fI(public member function)\fP
-   starts_with                checks if the string starts with the given prefix
-   (C++20)                    \fI(public member function)\fP
-   ends_with                  checks if the string ends with the given suffix
-   (C++20)                    \fI(public member function)\fP
-   contains                   checks if the string contains the given substring or
-   (C++23)                    character
                               \fI(public member function)\fP
    replace                    replaces specified portion of a string
                               \fI(public member function)\fP
-   substr                     returns a substring
+   replace_with_range         replaces specified portion of a string with a range of
+   (C++23)                    characters
                               \fI(public member function)\fP
    copy                       copies characters
                               \fI(public member function)\fP
@@ -196,7 +213,7 @@ std::basic_string \- std::basic_string
    swap                       swaps the contents
                               \fI(public member function)\fP
 .SH Search
-   find                       find characters in the string
+   find                       finds the first occurrence of the given substring
                               \fI(public member function)\fP
    rfind                      find the last occurrence of a substring
                               \fI(public member function)\fP
@@ -207,6 +224,18 @@ std::basic_string \- std::basic_string
    find_last_of               find last occurrence of characters
                               \fI(public member function)\fP
    find_last_not_of           find last absence of characters
+                              \fI(public member function)\fP
+.SH Operations
+   compare                    compares two strings
+                              \fI(public member function)\fP
+   starts_with                checks if the string starts with the given prefix
+   (C++20)                    \fI(public member function)\fP
+   ends_with                  checks if the string ends with the given suffix
+   (C++20)                    \fI(public member function)\fP
+   contains                   checks if the string contains the given substring or
+   (C++23)                    character
+                              \fI(public member function)\fP
+   substr                     returns a substring
                               \fI(public member function)\fP
 .SH Constants
    npos                       special value. The exact meaning depends on the context
@@ -231,7 +260,7 @@ std::basic_string \- std::basic_string
    (C++20)
    std::swap(std::basic_string) specializes the std::swap algorithm
                                 \fI(function template)\fP
-   erase(std::basic_string)     Erases all elements satisfying specific criteria
+   erase(std::basic_string)     erases all elements satisfying specific criteria
    erase_if(std::basic_string)  \fI(function template)\fP
    (C++20)
 .SH Input/output
@@ -256,41 +285,23 @@ std::basic_string \- std::basic_string
    \fI(C++11)\fP                      \fI(function)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
-   to_string                    converts an integral or floating point value to string
+   to_string                    converts an integral or floating-point value to string
    \fI(C++11)\fP                      \fI(function)\fP
-   to_wstring                   converts an integral or floating point value to wstring
+   to_wstring                   converts an integral or floating-point value to wstring
    \fI(C++11)\fP                      \fI(function)\fP
 
 .SH Literals
 
    Defined in inline namespace std::literals::string_literals
-   operator""s   Converts a character array literal to basic_string
+   operator""s   converts a character array literal to basic_string
    \fI(C++14)\fP       \fI(function)\fP
 
 .SH Helper classes
 
-   std::hash<std::string>
-   std::hash<std::u8string>
-   std::hash<std::u16string>
-   std::hash<std::u32string>
-   std::hash<std::wstring>
-   std::hash<std::pmr::string>
-   std::hash<std::pmr::u8string>
-   std::hash<std::pmr::u16string>
-   std::hash<std::pmr::u32string>
-   std::hash<std::pmr::wstring>   hash support for strings
-   \fI(C++11)\fP                        \fI(class template specialization)\fP
-   (C++20)
-   \fI(C++11)\fP
-   \fI(C++11)\fP
-   \fI(C++11)\fP
-   \fI(C++17)\fP
-   (C++20)
-   \fI(C++17)\fP
-   \fI(C++17)\fP
-   \fI(C++17)\fP
+   std::hash<std::basic_string> hash support for strings
+   \fI(C++11)\fP                      \fI(class template specialization)\fP
 
-  Deduction guides \fI(since C++17)\fP
+   Deduction guides \fI(since C++17)\fP
 
 .SH Notes
 
@@ -298,6 +309,21 @@ std::basic_string \- std::basic_string
    constructing or destroying elements of std::basic_string until C++23, all
    implementations only used the default mechanism. The requirement is corrected by
    P1072R10 to match existing practice.
+
+            Feature-test macro            Value    Std              Feature
+   __cpp_lib_string_udls                 201304L \fI(C++14)\fP User-defined literals for
+                                                         string types
+   __cpp_lib_starts_ends_with            201711L (C++20) starts_with, ends_with
+   __cpp_lib_constexpr_string            201907L (C++20) Constexpr for
+                                                         std::basic_string
+   __cpp_lib_char8_t                     201907L (C++20) std::u8string
+   __cpp_lib_erase_if                    202002L (C++20) erase, erase_if
+   __cpp_lib_string_contains             202011L (C++23) contains
+   __cpp_lib_string_resize_and_overwrite 202110L (C++23) resize_and_overwrite
+                                                         Member functions for
+   __cpp_lib_containers_ranges           202202L (C++23) construction, insertion, and
+                                                         replacement that accept
+                                                         container compatible range
 
 .SH Example
 
@@ -342,7 +368,30 @@ std::basic_string \- std::basic_string
  w
  World
 
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR     Applied to            Behavior as published              Correct behavior
+                        contiguity of the storage for elements of
+   LWG 530   C++98      basic_string                                 required again
+                        was accidently made not required by LWG259
+                        the behavior is undefined if any of          the program is
+   LWG 2994  C++98      Traits::char_type^[1]                        ill-formed in this
+   (P1148R0)            and Allocator::char_type is different from   case
+                        CharT
+
+    1. ↑ The Traits::char_type case is fixed in P1148R0.
+
 .SH See also
 
    basic_string_view read-only string view
    \fI(C++17)\fP           \fI(class template)\fP
+
+.SH External links
+
+   C++ string handling
+
+.SH Hidden category:
+     * Pages with unreviewed LWG DR marker

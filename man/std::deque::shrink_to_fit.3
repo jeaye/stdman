@@ -1,17 +1,16 @@
-.TH std::deque::shrink_to_fit 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::deque::shrink_to_fit 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::deque::shrink_to_fit \- std::deque::shrink_to_fit
 
 .SH Synopsis
-   void shrink_to_fit();  \fI(since C++11)\fP
+   void shrink_to_fit();
 
    Requests the removal of unused capacity.
 
    It is a non-binding request to reduce the memory usage without changing the size of
    the sequence. It depends on the implementation whether the request is fulfilled.
 
-   All iterators and references are invalidated. Past-the-end iterator is also
-   invalidated.
+   All iterators (including the end() iterator) and references are invalidated.
 
 .SH Parameters
 
@@ -19,7 +18,7 @@ std::deque::shrink_to_fit \- std::deque::shrink_to_fit
 
 .SH Type requirements
    -
-   T must meet the requirements of MoveInsertable.
+   T must meet the requirements of MoveInsertable into *this. \fI(since C++11)\fP
 
 .SH Return value
 
@@ -29,46 +28,60 @@ std::deque::shrink_to_fit \- std::deque::shrink_to_fit
 
    At most linear in the size of the container.
 
+.SH Exceptions
+                                                                          \fI(since C++11)\fP
+   If an exception is thrown other than by the move constructor of a
+   non-CopyInsertable T, there are no effects.
+
 .SH Notes
 
-   If an exception is thrown other than by T's move constructor, there are no effects.
+   In libstdc++, shrink_to_fit() is not available in C++98 mode.
 
 .SH Example
 
 
+
 // Run this code
 
+ #include <cstddef>
+ #include <deque>
  #include <iostream>
  #include <new>
- #include <deque>
 
- // minimal C++11 allocator with debug output
- template <class Tp>
- struct NAlloc {
+ // Minimal C++11 allocator with debug output.
+ template<class Tp>
+ struct NAlloc
+ {
      typedef Tp value_type;
+
      NAlloc() = default;
-     template <class T> NAlloc(const NAlloc<T>&) {}
+
+     template<class T> NAlloc(const NAlloc<T>&) {}
+
      Tp* allocate(std::size_t n)
      {
          n *= sizeof(Tp);
          std::cout << "allocating " << n << " bytes\\n";
          return static_cast<Tp*>(::operator new(n));
      }
+
      void deallocate(Tp* p, std::size_t n)
      {
          std::cout << "deallocating " << n*sizeof*p << " bytes\\n";
          ::operator delete(p);
      }
  };
- template <class T, class U>
+ template<class T, class U>
  bool operator==(const NAlloc<T>&, const NAlloc<U>&) { return true; }
- template <class T, class U>
+ template<class T, class U>
  bool operator!=(const NAlloc<T>&, const NAlloc<U>&) { return false; }
 
- int main() {
-     /* std::queue has no capacity() function (like std::vector),
-      * because of this we use a custom allocator to show
-      * the working of shrink_to_fit.  */
+ int main()
+ {
+     // std::queue has no capacity() function (like std::vector).
+     // Because of this, we use a custom allocator to show the
+     // working of shrink_to_fit.
+
      std::cout << "Default-construct deque:\\n";
      std::deque<int, NAlloc<int>> deq;
 
@@ -111,6 +124,17 @@ std::deque::shrink_to_fit \- std::deque::shrink_to_fit
  deallocating 512 bytes
  deallocating 512 bytes
  deallocating 64 bytes
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+   LWG 850  C++98      std::deque lacked explicit shrink-to-fit        provided
+                       operations
+   LWG 2033 C++11      1. T was not required to be MoveInsertable      1. required
+                       2. the complexity requirement was missing       2. added
 
 .SH See also
 

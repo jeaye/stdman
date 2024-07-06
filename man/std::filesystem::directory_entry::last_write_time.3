@@ -1,15 +1,17 @@
-.TH std::filesystem::directory_entry::last_write_time 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::directory_entry::last_write_time 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::directory_entry::last_write_time \- std::filesystem::directory_entry::last_write_time
 
 .SH Synopsis
-   std::filesystem::file_time_type last_write_time() const;
-   std::filesystem::file_time_type last_write_time( std::error_code& ec   \fI(since C++17)\fP
-   ) const noexcept;
+   std::filesystem::file_time_type last_write_time() const;           \fB(1)\fP \fI(since C++17)\fP
+   std::filesystem::file_time_type last_write_time( std::error_code&  \fB(2)\fP \fI(since C++17)\fP
+   ec ) const noexcept;
 
    If the last modification time is cached in this directory_entry, returns the cached
-   value. Otherwise, returns std::filesystem::last_write_time(path()) or
-   std::filesystem::last_write_time(path(), ec), respectively.
+   value. Otherwise, returns:
+
+   1) std::filesystem::last_write_time(path()).
+   2) std::filesystem::last_write_time(path(), ec).
 
 .SH Parameters
 
@@ -17,49 +19,56 @@ std::filesystem::directory_entry::last_write_time \- std::filesystem::directory_
 
 .SH Return value
 
-   The last modification time for the referred-to filesystem object
+   The last modification time for the referred-to filesystem object.
 
 .SH Exceptions
 
-   The overload that does not take a std::error_code& parameter throws
-   filesystem::filesystem_error on underlying OS API errors, constructed with p as the
-   first path argument and the OS error code as the error code argument. The overload
-   taking a std::error_code& parameter sets it to the OS API error code if an OS API
-   call fails, and executes ec.clear() if no errors occur. Any overload not marked
-   noexcept may throw std::bad_alloc if memory allocation fails.
+   Any overload not marked noexcept may throw std::bad_alloc if memory allocation
+   fails.
+
+   1) Throws std::filesystem::filesystem_error on underlying OS API errors, constructed
+   with p as the first path argument and the OS error code as the error code argument.
+   2) Sets a std::error_code& parameter to the OS API error code if an OS API call
+   fails, and executes ec.clear() if no errors occur.
 
 .SH Example
 
 
 // Run this code
 
- #include <filesystem>
- #include <iostream>
- #include <string>
  #include <chrono>
  #include <ctime>
+ #include <filesystem>
+ #include <format>
+ #include <iostream>
+ #include <string>
 
- std::string to_string(std::filesystem::file_time_type const& ftime) {
+ std::string to_string(const std::filesystem::file_time_type& ftime)
+ {
+ #if __cpp_lib_format
+     return std::format("{:%c}", ftime);
+ #else
      std::time_t cftime = std::chrono::system_clock::to_time_t(
          std::chrono::file_clock::to_sys(ftime));
      std::string str = std::asctime(std::localtime(&cftime));
-     str.pop_back();  // rm the trailing '\\n' put by `asctime`
+     str.pop_back(); // rm the trailing '\\n' put by `asctime`
      return str;
+ #endif
  }
 
- int main() {
+ int main()
+ {
      auto dir = std::filesystem::current_path();
      using Entry = std::filesystem::directory_entry;
-     for (Entry const& entry : std::filesystem::directory_iterator(dir)) {
-         std::cout << to_string(entry.last_write_time())
-                   << " : " << entry.path().filename() << '\\n';
-     }
+     for (Entry const& entry : std::filesystem::directory_iterator(dir))
+         std::cout << to_string(entry.last_write_time()) << " : "
+                   << entry.path().filename() << '\\n';
  }
 
 .SH Possible output:
 
- Sat Aug 21 07:39:13 2021 : "main.cpp"
- Sat Aug 21 07:39:16 2021 : "a.out"
+ Wed Sep  6 13:37:13.960314156 2023 : "main.cpp"
+ Wed Sep  6 13:37:42.690271828 2023 : "a.out"
 
 .SH See also
 

@@ -1,39 +1,41 @@
-.TH std::size,std::ssize 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::size,std::ssize 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::size,std::ssize \- std::size,std::ssize
 
 .SH Synopsis
    Defined in header <array>
    Defined in header <deque>
+   Defined in header <flat_map>
+   Defined in header <flat_set>
    Defined in header <forward_list>
    Defined in header <iterator>
    Defined in header <list>
    Defined in header <map>
    Defined in header <regex>
    Defined in header <set>
-   Defined in header <span>                                          \fI(since C++20)\fP
+   Defined in header <span>
    Defined in header <string>
    Defined in header <string_view>
    Defined in header <unordered_map>
    Defined in header <unordered_set>
    Defined in header <vector>
-   template <class C>                                            \fB(1)\fP \fI(since C++17)\fP
-   constexpr auto size(const C& c) -> decltype(c.size());
-   template <class C>
+   template< class C >                                                \fB(1)\fP \fI(since C++17)\fP
+   constexpr auto size( const C& c ) -> decltype(c.size());
+   template< class C >
 
-   constexpr auto ssize(const C& c)                              \fB(2)\fP \fI(since C++20)\fP
-   -> std::common_type_t<std::ptrdiff_t,
+   constexpr auto ssize( const C& c )                                 \fB(2)\fP \fI(since C++20)\fP
+       -> std::common_type_t<std::ptrdiff_t,
 
-   std::make_signed_t<decltype(c.size())>>;
-   template <class T, std::size_t N>                             \fB(3)\fP \fI(since C++17)\fP
-   constexpr std::size_t size(const T (&array)[N]) noexcept;
-   template <class T, std::ptrdiff_t N>                          \fB(4)\fP \fI(since C++20)\fP
-   constexpr std::ptrdiff_t ssize(const T (&array)[N]) noexcept;
+                             std::make_signed_t<decltype(c.size())>>;
+   template< class T, std::size_t N >                                 \fB(3)\fP \fI(since C++17)\fP
+   constexpr std::size_t size( const T (&array)[N] ) noexcept;
+   template< class T, std::ptrdiff_t N >                              \fB(4)\fP \fI(since C++20)\fP
+   constexpr std::ptrdiff_t ssize( const T (&array)[N] ) noexcept;
 
    Returns the size of the given range.
 
-   1-2) Returns c.size(), converted to the return type if necessary.
-   3-4) Returns N.
+   1,2) Returns c.size(), converted to the return type if necessary.
+   3,4) Returns N.
 
 .SH Parameters
 
@@ -42,13 +44,16 @@ std::size,std::ssize \- std::size,std::ssize
 
 .SH Return value
 
-   The size of c or array.
+   1) c.size()
+   2) static_cast<std::common_type_t<std::ptrdiff_t,
+                                  std::make_signed_t<decltype(c.size())>>>(c.size())
+   3,4) N
 
 .SH Exceptions
 
-   1-2) May throw implementation-defined exceptions.
+   1,2) May throw implementation-defined exceptions.
 
-  Overloads
+   Overloads
 
    Custom overloads of size may be provided for classes and enumerations that do not
    expose a suitable size() member function, yet can be detected.
@@ -59,14 +64,14 @@ std::size,std::ssize \- std::size,std::ssize
 
 .SH Possible implementation
 
-.SH First version
-   template <class C>
+                                   size \fB(1)\fP
+   template<class C>
    constexpr auto size(const C& c) -> decltype(c.size())
    {
        return c.size();
    }
-.SH Second version
-   template <class C>
+                                   ssize \fB(2)\fP
+   template<class C>
    constexpr auto ssize(const C& c)
        -> std::common_type_t<std::ptrdiff_t,
                              std::make_signed_t<decltype(c.size())>>
@@ -75,14 +80,14 @@ std::size,std::ssize \- std::size,std::ssize
                                     std::make_signed_t<decltype(c.size())>>;
        return static_cast<R>(c.size());
    }
-                                 Third version
-   template <class T, std::size_t N>
+                                   size \fB(3)\fP
+   template<class T, std::size_t N>
    constexpr std::size_t size(const T (&array)[N]) noexcept
    {
        return N;
    }
-                                Fourth version
-   template <class T, std::ptrdiff_t N>
+                                   ssize \fB(4)\fP
+   template<class T, std::ptrdiff_t N>
    constexpr std::ptrdiff_t ssize(const T (&array)[N]) noexcept
    {
        return N;
@@ -90,40 +95,66 @@ std::size,std::ssize \- std::size,std::ssize
 
 .SH Notes
 
-   Feature-test macro: __cpp_lib_nonmember_container_access (for std::size())
-
-   Feature-test macro: __cpp_lib_ssize (for std::ssize())
+            Feature-test macro           Value    Std               Feature
+   __cpp_lib_nonmember_container_access 201411L \fI(C++17)\fP std::size(), std::data and
+                                                        std::empty
+   __cpp_lib_ssize                      201902L (C++20) std::ssize() (2,4) and unsigned
+                                                        std::span::size()
 
 .SH Example
 
 
 // Run this code
 
+ #include <cassert>
+ #include <cstring>
  #include <iostream>
  #include <vector>
 
  int main()
  {
-     std::vector<int> v = { 3, 1, 4 };
-     std::cout << std::size(v) << '\\n';
+     // Works with containers
+     std::vector<int> v{3, 1, 4};
+     assert(std::size(v) == 3);
 
-     int a[] = { -5, 10, 15 };
-     std::cout << std::size(a) << '\\n';
+     // And works with built-in arrays too
+     int a[]{-5, 10, 15};
+     // Returns the number of elements (not bytes) as opposed to sizeof
+     assert(std::size(a) == 3);
+     std::cout << "size of a[]: " << sizeof a << '\\n'; // 12, if sizeof(int) == 4
 
-     // since C++20 the signed size (ssize) is available
+     // Provides a safe way (compared to sizeof) of getting string buffer size
+     const char str[] = "12345";
+     // These are fine and give the correct result
+     assert(std::size(str) == 6);
+     assert(sizeof(str) == 6);
+
+     // But use of sizeof here is a common source of bugs
+     const char* str_decayed = "12345";
+     // std::cout << std::size(str_decayed) << '\\n'; // Usefully fails to compile
+     std::cout << sizeof(str_decayed) << '\\n'; // Prints the size of the pointer!
+
+     // Since C++20 the signed size (std::ssize) is available
      auto i = std::ssize(v);
-     for (--i; i != -1; --i) {
+     for (--i; i != -1; --i)
          std::cout << v[i] << (i ? ' ' : '\\n');
-     }
-     std::cout << "i = " << i << '\\n';
+     assert(i == -1);
+
+     // Note that the string literal includes the ending null character, which
+     // will be part of the constructed characters array. This makes std::size
+     // behave differently from std::strlen and std::string::size:
+     constexpr char symbols[] = "0123456789";
+
+     static_assert(std::size(symbols) == 11);
+     static_assert(std::string(symbols).size() == 10);
+     assert(std::strlen(symbols) == 10);
  }
 
-.SH Output:
+.SH Possible output:
 
- 3
- 3
+ size of a[]: 12
+ 8
  4 1 3
- i = -1
 
 .SH See also
 

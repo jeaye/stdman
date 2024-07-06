@@ -1,14 +1,17 @@
-.TH std::filesystem::directory_entry::exists 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::directory_entry::exists 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::directory_entry::exists \- std::filesystem::directory_entry::exists
 
 .SH Synopsis
-   bool exists() const;                                \fI(since C++17)\fP
-   bool exists( std::error_code& ec ) const noexcept;
+   bool exists() const;                               \fB(1)\fP \fI(since C++17)\fP
+   bool exists( std::error_code& ec ) const noexcept; \fB(2)\fP \fI(since C++17)\fP
 
-   Checks whether the pointed-to object exists. Effectively returns
-   std::filesystem::exists(status()) or std::filesystem::exists(status(ec)),
-   respectively.
+   Checks whether the pointed-to object exists. Effectively returns:
+
+   1) std::filesystem::exists(status()),
+   2) std::filesystem::exists(status(ec)).
+
+   Note that status() follows symlinks to their targets.
 
 .SH Parameters
 
@@ -20,12 +23,13 @@ std::filesystem::directory_entry::exists \- std::filesystem::directory_entry::ex
 
 .SH Exceptions
 
-   The overload that does not take a std::error_code& parameter throws
-   filesystem::filesystem_error on underlying OS API errors, constructed with p as the
-   first path argument and the OS error code as the error code argument. The overload
-   taking a std::error_code& parameter sets it to the OS API error code if an OS API
-   call fails, and executes ec.clear() if no errors occur. Any overload not marked
-   noexcept may throw std::bad_alloc if memory allocation fails.
+   Any overload not marked noexcept may throw std::bad_alloc if memory allocation
+   fails.
+
+   1) Throws std::filesystem::filesystem_error on underlying OS API errors, constructed
+   with p as the first path argument and the OS error code as the error code argument.
+   2) Sets a std::error_code& parameter to the OS API error code if an OS API call
+   fails, and executes ec.clear() if no errors occur.
 
 .SH Example
 
@@ -33,59 +37,36 @@ std::filesystem::directory_entry::exists \- std::filesystem::directory_entry::ex
 // Run this code
 
  #include <filesystem>
- #include <fstream>
  #include <iostream>
- #include <string>
-
- namespace fs = std::filesystem;
 
  int main()
  {
-     // store current path to restore it at exit
-     const auto old_current_path = fs::current_path();
+     for (auto const str:
+     {
+         "/usr/bin/cat",
+         "/usr/bin/mouse",
+         "/usr/bin/python",
+         "/usr/bin/bison",
+         "/usr/bin/yacc",
+         "/usr/bin/c++",
+     })
+     {
+         std::filesystem::directory_entry entry{str};
 
-     // create "sanbox" directory in temp dir
-     const auto dir_sandbox = fs::temp_directory_path() / "sandbox";
-
-     if (!fs::create_directory(dir_sandbox)) {
-         std::cout << "ERROR #1" << '\\n';
-         return -1;
+         std::cout << "directory entry " << entry
+                   << (entry.exists() ? " exists\\n" : " does not exist\\n");
      }
-
-     fs::current_path(dir_sandbox); // switch to newly created dir
-
-     fs::directory_entry entry_sandbox { dir_sandbox };
-     if (!entry_sandbox.exists()) {
-         std::cout << "ERROR #2" << '\\n';
-         return -1;
-     }
-
-     std::cout << "Current dir: " << entry_sandbox.path().filename() << '\\n';
-
-     fs::path path_tmp_file = dir_sandbox / "tmp_file";
-
-     std::ofstream file( path_tmp_file.string() ); // create regular file
-     file << "cppreference.com"; // write 16 bytes
-     file.flush();
-
-     fs::directory_entry entry_tmp_file{ path_tmp_file };
-
-     if (entry_tmp_file.exists()) {
-         std::cout << "File " << entry_tmp_file.path().filename()
-                   << " has size: " << entry_tmp_file.file_size() << '\\n';
-     } else {
-         std::cout << "ERROR #3" << '\\n';
-     }
-
-     // cleanup
-     fs::current_path(old_current_path);
-     fs::remove_all(dir_sandbox);
  }
 
 .SH Possible output:
 
- Current dir: "sandbox"
- File "tmp_file" has size: 16
+ // Output on a POSIX system:
+ directory entry "/usr/bin/cat" exist
+ directory entry "/usr/bin/mouse" does not exist
+ directory entry "/usr/bin/python" exists
+ directory entry "/usr/bin/bison" exists
+ directory entry "/usr/bin/yacc" does not exist
+ directory entry "/usr/bin/c++" exists
 
 .SH See also
 

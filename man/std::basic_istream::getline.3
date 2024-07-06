@@ -1,4 +1,4 @@
-.TH std::basic_istream::getline 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_istream::getline 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_istream::getline \- std::basic_istream::getline
 
@@ -15,16 +15,15 @@ std::basic_istream::getline \- std::basic_istream::getline
    the array whose first element is pointed to by s, until any of the following occurs
    (tested in the order shown):
 
-    1. end of file condition occurs in the input sequence (in which case
-       setstate(eofbit) is executed)
+    1. end of file condition occurs in the input sequence.
     2. the next available character c is the delimiter, as determined by Traits::eq(c,
        delim). The delimiter is extracted (unlike basic_istream::get()) and counted
        towards gcount(), but is not stored.
-    3. count-1 characters have been extracted (in which case setstate(failbit) is
-       executed).
+    3. count is non-positive, or count - 1 characters have been extracted
+       (setstate(failbit) is called in this case).
 
-   If the function extracts no characters (e.g. if count < 1), setstate(failbit) is
-   executed.
+   If the function extracts no characters, failbit is set in the local error state
+   before setstate() is called.
 
    In any case, if count > 0, it then stores a null character CharT() into the next
    successive location of the array and updates gcount().
@@ -50,6 +49,7 @@ std::basic_istream::getline \- std::basic_istream::getline
 
 .SH Exceptions
 
+
    failure if an error occurred (the error state flag is not goodbit) and exceptions()
    is set to throw for that state.
 
@@ -61,10 +61,10 @@ std::basic_istream::getline \- std::basic_istream::getline
 
 // Run this code
 
+ #include <array>
  #include <iostream>
  #include <sstream>
  #include <vector>
- #include <array>
 
  int main()
  {
@@ -73,13 +73,11 @@ std::basic_istream::getline \- std::basic_istream::getline
 
      // note: the following loop terminates when std::ios_base::operator bool()
      // on the stream returned from getline() returns false
-     for (std::array<char, 4> a; input.getline(&a[0], 4, '|'); ) {
+     for (std::array<char, 4> a; input.getline(&a[0], 4, '|');)
          v.push_back(a);
-     }
 
-     for (auto& a : v) {
+     for (auto& a : v)
          std::cout << &a[0] << '\\n';
-     }
  }
 
 .SH Output:
@@ -87,6 +85,15 @@ std::basic_istream::getline \- std::basic_istream::getline
  abc
  def
  gh
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to       Behavior as published          Correct behavior
+   LWG 531 C++98      std::getline could not handle the no character is
+                      case where count is non-positive  extracted in this case
 
 .SH See also
 

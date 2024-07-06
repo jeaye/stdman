@@ -1,48 +1,52 @@
-.TH std::ranges::crbegin 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::crbegin 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::crbegin \- std::ranges::crbegin
 
 .SH Synopsis
    Defined in header <ranges>
-   inline namespace /*unspecified*/ {
+   Defined in header <iterator>
+   inline namespace /* unspecified */ {
 
-   inline constexpr /*unspecified*/ crbegin =              \fI(since C++20)\fP
-   /*unspecified*/;                                        (customization point object)
+       inline constexpr /* unspecified */ crbegin = /*     \fI(since C++20)\fP
+   unspecified */;                                         (customization point object)
 
    }
    Call signature
    template< class T >
 
-   requires /* see below */                                \fI(since C++20)\fP
+       requires /* see below */                            \fI(since C++20)\fP
 
-   constexpr std::input_or_output_iterator auto crbegin(
-   T&& t );
+   constexpr /* see below */ auto crbegin( T&& t );
 
-   Returns an iterator to the first element of the const-qualified argument that is
-   treated as a reversed sequence.
+   Returns an iterator to the first element of the const-qualified        (until C++23)
+   argument that is treated as a reversed sequence.
+   Returns a constant iterator to the first element of the argument that  (since C++23)
+   is treated as a reversed sequence.
 
    range-rbegin-rend.svg
 
    Let CT be
 
-    1. const std::remove_reference_t<T>& if the argument is a lvalue (i.e. T is an
-       lvalue reference type),
-    2. const T otherwise,
+     * const std::remove_reference_t<T>& if the argument is an lvalue (i.e. T is
+       an lvalue reference type),                                                (until
+     * const T otherwise.                                                        C++23)
 
-   a call to ranges::crbegin is expression-equivalent to
+   A call to ranges::crbegin is expression-equivalent to
    ranges::rbegin(static_cast<CT&&>(t)).
+   If the argument is an lvalue or
+   ranges::enable_borrowed_range<std::remove_cv_t<T>> is true, then a call to
+   ranges::crbegin is expression-equivalent to:
 
-   The return type models std::input_or_output_iterator in both cases.
+     * std::const_iterator<decltype(U)>(U) for some expression U equivalent to   (since
+       ranges::rbegin(/*possibly-const-range*/(t)).                              C++23)
 
-  Expression-equivalent
+   In all other cases, a call to ranges::crbegin is ill-formed, which can result
+   in substitution failure when the call appears in the immediate context of a
+   template instantiation.
 
-   Expression e is expression-equivalent to expression f, if
-
-     * e and f have the same effects, and
-     * either both are constant subexpressions or else neither is a constant
-       subexpression, and
-     * either both are potentially-throwing or else neither is potentially-throwing
-       (i.e. noexcept(e) == noexcept(f)).
+   The return type models std::input_or_output_iterator
+   and constant-iterator
+   (since C++23) in all cases.
 
   Customization point objects
 
@@ -67,48 +71,39 @@ std::ranges::crbegin \- std::ranges::crbegin
    Otherwise, no function call operator of __crbegin_fn participates in overload
    resolution.
 
-.SH Notes
-
-   If the argument is an rvalue (i.e. T is an object type) and
-   ranges::enable_borrowed_range<std::remove_cv_t<T>> is false, the call to
-   ranges::crbegin is ill-formed, which also results in substitution failure.
-
-   The return type models std::input_or_output_iterator in all cases.
-
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
- #include <vector>
+ #include <cassert>
  #include <iterator>
  #include <span>
+ #include <vector>
 
  int main()
  {
-     std::vector<int> v = { 3, 1, 4 };
+     std::vector<int> v{3, 1, 4};
      auto vi = std::ranges::crbegin(v);
-     std::cout << *vi << '\\n';
+     assert(*vi == 4);
+     ++vi; // OK, iterator object is mutable
+     assert(*vi == 1);
+     // *vi = 13; // Error: underlying element is read-only
 
-     int a[] = { -5, 10, 15 };
+     int a[]{-5, 10, 15};
      auto ai = std::ranges::crbegin(a);
-     std::cout << *ai << '\\n';
+     assert(*ai == 15);
 
-     // auto x_x = std::ranges::crbegin(std::vector<int>{6,6,6});
+     // auto x_x = std::ranges::crbegin(std::vector<int>{6, 6, 6});
      // ill-formed: the argument is an rvalue (see Notes ↑)
 
-     auto si = std::ranges::crbegin(std::span{a}); // OK:
-     static_assert(std::ranges::enable_borrowed_range<
-         std::remove_cv_t<decltype(std::span{a})>>);
-     std::cout << *si << '\\n';
+     auto si = std::ranges::crbegin(std::span{a}); // OK
+     assert(*si == 15);
+     static_assert
+     (
+         std::ranges::enable_borrowed_range<std::remove_cv_t<decltype(std::span{a})>>
+     );
  }
-
-.SH Output:
-
- 4
- 15
- 15
 
 .SH See also
 

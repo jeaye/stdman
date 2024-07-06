@@ -1,20 +1,21 @@
-.TH std::unordered_map::operator[] 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::unordered_map::operator[] 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unordered_map::operator[] \- std::unordered_map::operator[]
 
 .SH Synopsis
    T& operator[]( const Key& key ); \fB(1)\fP \fI(since C++11)\fP
    T& operator[]( Key&& key );      \fB(2)\fP \fI(since C++11)\fP
+   template< class K >              \fB(3)\fP (since C++26)
+   T& operator[]( K&& x );
 
-   Returns a reference to the value that is mapped to a key equivalent to key,
-   performing an insertion if such key does not already exist.
+   Returns a reference to the value that is mapped to a key equivalent to key or x
+   respectively, performing an insertion if such key does not already exist.
 
    1) Inserts a value_type object constructed in-place from std::piecewise_construct,
    std::forward_as_tuple(key), std::tuple<>() if the key does not exist.
-   This function is equivalent to return this->try_emplace(key).first->second;.
-   \fI(since C++17)\fP
-   When the default allocator is used, this results in the key being copy constructed
-   from key and the mapped value being value-initialized.
+   Equivalent to return this->try_emplace(key).first->second;.
+   \fI(since C++17)\fPWhen the default allocator is used, this results in the key being copy
+   constructed from key and the mapped value being value-initialized.
 
    -
    value_type must be EmplaceConstructible from std::piecewise_construct,
@@ -24,8 +25,7 @@ std::unordered_map::operator[] \- std::unordered_map::operator[]
 
    2) Inserts a value_type object constructed in-place from std::piecewise_construct,
    std::forward_as_tuple(std::move(key)), std::tuple<>() if the key does not exist.
-   This function is equivalent to return
-   this->try_emplace(std::move(key)).first->second;.
+   Equivalent to return this->try_emplace(std::move(key)).first->second;.
    \fI(since C++17)\fP
    When the default allocator is used, this results in the key being move constructed
    from key and the mapped value being value-initialized.
@@ -36,24 +36,37 @@ std::unordered_map::operator[] \- std::unordered_map::operator[]
    used, this means that key_type must be MoveConstructible and mapped_type must be
    DefaultConstructible.
 
-   If an insertion occurs and results in a rehashing of the container, all iterators
-   are invalidated. Otherwise iterators are not affected. References are not
-   invalidated. Rehashing occurs only if the new number of elements is greater than
-   max_load_factor()*bucket_count().
+   3) Inserts a value_type object constructed in-place if there is no key that
+   transparently compares equivalent to the value x.
+   Equivalent to return this->try_emplace(std::forward<K>(x)).first->second;. This
+   overload participates in overload resolution only if Hash::is_transparent and
+   KeyEqual::is_transparent are valid and each denotes a type. This assumes that such
+   Hash is callable with both K and Key type, and that the KeyEqual is transparent,
+   which, together, allows calling this function without constructing an instance of
+   Key.
+
+   If after the operation the new number of elements is greater than old
+   max_load_factor() * bucket_count() a rehashing takes place.
+   If rehashing occurs (due to the insertion), all iterators are invalidated. Otherwise
+   (no rehashing), iterators are not invalidated.
 
 .SH Parameters
 
    key - the key of the element to find
+   x   - a value of any type that can be transparently compared with a key
 
 .SH Return value
 
-   Reference to the mapped value of the new element if no element with key key existed.
-   Otherwise a reference to the mapped value of the existing element whose key is
-   equivalent to key.
+   1,2) A reference to the mapped value of the new element if no element with key key
+   existed. Otherwise, a reference to the mapped value of the existing element whose
+   key is equivalent to key.
+   3) A reference to the mapped value of the new element if no element with key that
+   compares equivalent to the value x existed. Otherwise, a reference to the mapped
+   value of the existing element whose key compares equivalent to x.
 
 .SH Exceptions
 
-   If an exception is thrown by any operation, the insertion has no effect
+   If an exception is thrown by any operation, the insertion has no effect.
 
 .SH Complexity
 
@@ -71,10 +84,19 @@ std::unordered_map::operator[] \- std::unordered_map::operator[]
    required by the standards as published, rather than emplacing a value_type object.
 
    operator[] is non-const because it inserts the key if it doesn't exist. If this
-   behavior is undesirable or if the container is const, at() may be used.
+   behavior is undesirable or if the container is const, at may be used.
 
-   insert_or_assign() returns more information than operator[] and does   \fI(since C++17)\fP
-   not require default-constructibility of the mapped type.
+   insert_or_assign returns more information than operator[] and does not \fI(since C++17)\fP
+   require default-constructibility of the mapped type.
+
+                Feature-test macro                Value    Std          Feature
+                                                                 Heterogeneous
+                                                                 overloads for the
+                                                                 remaining member
+   __cpp_lib_associative_heterogeneous_insertion 202311L (C++26) functions in ordered
+                                                                 and unordered
+                                                                 associative
+                                                                 containers. \fB(3)\fP
 
 .SH Example
 
@@ -85,55 +107,53 @@ std::unordered_map::operator[] \- std::unordered_map::operator[]
  #include <string>
  #include <unordered_map>
 
- auto print = [](auto const comment, auto const& map) {
-     std::cout << comment << "{";
-     for (const auto &pair : map) {
-         std::cout << "{" << pair.first << ": " << pair.second << "}";
-     }
+ void println(auto const comment, auto const& map)
+ {
+     std::cout << comment << '{';
+     for (const auto& pair : map)
+         std::cout << '{' << pair.first << ": " << pair.second << '}';
      std::cout << "}\\n";
- };
+ }
 
  int main()
  {
-     std::unordered_map<char, int> letter_counts {{'a', 27}, {'b', 3}, {'c', 1}};
+     std::unordered_map<char, int> letter_counts{{'a', 27}, {'b', 3}, {'c', 1}};
 
-     print("letter_counts initially contains: ", letter_counts);
+     println("letter_counts initially contains: ", letter_counts);
 
-     letter_counts['b'] = 42;  // updates an existing value
+     letter_counts['b'] = 42; // updates an existing value
      letter_counts['x'] = 9;  // inserts a new value
 
-     print("after modifications it contains: ", letter_counts);
+     println("after modifications it contains: ", letter_counts);
 
      // count the number of occurrences of each word
      // (the first call to operator[] initialized the counter with zero)
      std::unordered_map<std::string, int>  word_map;
-     for (const auto &w : { "this", "sentence", "is", "not", "a", "sentence",
-                            "this", "sentence", "is", "a", "hoax"}) {
+     for (const auto& w : {"this", "sentence", "is", "not", "a", "sentence",
+                           "this", "sentence", "is", "a", "hoax"})
          ++word_map[w];
-     }
      word_map["that"]; // just inserts the pair {"that", 0}
 
-     for (const auto &[word, count] : word_map) {
-         std::cout << count << " occurrences of word '" << word << "'\\n";
-     }
+     for (const auto& [word, count] : word_map)
+         std::cout << count << " occurrence(s) of word '" << word << "'\\n";
  }
 
 .SH Possible output:
 
  letter_counts initially contains: {{a: 27}{b: 3}{c: 1}}
  after modifications it contains: {{a: 27}{b: 42}{c: 1}{x: 9}}
- 2 occurrences of word 'a'
- 1 occurrences of word 'hoax'
- 2 occurrences of word 'is'
- 1 occurrences of word 'not'
- 3 occurrences of word 'sentence'
- 0 occurrences of word 'that'
- 2 occurrences of word 'this'
+ 2 occurrence(s) of word 'a'
+ 1 occurrence(s) of word 'hoax'
+ 2 occurrence(s) of word 'is'
+ 1 occurrence(s) of word 'not'
+ 3 occurrence(s) of word 'sentence'
+ 0 occurrence(s) of word 'that'
+ 2 occurrence(s) of word 'this'
 
 .SH See also
 
    at               access specified element with bounds checking
-   \fI(C++11)\fP          \fI(public member function)\fP
+                    \fI(public member function)\fP
    insert_or_assign inserts an element or assigns to the current element if the key
    \fI(C++17)\fP          already exists
                     \fI(public member function)\fP

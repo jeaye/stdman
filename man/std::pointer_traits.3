@@ -1,11 +1,13 @@
-.TH std::pointer_traits 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::pointer_traits 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::pointer_traits \- std::pointer_traits
 
 .SH Synopsis
    Defined in header <memory>
-   template< class Ptr > struct pointer_traits;   \fB(1)\fP \fI(since C++11)\fP
-   template< class T > struct pointer_traits<T*>; \fB(2)\fP \fI(since C++11)\fP
+   template< class Ptr >      \fB(1)\fP \fI(since C++11)\fP
+   struct pointer_traits;
+   template< class T >        \fB(2)\fP \fI(since C++11)\fP
+   struct pointer_traits<T*>;
 
    The pointer_traits class template provides the standardized way to access certain
    properties of pointer-like types (fancy pointers, such as
@@ -13,34 +15,38 @@ std::pointer_traits \- std::pointer_traits
    on pointer_traits to determine the defaults for various typedefs required by
    Allocator.
 
-   1) The non-specialized pointer_traits declares the following types:
+   1) The non-specialized pointer_traits conditionally declares the following members:
+
+   Let /*element-type-of*/<Ptr> be
+
+     * Ptr::element_type if present;
+     * otherwise, T if Ptr is a class template specialization Template<T, Args...>,
+       where Args... is zero or more type arguments;
+     * otherwise, not defined.
+
+   If /*element-type-of*/<Ptr> is not defined, the primary template has no members
+   specified in this page.
 
 .SH Member types
 
    Type            Definition
    pointer         Ptr
-                   Ptr::element_type if present. Otherwise T if Ptr is a template
-   element_type    specialization Template<T, Args...>. Otherwise, the pointer_traits
-                   specialization is ill-formed
+   element_type    /*element-type-of*/<Ptr>
    difference_type Ptr::difference_type if present, otherwise std::ptrdiff_t
 
 .SH Member alias templates
 
-   Template                 Definition
-   template <class U> using Ptr::rebind<U> if exists, otherwise Template<U, Args...> if
-   rebind                   Ptr is a template specialization Template<T, Args...>
+   Template                  Definition
+   template< class U > using Ptr::rebind<U> if exists, otherwise Template<U, Args...>
+   rebind                    if Ptr is a template specialization Template<T, Args...>
 
 .SH Member functions
 
-   pointer_to                 obtains a dereferenceable pointer to its argument
-   \fB[static]\fP                   \fI(public static member function)\fP
-         Optional member functions of program-defined specializations
-   to_address                 obtains a raw pointer from a fancy pointer (inverse of
-   \fB[static]\fP (C++20)(optional) pointer_to)
-                              \fI(public static member function)\fP
+   pointer_to obtains a dereferenceable pointer to its argument
+   \fB[static]\fP   \fI(public static member function)\fP
 
    2) A specialization is provided for pointer types, T*, which declares the following
-   types:
+   members:
 
 .SH Member types
 
@@ -59,6 +65,12 @@ std::pointer_traits \- std::pointer_traits
    pointer_to obtains a dereferenceable pointer to its argument
    \fB[static]\fP   \fI(public static member function)\fP
 
+   Optional member functions of program-defined specializations
+
+   to_address                 obtains a raw pointer from a fancy pointer (inverse of
+   \fB[static]\fP (C++20)(optional) pointer_to)
+                              \fI(public static member function)\fP
+
 .SH Notes
 
    The rebind member template alias makes it possible, given a pointer-like type that
@@ -71,34 +83,35 @@ std::pointer_traits \- std::pointer_traits
    additional static member function to_address to customize the behavior \fI(since C++20)\fP
    of std::to_address.
 
-   Feature-test macro: __cpp_lib_constexpr_memory
+       Feature-test macro      Value    Std               Feature
+   __cpp_lib_constexpr_memory 201811L (C++20) constexpr in std::pointer_traits
 
 .SH Example
 
 
 // Run this code
 
- #include <memory>
  #include <iostream>
+ #include <memory>
 
- template <class Ptr>
+ template<class Ptr>
  struct BlockList
  {
-    // Predefine a memory block
-    struct block;
+     // Predefine a memory block
+     struct block;
 
-    // Define a pointer to a memory block from the kind of pointer Ptr s
-    // If Ptr is any kind of T*, block_ptr_t is block*
-    // If Ptr is smart_ptr<T>, block_ptr_t is smart_ptr<block>
-    using block_ptr_t = typename std::pointer_traits<Ptr>::template rebind<block>;
+     // Define a pointer to a memory block from the kind of pointer Ptr s
+     // If Ptr is any kind of T*, block_ptr_t is block*
+     // If Ptr is smart_ptr<T>, block_ptr_t is smart_ptr<block>
+     using block_ptr_t = typename std::pointer_traits<Ptr>::template rebind<block>;
 
-    struct block
-    {
-       std::size_t size{};
-       block_ptr_t next_block{};
-    };
+     struct block
+     {
+         std::size_t size{};
+         block_ptr_t next_block{};
+     };
 
-    block_ptr_t free_blocks;
+     block_ptr_t free_blocks;
  };
 
  int main()
@@ -109,13 +122,22 @@ std::pointer_traits \- std::pointer_traits
 
      BlockList<std::shared_ptr<char>> bl2;
      // The type of bl2.free_blocks is
-     // std::shared_ptr< BlockList<std::shared_ptr<char> >::block>
+     // std::shared_ptr<BlockList<std::shared_ptr<char>>::block>
      std::cout << bl2.free_blocks.use_count() << '\\n';
  }
 
 .SH Output:
 
  0
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to            Behavior as published              Correct behavior
+   LWG 3545 C++11      primary template caused hard error when     made SFINAE-friendly
+                       element_type is invalid
 
 .SH See also
 

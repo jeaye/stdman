@@ -1,4 +1,4 @@
-.TH std::ranges::equal_range 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::equal_range 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::equal_range \- std::ranges::equal_range
 
@@ -7,37 +7,66 @@ std::ranges::equal_range \- std::ranges::equal_range
    Call signature
    template< std::forward_iterator I, std::sentinel_for<I> S,
 
-   class T, class Proj = std::identity,
-   std::indirect_strict_weak_order<
-   const T*,                                                          \fB(1)\fP \fI(since C++20)\fP
-   std::projected<I, Proj>> Comp = ranges::less >
-   constexpr ranges::subrange<I>
+             class T, class Proj = std::identity,
+             std::indirect_strict_weak_order                            (since
+                 <const T*, std::projected<I, Proj>> Comp =             C++20)
+   ranges::less >                                                       (until
+   constexpr ranges::subrange<I> equal_range( I first, S last,          C++26)
+   const T& value,
 
-   equal_range(I first, S last, const T& value, Comp comp = {}, Proj
-   proj = {});
-   template< ranges::forward_range R, class T, class Proj =
-   std::identity,
+                                              Comp comp = {},
+   Proj proj = {} );
+   template< std::forward_iterator I, std::sentinel_for<I> S,
 
-   std::indirect_strict_weak_order<
-   const T*,                                                          \fB(2)\fP \fI(since C++20)\fP
-   std::projected<ranges::iterator_t<R>, Proj>> Comp = ranges::less >
+             class Proj = std::identity,
+             class T = std::projected_value_t<I, Proj>,
+             std::indirect_strict_weak_order
+                 <const T*, std::projected<I, Proj>> Comp =             (since
+   ranges::less >                                                       C++26)
+   constexpr ranges::subrange<I> equal_range( I first, S last,
+   const T& value,
+
+                                              Comp comp = {},
+   Proj proj = {} );
+   template< ranges::forward_range R,
+                                                                \fB(1)\fP
+             class T, class Proj = std::identity,
+             std::indirect_strict_weak_order
+                 <const T*,                                                     (since
+   std::projected<ranges::iterator_t<R>,                                        C++20)
+                                           Proj>> Comp =                        (until
+   ranges::less >                                                               C++26)
    constexpr ranges::borrowed_subrange_t<R>
 
-   equal_range(R&& r, const T& value, Comp comp = {}, Proj proj =
-   {});
+       equal_range( R&& r, const T& value, Comp comp = {}, Proj
+   proj = {} );
+   template< ranges::forward_range R,                               \fB(2)\fP
 
-   1) Returns a view containing all elements equivalent to value in the range [first,
-   last).
+             class Proj = std::identity,
+             class T =
+   std::projected_value_t<ranges::iterator_t<R>, Proj>,
+             std::indirect_strict_weak_order
+                 <const T*,                                                     (since
+   std::projected<ranges::iterator_t<R>,                                        C++26)
+                                           Proj>> Comp =
+   ranges::less >
+   constexpr ranges::borrowed_subrange_t<R>
+
+       equal_range( R&& r, const T& value, Comp comp = {}, Proj
+   proj = {} );
+
+   1) Returns a view containing all elements equivalent to value in the range
+   [first, last).
 
    The range [first, last) must be at least partially ordered with respect to value,
    i.e. it must satisfy all of the following requirements:
 
      * partitioned with respect to element < value or comp(element, value) (that is,
        all elements for which the expression is true precedes all elements for which
-       the expression is false)
-     * partitioned with respect to !(value < element) or !comp(value, element)
+       the expression is false).
+     * partitioned with respect to !(value < element) or !comp(value, element).
      * for all elements, if element < value or comp(element, value) is true then
-       !(value < element) or !comp(value, element) is also true
+       !(value < element) or !comp(value, element) is also true.
 
    A fully-sorted range meets these criteria.
 
@@ -51,10 +80,10 @@ std::ranges::equal_range \- std::ranges::equal_range
 
    The function-like entities described on this page are niebloids, that is:
 
-     * Explicit template argument lists may not be specified when calling any of them.
-     * None of them is visible to argument-dependent lookup.
-     * When one of them is found by normal unqualified lookup for the name to the left
-       of the function-call operator, it inhibits argument-dependent lookup.
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
 
    In practice, they may be implemented as function objects, or with special compiler
    extensions.
@@ -81,32 +110,35 @@ std::ranges::equal_range \- std::ranges::equal_range
 .SH Complexity
 
    The number of comparisons performed is logarithmic in the distance between first and
-   last (At most 2 * log
+   last (at most 2 * log
    2(last - first) + O(1) comparisons). However, for an iterator that does not model
    random_access_iterator, the number of iterator increments is linear.
 
 .SH Possible implementation
 
- struct equal_range_fn {
-     template< std::forward_iterator I, std::sentinel_for<I> S,
-               class T, class Proj = std::identity,
-               std::indirect_strict_weak_order<
-                   const T*,
-                   std::projected<I, Proj>> Comp = ranges::less >
+ struct equal_range_fn
+ {
+     template<std::forward_iterator I, std::sentinel_for<I> S,
+              class Proj = std::identity, class T = std::projected_value_t<I, Proj>,
+              std::indirect_strict_weak_order
+                  <const T*, std::projected<I, Proj>> Comp = ranges::less>
      constexpr ranges::subrange<I>
-     operator()(I first, S last, const T& value, Comp comp = {}, Proj proj = {}) const
+         operator()(I first, S last, const T& value, Comp comp = {}, Proj proj = {}) const
      {
-         return ranges::subrange(
+         return ranges::subrange
+         (
              ranges::lower_bound(first, last, value, std::ref(comp), std::ref(proj)),
-             ranges::upper_bound(first, last, value, std::ref(comp), std::ref(proj)));
+             ranges::upper_bound(first, last, value, std::ref(comp), std::ref(proj))
+         );
      }
 
-     template< ranges::forward_range R, class T, class Proj = std::identity,
-               std::indirect_strict_weak_order<
-                   const T*,
-                   std::projected<std::ranges::iterator_t<R>, Proj>> Comp = ranges::less >
+     template<ranges::forward_range R, class Proj = std::identity,
+              class T = std::projected_value_t<ranges::iterator_t<R>, Proj>,
+              std::indirect_strict_weak_order
+                  <const T*, std::projected<ranges::iterator_t<R>,
+                                            Proj>> Comp = ranges::less>
      constexpr ranges::borrowed_subrange_t<R>
-     operator()(R&& r, const T& value, Comp comp = {}, Proj proj = {}) const
+         operator()(R&& r, const T& value, Comp comp = {}, Proj proj = {}) const
      {
          return (*this)(ranges::begin(r), ranges::end(r), value,
                         std::ref(comp), std::ref(proj));
@@ -115,6 +147,12 @@ std::ranges::equal_range \- std::ranges::equal_range
 
  inline constexpr equal_range_fn equal_range;
 
+.SH Notes
+
+             Feature-test macro           Value    Std              Feature
+   __cpp_lib_algorithm_default_value_type 202403 (C++26) List-initialization for
+                                                         algorithms (1,2)
+
 .SH Example
 
 
@@ -122,59 +160,72 @@ std::ranges::equal_range \- std::ranges::equal_range
 
  #include <algorithm>
  #include <compare>
- #include <vector>
+ #include <complex>
  #include <iostream>
+ #include <vector>
 
  struct S
  {
-     int number;
-     char name;
+     int number {};
+     char name {};
      // note: name is ignored by these comparison operators
-     friend bool operator==  ( const S s1, const S s2 ) { return s1.number == s2.number; }
-     friend auto operator<=> ( const S s1, const S s2 ) { return s1.number <=> s2.number; }
+     friend bool operator== (const S s1, const S s2) { return s1.number == s2.number; }
+     friend auto operator<=>(const S s1, const S s2) { return s1.number <=> s2.number; }
+     friend std::ostream& operator<<(std::ostream& os, S o)
+     {
+         return os << '{' << o.number << ", '" << o.name << "'}";
+     }
  };
+
+ void println(auto rem, const auto& v)
+ {
+     for (std::cout << rem; const auto& e : v)
+         std::cout << e << ' ';
+     std::cout << '\\n';
+ }
 
  int main()
  {
      // note: not ordered, only partitioned w.r.t. S defined below
-     std::vector<S> vec = { {1,'A'}, {2,'B'}, {2,'C'}, {2,'D'}, {4, 'D'}, {4,'G'}, {3,'F'} };
+     std::vector<S> vec
+     {
+         {1,'A'}, {2,'B'}, {2,'C'}, {2,'D'}, {4, 'D'}, {4,'G'}, {3,'F'}
+     };
 
-     const S value = {2, '?'};
+     const S value{2, '?'};
 
      namespace ranges = std::ranges;
 
-     {
-         auto p = ranges::equal_range(vec, value);
-         std::cout << "1. ";
-         for ( auto i : p )
-             std::cout << i.name << ' ';
-     }
-     {
-         auto p = ranges::equal_range(vec.begin(), vec.end(), value);
-         std::cout << "\\n2. ";
-         for ( auto i = p.begin(); i != p.end(); ++i )
-             std::cout << i->name << ' ';
-     }
-     {
-         auto p = ranges::equal_range(vec, 'D', ranges::less{}, &S::name);
-         std::cout << "\\n3. ";
-         for ( auto i : p )
-             std::cout << i.name << ' ';
-     }
-     {
-         auto p = ranges::equal_range(vec.begin(), vec.end(), 'D', ranges::less{}, &S::name);
-         std::cout << "\\n4. ";
-         for ( auto i = p.begin(); i != p.end(); ++i )
-             std::cout << i->name << ' ';
-     }
+     auto a = ranges::equal_range(vec, value);
+     println("1. ", a);
+
+     auto b = ranges::equal_range(vec.begin(), vec.end(), value);
+     println("2. ", b);
+
+     auto c = ranges::equal_range(vec, 'D', ranges::less {}, &S::name);
+     println("3. ", c);
+
+     auto d = ranges::equal_range(vec.begin(), vec.end(), 'D', ranges::less {}, &S::name);
+     println("4. ", d);
+
+     using CD = std::complex<double>;
+     std::vector<CD> nums{{1, 0}, {2, 2}, {2, 1}, {3, 0}, {3, 1}};
+     auto cmpz = [](CD x, CD y) { return x.real() < y.real(); };
+     #ifdef __cpp_lib_algorithm_default_value_type
+         auto p3 = ranges::equal_range(nums, {2, 0}, cmpz);
+     #else
+         auto p3 = ranges::equal_range(nums, CD{2, 0}, cmpz);
+     #endif
+     println("5. ", p3);
  }
 
 .SH Output:
 
- 1. B C D
- 2. B C D
- 3. D D
- 4. D D
+ 1. {2, 'B'} {2, 'C'} {2, 'D'}
+ 2. {2, 'B'} {2, 'C'} {2, 'D'}
+ 3. {2, 'D'} {4, 'D'}
+ 4. {2, 'D'} {4, 'D'}
+ 5. (2,2) (2,1)
 
 .SH See also
 

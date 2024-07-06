@@ -1,17 +1,18 @@
-.TH std::to_array 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::to_array 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::to_array \- std::to_array
 
 .SH Synopsis
    Defined in header <array>
-   template<class T, std::size_t N>                                   \fB(1)\fP \fI(since C++20)\fP
-   constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&a)[N]);
-   template<class T, std::size_t N>                                   \fB(2)\fP \fI(since C++20)\fP
-   constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&&a)[N]);
+   template< class T, std::size_t N >
+   constexpr std::array<std::remove_cv_t<T>, N> to_array( T (&a)[N]   \fB(1)\fP \fI(since C++20)\fP
+   );
+   template< class T, std::size_t N >
+   constexpr std::array<std::remove_cv_t<T>, N> to_array( T (&&a)[N]  \fB(2)\fP \fI(since C++20)\fP
+   );
 
-   Creates a std::array from the one dimensional built-in array a. The elements of the
-   std::array are copy-initialized from the corresponding element of a. Copying or
-   moving multidimensional built-in array is not supported.
+   Creates a std::array from the one dimensional built-in array a. Copying or moving
+   multidimensional built-in array is not supported.
 
    1) For every i in 0, ..., N - 1, copy-initializes result's correspond element with
    a[i]. This overload is ill-formed when std::is_constructible_v<T, T&> is false.
@@ -38,7 +39,7 @@ std::to_array \- std::to_array
 .SH Notes
 
    There are some occasions where class template argument deduction of std::array
-   cannot be used while to_array being available:
+   cannot be used while to_array is available:
 
      * to_array can be used when the element type of the std::array is manually
        specified and the length is deduced, which is preferable when implicit
@@ -48,43 +49,42 @@ std::to_array \- std::to_array
 
  std::to_array<long>({3, 4}); // OK: implicit conversion
  // std::array<long>{3, 4};   // error: too few template arguments
- std::to_array("foo");        // creates std::array<char, 4>{ 'f', 'o', 'o', '\\0' }
- std::array{"foo"};           // creates std::array<const char*, 1>{ +"foo" }
+ std::to_array("foo");        // creates std::array<char, 4>{'f', 'o', 'o', '\\0'}
+ std::array{"foo"};           // creates std::array<const char*, 1>{"foo"}
 
-   Feature-test macro: __cpp_lib_to_array
+   Feature-test macro  Value    Std      Feature
+   __cpp_lib_to_array 201907L (C++20) std::to_array
 
 .SH Possible implementation
 
-.SH First version
-   namespace detail {
-
-   template <class T, std::size_t N, std::size_t... I>
-   constexpr std::array<std::remove_cv_t<T>, N>
-       to_array_impl(T (&a)[N], std::index_sequence<I...>)
+                                    to_array \fB(1)\fP
+   namespace detail
    {
-       return { {a[I]...} };
+       template<class T, std::size_t N, std::size_t... I>
+       constexpr std::array<std::remove_cv_t<T>, N>
+           to_array_impl(T (&a)[N], std::index_sequence<I...>)
+       {
+           return {{a[I]...}};
+       }
    }
 
-   }
-
-   template <class T, std::size_t N>
+   template<class T, std::size_t N>
    constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&a)[N])
    {
        return detail::to_array_impl(a, std::make_index_sequence<N>{});
    }
-.SH Second version
-   namespace detail {
-
-   template <class T, std::size_t N, std::size_t... I>
-   constexpr std::array<std::remove_cv_t<T>, N>
-       to_array_impl(T (&&a)[N], std::index_sequence<I...>)
+                                    to_array \fB(2)\fP
+   namespace detail
    {
-       return { {std::move(a[I])...} };
+       template<class T, std::size_t N, std::size_t... I>
+       constexpr std::array<std::remove_cv_t<T>, N>
+           to_array_impl(T (&&a)[N], std::index_sequence<I...>)
+       {
+           return {{std::move(a[I])...}};
+       }
    }
 
-   }
-
-   template <class T, std::size_t N>
+   template<class T, std::size_t N>
    constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&&a)[N])
    {
        return detail::to_array_impl(std::move(a), std::make_index_sequence<N>{});
@@ -95,10 +95,18 @@ std::to_array \- std::to_array
 
 // Run this code
 
- #include <type_traits>
- #include <utility>
  #include <array>
  #include <memory>
+ #include <string_view>
+ #include <type_traits>
+ #include <utility>
+
+ // creates a constexpr array of string_view's
+ constexpr auto w1n = std::to_array<std::string_view>({
+     "Mary", "Patricia", "Linda", "Barbara", "Elizabeth", "Jennifer"
+ });
+ static_assert(std::is_same_v<decltype(w1n), const std::array<std::string_view, 6>>);
+ static_assert(w1n.size() == 6 and w1n[5] == "Jennifer");
 
  int main()
  {
@@ -107,29 +115,29 @@ std::to_array \- std::to_array
      static_assert(a1.size() == 4);
 
      // deduces both element type and length
-     auto a2 = std::to_array({ 0, 2, 1, 3 });
+     auto a2 = std::to_array({0, 2, 1, 3});
      static_assert(std::is_same_v<decltype(a2), std::array<int, 4>>);
 
      // deduces length with element type specified
      // implicit conversion happens
-     auto a3 = std::to_array<long>({ 0, 1, 3 });
+     auto a3 = std::to_array<long>({0, 1, 3});
      static_assert(std::is_same_v<decltype(a3), std::array<long, 3>>);
 
      auto a4 = std::to_array<std::pair<int, float>>(
-         { { 3, .0f }, { 4, .1f }, { 4, .1e23f } });
+         {{3, 0.0f}, {4, 0.1f}, {4, 0.1e23f}});
      static_assert(a4.size() == 3);
 
      // creates a non-copyable std::array
-     auto a5 = std::to_array({ std::make_unique<int>(3) });
+     auto a5 = std::to_array({std::make_unique<int>(3)});
      static_assert(a5.size() == 1);
 
      // error: copying multidimensional arrays is not supported
-     // char s[2][6] = { "nice", "thing" };
+     // char s[2][6] = {"nice", "thing"};
      // auto a6 = std::to_array(s);
  }
 
 .SH See also
 
-   make_array                   Creates a std::array object whose size and optionally
+   make_array                   creates a std::array object whose size and optionally
    (library fundamentals TS v2) element type are deduced from the arguments
                                 \fI(function template)\fP

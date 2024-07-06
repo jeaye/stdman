@@ -1,33 +1,44 @@
-.TH std::stable_partition 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::stable_partition 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::stable_partition \- std::stable_partition
 
 .SH Synopsis
    Defined in header <algorithm>
-   template< class BidirIt, class UnaryPredicate >
-   BidirIt stable_partition( BidirIt first, BidirIt last,             \fB(1)\fP
-   UnaryPredicate p );
+   template< class BidirIt, class UnaryPred >
+   BidirIt stable_partition( BidirIt first, BidirIt last,   \fB(1)\fP (constexpr since C++26)
+   UnaryPred p );
    template< class ExecutionPolicy, class BidirIt, class
-   UnaryPredicate >                                                   \fB(2)\fP \fI(since C++17)\fP
-   BidirIt stable_partition( ExecutionPolicy&& policy, BidirIt first,
-   BidirIt last, UnaryPredicate p );
+   UnaryPred >
+
+   BidirIt stable_partition( ExecutionPolicy&& policy,      \fB(2)\fP \fI(since C++17)\fP
+
+                             BidirIt first, BidirIt last,
+   UnaryPred p );
 
    1) Reorders the elements in the range [first, last) in such a way that all elements
    for which the predicate p returns true precede the elements for which predicate p
    returns false. Relative order of the elements is preserved.
-   2) Same as \fB(1)\fP, but executed according to policy. This overload does not participate
-   in overload resolution unless
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>>
-   \fI(until C++20)\fP
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>>
-   \fI(since C++20)\fP is true.
+   2) Same as \fB(1)\fP, but executed according to policy.
+   This overload participates in overload resolution only if
+
+   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
+                                                                             C++20)
+   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
+                                                                             C++20)
+
+   If any of the following conditions is satisfied, the behavior is undefined:
+
+     * The type of *first is not Swappable.           \fI(until C++11)\fP
+     * BidirIt is not ValueSwappable.
+     * The type of *first is not MoveConstructible.   \fI(since C++11)\fP
+     * The type of *first is not MoveAssignable.
 
 .SH Parameters
 
    first, last -  the range of elements to reorder
    policy      -  the execution policy to use. See execution policy for details.
-                  unary predicate which returns true if the element should be
-                  ordered before other elements.
+                  unary predicate which returns true if the element should be ordered
+                  before other elements.
 
                   The expression p(v) must be convertible to bool for every argument v
    p           -  of type (possibly const) VT, where VT is the value type of BidirIt,
@@ -37,25 +48,24 @@ std::stable_partition \- std::stable_partition
                   \fI(since C++11)\fP.
 .SH Type requirements
    -
-   BidirIt must meet the requirements of ValueSwappable and
-   LegacyBidirectionalIterator.
+   BidirIt must meet the requirements of LegacyBidirectionalIterator.
    -
-   The type of dereferenced BidirIt must meet the requirements of MoveAssignable and
-   MoveConstructible.
-   -
-   UnaryPredicate must meet the requirements of Predicate.
+   UnaryPred must meet the requirements of Predicate.
 
 .SH Return value
 
-   Iterator to the first element of the second group
+   Iterator to the first element of the second group.
 
 .SH Complexity
 
-   Given N = std::distance(first, last),
+   Given \\(\\scriptsize N\\)N as std::distance(first, last):
 
-   1) Exactly N applications of the predicate and O(N) swaps if there is enough extra
-   memory. If memory is insufficient, at most N log N swaps.
-   2) O(N log N) swaps and O(N) applications of the predicate
+   1) Exactly \\(\\scriptsize N\\)N applications of p.
+   \\(\\scriptsize O(N)\\)O(N) swaps if there is enough extra memory, otherwise at most
+   \\(\\scriptsize N \\cdot log_{2}(N)\\)N⋅log
+   2(N) swaps.
+   2) \\(\\scriptsize O(N)\\)O(N) applications of p.
+   \\(\\scriptsize N \\cdot log(N)\\)N⋅log(N) swaps.
 
 .SH Exceptions
 
@@ -75,28 +85,41 @@ std::stable_partition \- std::stable_partition
    Implementations in libc++ and libstdc++ also accept ranges denoted by
    LegacyForwardIterators as an extension.
 
+         Feature-test macro        Value  Std         Feature
+   __cpp_lib_constexpr_algorithms 202306L     constexpr stable sorting
+
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
  #include <algorithm>
+ #include <iostream>
  #include <vector>
 
  int main()
  {
      std::vector<int> v{0, 0, 3, -1, 2, 4, 5, 0, 7};
-     std::stable_partition(v.begin(), v.end(), [](int n){return n>0;});
-     for (int n : v) {
+     std::stable_partition(v.begin(), v.end(), [](int n) { return n > 0; });
+     for (int n : v)
          std::cout << n << ' ';
-     }
      std::cout << '\\n';
  }
 
 .SH Output:
 
  3 2 4 5 7 0 0 -1 0
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+      DR    Applied to              Behavior as published              Correct behavior
+                       std::stable_partition was only required to
+   LWG 2150 C++98      place one                                       corrected the
+                       element satisfying p before one element not     requirement
+                       satisfying p
 
 .SH See also
 

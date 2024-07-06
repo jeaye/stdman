@@ -1,0 +1,197 @@
+.TH std::ranges::is_heap 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::is_heap \- std::ranges::is_heap
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< std::random_access_iterator I, std::sentinel_for<I> S,
+
+             class Proj = std::identity, std::indirect_strict_weak_order<       (since
+             std::projected<I, Proj>> Comp = ranges::less >                 \fB(1)\fP C++20)
+   constexpr bool
+
+       is_heap( I first, S last, Comp comp = {}, Proj proj = {} );
+   template< ranges::random_access_range R, class Proj = std::identity,
+
+
+   std::indirect_strict_weak_order<std::projected<ranges::iterator_t<R>,        (since
+   Proj>>                                                                   \fB(2)\fP C++20)
+             Comp = ranges::less >
+   constexpr bool
+
+       is_heap( R&& r, Comp comp = {}, Proj proj = {} );
+
+   Checks if the elements in range [first, last) are a max heap.
+
+   1) Elements are compared using the given binary comparison function comp and
+   projection object proj.
+   2) Same as \fB(1)\fP, but uses r as the range, as if using ranges::begin(r) as first and
+   ranges::end(r) as last.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first, last - the range of elements to examine
+   r           - the range of elements to examine
+   pred        - predicate to apply to the projected elements
+   proj        - projection to apply to the elements
+
+.SH Return value
+
+   true if the range is max heap, false otherwise.
+
+.SH Complexity
+
+   Linear in the distance between first and last.
+
+.SH Notes
+
+   A max heap is a range of elements [f, l), arranged with respect to comparator comp
+   and projection proj, that has the following properties:
+
+     * With N = l - f, p = f[(i - 1) / 2], and q = f[i], for all 0 < i < N, the
+       expression std::invoke(comp, std::invoke(proj, p), std::invoke(proj, q))
+       evaluates to false.
+     * A new element can be added using ranges::push_heap, in \\(\\scriptsize
+       \\mathcal{O}(\\log N)\\)𝓞(log N) time.
+     * The first element can be removed using ranges::pop_heap, in \\(\\scriptsize
+       \\mathcal{O}(\\log N)\\)𝓞(log N) time.
+
+.SH Possible implementation
+
+ struct is_heap_fn
+ {
+     template<std::random_access_iterator I, std::sentinel_for<I> S,
+              class Proj = std::identity, std::indirect_strict_weak_order<
+              std::projected<I, Proj>> Comp = ranges::less>
+     constexpr bool operator()(I first, S last, Comp comp = {}, Proj proj = {}) const
+     {
+         return (last == ranges::is_heap_until(first, last,
+                                               std::move(comp), std::move(proj)));
+     }
+
+     template<ranges::random_access_range R, class Proj = std::identity,
+              std::indirect_strict_weak_order<std::projected<ranges::iterator_t<R>, Proj>>
+              Comp = ranges::less>
+     constexpr bool operator()(R&& r, Comp comp = {}, Proj proj = {}) const
+     {
+         return (*this)(ranges::begin(r), ranges::end(r),
+                        std::move(comp), std::move(proj));
+     }
+ };
+
+ inline constexpr is_heap_fn is_heap {};
+
+.SH Example
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <bit>
+ #include <cmath>
+ #include <iostream>
+ #include <vector>
+
+ void out(const auto& what, int n = 1)
+ {
+     while (n-- > 0)
+         std::cout << what;
+ }
+
+ void draw_heap(auto const& v)
+ {
+     auto bails = [](int n, int w)
+     {
+         auto b = [](int w) { out("┌"), out("─", w), out("┴"), out("─", w), out("┐"); };
+         n /= 2;
+         if (!n)
+             return;
+         for (out(' ', w); n-- > 0;)
+             b(w), out(' ', w + w + 1);
+         out('\\n');
+     };
+     auto data = [](int n, int w, auto& first, auto last)
+     {
+         for (out(' ', w); n-- > 0 && first != last; ++first)
+             out(*first), out(' ', w + w + 1);
+         out('\\n');
+     };
+     auto tier = [&](int t, int m, auto& first, auto last)
+     {
+         const int n{1 << t};
+         const int w{(1 << (m - t - 1)) - 1};
+         bails(n, w), data(n, w, first, last);
+     };
+     const int m{static_cast<int>(std::ceil(std::log2(1 + v.size())))};
+     auto first{v.cbegin()};
+     for (int i{}; i != m; ++i)
+         tier(i, m, first, v.cend());
+ }
+
+ int main()
+ {
+     std::vector<int> v{3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3, 2, 3, 8};
+
+     out("initially, v:\\n");
+     for (auto i : v)
+         std::cout << i << ' ';
+     out('\\n');
+
+     if (!std::ranges::is_heap(v))
+     {
+         out("making heap...\\n");
+         std::ranges::make_heap(v);
+     }
+
+     out("after make_heap, v:\\n");
+     for (auto t{1U}; auto i : v)
+         std::cout << i << (std::has_single_bit(++t) ? " │ " : " ");
+
+     out("\\n" "corresponding binary tree is:\\n");
+     draw_heap(v);
+ }
+
+.SH Output:
+
+ initially, v:
+ 3 1 4 1 5 9 2 6 5 3 5 8 9 7 9 3 2 3 8
+ making heap...
+ after make_heap, v:
+ 9 │ 8 9 │ 6 5 8 9 │ 3 5 3 5 3 4 7 2 │ 1 2 3 1
+ corresponding binary tree is:
+                9
+        ┌───────┴───────┐
+        8               9
+    ┌───┴───┐       ┌───┴───┐
+    6       5       8       9
+  ┌─┴─┐   ┌─┴─┐   ┌─┴─┐   ┌─┴─┐
+  3   5   3   5   3   4   7   2
+ ┌┴┐ ┌┴┐ ┌┴┐ ┌┴┐ ┌┴┐ ┌┴┐ ┌┴┐ ┌┴┐
+ 1 2 3 1
+
+.SH See also
+
+   ranges::is_heap_until finds the largest subrange that is a max heap
+   (C++20)               (niebloid)
+   ranges::make_heap     creates a max heap out of a range of elements
+   (C++20)               (niebloid)
+   ranges::push_heap     adds an element to a max heap
+   (C++20)               (niebloid)
+   ranges::pop_heap      removes the largest element from a max heap
+   (C++20)               (niebloid)
+   ranges::sort_heap     turns a max heap into a range of elements sorted in ascending
+   (C++20)               order
+                         (niebloid)
+   is_heap               checks if the given range is a max heap
+   \fI(C++11)\fP               \fI(function template)\fP

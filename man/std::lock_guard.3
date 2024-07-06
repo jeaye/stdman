@@ -1,4 +1,4 @@
-.TH std::lock_guard 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::lock_guard 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::lock_guard \- std::lock_guard
 
@@ -36,55 +36,82 @@ std::lock_guard \- std::lock_guard
    [deleted]     \fI(public member function)\fP
 
 .SH Notes
-                                                                          \fI(since C++17)\fP
-   std::scoped_lock offers a replacement for lock_guard that provides the
-   ability to lock multiple mutexes using a deadlock avoidance algorithm.
+
+   A common beginner error is to "forget" to give a lock_guard variable a name, e.g.
+   std::lock_guard(mtx); (which default constructs a lock_guard variable named mtx) or
+   std::lock_guard{mtx}; (which constructs a prvalue object that is immediately
+   destroyed), thereby not actually constructing a lock that holds a mutex for the rest
+   of the scope.
+
+   std::scoped_lock offers an alternative for lock_guard that provides
+   the ability to lock multiple mutexes using a deadlock avoidance        \fI(since C++17)\fP
+   algorithm.
 
 .SH Example
+
+   Demonstrates safe and unsafe increments of a volatile variable by two threads.
 
 
 // Run this code
 
- #include <thread>
- #include <mutex>
  #include <iostream>
+ #include <mutex>
+ #include <string_view>
+ #include <syncstream>
+ #include <thread>
 
- int g_i = 0;
+ volatile int g_i = 0;
  std::mutex g_i_mutex;  // protects g_i
 
- void safe_increment()
+ void safe_increment(int iterations)
  {
      const std::lock_guard<std::mutex> lock(g_i_mutex);
-     ++g_i;
+     while (iterations-- > 0)
+         g_i = g_i + 1;
+     std::cout << "thread #" << std::this_thread::get_id() << ", g_i: " << g_i << '\\n';
 
-     std::cout << "g_i: " << g_i << "; in thread #"
-               << std::this_thread::get_id() << '\\n';
+     // g_i_mutex is automatically released when lock goes out of scope
+ }
 
-     // g_i_mutex is automatically released when lock
-     // goes out of scope
+ void unsafe_increment(int iterations)
+ {
+     while (iterations-- > 0)
+         g_i = g_i + 1;
+     std::osyncstream(std::cout) << "thread #" << std::this_thread::get_id()
+                                 << ", g_i: " << g_i << '\\n';
  }
 
  int main()
  {
-     std::cout << "g_i: " << g_i << "; in main()\\n";
-
-     std::thread t1(safe_increment);
-     std::thread t2(safe_increment);
-
-     t1.join();
-     t2.join();
-
-     std::cout << "g_i: " << g_i << "; in main()\\n";
+     auto test = [](std::string_view fun_name, auto fun)
+     {
+         g_i = 0;
+         std::cout << fun_name << ":\\nbefore, g_i: " << g_i << '\\n';
+         {
+             std::jthread t1(fun, 1'000'000);
+             std::jthread t2(fun, 1'000'000);
+         }
+         std::cout << "after, g_i: " << g_i << "\\n\\n";
+     };
+     test("safe_increment", safe_increment);
+     test("unsafe_increment", unsafe_increment);
  }
 
 .SH Possible output:
 
- g_i: 0; in main()
- g_i: 1; in thread #140487981209344
- g_i: 2; in thread #140487972816640
- g_i: 2; in main()
+ safe_increment:
+ before, g_i: 0
+ thread #140121493231360, g_i: 1000000
+ thread #140121484838656, g_i: 2000000
+ after, g_i: 2000000
 
-  Defect reports
+ unsafe_increment:
+ before, g_i: 0
+ thread #140121484838656, g_i: 1028945
+ thread #140121493231360, g_i: 1034337
+ after, g_i: 1034337
+
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.

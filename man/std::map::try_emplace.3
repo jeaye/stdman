@@ -1,50 +1,78 @@
-.TH std::map::try_emplace 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::map::try_emplace 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::map::try_emplace \- std::map::try_emplace
 
 .SH Synopsis
-   template< class... Args >                                          \fB(1)\fP \fI(since C++17)\fP
-   pair<iterator, bool> try_emplace( const Key& k, Args&&... args );
-   template< class... Args >                                          \fB(2)\fP \fI(since C++17)\fP
-   pair<iterator, bool> try_emplace( Key&& k, Args&&... args );
    template< class... Args >
-   iterator try_emplace( const_iterator hint, const Key& k, Args&&... \fB(3)\fP \fI(since C++17)\fP
+   std::pair<iterator, bool> try_emplace( const Key& k, Args&&...     \fB(1)\fP \fI(since C++17)\fP
+   args );
+   template< class... Args >                                          \fB(2)\fP \fI(since C++17)\fP
+   std::pair<iterator, bool> try_emplace( Key&& k, Args&&... args );
+   template< class K, class... Args >                                 \fB(3)\fP (since C++26)
+   std::pair<iterator, bool> try_emplace( K&& k, Args&&... args );
+   template< class... Args >
+   iterator try_emplace( const_iterator hint, const Key& k, Args&&... \fB(4)\fP \fI(since C++17)\fP
    args );
    template< class... Args >
-   iterator try_emplace( const_iterator hint, Key&& k, Args&&... args \fB(4)\fP \fI(since C++17)\fP
+   iterator try_emplace( const_iterator hint, Key&& k, Args&&... args \fB(5)\fP \fI(since C++17)\fP
+   );
+   template< class K, class... Args >
+   iterator try_emplace( const_iterator hint, K&& k, Args&&... args   \fB(6)\fP (since C++26)
    );
 
-   Inserts a new element into the container with key k and value constructed with args,
-   if there is no element with the key in the container.
+   If a key equivalent to k already exists in the container, does nothing. Otherwise,
+   inserts a new element into the container with key k and value constructed with args.
+   In such case:
 
-   1) If a key equivalent to k already exists in the container, does nothing.
-   Otherwise, behaves like emplace except that the element is constructed as
+   1) Behaves like emplace except that the element is constructed as
    value_type(std::piecewise_construct,
 
-   std::forward_as_tuple(k),
+              std::forward_as_tuple(k),
 
-   std::forward_as_tuple(std::forward<Args>(args)...))
-   2) If a key equivalent to k already exists in the container, does nothing.
-   Otherwise, behaves like emplace except that the element is constructed as
+              std::forward_as_tuple(std::forward<Args>(args)...))
+   2) Behaves like emplace except that the element is constructed as
    value_type(std::piecewise_construct,
 
-   std::forward_as_tuple(std::move(k)),
+              std::forward_as_tuple(std::move(k)),
 
-   std::forward_as_tuple(std::forward<Args>(args)...))
-   3) If a key equivalent to k already exists in the container, does nothing.
-   Otherwise, behaves like emplace_hint except that the element is constructed as
+              std::forward_as_tuple(std::forward<Args>(args)...))
+   3) Behaves like emplace except that the element is constructed as
    value_type(std::piecewise_construct,
 
-   std::forward_as_tuple(k),
+              std::forward_as_tuple(std::forward<K>(k)),
 
-   std::forward_as_tuple(std::forward<Args>(args)...))
-   4) If a key equivalent to k already exists in the container, does nothing.
-   Otherwise, behaves like emplace_hint except that the element is constructed as
+              std::forward_as_tuple(std::forward<Args>(args)...))
+   4) Behaves like emplace_hint except that the element is constructed as
    value_type(std::piecewise_construct,
 
-   std::forward_as_tuple(std::move(k)),
+              std::forward_as_tuple(k),
 
-   std::forward_as_tuple(std::forward<Args>(args)...))
+              std::forward_as_tuple(std::forward<Args>(args)...))
+   5) Behaves like emplace_hint except that the element is constructed as
+   value_type(std::piecewise_construct,
+
+              std::forward_as_tuple(std::move(k)),
+
+              std::forward_as_tuple(std::forward<Args>(args)...))
+   6) Behaves like emplace_hint except that the element is constructed as
+   value_type(std::piecewise_construct,
+
+              std::forward_as_tuple(std::forward<K>(k)),
+
+              std::forward_as_tuple(std::forward<Args>(args)...))
+   1-6) If value_type is not EmplaceConstructible into map from the corresponding
+   expression, the behavior is undefined.
+   3) This overload participates in overload resolution only if all following
+   conditions are satisfied:
+     * std::is_convertible_v<K&&, const_iterator> and std::is_convertible_v<K&&,
+       iterator> are both false.
+     * The qualified-id Compare::is_transparent is valid and denotes a type.
+   If equal_range(u.first) == equal_range(k) is false, the behavior is undefined, where
+   u is the new element to be inserted.
+   6) This overload participates in overload resolution only if the qualified-id
+   Compare::is_transparent is valid and denotes a type.
+   If equal_range(u.first) == equal_range(k) is false, the behavior is undefined, where
+   u is the new element to be inserted.
 
    No iterators or references are invalidated.
 
@@ -56,13 +84,13 @@ std::map::try_emplace \- std::map::try_emplace
 
 .SH Return value
 
-   1,2) Same as for emplace
-   3,4) Same as for emplace_hint
+   1-3) Same as for emplace.
+   4-6) Same as for emplace_hint.
 
 .SH Complexity
 
-   1,2) Same as for emplace
-   3,4) Same as for emplace_hint
+   1-3) Same as for emplace.
+   4-6) Same as for emplace_hint.
 
 .SH Notes
 
@@ -73,7 +101,17 @@ std::map::try_emplace \- std::map::try_emplace
    emplace, which requires the arguments to construct a value_type (that is, a
    std::pair).
 
-   Feature-test macro: __cpp_lib_map_try_emplace
+   Overloads (3,6) can be called without constructing an object of type Key.
+
+               Feature-test macro                Value    Std            Feature
+  __cpp_lib_map_try_emplace                     201411L \fI(C++17)\fP std::map::try_emplace,
+                                                                std::map::insert_or_assign
+                                                                Heterogeneous overloads
+                                                                for the remaining member
+  __cpp_lib_associative_heterogeneous_insertion 202311L (C++26) functions in ordered and
+                                                                unordered associative
+                                                                containers. Overloads \fB(3)\fP
+                                                                and \fB(6)\fP.
 
 .SH Example
 
@@ -81,31 +119,33 @@ std::map::try_emplace \- std::map::try_emplace
 // Run this code
 
  #include <iostream>
- #include <utility>
  #include <string>
-
  #include <map>
+ #include <utility>
 
- auto print_node = [](const auto &node) {
-     std::cout << "[" << node.first << "] = " << node.second << '\\n';
- };
+ void print_node(const auto& node)
+ {
+     std::cout << '[' << node.first << "] = " << node.second << '\\n';
+ }
 
- auto print_result = [](auto const &pair) {
+ void print_result(auto const& pair)
+ {
      std::cout << (pair.second ? "inserted: " : "ignored:  ");
      print_node(*pair.first);
- };
+ }
 
  int main()
  {
      using namespace std::literals;
      std::map<std::string, std::string> m;
 
-     print_result( m.try_emplace("a", "a"s) );
-     print_result( m.try_emplace("b", "abcd") );
-     print_result( m.try_emplace("c", 10, 'c') );
-     print_result( m.try_emplace("c", "Won't be inserted") );
+     print_result(m.try_emplace("a", "a"s));
+     print_result(m.try_emplace("b", "abcd"));
+     print_result(m.try_emplace("c", 10, 'c'));
+     print_result(m.try_emplace("c", "Won't be inserted"));
 
-     for (const auto &p : m) { print_node(p); }
+     for (const auto& p : m)
+         print_node(p);
  }
 
 .SH Output:

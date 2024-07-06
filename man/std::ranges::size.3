@@ -1,80 +1,54 @@
-.TH std::ranges::size 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::size 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::size \- std::ranges::size
 
 .SH Synopsis
    Defined in header <ranges>
-   inline namespace /*unspecified*/ {
-                                                  \fI(since C++20)\fP
-   inline constexpr auto size = /*unspecified*/;  (customization point object)
+   Defined in header <iterator>
+   inline namespace /* unspecified */ {
+                                                        \fI(since C++20)\fP
+       inline constexpr auto size = /* unspecified */;  (customization point object)
 
    }
    Call signature
    template< class T >
 
-   requires /* see below */                       \fI(since C++20)\fP
+       requires /* see below */                         \fI(since C++20)\fP
 
    constexpr auto size( T&& t );
 
    Calculates the number of elements in t in constant time.
 
-   Let t be an object of type T. A call to ranges::size is expression-equivalent to:
+   A call to ranges::size is expression-equivalent to:
 
-    1. std::extent_v<T>, if T is an array type with a known bound.
-    2. Otherwise, t.size() converted to its decayed type, if
-       ranges::disable_sized_range<std::remove_cv_t<T>> is false, and the converted
-       expression is valid and has an integer-like type.
-    3. Otherwise, size(t) converted to its decayed type, if
-       ranges::disable_sized_range<std::remove_cv_t<T>> is false, and the converted
-       expression is valid and has an integer-like type, where the overload resolution
-       is performed with the following candidates:
-
-          * void size(auto&) = delete;
-          * void size(const auto&) = delete;
-
-    4. Otherwise, /*to-unsigned-like*/(ranges::end(t) - ranges::begin(t)), if T models
-       ranges::forward_range and ranges::sentinel_t<T> models
+    1. decay-copy(std::extent_v<T>)
+       (until C++23)
+       auto(std::extent_v<T>)
+       (since C++23), if T is an array type with a known bound.
+    2. Otherwise,
+       decay-copy(t.size())
+       (until C++23)
+       auto(t.size())
+       (since C++23), if ranges::disable_sized_range<std::remove_cv_t<T>> is false, and
+       that expression is valid and has an integer-like type.
+    3. Otherwise,
+       decay-copy(size(t))
+       (until C++23)
+       auto(size(t))
+       (since C++23), if ranges::disable_sized_range<std::remove_cv_t<T>> is false, and
+       the converted expression is valid and has an integer-like type, where the
+       meaning of size is established as if by performing argument-dependent lookup
+       only.
+    4. Otherwise, /* to-unsigned-like */(ranges::end(t) - ranges::begin(t)), if T
+       models ranges::forward_range and ranges::sentinel_t<T> models
        std::sized_sentinel_for<ranges::iterator_t<T>>,
 
-                    where /*to-unsigned-like*/ denotes an explicit conversion to an
-                    unsigned-integer-like type.
+       where /* to-unsigned-like */ denotes an explicit conversion to an
+       unsigned-integer-like type.
 
    In all other cases, a call to ranges::size is ill-formed, which can result in
    substitution failure when ranges::size(t) appears in the immediate context of a
    template instantiation.
-
-  Expression-equivalent
-
-   Expression e is expression-equivalent to expression f, if
-
-     * e and f have the same effects, and
-     * either both are constant subexpressions or else neither is a constant
-       subexpression, and
-     * either both are potentially-throwing or else neither is potentially-throwing
-       (i.e. noexcept(e) == noexcept(f)).
-
-  Customization point objects
-
-   The name ranges::size denotes a customization point object, which is a const
-   function object of a literal semiregular class type. For exposition purposes, the
-   cv-unqualified version of its type is denoted as __size_fn.
-
-   All instances of __size_fn are equal. The effects of invoking different instances of
-   type __size_fn on the same arguments are equivalent, regardless of whether the
-   expression denoting the instance is an lvalue or rvalue, and is const-qualified or
-   not (however, a volatile-qualified instance is not required to be invocable). Thus,
-   ranges::size can be copied freely and its copies can be used interchangeably.
-
-   Given a set of types Args..., if std::declval<Args>()... meet the requirements for
-   arguments to ranges::size above, __size_fn models
-
-     * std::invocable<__size_fn, Args...>,
-     * std::invocable<const __size_fn, Args...>,
-     * std::invocable<__size_fn&, Args...>, and
-     * std::invocable<const __size_fn&, Args...>.
-
-   Otherwise, no function call operator of __size_fn participates in overload
-   resolution.
 
 .SH Notes
 
@@ -85,6 +59,10 @@ std::ranges::size \- std::ranges::size
    prvalue, the return value is move-constructed from the materialized temporary
    object. All implementations directly return the prvalue instead. The requirement is
    corrected by the post-C++20 proposal P0849R8 to match the implementations.
+
+   The expression ranges::distance(e) can also be used to determine the size of a range
+   e. Unlike ranges::size(e), ranges::distance(e) works even if e is an unsized range,
+   at the cost of having linear complexity in that case.
 
 .SH Example
 
@@ -101,14 +79,13 @@ std::ranges::size \- std::ranges::size
      auto v = std::vector<int>{};
      std::cout << "ranges::size(v) == " << std::ranges::size(v) << '\\n';
 
-     auto il = {7};
+     auto il = {7};     // std::initializer_list
      std::cout << "ranges::size(il) == " << std::ranges::size(il) << '\\n';
 
-     int array[] = {4, 5}; // array has a known bound
+     int array[]{4, 5}; // array has a known bound
      std::cout << "ranges::size(array) == " << std::ranges::size(array) << '\\n';
 
-     std::cout << std::boolalpha << "is_signed: "
-               << std::is_signed_v<decltype(std::ranges::size(v))> << '\\n';
+     static_assert(std::is_signed_v<decltype(std::ranges::size(v))> == false);
  }
 
 .SH Output:
@@ -116,7 +93,15 @@ std::ranges::size \- std::ranges::size
  ranges::size(v) == 0
  ranges::size(il) == 1
  ranges::size(array) == 2
- is_signed: false
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to           Behavior as published               Correct behavior
+   P2602R2 C++20      there's machinery to prohibit certain      removed such machinery
+                      non-member size found by ADL
 
 .SH See also
 
@@ -124,6 +109,9 @@ std::ranges::size \- std::ranges::size
    (C++20)             (customization point object)
    ranges::sized_range specifies that a range knows its size in constant time
    (C++20)             (concept)
+   ranges::distance    returns the distance between an iterator and a sentinel, or
+   (C++20)             between the beginning and end of a range
+                       (niebloid)
    size
    ssize               returns the size of a container or array
    \fI(C++17)\fP             \fI(function template)\fP

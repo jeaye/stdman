@@ -1,4 +1,4 @@
-.TH std::indirect_result_t 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::indirect_result_t 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::indirect_result_t \- std::indirect_result_t
 
@@ -6,8 +6,8 @@ std::indirect_result_t \- std::indirect_result_t
    Defined in header <iterator>
    template< class F, class... Is >
 
-   requires (std::indirectly_readable<Is> && ...) &&
-   std::invocable<F, std::iter_reference_t<Is>...>                        \fI(since C++20)\fP
+       requires (std::indirectly_readable<Is> && ...) &&
+                 std::invocable<F, std::iter_reference_t<Is>...>          \fI(since C++20)\fP
 
    using indirect_result_t = std::invoke_result_t<F,
    std::iter_reference_t<Is>...>;
@@ -19,6 +19,33 @@ std::indirect_result_t \- std::indirect_result_t
 
    F  - an invocable type
    Is - indirectly readable types that are dereferenced to arguments
+
+.SH Example
+
+
+// Run this code
+
+ #include <iterator>
+ #include <type_traits>
+
+ struct Fn
+ {
+     long operator()(const int&);
+     int operator()(int&&);
+     short operator()(int, int) const;
+     auto operator()(const float) -> int&;
+     void operator()(int[8]);
+ };
+
+ static_assert(
+     std::is_same_v<std::indirect_result_t<Fn, const int*>, long> and
+     std::is_same_v<std::indirect_result_t<Fn, std::move_iterator<int*>>, int> and
+     std::is_same_v<std::indirect_result_t<const Fn, int*, int*>, short> and
+     std::is_same_v<std::indirect_result_t<Fn, float*>, int&> and
+     std::is_same_v<std::indirect_result_t<Fn, int**>, void>
+ );
+
+ int main() {}
 
 .SH See also
 

@@ -1,4 +1,4 @@
-.TH std::shared_mutex::lock_shared 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::shared_mutex::lock_shared 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::shared_mutex::lock_shared \- std::shared_mutex::lock_shared
 
@@ -41,8 +41,91 @@ std::shared_mutex::lock_shared \- std::shared_mutex::lock_shared
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+ #include <chrono>
+ #include <iostream>
+ #include <mutex>
+ #include <shared_mutex>
+ #include <syncstream>
+ #include <thread>
+ #include <vector>
+
+ std::mutex stream_mutx;
+ void print(auto v)
+ {
+     std::unique_lock<std::mutex> lock(stream_mutx);
+     std::cout << std::this_thread::get_id() << " saw: ";
+     for (auto e : v)
+         std::cout << e << ' ';
+     std::cout << '\\n';
+ }
+
+ int main()
+ {
+     using namespace std::chrono_literals;
+     constexpr int N_READERS = 5;
+     constexpr int LAST = -999;
+
+     std::shared_mutex smtx;
+     int product = 0;
+
+     auto writer = [&smtx, &product](int start, int end)
+     {
+         for (int i = start; i < end; ++i)
+         {
+             auto data = i;
+             {
+                 std::unique_lock<std::shared_mutex> lock(smtx);
+                 product = data;
+             }
+             std::this_thread::sleep_for(3ms);
+         }
+
+         smtx.lock(); // lock manually
+         product = LAST;
+         smtx.unlock();
+     };
+
+     auto reader = [&smtx, &product]()
+     {
+         int data = 0;
+         std::vector<int> seen;
+         do
+         {
+             {
+                 smtx.lock_shared(); // better to use: std::shared_lock lock(smtx);
+                 data = product;
+                 smtx.unlock_shared();
+             }
+
+             seen.push_back(data);
+             std::this_thread::sleep_for(2ms);
+         }
+         while (data != LAST);
+
+         print(seen);
+     };
+
+     std::vector<std::thread> threads;
+     threads.emplace_back(writer, 1, 13);
+     threads.emplace_back(writer, 42, 52);
+
+     for (int i = 0; i < N_READERS; ++i)
+         threads.emplace_back(reader);
+
+     for (auto&& t : threads)
+         t.join();
+ }
+
+.SH Possible output:
+
+ 127755840 saw: 43 3 3 4 46 5 6 7 7 8 9 51 10 11 11 12 -999
+ 144541248 saw: 2 44 3 4 46 5 6 7 7 8 9 51 10 11 11 12 -999
+ 110970432 saw: 42 2 3 45 4 5 47 6 7 8 8 9 10 11 11 12 -999
+ 119363136 saw: 42 2 3 4 46 5 6 7 7 8 9 9 10 11 11 12 12 -999
+ 136148544 saw: 2 44 3 4 46 5 6 48 7 8 9 51 10 11 11 12 12 -999
 
 .SH See also
 

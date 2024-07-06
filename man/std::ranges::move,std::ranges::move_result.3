@@ -1,0 +1,148 @@
+.TH std::ranges::move,std::ranges::move_result 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::move,std::ranges::move_result \- std::ranges::move,std::ranges::move_result
+
+.SH Synopsis
+   Defined in header <algorithm>
+   Call signature
+   template< std::input_iterator I, std::sentinel_for<I> S,
+   std::weakly_incrementable O >
+
+   requires std::indirectly_movable<I, O>                             \fB(1)\fP \fI(since C++20)\fP
+   constexpr move_result<I, O>
+
+       move( I first, S last, O result );
+   template< ranges::input_range R, std::weakly_incrementable O >
+
+   requires std::indirectly_movable<ranges::iterator_t<R>, O>         \fB(2)\fP \fI(since C++20)\fP
+   constexpr move_result<ranges::borrowed_iterator_t<R>, O>
+
+       move( R&& r, O result );
+.SH Helper types
+   template< class I, class O >                                       \fB(3)\fP \fI(since C++20)\fP
+   using move_result = ranges::in_out_result<I, O>;
+
+   1) Moves the elements in the range, defined by [first, last), to another range
+   beginning at result. The behavior is undefined if result is within the range
+   [first, last). In such a case, ranges::move_backward may be used instead.
+   2) Same as \fB(1)\fP, but uses r as the source range, as if using ranges::begin(r) as
+   first, and ranges::end(r) as last.
+
+   The elements in the moved-from range will still contain valid values of the
+   appropriate type, but not necessarily the same values as before the move.
+
+   The function-like entities described on this page are niebloids, that is:
+
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
+
+   In practice, they may be implemented as function objects, or with special compiler
+   extensions.
+
+.SH Parameters
+
+   first  - the beginning of the range of elements to move
+   last   - the end of the range of elements to move
+   r      - the range of the elements to move
+   result - the beginning of the destination range
+
+.SH Return value
+
+   {last, result + N}, where
+
+   1) N = ranges::distance(first, last).
+   2) N = ranges::distance(r).
+
+.SH Complexity
+
+   Exactly N move assignments.
+
+.SH Notes
+
+   When moving overlapping ranges, ranges::move is appropriate when moving to the left
+   (beginning of the destination range is outside the source range) while
+   ranges::move_backward is appropriate when moving to the right (end of the
+   destination range is outside the source range).
+
+.SH Possible implementation
+
+  struct move_fn
+  {
+      template<std::input_iterator I, std::sentinel_for<I> S, std::weakly_incrementable O>
+      requires std::indirectly_movable<I, O>
+      constexpr ranges::move_result<I, O>
+          operator()(I first, S last, O result) const
+      {
+          for (; first != last; ++first, ++result)
+              *result = ranges::iter_move(first);
+          return {std::move(first), std::move(result)};
+      }
+      template<ranges::input_range R, std::weakly_incrementable O>
+      requires std::indirectly_movable<ranges::iterator_t<R>, O>
+      constexpr ranges::move_result<ranges::borrowed_iterator_t<R>, O>
+          operator()(R&& r, O result) const
+      {
+          return (*this)(ranges::begin(r), ranges::end(r), std::move(result));
+      }
+  };
+
+  inline constexpr move_fn move {};
+
+.SH Example
+
+   The following code moves thread objects (which themselves are non copyable) from one
+   container to another.
+
+
+// Run this code
+
+ #include <algorithm>
+ #include <chrono>
+ #include <iostream>
+ #include <iterator>
+ #include <list>
+ #include <thread>
+ #include <vector>
+ using namespace std::literals::chrono_literals;
+
+ void f(std::chrono::milliseconds n)
+ {
+     std::this_thread::sleep_for(n);
+     std::cout << "thread with n=" << n.count() << "ms ended" << std::endl;
+ }
+
+ int main()
+ {
+     std::vector<std::jthread> v;
+     v.emplace_back(f, 400ms);
+     v.emplace_back(f, 600ms);
+     v.emplace_back(f, 800ms);
+
+     std::list<std::jthread> l;
+
+     // std::ranges::copy() would not compile, because std::jthread is non-copyable
+     std::ranges::move(v, std::back_inserter(l));
+ }
+
+.SH Output:
+
+ thread with n=400ms ended
+ thread with n=600ms ended
+ thread with n=800ms ended
+
+.SH See also
+
+   ranges::move_backward moves a range of elements to a new location in backwards order
+   (C++20)               (niebloid)
+   ranges::copy
+   ranges::copy_if       copies a range of elements to a new location
+   (C++20)               (niebloid)
+   (C++20)
+   ranges::copy_backward copies a range of elements in backwards order
+   (C++20)               (niebloid)
+   move                  moves a range of elements to a new location
+   \fI(C++11)\fP               \fI(function template)\fP
+   move                  obtains an rvalue reference
+   \fI(C++11)\fP               \fI(function template)\fP

@@ -1,0 +1,189 @@
+.TH std::basic_stacktrace 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::basic_stacktrace \- std::basic_stacktrace
+
+.SH Synopsis
+ Defined in header <stacktrace>
+ template< class Allocator >                                                    \fB(1)\fP (since
+ class basic_stacktrace;                                                            C++23)
+ using stacktrace =                                                             \fB(2)\fP (since
+     std::basic_stacktrace<std::allocator<std::stacktrace_entry>>;                  C++23)
+ namespace pmr {
+
+ using stacktrace =                                                                 (since
+                                                                                \fB(3)\fP C++23)
+ std::basic_stacktrace<std::pmr::polymorphic_allocator<std::stacktrace_entry>>;
+
+ }
+
+   1) The basic_stacktrace class template represents a snapshot of the whole stacktrace
+   or its given part. It satisfies the requirement of AllocatorAwareContainer,
+   SequenceContainer, and ReversibleContainer, except that only move, assignment, swap,
+   and operations for const-qualified sequence containers are supported, and the
+   semantics of comparison functions are different from those required for a container.
+   2) Convenience type alias for the basic_stacktrace using the default std::allocator.
+   3) Convenience type alias for the basic_stacktrace using the polymorphic allocator.
+
+   The invocation sequence of the current evaluation \\(\\small{ {x}_{0} }\\)x[0] in the
+   current thread of execution is a sequence \\(\\small{ ({x}_{0}, \\dots,
+   {x}_{n})}\\)(x[0], ..., x[n]) of evaluations such that, for \\(\\small{i \\ge 0}\\)i≥0,
+   \\(\\small{ {x}_{i} }\\)x[i] is within the function invocation \\(\\small{ {x}_{i+1}
+   }\\)x[i+1].
+
+   A stacktrace is an approximate representation of an invocation sequence and consists
+   of stacktrace entries.
+
+   A stacktrace entry represents an evaluation in a stacktrace. It is represented by
+   std::stacktrace_entry in the C++ standard library.
+
+.SH Template parameters
+
+               An allocator that is used to acquire/release memory and to
+   Allocator - construct/destroy the elements in that memory. The type must meet the
+               requirements of Allocator. The program is ill-formed if
+               Allocator::value_type is not std::stacktrace_entry.
+
+.SH Member types
+
+   Member type            Definition
+   value_type             std::stacktrace_entry
+   const_reference        const value_type&
+   reference              value_type&
+   const_iterator         implementation-defined const LegacyRandomAccessIterator type
+                          that models random_access_iterator
+   iterator               const_iterator
+   reverse_iterator       std::reverse_iterator<iterator>
+   reverse_const_iterator std::reverse_iterator<const_iterator>
+   difference_type        implementation-defined signed integer type
+   size_type              implementation-defined unsigned integer type
+   allocator_type         Allocator
+
+.SH Member functions
+
+   constructor   creates a new basic_stacktrace
+                 \fI(public member function)\fP
+   destructor    destroys the basic_stacktrace
+                 \fI(public member function)\fP
+   operator=     assigns to the basic_stacktrace
+                 \fI(public member function)\fP
+   current       obtains the current stacktrace or its given part
+   \fB[static]\fP      \fI(public static member function)\fP
+   get_allocator returns the associated allocator
+                 \fI(public member function)\fP
+.SH Iterators
+   begin         returns an iterator to the beginning
+   cbegin        \fI(public member function)\fP
+   end           returns an iterator to the end
+   cend          \fI(public member function)\fP
+   rbegin        returns a reverse iterator to the beginning
+   crbegin       \fI(public member function)\fP
+   rend          returns a reverse iterator to the end
+   crend         \fI(public member function)\fP
+.SH Capacity
+   empty         checks whether the basic_stacktrace is empty
+                 \fI(public member function)\fP
+   size          returns the number of stacktrace entries
+                 \fI(public member function)\fP
+   max_size      returns the maximum possible number of stacktrace entries
+                 \fI(public member function)\fP
+.SH Element access
+   operator[]    access specified stacktrace entry
+                 \fI(public member function)\fP
+   at            access specified stacktrace entry with bounds checking
+                 \fI(public member function)\fP
+.SH Modifiers
+   swap          swaps the contents
+                 \fI(public member function)\fP
+
+.SH Non-member functions
+
+   operator==                       compares the sizes and the contents of two
+   operator<=>                      basic_stacktrace values
+   (C++23)                          \fI(function template)\fP
+   std::swap(std::basic_stacktrace) specializes the std::swap algorithm
+   (C++23)                          \fI(function template)\fP
+   to_string                        returns a string with a description of the
+   (C++23)                          basic_stacktrace
+                                    \fI(function template)\fP
+   operator<<                       performs stream output of basic_stracktrace
+   (C++23)                          \fI(function template)\fP
+
+.SH Helper classes
+
+   std::hash<std::basic_stacktrace>      hash support for std::basic_stacktrace
+   (C++23)                               \fI(class template specialization)\fP
+   std::formatter<std::basic_stacktrace> formatting support for basic_stacktrace
+   (C++23)                               \fI(class template specialization)\fP
+
+.SH Notes
+
+   Support for custom allocators is provided for using basic_stacktrace on a hot path
+   or in embedded environments. Users can allocate stacktrace_entry objects on the
+   stack or in some other place, where appropriate.
+
+   The sequence of std::stacktrace_entry objects owned by a std::basic_stacktrace is
+   immutable, and either is empty or represents a contiguous interval of the whole
+   stacktrace.
+
+   boost::stacktrace::basic_stacktrace (available in Boost.Stacktrace) can be used
+   instead when std::basic_stacktrace is not available.
+
+    Feature-test macro   Value    Std                      Feature
+   __cpp_lib_stacktrace 202011L (C++23) Stacktrace library
+   __cpp_lib_formatters 202302L (C++23) Formatting std::thread::id and std::stacktrace
+
+.SH Example
+
+   The output obtained using Compiler Explorer: msvc and gcc.
+
+
+// Run this code
+
+ #include <iostream>
+ #include <stacktrace>
+
+ int nested_func(int c)
+ {
+     std::cout << std::stacktrace::current() << '\\n';
+     return c + 1;
+ }
+
+ int func(int b)
+ {
+     return nested_func(b + 1);
+ }
+
+ int main()
+ {
+     std::cout << func(777);
+ }
+
+.SH Possible output:
+
+ // msvc output (the lines ending with '⤶' arrows are split to fit the width):
+ 0> C:\\Users\\ContainerAdministrator\\AppData\\Local\\Temp\\compiler-explorer-compiler20221122-⤶
+ 31624-2ja1sf.8ytzw\\example.cpp\fB(6)\fP: output_s!nested_func+0x1F
+ 1> C:\\Users\\ContainerAdministrator\\AppData\\Local\\Temp\\compiler-explorer-compiler20221122-⤶
+ 31624-2ja1sf.8ytzw\\example.cpp\fB(12)\fP: output_s!func+0x15
+ 2> C:\\Users\\ContainerAdministrator\\AppData\\Local\\Temp\\compiler-explorer-compiler20221122-⤶
+ 31624-2ja1sf.8ytzw\\example.cpp\fB(15)\fP: output_s!main+0xE
+ 3> D:\\a\\_work\\1\\s\\src\\vctools\\crt\\vcstartup\\src\\startup\\exe_common.inl(288): output_s!⤶
+ __scrt_common_main_seh+0x10C
+ 4> KERNEL32!BaseThreadInitThunk+0x14
+ 5> ntdll!RtlUserThreadStart+0x21
+ 779
+
+ gcc output:
+    0# nested_func(int) at /app/example.cpp:7
+    1# func(int) at /app/example.cpp:13
+    2#      at /app/example.cpp:18
+    3#      at :0
+    4#      at :0
+    5#
+
+ 779
+
+.SH See also
+
+   stacktrace_entry representation of an evaluation in a stacktrace
+   (C++23)          \fI(class)\fP

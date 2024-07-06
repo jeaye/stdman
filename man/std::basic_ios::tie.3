@@ -1,10 +1,11 @@
-.TH std::basic_ios::tie 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_ios::tie 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_ios::tie \- std::basic_ios::tie
 
 .SH Synopsis
-   std::basic_ostream<CharT,Traits>* tie() const;                                  \fB(1)\fP
-   std::basic_ostream<CharT,Traits>* tie( std::basic_ostream<CharT,Traits>* str ); \fB(2)\fP
+   std::basic_ostream<CharT, Traits>* tie() const;                                 \fB(1)\fP
+   std::basic_ostream<CharT, Traits>* tie( std::basic_ostream<CharT, Traits>* str  \fB(2)\fP
+   );
 
    Manages the tied stream. A tied stream is an output stream which is synchronized
    with the sequence controlled by the stream buffer (rdbuf()), that is, flush() is
@@ -13,7 +14,9 @@ std::basic_ios::tie \- std::basic_ios::tie
    1) Returns the current tied stream. If there is no tied stream, a null pointer is
    returned.
    2) Sets the current tied stream to str. Returns the tied stream before the
-   operation. If there is no tied stream, a null pointer is returned.
+   operation. If there is no tied stream, a null pointer is returned. If str is not
+   null and tie() is reachable by traversing the linked list of tied stream objects
+   starting from str->tie(), the behavior is undefined.
 
 .SH Parameters
 
@@ -29,16 +32,17 @@ std::basic_ios::tie \- std::basic_ios::tie
 
 .SH Notes
 
-   By default, the standard stream cout is tied to cin and cerr. Similarly, its wide
-   counterpart wcout is tied to wcin and wcerr.
+   By default, the standard stream std::cout is tied to std::cin and std::cerr.
+   Similarly, its wide counterpart std::wcout is tied to std::wcin and std::wcerr.
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
  #include <fstream>
+ #include <iomanip>
+ #include <iostream>
  #include <string>
 
  int main()
@@ -50,16 +54,36 @@ std::basic_ios::tie \- std::basic_ios::tie
      os << "Hello";
      is >> value;
 
-     std::cout << "Result before tie(): \\"" << value << "\\"\\n";
+     std::cout << "Result before tie(): " << std::quoted(value) << "\\n";
      is.clear();
      is.tie(&os);
 
      is >> value;
 
-     std::cout << "Result after tie(): \\"" << value << "\\"\\n";
+     std::cout << "Result after tie(): " << std::quoted(value) << "\\n";
  }
 
 .SH Output:
 
  Result before tie(): "0"
  Result after tie(): "Hello"
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to          Behavior as published              Correct behavior
+                      two streams could be tied to each
+   LWG 835 C++98      other^[1]                               the behavior is undefined
+                      (either directly or through another     in this case
+                      intermediate stream object)
+
+    1. ↑ std::basic_ostream::flush() is an UnformattedOutputFunction, so it creates a
+       sentry object while being called. When flush() is called on a stream object, the
+       constructor of the sentry object will call flush() on its tied stream, and that
+       flush() will construct another sentry object and its constructor will call
+       flush() on the tied stream of that stream and so on. Therefore, if streams a and
+       b are (directly or indirectly) tied to each other, calling a.flush() will
+       eventually call b.flush(), which will eventually call a.flush(), and will result
+       in an infinite loop.

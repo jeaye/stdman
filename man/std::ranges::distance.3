@@ -1,32 +1,36 @@
-.TH std::ranges::distance 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::distance 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::distance \- std::ranges::distance
 
 .SH Synopsis
    Defined in header <iterator>
    Call signature
-   template< std::input_or_output_iterator I, std::sentinel_for<I> S
-   >
-                                                                      \fB(1)\fP \fI(since C++20)\fP
-   requires (!std::sized_sentinel_for<S, I>)
+   template< class I, std::sentinel_for<I> S >
 
-   constexpr std::iter_difference_t<I> distance( I first, S last );
-   template< std::input_or_output_iterator I,
-   std::sized_sentinel_for<I> S >                                     \fB(2)\fP \fI(since C++20)\fP
-   constexpr std::iter_difference_t<I> distance( const I& first,
-   const S& last );
-   template< ranges::range R >                                        \fB(3)\fP \fI(since C++20)\fP
-   constexpr ranges::range_difference_t<R> distance( R&& r );
+       requires (!std::sized_sentinel_for<S, I>)                   \fB(1)\fP \fI(since C++20)\fP
+   constexpr std::iter_difference_t<I>
+
+       distance( I first, S last );
+   template< class I, std::sized_sentinel_for<std::decay_t<I>> S >
+
+   constexpr std::iter_difference_t<std::decay_t<I>>               \fB(2)\fP \fI(since C++20)\fP
+
+       distance( I&& first, S last );
+   template< ranges::range R >
+
+   constexpr ranges::range_difference_t<R>                         \fB(3)\fP \fI(since C++20)\fP
+
+       distance( R&& r );
 
    1,2) Returns the number of hops from first to last.
    3) Returns the size of r as a signed integer.
 
    The function-like entities described on this page are niebloids, that is:
 
-     * Explicit template argument lists may not be specified when calling any of them.
-     * None of them is visible to argument-dependent lookup.
-     * When one of them is found by normal unqualified lookup for the name to the left
-       of the function-call operator, it inhibits argument-dependent lookup.
+     * Explicit template argument lists cannot be specified when calling any of them.
+     * None of them are visible to argument-dependent lookup.
+     * When any of them are found by normal unqualified lookup as the name to the left
+       of the function-call operator, argument-dependent lookup is inhibited.
 
    In practice, they may be implemented as function objects, or with special compiler
    extensions.
@@ -40,7 +44,7 @@ std::ranges::distance \- std::ranges::distance
 .SH Return value
 
    1) The number of increments needed to go from first to last.
-   2) last - first.
+   2) last - static_cast<const std::decay_t<I>&>(first).
    3) If R models ranges::sized_range, returns ranges::size(r); otherwise
    ranges::distance(ranges::begin(r), ranges::end(r)).
 
@@ -48,41 +52,41 @@ std::ranges::distance \- std::ranges::distance
 
    1) Linear.
    2) Constant.
-   2) If R models ranges::sized_range or if
+   3) If R models ranges::sized_range or if
    std::sized_sentinel_for<ranges::sentinel_t<R>, ranges::iterator_t<R>> is modeled,
    complexity is constant; otherwise linear.
 
 .SH Possible implementation
 
-   struct distance_fn {
-     template<std::input_or_output_iterator I, std::sentinel_for<I> S>
-       requires (!std::sized_sentinel_for<S, I>)
-     constexpr std::iter_difference_t<I> operator()(I first, S last) const
-     {
-       std::iter_difference_t<I> result = 0;
-       while (first != last) {
-           ++first;
-           ++result;
+   struct distance_fn
+   {
+       template<class I, std::sentinel_for<I> S>
+           requires (!std::sized_sentinel_for<S, I>)
+       constexpr std::iter_difference_t<I> operator()(I first, S last) const
+       {
+           std::iter_difference_t<I> result = 0;
+           while (first != last)
+           {
+               ++first;
+               ++result;
+           }
+           return result;
        }
-       return result;
-     }
 
-     template<std::input_or_output_iterator I, std::sized_sentinel_for<I> S>
-     constexpr std::iter_difference_t<I> operator()(const I& first, const S& last) const
-     {
-       return last - first;
-     }
+       template<class I, std::sized_sentinel_for<std::decay<I>> S>
+       constexpr std::iter_difference_t<I> operator()(const I& first, S last) const
+       {
+           return last - first;
+       }
 
-     template<ranges::range R>
-     constexpr ranges::range_difference_t<R> operator()(R&& r) const
-     {
-       if constexpr (ranges::sized_range<std::remove_cvref_t<R>>) {
-         return static_cast<ranges::range_difference_t<R>>(ranges::size(r));
+       template<ranges::range R>
+       constexpr ranges::range_difference_t<R> operator()(R&& r) const
+       {
+           if constexpr (ranges::sized_range<std::remove_cvref_t<R>>)
+               return static_cast<ranges::range_difference_t<R>>(ranges::size(r));
+           else
+               return (*this)(ranges::begin(r), ranges::end(r));
        }
-       else {
-         return (*this)(ranges::begin(r), ranges::end(r));
-       }
-     }
    };
 
    inline constexpr auto distance = distance_fn{};
@@ -92,36 +96,36 @@ std::ranges::distance \- std::ranges::distance
 
 // Run this code
 
- #include <iostream>
+ #include <cassert>
+ #include <forward_list>
  #include <iterator>
  #include <vector>
 
  int main()
  {
-     std::vector<int> v{ 3, 1, 4 };
-     namespace ranges = std::ranges;
-     std::cout << "distance(first, last) = "
-               << ranges::distance(v.begin(), v.end()) << '\\n'
-               << "distance(last, first) = "
-               << ranges::distance(v.end(), v.begin()) << '\\n'
-               << "distance(v) = " << ranges::distance(v) << '\\n';
+     std::vector<int> v{3, 1, 4};
+     assert(std::ranges::distance(v.begin(), v.end()) == 3);
+     assert(std::ranges::distance(v.end(), v.begin()) == -3);
+     assert(std::ranges::distance(v) == 3);
+
+     std::forward_list<int> l{2, 7, 1};
+     // auto size = std::ranges::size(l); // error: not a sizable range
+     auto size = std::ranges::distance(l); // OK, but aware O(N) complexity
+     assert(size == 3);
  }
 
-.SH Output:
-
- distance(first, last) = 3
- distance(last, first) = -3
- distance(v) = 3
-
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
-      DR    Applied to           Behavior as published              Correct behavior
-                       distance takes iterator by value, thus     by reference overload
-   LWG 3392 C++20      rejecting move-only iterator lvalue with a added
-                       sized sentinel
+      DR    Applied to             Behavior as published              Correct behavior
+                       overload (1) takes iterator by value, thus
+   LWG 3392 C++20      move-only                                     added overload (2)
+                       iterator lvalue with a sized sentinel was
+                       rejected
+   LWG 3664 C++20      the resolution of LWG issue 3392 made         accepts them
+                       ranges::distance reject array arguments
 
 .SH See also
 

@@ -1,30 +1,31 @@
-.TH std::valarray::operator[] 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::valarray::operator[] 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::valarray::operator[] \- std::valarray::operator[]
 
 .SH Synopsis
-   T operator[]( std::size_t pos ) const;                                 \fI(until C++11)\fP
-   const T& operator[]( std::size_t pos ) const;                          \fI(since C++11)\fP
-   T& operator[]( std::size_t pos );                                 \fB(2)\fP
-   std::valarray<T> operator[]( std::slice slicearr ) const;         \fB(3)\fP
-   std::slice_array<T> operator[]( std::slice slicearr );            \fB(4)\fP
-   std::valarray<T> operator[]( const std::gslice& gslicearr )       \fB(5)\fP
+   const T&               operator[]( std::size_t pos ) const;                    \fB(1)\fP
+   T&                     operator[]( std::size_t pos );                          \fB(2)\fP
+   std::valarray<T>       operator[]( std::slice slicearr ) const;                \fB(3)\fP
+   std::slice_array<T>    operator[]( std::slice slicearr );                      \fB(4)\fP
+   std::valarray<T>       operator[]( const std::gslice& gslicearr ) const;       \fB(5)\fP
+   std::gslice_array<T>   operator[]( const std::gslice& gslicearr );             \fB(6)\fP
+   std::valarray<T>       operator[]( const std::valarray<bool>& boolarr ) const; \fB(7)\fP
+   std::mask_array<T>     operator[]( const std::valarray<bool>& boolarr );       \fB(8)\fP
+   std::valarray<T>       operator[]( const std::valarray<std::size_t>& indarr )  \fB(9)\fP
    const;
-   std::gslice_array<T> operator[]( const std::gslice& gslicearr     \fB(6)\fP
-   );                                                            \fB(1)\fP
-   std::valarray<T> operator[]( const valarray<bool>& boolarr )      \fB(7)\fP
-   const;
-   std::mask_array<T> operator[]( const valarray<bool>& boolarr      \fB(8)\fP
-   );
-   std::valarray<T> operator[]( const valarray<std::size_t>&         \fB(9)\fP
-   indarr ) const;
-   std::indirect_array<T> operator[]( const                          \fB(10)\fP
-   valarray<std::size_t>& indarr );
+   std::indirect_array<T> operator[]( const std::valarray<std::size_t>& indarr ); \fB(10)\fP
 
    Retrieve single elements or portions of the array.
 
    The const overloads that return element sequences create a new std::valarray object.
    The non-const overloads return classes holding references to the array elements.
+
+   The selected elements(s) must exist:
+
+     * for overloads (1,2), if pos is not less than size(), the behavior is undefined;
+       and
+     * for overloads (3-10), if the argument does not specify a valid subset of *this,
+       the behavior is undefined.
 
 .SH Parameters
 
@@ -36,85 +37,92 @@ std::valarray::operator[] \- std::valarray::operator[]
 
 .SH Return value
 
-   1,2) A reference to the corresponding element
-   3,5,7,9) A std::valarray object containing copies of the selected items
+   1,2) A reference to the corresponding element.
+   3,5,7,9) A std::valarray object containing copies of the selected items.
    4,6,8,10) The corresponding data structure containing references to the selected
-   items
+   items.
 
 .SH Exceptions
 
    May throw implementation-defined exceptions.
 
-.SH Precondition
-
-   The selected elements must exist.
-
 .SH Notes
 
-     * For proper values of i and j, the following properties are true:
+   For proper std::valarray values a, b and proper std::size_t values i, j, all of the
+   following expressions always evaluate to true:
 
-   1) (a[i] = q, a[i]) == q
+   1) (a[i] = q, a[i]) == q for non-const a
+   2) &a[i + j] == &a[i] + j
+     * This means that std::valarray elements are adjacent in memory.
+   3) &a[i] != &b[j] for every objects a and b that are not aliases of one another
+     * This means that there are no aliases in the elements and this property can be
+       used to perform some kinds of optimization.
 
-           For a non-const a.
-
-   2) &a[i+j] == &a[i] + j
-
-           This means that valarray elements are adjacent in memory.
-
-   3) &a[i] != &b[j]
-
-           This holds for every objects a and b that are not aliases of one another.
-           This means that there are no aliases in the elements and this property can
-           be used to perform some kinds of optimization.
-
-     * References become invalid on resize or when the array is destructed.
+   References become invalid on resize() or when the array is destructed.
 
    For overloads (3,5,7,9), The function can be implemented with the return type
    different from std::valarray. In this case, the replacement type has the following
    properties:
 
-              * All const member functions of std::valarray are provided.
-              * std::valarray, std::slice_array, std::gslice_array, std::mask_array and
-                std::indirect_array can be constructed from the replacement type.
-              * All functions accepting an argument of type const std::valarray&
-                except begin() and end()
-                \fI(since C++11)\fP should also accept the replacement type.
-              * All functions accepting two arguments of type const std::valarray&
-                should accept every combination of const std::valarray& and the
-                replacement type.
-              * The return type does not add more than two levels of template nesting
-                over the most deeply-nested argument type.
+     * All const member functions of std::valarray are provided.
+     * std::valarray, std::slice_array, std::gslice_array, std::mask_array and
+       std::indirect_array can be constructed from the replacement type.
+     * For every function taking a const std::valarray<T>&
+       except begin() and end()
+       \fI(since C++11)\fP, identical functions taking the replacement types shall be added;
+     * For every function taking two const std::valarray<T>& arguments, identical
+       functions taking every combination of const std::valarray<T>& and replacement
+       types shall be added.
+     * The return type does not add more than two levels of template nesting over the
+       most deeply-nested argument type.
 
-   Slice/mask/indirect index accesses do not chain: v[v==n][std::slice(0,5,2)] = x; is
-   an error because std::mask_array (the type of v[v==n]) does not have operator[].
+   Slice/mask/indirect index accesses do not chain: v[v == n][std::slice(0, 5, 2)] = x;
+   is an error because std::mask_array (the type of v[v == n]) does not have
+   operator[].
 
 .SH Example
 
 
 // Run this code
 
+ #include <cstddef>
+ #include <iomanip>
  #include <iostream>
  #include <valarray>
 
  int main()
  {
-     std::valarray<int> data = {0,1,2,3,4,5,6,7,8,9};
+     std::valarray<int> data = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
-     std::cout << "Initial valarray: ";
-     for(int n: data) std::cout << n << ' ';
+     std::cout << "Initial valarray:   ";
+     for (int n : data)
+         std::cout << std::setw(3) << n;
      std::cout << '\\n';
 
      data[data > 5] = -1; // valarray<bool> overload of operator[]
-     // the type of data>5 is std::valarray<bool>
-     // the type of data[data>5] is std::mask_array<int>
+     // the type of data > 5 is std::valarray<bool>
+     // the type of data[data > 5] is std::mask_array<int>
 
-     std::cout << "After v[v>5]=-1:  ";
-     for(std::size_t n = 0; n < data.size(); ++n)
-       std::cout << data[n] << ' ';  // regular operator[]
+     std::cout << "After v[v > 5] = -1:";
+     for (std::size_t n = 0; n < data.size(); ++n)
+         std::cout << std::setw(3) << data[n]; // regular operator[]
      std::cout << '\\n';
  }
 
 .SH Output:
 
- Initial valarray: 0 1 2 3 4 5 6 7 8 9
- After v[v>5]=-1:  0 1 2 3 4 5 -1 -1 -1 -1
+ Initial valarray:     0  1  2  3  4  5  6  7  8  9
+ After v[v > 5] = -1:  0  1  2  3  4  5 -1 -1 -1 -1
+
+   Defect reports
+
+   The following behavior-changing defect reports were applied retroactively to
+   previously published C++ standards.
+
+     DR    Applied to          Behavior as published              Correct behavior
+   LWG 389 C++98      the return type of overload \fB(1)\fP was T    corrected to const T&
+   LWG 430 C++98      the behavior was unclear for overloads   the behavior is
+                      (3-10) if an invalid subset is specified undefined in this case
+
+.SH Hidden category:
+     * Pages with unreviewed LWG DR marker

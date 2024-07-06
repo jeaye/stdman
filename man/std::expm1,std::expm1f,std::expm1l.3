@@ -1,29 +1,42 @@
-.TH std::expm1,std::expm1f,std::expm1l 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::expm1,std::expm1f,std::expm1l 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::expm1,std::expm1f,std::expm1l \- std::expm1,std::expm1f,std::expm1l
 
 .SH Synopsis
    Defined in header <cmath>
-   float expm1 ( float arg );             \fB(1)\fP \fI(since C++11)\fP
-   float expm1f( float arg );
-   double expm1 ( double arg );           \fB(2)\fP \fI(since C++11)\fP
-   long double expm1 ( long double arg ); \fB(3)\fP \fI(since C++11)\fP
-   long double expm1l( long double arg );
-   double expm1 ( IntegralType arg );     \fB(4)\fP \fI(since C++11)\fP
+   float       expm1 ( float num );
 
-   1-3) Computes the e (Euler's number, 2.7182818) raised to the given power arg, minus
-   1.0. This function is more accurate than the expression std::exp(arg)-1.0 if arg is
-   close to zero.
-   4) A set of overloads or a function template accepting an argument of any integral
-   type. Equivalent to \fB(2)\fP (the argument is cast to double).
+   double      expm1 ( double num );                            (until C++23)
+
+   long double expm1 ( long double num );
+   /* floating-point-type */                                    (since C++23)
+               expm1 ( /* floating-point-type */ num );         (constexpr since C++26)
+   float       expm1f( float num );                     \fB(1)\fP \fB(2)\fP \fI(since C++11)\fP
+                                                                (constexpr since C++26)
+   long double expm1l( long double num );                   \fB(3)\fP \fI(since C++11)\fP
+                                                                (constexpr since C++26)
+   Additional overloads \fI(since C++11)\fP
+   Defined in header <cmath>
+   template< class Integer >                                (A) (constexpr since C++26)
+   double      expm1 ( Integer num );
+
+   1-3) Computes the e (Euler's number, 2.7182818...) raised to the given power num,
+   minus 1.0. This function is more accurate than the expression std::exp(num) - 1.0 if
+   num is close to zero.
+   The library provides overloads of std::expm1 for all cv-unqualified floating-point
+   types as the type of the parameter.
+   (since C++23)
+
+   A) Additional overloads are provided for all integer types, which are  \fI(since C++11)\fP
+   treated as double.
 
 .SH Parameters
 
-   arg - value of floating-point or Integral type
+   num - floating-point or integer value
 
 .SH Return value
 
-   If no errors occur earg
+   If no errors occur enum
    -1 is returned.
 
    If a range error due to overflow occurs, +HUGE_VAL, +HUGE_VALF, or +HUGE_VALL is
@@ -38,10 +51,10 @@ std::expm1,std::expm1f,std::expm1l \- std::expm1,std::expm1f,std::expm1l
 
    If the implementation supports IEEE floating-point arithmetic (IEC 60559),
 
-     * If the argument is ±0, it is returned, unmodified
-     * If the argument is -∞, -1 is returned
-     * If the argument is +∞, +∞ is returned
-     * If the argument is NaN, NaN is returned
+     * If the argument is ±0, it is returned, unmodified.
+     * If the argument is -∞, -1 is returned.
+     * If the argument is +∞, +∞ is returned.
+     * If the argument is NaN, NaN is returned.
 
 .SH Notes
 
@@ -50,34 +63,43 @@ std::expm1,std::expm1f,std::expm1l \- std::expm1,std::expm1f,std::expm1l
    -1 can be expressed as std::expm1(n * std::log1p(x)). These functions also simplify
    writing accurate inverse hyperbolic functions.
 
-   For IEEE-compatible type double, overflow is guaranteed if 709.8 < arg
+   For IEEE-compatible type double, overflow is guaranteed if 709.8 < num.
+
+   The additional overloads are not required to be provided exactly as (A). They only
+   need to be sufficient to ensure that for their argument num of integer type,
+   std::expm1(num) has the same effect as std::expm1(static_cast<double>(num)).
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
- #include <cmath>
  #include <cerrno>
- #include <cstring>
  #include <cfenv>
+ #include <cmath>
+ #include <cstring>
+ #include <iostream>
  // #pragma STDC FENV_ACCESS ON
+
  int main()
  {
      std::cout << "expm1(1) = " << std::expm1(1) << '\\n'
-               << "Interest earned in 2 days on on $100, compounded daily at 1%\\n"
-               << " on a 30/360 calendar = "
-               << 100*std::expm1(2*std::log1p(0.01/360)) << '\\n'
-               << "exp(1e-16)-1 = " << std::exp(1e-16)-1
+               << "Interest earned in 2 days on $100, compounded daily at 1%\\n"
+               << "    on a 30/360 calendar = "
+               << 100 * std::expm1(2 * std::log1p(0.01 / 360)) << '\\n'
+               << "exp(1e-16)-1 = " << std::exp(1e-16) - 1
                << ", but expm1(1e-16) = " << std::expm1(1e-16) << '\\n';
+
      // special values
      std::cout << "expm1(-0) = " << std::expm1(-0.0) << '\\n'
                << "expm1(-Inf) = " << std::expm1(-INFINITY) << '\\n';
+
      // error handling
      errno = 0;
      std::feclearexcept(FE_ALL_EXCEPT);
+
      std::cout << "expm1(710) = " << std::expm1(710) << '\\n';
+
      if (errno == ERANGE)
          std::cout << "    errno == ERANGE: " << std::strerror(errno) << '\\n';
      if (std::fetestexcept(FE_OVERFLOW))
@@ -87,9 +109,9 @@ std::expm1,std::expm1f,std::expm1l \- std::expm1,std::expm1f,std::expm1l
 .SH Possible output:
 
  expm1\fB(1)\fP = 1.71828
- Interest earned in 2 days on on $100, compounded daily at 1%
-  on a 30/360 calendar = 0.00555563
- exp(1e-16)-1 = 0 expm1(1e-16) = 1e-16
+ Interest earned in 2 days on $100, compounded daily at 1%
+     on a 30/360 calendar = 0.00555563
+ exp(1e-16)-1 = 0, but expm1(1e-16) = 1e-16
  expm1(-0) = -0
  expm1(-Inf) = -1
  expm1(710) = inf
@@ -110,8 +132,10 @@ std::expm1,std::expm1f,std::expm1l \- std::expm1,std::expm1f,std::expm1l
    \fI(C++11)\fP
    \fI(C++11)\fP
    log1p
-   log1pf  natural logarithm (to base e) of 1 plus the given number (\\({\\small
-   log1pl  \\ln{(1+x)} }\\)ln(1+x))
+   log1pf  natural logarithm (to base e) of 1 plus the given number
+   log1pl  (\\({\\small\\ln{(1+x)}}\\)ln(1+x))
    \fI(C++11)\fP \fI(function)\fP
    \fI(C++11)\fP
    \fI(C++11)\fP
+   C documentation for
+   expm1

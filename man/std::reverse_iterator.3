@@ -1,4 +1,4 @@
-.TH std::reverse_iterator 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::reverse_iterator 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::reverse_iterator \- std::reverse_iterator
 
@@ -15,7 +15,7 @@ std::reverse_iterator \- std::reverse_iterator
    beginning of the sequence defined by the underlying bidirectional iterator.
 
    For a reverse iterator r constructed from an iterator i, the relationship &*r ==
-   &*(i-1) is always true (as long as r is dereferenceable); thus a reverse iterator
+   &*(i - 1) is always true (as long as r is dereferenceable); thus a reverse iterator
    constructed from a one-past-the-end iterator dereferences to the last element in a
    sequence.
 
@@ -50,11 +50,11 @@ std::reverse_iterator \- std::reverse_iterator
    Member types iterator_category, value_type, difference_type, pointer
    and reference are required to be obtained by inheriting from
    std::iterator<
-   std::iterator_traits<Iter>::iterator_category
-   , std::iterator_traits<Iter>::value_type                               \fI(until C++17)\fP
-   , std::iterator_traits<Iter>::difference_type
-   , std::iterator_traits<Iter>::pointer
-   , std::iterator_traits<Iter>::reference
+       std::iterator_traits<Iter>::iterator_category,
+       std::iterator_traits<Iter>::value_type,                            \fI(until C++17)\fP
+       std::iterator_traits<Iter>::difference_type,
+       std::iterator_traits<Iter>::pointer,
+       std::iterator_traits<Iter>::reference
    >.
 
 .SH Member functions
@@ -107,15 +107,15 @@ std::reverse_iterator \- std::reverse_iterator
    \fI(C++14)\fP               argument
                          \fI(function template)\fP
 
-  Helper templates
+   Helper templates
 
    template< class Iterator1, class Iterator2 >
 
-   requires (!std::sized_sentinel_for<Iterator1, Iterator2>)
-   inline constexpr bool disable_sized_sentinel_for<          \fI(since C++20)\fP
-   std::reverse_iterator<Iterator1>,
+       requires (!std::sized_sentinel_for<Iterator1, Iterator2>)
+   inline constexpr bool disable_sized_sentinel_for<              \fI(since C++20)\fP
+       std::reverse_iterator<Iterator1>,
 
-   std::reverse_iterator<Iterator2>> = true;
+       std::reverse_iterator<Iterator2>> = true;
 
    This partial specialization of std::disable_sized_sentinel_for prevents
    specializations of reverse_iterator from satisfying sized_sentinel_for if their
@@ -123,68 +123,83 @@ std::reverse_iterator \- std::reverse_iterator
 
 .SH Possible implementation
 
-   Below is a partial implementation focusing on the way the inner iterator is saved,
-   calling prev only when the content is fetched via operator*.
+   Below is a partial implementation focusing on the way the inner iterator is stored,
+   calling std::prev only when the content is fetched via operator*.
 
-  template<typename Itr>
-  class reverse_iterator {
-      Itr itr;
-  public:
-      constexpr explicit reverse_iterator(Itr itr): itr(itr) {}
-      constexpr auto& operator*() {
-          return *std::prev(itr); // <== returns the content of prev
-      }
-      constexpr auto& operator++() {
-          --itr;
-          return *this;
-      }
-      constexpr friend bool operator!=(reverse_iterator<Itr> a, reverse_iterator<Itr> b) {
-          return a.itr != b.itr;
-      }
-  };
+template<class It>
+class reverse_iterator
+{
+protected:
+    It current = It();
+public:
+    reverse_iterator() = default;
+    constexpr explicit reverse_iterator(It itr) : current(itr) {}
+    template<class U>
+        requires (!std::is_same_v<U, It> && std::convertible_to<const U&, It>)
+    constexpr explicit reverse_iterator(const U& other) : current(other.base()) {}
+
+    constexpr decltype(auto) operator*() const
+    {
+        return *std::prev(current); // <== returns the content of prev
+    }
+
+    constexpr reverse_iterator& operator++() { --current; return *this; }
+    constexpr reverse_iterator operator++(int) { auto tmp = *this; ++(*this); return tmp; }
+
+    constexpr reverse_iterator& operator--() { ++current; return *this; }
+    constexpr reverse_iterator operator--(int) { auto tmp = *this; --(*this); return tmp; }
+
+    constexpr It base() const { return current; }
+
+    // Other member functions, friend functions, and member typedefs are not shown here.
+};
 
 .SH Notes
 
    std::reverse_iterator does not work with iterators whose dereference returns a
-   reference to a member of *this (so-called "stashing iterators").
+   reference to a member of *this (so-called "stashing iterators"). An example of a
+   stashing iterator is MSVC STL's std::filesystem::path::iterator.
 
 .SH Example
 
 
 // Run this code
 
+ #include <cstddef>
  #include <iostream>
  #include <iterator>
 
- template<typename T, size_t SIZE>
- class Stack {
+ template<typename T, std::size_t SIZE>
+ class Stack
+ {
      T arr[SIZE];
-     size_t pos = 0;
+     std::size_t pos = 0;
  public:
-     T pop() {
+     T pop()
+     {
          return arr[--pos];
      }
-     Stack& push(const T& t) {
+
+     Stack& push(const T& t)
+     {
          arr[pos++] = t;
          return *this;
      }
+
      // we wish that looping on Stack would be in LIFO order
      // thus we use std::reverse_iterator as an adaptor to existing iterators
-     // (which are in this case the simple pointers: [arr, arr+pos)
-     auto begin() {
-         return std::reverse_iterator(arr + pos);
-     }
-     auto end() {
-         return std::reverse_iterator(arr);
-     }
+     // (which are in this case the simple pointers: [arr, arr + pos)
+     auto begin() { return std::reverse_iterator(arr + pos); }
+     auto end() { return std::reverse_iterator(arr); }
  };
 
- int main() {
+ int main()
+ {
      Stack<int, 8> s;
      s.push(5).push(15).push(25).push(35);
-     for(int val: s) {
+     for (int val : s)
          std::cout << val << ' ';
-     }
+     std::cout << '\\n';
  }
 
 .SH Output:

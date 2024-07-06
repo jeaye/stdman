@@ -1,56 +1,71 @@
-.TH std::thread::thread 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::thread::thread 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::thread::thread \- std::thread::thread
 
 .SH Synopsis
-   thread() noexcept;                               \fB(1)\fP \fI(since C++11)\fP
-   thread( thread&& other ) noexcept;               \fB(2)\fP \fI(since C++11)\fP
-   template< class Function, class... Args >        \fB(3)\fP \fI(since C++11)\fP
-   explicit thread( Function&& f, Args&&... args );
-   thread( const thread& ) = delete;                \fB(4)\fP \fI(since C++11)\fP
+   thread() noexcept;                        \fB(1)\fP \fI(since C++11)\fP
+   thread( thread&& other ) noexcept;        \fB(2)\fP \fI(since C++11)\fP
+   template< class F, class... Args >        \fB(3)\fP \fI(since C++11)\fP
+   explicit thread( F&& f, Args&&... args );
+   thread( const thread& ) = delete;         \fB(4)\fP \fI(since C++11)\fP
 
-   Constructs new thread object.
+   Constructs a new std::thread object.
 
-   1) Creates new thread object which does not represent a thread.
-   2) Move constructor. Constructs the thread object to represent the thread of
+   1) Creates a new std::thread object which does not represent a thread.
+   2) Move constructor. Constructs the std::thread object to represent the thread of
    execution that was represented by other. After this call other no longer represents
    a thread of execution.
-   3) Creates new std::thread object and associates it with a thread of execution. The
-   new thread of execution starts executing /*INVOKE*/(std::move(f_copy),
-   std::move(args_copy)...), where
+   3) Creates a new std::thread object and associates it with a thread of execution.
+   The new thread of execution starts executing:
 
-     * /*INVOKE*/ performs the INVOKE operation specified in Callable
-       , which can be performed by std::invoke
-       \fI(since C++17)\fP, and
-     * f_copy is an object of type std::decay<Function>::type and constructed from
-       std::forward<Function>(f), and
-     * args_copy... are objects of types std::decay<Args>::type... and constructed from
-       std::forward<Args>(args)....
+   INVOKE(decay-copy(std::forward<F>(f)),          (until C++23)
+          decay-copy(std::forward<Args>(args))...)
+   std::invoke(auto(std::forward<F>(f)),           (since C++23)
+               auto(std::forward<Args>(args))...)
 
-   Constructions of these objects are executed in the context of the caller, so that
-   any exceptions thrown during evaluation and copying/moving of the arguments are
-   thrown in the current thread, without starting the new thread. The program is
-   ill-formed if any construction or the INVOKE operation is invalid.
-   This constructor does not participate in overload resolution if
-   std::decay<Function>::type is the same type as thread.
-   The completion of the invocation of the constructor synchronizes-with (as defined in
-   std::memory_order) the beginning of the invocation of the copy of f on the new
-   thread of execution.
+   The calls of decay-copy are evaluated
+   (until C++23)
+   The values produced by auto are materialized
+   (since C++23) in the current thread, so that any exceptions thrown during evaluation
+   and copying/moving of the arguments are thrown in the current thread, without
+   starting the new thread.
+   This overload participates in overload resolution only if
+   std::decay<F>::type
+   \fI(until C++20)\fP
+   std::remove_cvref_t<F>
+   \fI(since C++20)\fP is not the same type as std::thread.
+
+   If any of the following conditions is satisfied, the program is
+   ill-formed:
+
+     * F is not MoveConstructible.                                        \fI(until C++20)\fP
+     * Any type in Args is not MoveConstructible.
+     * INVOKE(decay-copy(std::forward<F>(f)),
+              decay-copy(std::forward<Args>(args))...) is not a valid
+       expression.
+   If any of the following is false, the program is ill-formed:
+
+     * std::is_constructible_v<std::decay_t<F>, F>                        \fI(since C++20)\fP
+     * (std::is_constructible_v<std::decay_t<Args>, Args> && ...)
+     * std::is_invocable_v<std::decay_t<F>, std::decay_t<Args>...>
+
+   The completion of the invocation of the constructor synchronizes with the beginning
+   of the invocation of the copy of f on the new thread of execution.
    4) The copy constructor is deleted; threads are not copyable. No two std::thread
    objects may represent the same thread of execution.
 
 .SH Parameters
 
-   other   - another thread object to construct this thread object with
-   f       - Callable object to execute in the new thread
-   args... - arguments to pass to the new function
+   other - another thread object to construct this thread object with
+   f     - Callable object to execute in the new thread
+   args  - arguments to pass to the new function
 
 .SH Postconditions
 
-   1) get_id() equal to std::thread::id() (i.e. joinable is false)
+   1) get_id() equal to std::thread::id() (i.e. joinable() is false).
    2) other.get_id() equal to std::thread::id() and get_id() returns the value of
-   other.get_id() prior to the start of construction
-   3) get_id() not equal to std::thread::id() (i.e. joinable is true)
+   other.get_id() prior to the start of construction.
+   3) get_id() not equal to std::thread::id() (i.e. joinable() is true).
 
 .SH Exceptions
 
@@ -73,14 +88,15 @@ std::thread::thread \- std::thread::thread
 
 // Run this code
 
- #include <iostream>
- #include <utility>
- #include <thread>
  #include <chrono>
+ #include <iostream>
+ #include <thread>
+ #include <utility>
 
  void f1(int n)
  {
-     for (int i = 0; i < 5; ++i) {
+     for (int i = 0; i < 5; ++i)
+     {
          std::cout << "Thread 1 executing\\n";
          ++n;
          std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -89,7 +105,8 @@ std::thread::thread \- std::thread::thread
 
  void f2(int& n)
  {
-     for (int i = 0; i < 5; ++i) {
+     for (int i = 0; i < 5; ++i)
+     {
          std::cout << "Thread 2 executing\\n";
          ++n;
          std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -101,7 +118,8 @@ std::thread::thread \- std::thread::thread
  public:
      void bar()
      {
-         for (int i = 0; i < 5; ++i) {
+         for (int i = 0; i < 5; ++i)
+         {
              std::cout << "Thread 3 executing\\n";
              ++n;
              std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -115,7 +133,8 @@ std::thread::thread \- std::thread::thread
  public:
      void operator()()
      {
-         for (int i = 0; i < 5; ++i) {
+         for (int i = 0; i < 5; ++i)
+         {
              std::cout << "Thread 4 executing\\n";
              ++n;
              std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -170,34 +189,42 @@ std::thread::thread \- std::thread::thread
  Final value of f.n (foo::n) is 5
  Final value of b.n (baz::n) is 0
 
-  Defect reports
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
 
       DR    Applied to              Behavior as published              Correct behavior
-   LWG 2097 C++11      constructor taking a Callable object might be   constrained
-                       ambiguous with the move constructor
+   LWG 2097 C++11      for overload \fB(3)\fP, F could be std::thread        F is constrained
+                       overload \fB(3)\fP directly required (the decayed
+   LWG 3476 C++20      types of)                                       removed these
+                       F and the argument types to be move             requirements^[1]
+                       constructible
+
+    1. ↑ The move-constructibility is already indirectly required by
+       std::is_constructible_v.
 
 .SH References
 
+     * C++23 standard (ISO/IEC 14882:2023):
+
+     * 33.4.3.3 thread constructors [thread.thread.constr]
      * C++20 standard (ISO/IEC 14882:2020):
 
-              * 32.4.2.2 thread constructors [thread.thread.constr]
-
+     * 32.4.2.2 thread constructors [thread.thread.constr]
      * C++17 standard (ISO/IEC 14882:2017):
 
-              * 33.3.2.2 thread constructors [thread.thread.constr]
-
+     * 33.3.2.2 thread constructors [thread.thread.constr]
      * C++14 standard (ISO/IEC 14882:2014):
 
-              * 30.3.1.2 thread constructors [thread.thread.constr]
-
+     * 30.3.1.2 thread constructors [thread.thread.constr]
      * C++11 standard (ISO/IEC 14882:2011):
 
-              * 30.3.1.2 thread constructors [thread.thread.constr]
+     * 30.3.1.2 thread constructors [thread.thread.constr]
 
 .SH See also
 
    constructor   constructs new jthread object
                  \fI(public member function of std::jthread)\fP
+   C documentation for
+   thrd_create

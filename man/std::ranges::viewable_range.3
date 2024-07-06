@@ -1,28 +1,72 @@
-.TH std::ranges::viewable_range 3 "2022.07.31" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::viewable_range 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::viewable_range \- std::ranges::viewable_range
 
 .SH Synopsis
    Defined in header <ranges>
-   template<class T>
+   template< class T >
 
    concept viewable_range =
-   ranges::range<T> &&
-   ((ranges::view<std::remove_cvref_t<T>> &&
-   std::constructible_from<std::remove_cvref_t<T>, T>) ||                 \fI(since C++20)\fP
-   (!ranges::view<std::remove_cvref_t<T>> &&
-   (std::is_lvalue_reference_v<T> ||
+       ranges::range<T> &&
+       ((ranges::view<std::remove_cvref_t<T>> &&
+         std::constructible_from<std::remove_cvref_t<T>, T>) ||           \fI(since C++20)\fP
+        (!ranges::view<std::remove_cvref_t<T>> &&
+         (std::is_lvalue_reference_v<T> ||
 
-   (std::movable<std::remove_reference_t<T>> &&
+          (std::movable<std::remove_reference_t<T>> &&
    !/*is-initializer-list*/<T>))));
 
    The viewable_range concept is a refinement of range that describes a range that can
-   be safely converted into a view.
+   be converted into a view through views::all.
 
    The constant /*is-initializer-list*/<T> is true if and only if
    std::remove_cvref_t<T> is a specialization of std::initializer_list.
 
-  Defect reports
+.SH Example
+
+
+// Run this code
+
+ #include <ranges>
+ #include <string>
+ #include <vector>
+
+ struct valid_result {};
+ struct invalid_result {};
+
+ template <typename T>
+ concept valid_viewable_range = std::same_as<T, valid_result>;
+
+ template <typename T>
+ concept invalid_viewable_range = std::same_as<T, invalid_result>;
+
+ auto test_viewable_range(std::ranges::viewable_range auto &&) -> valid_result;
+ auto test_viewable_range(auto&&) -> invalid_result;
+
+ int main()
+ {
+     auto il = {1, 2, 3};
+     int arr []{1, 2, 3};
+     std::vector vec{1, 2, 3};
+     std::ranges::ref_view r{arr};
+     std::ranges::owning_view o{std::string("Hello")};
+
+     static_assert(requires {
+         { test_viewable_range(il) } -> valid_viewable_range;
+         { test_viewable_range(std::move(il)) } -> invalid_viewable_range;
+         { test_viewable_range(arr) } -> valid_viewable_range;
+         { test_viewable_range(std::move(arr)) } -> invalid_viewable_range;
+         { test_viewable_range(vec) } -> valid_viewable_range;
+         { test_viewable_range(std::move(vec)) } -> valid_viewable_range;
+         { test_viewable_range(r) } -> valid_viewable_range;
+         { test_viewable_range(std::move(r)) } -> valid_viewable_range;
+         { test_viewable_range(o) } -> invalid_viewable_range;
+         { test_viewable_range(std::move(o)) } -> valid_viewable_range;
+         { test_viewable_range(std::ranges::ref_view(o)) } -> valid_viewable_range;
+     });
+ }
+
+   Defect reports
 
    The following behavior-changing defect reports were applied retroactively to
    previously published C++ standards.
@@ -32,3 +76,9 @@ std::ranges::viewable_range \- std::ranges::viewable_range
                        move-only view
    P2415R2  C++20      viewable_range only accepted non-view rvalues accepts more types
                        that are borrowed_range
+
+.SH See also
+
+   views::all_t a view that includes all elements of a range
+   views::all   (alias template) (range adaptor object)
+   (C++20)
