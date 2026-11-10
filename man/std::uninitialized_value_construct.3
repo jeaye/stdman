@@ -1,157 +1,160 @@
-.TH std::uninitialized_value_construct 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_value_construct 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_value_construct \- std::uninitialized_value_construct
 
 .SH Synopsis
-   Defined in header <memory>
-   template< class ForwardIt >
-   void uninitialized_value_construct( ForwardIt first, ForwardIt     \fB(1)\fP \fI(since C++17)\fP
-   last );
-   template< class ExecutionPolicy, class ForwardIt >
+Defined in header <memory>
+template< class NoThrowForwardIt >
+                                                                  \fI(since C++17)\fP
+void uninitialized_value_construct( NoThrowForwardIt first,   \fB(1)\fP (constexpr since C++26)
 
-   void uninitialized_value_construct( ExecutionPolicy&& policy,      \fB(2)\fP \fI(since C++17)\fP
+NoThrowForwardIt last );
+template< class ExecutionPolicy, class NoThrowForwardIt >
 
-                                       ForwardIt first, ForwardIt
-   last );
+void uninitialized_value_construct( ExecutionPolicy&& policy, \fB(2)\fP \fI(since C++17)\fP
+NoThrowForwardIt first,
 
-   1) Constructs objects of type typename iterator_traits<ForwardIt>::value_type in the
-   uninitialized storage designated by the range [first, last) by value-initialization,
-   as if by for (; first != last; ++first)
-       ::new (static_cast<void*>(std::addressof(*first)))
-           typename std::iterator_traits<ForwardIt>::value_type();
-   If an exception is thrown during the initialization, the objects already constructed
-   are destroyed in an unspecified order.
-   2) Same as \fB(1)\fP, but executed according to policy. This overload participates in
-   overload resolution only if
+NoThrowForwardIt last );
 
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
-                                                                             C++20)
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
-                                                                             C++20)
+1) Constructs objects of type typename std::iterator_traits<NoThrowForwardIt>::value_type
+in the uninitialized memory area [first, last) by value-initialization, as if by
+
+for (; first != last; ++first)
+::new (voidify(*first))
+typename std::iterator_traits<NoThrowForwardIt>::value_type();
+
+If an exception is thrown during the initialization, the objects already constructed are
+destroyed in an unspecified order.
+2) Same as \fB(1)\fP, but executed according to policy.
+This overload participates in overload resolution only if all following conditions are
+satisfied:
+
+std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        \fI(until C++20)\fP
+std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. \fI(since C++20)\fP
 
 .SH Parameters
 
-   first, last          -         the range of the elements to initialize
-   policy               -         the execution policy to use. See execution policy for
-                                  details.
+first, last          -          the range of the elements to initialize
+policy               -          the execution policy to use
 .SH Type requirements
-   -
-   ForwardIt must meet the requirements of LegacyForwardIterator.
-   -
-   No increment, assignment, comparison, or indirection through valid instances of
-   ForwardIt may throw exceptions.
-
-.SH Return value
-
-   \fI(none)\fP
+-
+NoThrowForwardIt must meet the requirements of LegacyForwardIterator.
+-
+No increment, assignment, comparison, or indirection through valid instances of
+NoThrowForwardIt may throw exceptions.
 
 .SH Complexity
 
-   Linear in the distance between first and last.
+Linear in the distance between first and last.
 
 .SH Exceptions
 
-   The overload with a template parameter named ExecutionPolicy reports errors as
-   follows:
+The overload with a template parameter named ExecutionPolicy reports errors as follows:
 
-     * If execution of a function invoked as part of the algorithm throws an exception
-       and ExecutionPolicy is one of the standard policies, std::terminate is called.
-       For any other ExecutionPolicy, the behavior is implementation-defined.
-     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
+  * If execution of a function invoked as part of the algorithm throws an exception and
+    ExecutionPolicy is one of the standard policies, std::terminate is called. For any
+    other ExecutionPolicy, the behavior is implementation-defined.
+  * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
+
+.SH Notes
+
+      Feature-test macro         Value    Std                    Feature
+__cpp_lib_raw_memory_algorithms 202411L (C++26) constexpr for specialized memory
+                                                algorithms, \fB(1)\fP
 
 .SH Possible implementation
 
-   template<class ForwardIt>
-   void uninitialized_value_construct(ForwardIt first, ForwardIt last)
-   {
-       using Value = typename std::iterator_traits<ForwardIt>::value_type;
-       ForwardIt current = first;
-       try
-       {
-           for (; current != last; ++current)
-               ::new (const_cast<void*>(static_cast<const volatile void*>(
-                   std::addressof(*current)))) Value();
-       }
-       catch (...)
-       {
-           std::destroy(first, current);
-           throw;
-       }
-   }
+template<class NoThrowForwardIt>
+constexpr void uninitialized_value_construct(NoThrowForwardIt first,
+                                             NoThrowForwardIt last)
+{
+    using Value = typename std::iterator_traits<NoThrowForwardIt>::value_type;
+    NoThrowForwardIt current = first;
+    try
+    {
+        for (; current != last; ++current)
+        {
+            ::new (static_cast<void*>(std::addressof(*current))) Value();
+        }
+    }
+    catch (...)
+    {
+        std::destroy(first, current);
+        throw;
+    }
+}
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
- #include <memory>
- #include <string>
+#include <iostream>
+#include <memory>
+#include <string>
 
- int main()
- {
-     struct S { std::string m{"Default value"}; };
+int main()
+{
+    struct S { std::string m{"Default value"}; };
 
-     constexpr int n{3};
-     alignas(alignof(S)) unsigned char mem[n * sizeof(S)];
+    constexpr int n{3};
+    alignas(alignof(S)) unsigned char mem[n * sizeof(S)];
 
-     try
-     {
-         auto first{reinterpret_cast<S*>(mem)};
-         auto last{first + n};
+    try
+    {
+        auto first{reinterpret_cast<S*>(mem)};
+        auto last{first + n};
 
-         std::uninitialized_value_construct(first, last);
+        std::uninitialized_value_construct(first, last);
 
-         for (auto it{first}; it != last; ++it)
-             std::cout << it->m << '\\n';
+        for (auto it{first}; it != last; ++it)
+            std::cout << it->m << '\\n';
 
-         std::destroy(first, last);
-     }
-     catch (...)
-     {
-         std::cout << "Exception!\\n";
-     }
+        std::destroy(first, last);
+    }
+    catch (...)
+    {
+        std::cout << "Exception!\\n";
+    }
 
-     // Notice that for "trivial types" the uninitialized_value_construct
-     // zero-fills the given uninitialized memory area.
-     int v[]{1, 2, 3, 4};
-     for (const int i : v)
-         std::cout << i << ' ';
-     std::cout << '\\n';
-     std::uninitialized_value_construct(std::begin(v), std::end(v));
-     for (const int i : v)
-         std::cout << i << ' ';
-     std::cout << '\\n';
- }
+    // For scalar types, uninitialized_value_construct
+    // zero-fills the given uninitialized memory area.
+    int v[]{1, 2, 3, 4};
+    for (const int i : v)
+        std::cout << i << ' ';
+    std::cout << '\\n';
+    std::uninitialized_value_construct(std::begin(v), std::end(v));
+    for (const int i : v)
+        std::cout << i << ' ';
+    std::cout << '\\n';
+}
 
 .SH Output:
 
- Default value
- Default value
- Default value
- 1 2 3 4
- 0 0 0 0
+Default value
+Default value
+Default value
+1 2 3 4
+0 0 0 0
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-      DR    Applied to              Behavior as published              Correct behavior
-   LWG 3870 C++20      this algorithm might create objects on a const  kept disallowed
-                       storage
+   DR    Applied to                 Behavior as published                 Correct behavior
+LWG 3870 C++20      this algorithm might create objects on a const        kept disallowed
+                    storage
 
 .SH See also
 
-                                         constructs objects by value-initialization in
-   uninitialized_value_construct_n       an uninitialized area of memory, defined by a
-   \fI(C++17)\fP                               start and a count
-                                         \fI(function template)\fP
-                                         constructs objects by default-initialization
-   uninitialized_default_construct       in an uninitialized area of memory, defined by
-   \fI(C++17)\fP                               a range
-                                         \fI(function template)\fP
-                                         constructs objects by value-initialization in
-   ranges::uninitialized_value_construct an uninitialized area of memory, defined by a
-   (C++20)                               range
-                                         (niebloid)
+                                      constructs objects by value-initialization in an
+uninitialized_value_construct_n       uninitialized area of memory, defined by a start and
+\fI(C++17)\fP                               a count
+                                      \fI(function template)\fP
+uninitialized_default_construct       constructs objects by default-initialization in an
+\fI(C++17)\fP                               uninitialized area of memory, defined by a range
+                                      \fI(function template)\fP
+ranges::uninitialized_value_construct constructs objects by value-initialization in an
+(C++20)                               uninitialized area of memory, defined by a range
+                                      (algorithm function object)

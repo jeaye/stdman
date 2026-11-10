@@ -1,112 +1,114 @@
-.TH std::latch 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::latch 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::latch \- std::latch
 
 .SH Synopsis
-   Defined in header <latch>
-   class latch;               \fI(since C++20)\fP
+Defined in header <latch>
+class latch;               \fI(since C++20)\fP
 
-   The latch class is a downward counter of type std::ptrdiff_t which can be used to
-   synchronize threads. The value of the counter is initialized on creation. Threads
-   may block on the latch until the counter is decremented to zero. There is no
-   possibility to increase or reset the counter, which makes the latch a single-use
-   barrier.
+The latch class is a downward counter of type std::ptrdiff_t which can be used to
+synchronize threads. The value of the counter is initialized on creation. Threads may
+block on the latch until the counter is decremented to zero. There is no possibility to
+increase or reset the counter, which makes the latch a single-use barrier.
 
-   Concurrent invocations of the member functions of std::latch, except for the
-   destructor, do not introduce data races.
+Concurrent invocations of the member functions of std::latch, except for the destructor,
+do not introduce data races.
 
-   Unlike std::barrier, std::latch can be decremented by a participating thread more
-   than once.
+  Data Members
+
+Name                   Definition
+std::ptrdiff_t counter the internal counter
+                       (exposition-only member object*)
 
 .SH Member functions
 
-   constructor     constructs a latch
-                   \fI(public member function)\fP
-   destructor      destroys the latch
-                   \fI(public member function)\fP
-   operator=       latch is not assignable
-   [deleted]       \fI(public member function)\fP
-   count_down      decrements the counter in a non-blocking manner
-                   \fI(public member function)\fP
-   try_wait        tests if the internal counter equals zero
-                   \fI(public member function)\fP
-   wait            blocks until the counter reaches zero
-                   \fI(public member function)\fP
-   arrive_and_wait decrements the counter and blocks until it reaches zero
-                   \fI(public member function)\fP
+constructor     constructs a latch
+                \fI(public member function)\fP
+destructor      destroys the latch
+                \fI(public member function)\fP
+operator=       latch is not assignable
+[deleted]       \fI(public member function)\fP
+count_down      decrements the counter in a non-blocking manner
+                \fI(public member function)\fP
+try_wait        tests if the internal counter equals zero
+                \fI(public member function)\fP
+wait            blocks until the counter reaches zero
+                \fI(public member function)\fP
+arrive_and_wait decrements the counter and blocks until it reaches zero
+                \fI(public member function)\fP
 .SH Constants
-   max             the maximum value of counter supported by the implementation
-   \fB[static]\fP        \fI(public static member function)\fP
+max             the maximum value of counter supported by the implementation
+\fB[static]\fP        \fI(public static member function)\fP
 
 .SH Notes
 
-   Feature-test macro  Value    Std    Feature
-   __cpp_lib_latch    201907L (C++20) std::latch
+Feature-test macro  Value    Std    Feature
+__cpp_lib_latch    201907L (C++20) std::latch
 
 .SH Example
 
 
 // Run this code
 
- #include <functional>
- #include <iostream>
- #include <latch>
- #include <string>
- #include <thread>
+#include <functional>
+#include <iostream>
+#include <latch>
+#include <string>
+#include <thread>
 
- struct Job
- {
-     const std::string name;
-     std::string product{"not worked"};
-     std::thread action{};
- };
+struct Job
+{
+    const std::string name;
+    std::string product{"not worked"};
+    std::thread action{};
+};
 
- int main()
- {
-     Job jobs[]{{"Annika"}, {"Buru"}, {"Chuck"}};
+int main()
+{
+    Job jobs[]{{"Annika"}, {"Buru"}, {"Chuck"}};
 
-     std::latch work_done{std::size(jobs)};
-     std::latch start_clean_up{1};
+    std::latch work_done{std::size(jobs)};
+    std::latch start_clean_up{1};
 
-     auto work = [&](Job& my_job)
-     {
-         my_job.product = my_job.name + " worked";
-         work_done.count_down();
-         start_clean_up.wait();
-         my_job.product = my_job.name + " cleaned";
-     };
+    auto work = [&](Job& my_job)
+    {
+        my_job.product = my_job.name + " worked";
+        work_done.count_down();
+        start_clean_up.wait();
+        my_job.product = my_job.name + " cleaned";
+    };
 
-     std::cout << "Work is starting... ";
-     for (auto& job : jobs)
-         job.action = std::thread{work, std::ref(job)};
+    std::cout << "Work is starting... ";
+    for (auto& job : jobs)
+        job.action = std::thread{work, std::ref(job)};
 
-     work_done.wait();
-     std::cout << "done:\\n";
-     for (auto const& job : jobs)
-         std::cout << "  " << job.product << '\\n';
+    work_done.wait();
+    std::cout << "done:\\n";
+    for (auto const& job : jobs)
+        std::cout << "  " << job.product << '\\n';
 
-     std::cout << "Workers are cleaning up... ";
-     start_clean_up.count_down();
-     for (auto& job : jobs)
-         job.action.join();
+    std::cout << "Workers are cleaning up... ";
+    start_clean_up.count_down();
+    for (auto& job : jobs)
+        job.action.join();
 
-     std::cout << "done:\\n";
-     for (auto const& job : jobs)
-         std::cout << "  " << job.product << '\\n';
- }
+    std::cout << "done:\\n";
+    for (auto const& job : jobs)
+        std::cout << "  " << job.product << '\\n';
+}
 
 .SH Output:
 
- Work is starting... done:
-   Annika worked
-   Buru worked
-   Chuck worked
- Workers are cleaning up... done:
-   Annika cleaned
-   Buru cleaned
-   Chuck cleaned
+Work is starting... done:
+  Annika worked
+  Buru worked
+  Chuck worked
+Workers are cleaning up... done:
+  Annika cleaned
+  Buru cleaned
+  Chuck cleaned
 
 .SH See also
 
-   barrier reusable thread barrier
-   (C++20) \fI(class template)\fP
+barrier reusable thread barrier
+(C++20) \fI(class template)\fP

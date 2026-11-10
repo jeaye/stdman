@@ -1,124 +1,144 @@
-.TH std::is_destructible,std::is_trivially_destructible,std::is_nothrow_destructible 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_destructible,std::is_trivially_destructible,std::is_nothrow_destructible 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_destructible,std::is_trivially_destructible,std::is_nothrow_destructible \- std::is_destructible,std::is_trivially_destructible,std::is_nothrow_destructible
 
 .SH Synopsis
-   Defined in header <type_traits>
-   template< class T >               \fB(1)\fP \fI(since C++11)\fP
-   struct is_destructible;
-   template< class T >               \fB(2)\fP \fI(since C++11)\fP
-   struct is_trivially_destructible;
-   template< class T >               \fB(3)\fP \fI(since C++11)\fP
-   struct is_nothrow_destructible;
+Defined in header <type_traits>
+template< class T >               \fB(1)\fP \fI(since C++11)\fP
+struct is_destructible;
+template< class T >               \fB(2)\fP \fI(since C++11)\fP
+struct is_trivially_destructible;
+template< class T >               \fB(3)\fP \fI(since C++11)\fP
+struct is_nothrow_destructible;
 
-   1) If T is a reference type, provides the member constant value equal to true.
-   If T is (possibly cv-qualified) void, a function type, or an array of unknown bound,
-   value equals false.
-   If T is an object type, then, for the type U that is
-   std::remove_all_extents<T>::type, if the expression std::declval<U&>().~U() is
-   well-formed in unevaluated context, value equals true. Otherwise, value equals
-   false.
-   2) Same as \fB(1)\fP and additionally std::remove_all_extents<T>::type is either a
-   non-class type or a class type with a trivial destructor.
-   3) Same as \fB(1)\fP, but the destructor is noexcept.
+1) If T is a reference type, provides the member constant value equal to true.
+If T is (possibly cv-qualified) void, a function type, or an array of unknown bound, value
+equals false.
+If T is an object type, then, for the type U that is std::remove_all_extents<T>::type, if
+the expression std::declval<U&>().~U() is well-formed in unevaluated context, value equals
+true. Otherwise, value equals false.
+2) Same as \fB(1)\fP and additionally std::remove_all_extents<T>::type is either a non-class
+type or a class type with a trivial destructor.
+3) Same as \fB(1)\fP, but the destructor is noexcept.
 
-   If T is not a complete type, (possibly cv-qualified) void, or an array of unknown
-   bound, the behavior is undefined.
+If T is not a complete type, (possibly cv-qualified) void, or an array of unknown bound,
+the behavior is undefined.
 
-   If an instantiation of a template above depends, directly or indirectly, on an
-   incomplete type, and that instantiation could yield a different result if that type
-   were hypothetically completed, the behavior is undefined.
+If an instantiation of a template above depends, directly or indirectly, on an incomplete
+type, and that instantiation could yield a different result if that type were
+hypothetically completed, the behavior is undefined.
 
-   If the program adds specializations for any of the templates described on this page,
-   the behavior is undefined.
+If the program adds specializations for any of the templates described on this page, the
+behavior is undefined.
+
+  Helper variable templates
+
+template< class T >                                                          \fI(since C++17)\fP
+constexpr bool is_destructible_v = is_destructible<T>::value;
+template< class T >
+constexpr bool is_trivially_destructible_v =                                 \fI(since C++17)\fP
+is_trivially_destructible<T>::value;
+template< class T >
+constexpr bool is_nothrow_destructible_v =                                   \fI(since C++17)\fP
+is_nothrow_destructible<T>::value;
+
+Inherited from std::integral_constant
 
 .SH Member constants
 
-   value    true if T is destructible, false otherwise
-   \fB[static]\fP \fI(public static member constant)\fP
+value    true if T is destructible, false otherwise
+\fB[static]\fP \fI(public static member constant)\fP
 
 .SH Member functions
 
-   operator bool converts the object to bool, returns value
-                 \fI(public member function)\fP
-   operator()    returns value
-   \fI(C++14)\fP       \fI(public member function)\fP
+operator bool converts the object to bool, returns value
+              \fI(public member function)\fP
+operator()    returns value
+\fI(C++14)\fP       \fI(public member function)\fP
 
 .SH Member types
 
-   Type       Definition
-   value_type bool
-   type       std::integral_constant<bool, value>
+Type       Definition
+value_type bool
+type       std::integral_constant<bool, value>
 
 .SH Notes
 
-   Because the C++ program terminates if a destructor throws an exception during stack
-   unwinding (which usually cannot be predicted), all practical destructors are
-   non-throwing even if they are not declared noexcept. All destructors found in the
-   C++ standard library are non-throwing.
+Because the C++ program terminates if a destructor throws an exception during stack
+unwinding (which usually cannot be predicted), all practical destructors are non-throwing
+even if they are not declared noexcept. All destructors found in the C++ standard library
+are non-throwing.
 
-   Storage occupied by trivially destructible objects may be reused without calling the
-   destructor.
+Storage occupied by trivially destructible objects may be reused without calling the
+destructor.
+
+.SH Possible implementation
+
+                                   is_destructible \fB(1)\fP
+// C++20 required
+template<typename t>
+struct is_destructible
+    : std::integral_constant<bool, requires(t object) { object.~t(); }>
+{};
+                              is_trivially_destructible \fB(2)\fP
+// Not real C++. Shall P2996 be approved, the following implementation will be available:
+template<typename t>
+struct is_trivially_destructible
+     : std::integral_constant<bool, std::meta::type_is_trivially_destructible(^t)>
+{};
+                               is_nothrow_destructible \fB(3)\fP
+// C++20 required
+template<typename t>
+struct is_nothrow_destructible
+    : std::integral_constant<bool, requires(t object) { {object.~t()} noexcept; }>
+{};
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
- #include <string>
- #include <type_traits>
+#include <iostream>
+#include <string>
+#include <type_traits>
 
- struct Foo
- {
-     std::string str;
-     ~Foo() noexcept {};
- };
+struct Foo
+{
+    std::string str;
+    ~Foo() noexcept {};
+};
 
- struct Bar
- {
-     ~Bar() = default;
- };
+struct Bar
+{
+    ~Bar() = default;
+};
 
- int main()
- {
-     std::cout << std::boolalpha
-               << "std::string is destructible? "
-               << std::is_destructible<std::string>::value << '\\n'
-               << "Foo is trivially destructible? "
-               << std::is_trivially_destructible_v<Foo> << '\\n'
-               << "Foo is nothrow destructible? "
-               << std::is_nothrow_destructible<Foo>() << '\\n'
-               << "Bar is trivially destructible? "
-               << std::is_trivially_destructible<Bar>{} << '\\n';
- }
+static_assert(std::is_destructible<std::string>::value == true);
+static_assert(std::is_trivially_destructible_v<Foo> == false);
+static_assert(std::is_nothrow_destructible<Foo>() == true);
+static_assert(std::is_trivially_destructible<Bar>{} == true);
 
-.SH Output:
+int main() {}
 
- std::string is destructible? true
- Foo is trivially destructible? false
- Foo is nothrow destructible? true
- Bar is trivially destructible? true
+  Defect reports
 
-   Defect reports
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
-
-      DR    Applied to              Behavior as published              Correct behavior
-   LWG 2049 C++11      the specification was incompletable because of  made complete
-                       the imaginary wrapping struct
+   DR    Applied to                 Behavior as published                 Correct behavior
+LWG 2049 C++11      the specification was incompletable because of the    made complete
+                    imaginary wrapping struct
 
 .SH See also
 
-   is_constructible
-   is_trivially_constructible
-   is_nothrow_constructible   checks if a type has a constructor for specific arguments
-   \fI(C++11)\fP                    \fI(class template)\fP
-   \fI(C++11)\fP
-   \fI(C++11)\fP
-   has_virtual_destructor     checks if a type has a virtual destructor
-   \fI(C++11)\fP                    \fI(class template)\fP
-   destructible               specifies that an object of the type can be destroyed
-   (C++20)                    (concept)
-   destructor                 releases claimed resources
+is_constructible
+is_trivially_constructible
+is_nothrow_constructible   checks if a type has a constructor for specific arguments
+\fI(C++11)\fP                    \fI(class template)\fP
+\fI(C++11)\fP
+\fI(C++11)\fP
+has_virtual_destructor     checks if a type has a virtual destructor
+\fI(C++11)\fP                    \fI(class template)\fP
+destructible               specifies that an object of the type can be destroyed
+(C++20)                    (concept)
+destructor                 releases claimed resources

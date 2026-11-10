@@ -1,94 +1,107 @@
-.TH std::uninitialized_move_n 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_move_n 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_move_n \- std::uninitialized_move_n
 
 .SH Synopsis
-   Defined in header <memory>
-   template< class InputIt, class Size, class NoThrowForwardIt >
+Defined in header <memory>
+template< class InputIt, class Size, class NoThrowForwardIt >
 
-   std::pair<InputIt, NoThrowForwardIt>                               \fB(1)\fP \fI(since C++17)\fP
-       uninitialized_move_n( InputIt first, Size count,
+std::pair<InputIt, NoThrowForwardIt>                           \fB(1)\fP \fI(since C++17)\fP
+uninitialized_move_n( InputIt first, Size count,                   (constexpr since C++26)
 
-                             NoThrowForwardIt d_first );
-   template< class ExecutionPolicy, class ForwardIt,
+NoThrowForwardIt d_first );
+template< class ExecutionPolicy,
 
-             class Size, class NoThrowForwardIt >
-   std::pair<ForwardIt, NoThrowForwardIt>                             \fB(2)\fP \fI(since C++17)\fP
-       uninitialized_move_n( ExecutionPolicy&& policy, ForwardIt
-   first,
+class ForwardIt, class Size, class NoThrowForwardIt >
+std::pair<ForwardIt, NoThrowForwardIt>                         \fB(2)\fP \fI(since C++17)\fP
+uninitialized_move_n( ExecutionPolicy&& policy, ForwardIt
+first,
 
-                             Size count, NoThrowForwardIt d_first );
+Size count, NoThrowForwardIt d_first );
 
-   1) Moves count elements from a range beginning at first to an uninitialized memory
-   area beginning at d_first as if by for (; n > 0; ++d_first, (void) ++first, --n)
-       ::new (static_cast<void*>(std::addressof(*d_first)))
-           typename
-   std::iterator_traits<NoThrowForwardIt>::value_type(std::move(*first));
-   If an exception is thrown during the initialization, some objects in first + [0, n)
-   are left in a valid but unspecified state, and the objects already constructed are
-   destroyed in an unspecified order.
+1) Copies the elements from first + [0, count) (using move semantics if supported) to an
+uninitialized memory area beginning at d_first as if by
 
-   If d_first + [0, n) overlaps with first + [0, n), the behavior is      \fI(since C++20)\fP
-   undefined.
+for (; count > 0; ++d_first, (void) ++first, --count)
+::new (voidify(*d_first))
+typename std::iterator_traits<NoThrowForwardIt>::value_type(/* value */);
+return {first, d_first};
 
-   2) Same as \fB(1)\fP, but executed according to policy. This overload participates in
-   overload resolution only if
+where /* value */ is std::move(*first) if *first is of an lvalue reference type, or *first
+otherwise.
+If an exception is thrown during the initialization, some objects in first + [0, count)
+are left in a valid but unspecified state, and the objects already constructed are
+destroyed in an unspecified order.
+2) Same as \fB(1)\fP, but executed according to policy.
+This overload participates in overload resolution only if all following conditions are
+satisfied:
 
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
-                                                                             C++20)
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
-                                                                             C++20)
+std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        \fI(until C++20)\fP
+std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. \fI(since C++20)\fP
+
+If d_first + [0, count) overlaps with first + [0, count), the behavior   \fI(since C++20)\fP
+is undefined.
 
 .SH Parameters
 
-   first              -          the beginning of the range of the elements to move
-   d_first            -          the beginning of the destination range
-   count              -          the number of elements to move
-   policy             -          the execution policy to use. See execution policy for
-                                 details.
+first              -          the beginning of the range of the elements to move
+d_first            -          the beginning of the destination range
+count              -          the number of elements to move
+policy             -          the execution policy to use
 .SH Type requirements
-   -
-   InputIt must meet the requirements of LegacyInputIterator.
-   -
-   ForwardIt must meet the requirements of LegacyForwardIterator.
-   -
-   NoThrowForwardIt must meet the requirements of LegacyForwardIterator.
-   -
-   No increment, assignment, comparison, or indirection through valid instances of
-   NoThrowForwardIt may throw exceptions.
+-
+InputIt must meet the requirements of LegacyInputIterator.
+-
+ForwardIt must meet the requirements of LegacyForwardIterator.
+-
+NoThrowForwardIt must meet the requirements of LegacyForwardIterator.
+-
+No increment, assignment, comparison, or indirection through valid instances of
+NoThrowForwardIt may throw exceptions.
 
 .SH Return value
 
-   A pair whose first element is an iterator to the element past the last element moved
-   in the source range, and whose second element is an iterator to the element past the
-   last element moved in the destination range.
+As described above.
 
 .SH Complexity
 
-   Linear in count.
+Linear in count.
 
 .SH Exceptions
 
-   The overload with a template parameter named ExecutionPolicy reports errors as
-   follows:
+The overload with a template parameter named ExecutionPolicy reports errors as follows:
 
-     * If execution of a function invoked as part of the algorithm throws an exception
-       and ExecutionPolicy is one of the standard policies, std::terminate is called.
-       For any other ExecutionPolicy, the behavior is implementation-defined.
-     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
+  * If execution of a function invoked as part of the algorithm throws an exception and
+    ExecutionPolicy is one of the standard policies, std::terminate is called. For any
+    other ExecutionPolicy, the behavior is implementation-defined.
+  * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
+
+.SH Notes
+
+When the input iterator deferences to an rvalue, the behavior of std::uninitialized_move_n
+is same as std::uninitialized_copy_n.
+
+      Feature-test macro         Value    Std                    Feature
+__cpp_lib_raw_memory_algorithms 202411L (C++26) constexpr for specialized memory
+                                                algorithms, \fB(1)\fP
 
 .SH Possible implementation
 
 template<class InputIt, class Size, class NoThrowForwardIt>
-std::pair<InputIt, NoThrowForwardIt>
+constexpr std::pair<InputIt, NoThrowForwardIt>
     uninitialized_move_n(InputIt first, Size count, NoThrowForwardIt d_first)
 {
-    using Value = typename std::iterator_traits<NoThrowForwardIt>::value_type;
+    using ValueType = typename std::iterator_traits<NoThrowForwardIt>::value_type;
     NoThrowForwardIt current = d_first;
     try
     {
-        for (; count > 0; ++first, (void) ++current, --count)
-            ::new (static_cast<void*>(std::addressof(*current))) Value(std::move(*first));
+        for (; count > 0; ++first, (void) ++current, --count) {
+            auto addr = static_cast<void*>(std::addressof(*current));
+            if constexpr (std::is_lvalue_reference_v<decltype(*first)>)
+                ::new (addr) ValueType(std::move(*first));
+            else
+                ::new (addr) ValueType(*first);
+        }
     }
     catch (...)
     {
@@ -103,70 +116,70 @@ std::pair<InputIt, NoThrowForwardIt>
 
 // Run this code
 
- #include <cstdlib>
- #include <iomanip>
- #include <iostream>
- #include <memory>
- #include <string>
+#include <cstdlib>
+#include <iomanip>
+#include <iostream>
+#include <memory>
+#include <string>
 
- void print(auto rem, auto first, auto last)
- {
-     for (std::cout << rem; first != last; ++first)
-         std::cout << std::quoted(*first) << ' ';
-     std::cout << '\\n';
- }
+void print(auto rem, auto first, auto last)
+{
+    for (std::cout << rem; first != last; ++first)
+        std::cout << std::quoted(*first) << ' ';
+    std::cout << '\\n';
+}
 
- int main()
- {
-     std::string in[]{"One", "Definition", "Rule"};
-     print("initially, in: ", std::begin(in), std::end(in));
+int main()
+{
+    std::string in[]{"One", "Definition", "Rule"};
+    print("initially, in: ", std::begin(in), std::end(in));
 
-     if (
-         constexpr auto sz = std::size(in);
-         void* out = std::aligned_alloc(alignof(std::string), sizeof(std::string) * sz))
-     {
-         try
-         {
-             auto first{static_cast<std::string*>(out)};
-             auto last{first + sz};
-             std::uninitialized_move_n(std::begin(in), sz, first);
+    if (constexpr auto sz = std::size(in);
+        void* out = std::aligned_alloc(alignof(std::string), sizeof(std::string) * sz))
+    {
+        try
+        {
+            auto first{static_cast<std::string*>(out)};
+            auto last{first + sz};
+            std::uninitialized_move_n(std::begin(in), sz, first);
 
-             print("after move, in: ", std::begin(in), std::end(in));
-             print("after move, out: ", first, last);
+            print("after move, in: ", std::begin(in), std::end(in));
+            print("after move, out: ", first, last);
 
-             std::destroy(first, last);
-         }
-         catch (...)
-         {
-             std::cout << "Exception!\\n";
-         }
-         std::free(out);
-     }
- }
+            std::destroy(first, last);
+        }
+        catch (...)
+        {
+            std::cout << "Exception!\\n";
+        }
+        std::free(out);
+    }
+}
 
 .SH Possible output:
 
- initially, in: "One" "Definition" "Rule"
- after move, in: "" "" ""
- after move, out: "One" "Definition" "Rule"
+initially, in: "One" "Definition" "Rule"
+after move, in: "" "" ""
+after move, out: "One" "Definition" "Rule"
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-      DR    Applied to              Behavior as published              Correct behavior
-   LWG 3870 C++20      this algorithm might create objects on a const  kept disallowed
-                       storage
+   DR    Applied to            Behavior as published                 Correct behavior
+LWG 3870 C++20      this algorithm might create objects on a    kept disallowed
+                    const storage
+                    additional temporary materialization was
+LWG 3918 C++17      required                                    copies the element in this
+                    when the input iterator deferences to a     case
+                    prvalue
 
 .SH See also
 
-   uninitialized_move           moves a range of objects to an uninitialized area of
-   \fI(C++17)\fP                      memory
-                                \fI(function template)\fP
-   uninitialized_copy_n         copies a number of objects to an uninitialized area of
-   \fI(C++11)\fP                      memory
-                                \fI(function template)\fP
-   ranges::uninitialized_move_n moves a number of objects to an uninitialized area of
-   (C++20)                      memory
-                                (niebloid)
+uninitialized_move           moves a range of objects to an uninitialized area of memory
+\fI(C++17)\fP                      \fI(function template)\fP
+uninitialized_copy_n         copies a number of objects to an uninitialized area of memory
+\fI(C++11)\fP                      \fI(function template)\fP
+ranges::uninitialized_move_n moves a number of objects to an uninitialized area of memory
+(C++20)                      (algorithm function object)

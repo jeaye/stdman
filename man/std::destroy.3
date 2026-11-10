@@ -1,116 +1,112 @@
-.TH std::destroy 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::destroy 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::destroy \- std::destroy
 
 .SH Synopsis
-   Defined in header <memory>
-   template< class ForwardIt >                                            \fI(since C++17)\fP
-   void destroy( ForwardIt first, ForwardIt last );                       \fI(until C++20)\fP
-   template< class ForwardIt >                                            \fI(since C++20)\fP
-   constexpr void destroy( ForwardIt first, ForwardIt last );     \fB(1)\fP
-   template< class ExecutionPolicy, class ForwardIt >
-   void destroy( ExecutionPolicy&& policy, ForwardIt first,           \fB(2)\fP \fI(since C++17)\fP
-   ForwardIt last );
+Defined in header <memory>
+template< class ForwardIt >                                                  \fI(since C++17)\fP
+void destroy( ForwardIt first, ForwardIt last );                             \fI(until C++20)\fP
+template< class ForwardIt >                                                  \fI(since C++20)\fP
+constexpr void destroy( ForwardIt first, ForwardIt last );           \fB(1)\fP
+template< class ExecutionPolicy, class ForwardIt >
+void destroy( ExecutionPolicy&& policy, ForwardIt first, ForwardIt       \fB(2)\fP \fI(since C++17)\fP
+last );
 
-   1) Destroys the objects in the range [first, last), as if by
+1) Destroys the objects in the range [first, last), as if by
 
- for (; first != last; ++first)
-     std::destroy_at(std::addressof(*first));
+for (; first != last; ++first)
+    std::destroy_at(std::addressof(*first));
 
-   2) Same as \fB(1)\fP, but executed according to policy. This overload participates in
-   overload resolution only if
+2) Same as \fB(1)\fP, but executed according to policy. This overload participates in overload
+resolution only if all following conditions are satisfied:
 
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
-                                                                             C++20)
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
-                                                                             C++20)
+std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        \fI(until C++20)\fP
+std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. \fI(since C++20)\fP
 
 .SH Parameters
 
-   first, last          -         the range of elements to destroy
-   policy               -         the execution policy to use. See execution policy for
-                                  details.
+first, last                -                the range of elements to destroy
+policy                     -                the execution policy to use
 .SH Type requirements
-   -
-   ForwardIt must meet the requirements of LegacyForwardIterator.
-   -
-   No increment, assignment, comparison, or indirection through valid instances of
-   ForwardIt may throw exceptions.
+-
+ForwardIt must meet the requirements of LegacyForwardIterator.
+-
+No increment, assignment, comparison, or indirection through valid instances of ForwardIt
+may throw exceptions.
 
 .SH Return value
 
-   \fI(none)\fP
+\fI(none)\fP
 
 .SH Complexity
 
-   Linear in the distance between first and last.
+Linear in the distance between first and last.
 
 .SH Exceptions
 
-   The overload with a template parameter named ExecutionPolicy reports errors as
-   follows:
+The overload with a template parameter named ExecutionPolicy reports errors as follows:
 
-     * If execution of a function invoked as part of the algorithm throws an exception
-       and ExecutionPolicy is one of the standard policies, std::terminate is called.
-       For any other ExecutionPolicy, the behavior is implementation-defined.
-     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
+  * If execution of a function invoked as part of the algorithm throws an exception and
+    ExecutionPolicy is one of the standard policies, std::terminate is called. For any
+    other ExecutionPolicy, the behavior is implementation-defined.
+  * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
 .SH Possible implementation
 
-   template<class ForwardIt>
-   constexpr // since C++20
-   void destroy(ForwardIt first, ForwardIt last)
-   {
-       for (; first != last; ++first)
-           std::destroy_at(std::addressof(*first));
-   }
+template<class ForwardIt>
+constexpr // since C++20
+void destroy(ForwardIt first, ForwardIt last)
+{
+    for (; first != last; ++first)
+        std::destroy_at(std::addressof(*first));
+}
 
 .SH Example
 
-   The following example demonstrates how to use destroy to destroy a contiguous
-   sequence of elements.
+The following example demonstrates how to use destroy to destroy a contiguous sequence of
+elements.
 
 
 // Run this code
 
- #include <iostream>
- #include <memory>
- #include <new>
+#include <iostream>
+#include <memory>
+#include <new>
 
- struct Tracer
- {
-     int value;
-     ~Tracer() { std::cout << value << " destructed\\n"; }
- };
+struct Tracer
+{
+    int value;
+    ~Tracer() { std::cout << value << " destructed\\n"; }
+};
 
- int main()
- {
-     alignas(Tracer) unsigned char buffer[sizeof(Tracer) * 8];
+int main()
+{
+    alignas(Tracer) unsigned char buffer[sizeof(Tracer) * 8];
 
-     for (int i = 0; i < 8; ++i)
-         new(buffer + sizeof(Tracer) * i) Tracer{i}; //manually construct objects
+    for (int i = 0; i < 8; ++i)
+        new(buffer + sizeof(Tracer) * i) Tracer{i}; //manually construct objects
 
-     auto ptr = std::launder(reinterpret_cast<Tracer*>(buffer));
+    auto ptr = std::launder(reinterpret_cast<Tracer*>(buffer));
 
-     std::destroy(ptr, ptr + 8);
- }
+    std::destroy(ptr, ptr + 8);
+}
 
 .SH Output:
 
- 0 destructed
- 1 destructed
- 2 destructed
- 3 destructed
- 4 destructed
- 5 destructed
- 6 destructed
- 7 destructed
+0 destructed
+1 destructed
+2 destructed
+3 destructed
+4 destructed
+5 destructed
+6 destructed
+7 destructed
 
 .SH See also
 
-   destroy_n       destroys a number of objects in a range
-   \fI(C++17)\fP         \fI(function template)\fP
-   destroy_at      destroys an object at a given address
-   \fI(C++17)\fP         \fI(function template)\fP
-   ranges::destroy destroys a range of objects
-   (C++20)         (niebloid)
+destroy_n       destroys a number of objects in a range
+\fI(C++17)\fP         \fI(function template)\fP
+destroy_at      destroys an object at a given address
+\fI(C++17)\fP         \fI(function template)\fP
+ranges::destroy destroys a range of objects
+(C++20)         (algorithm function object)

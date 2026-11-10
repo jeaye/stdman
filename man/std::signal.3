@@ -1,230 +1,229 @@
-.TH std::signal 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::signal 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::signal \- std::signal
 
 .SH Synopsis
-   Defined in header <csignal>
-   /* signal-handler */* signal( int sig, /* signal-handler */*  \fB(1)\fP
-   handler );
-   extern "C" using /* signal-handler */ = void(int);            \fB(2)\fP (exposition only*)
+Defined in header <csignal>
+/* signal-handler */* signal( int sig, /* signal-handler */*        \fB(1)\fP
+handler );
+extern "C" using /* signal-handler */ = void(int);                  \fB(2)\fP (exposition only*)
 
-   Changes handling of the signal sig. Depending on handler, the signal can be ignored,
-   set to default, or handled by a user-defined function.
+Changes handling of the signal sig. Depending on handler, the signal can be ignored, set
+to default, or handled by a user-defined function.
 
-   When signal handler is set to a function and a signal occurs, it is implementation
-   defined whether std::signal(sig, SIG_DFL) will be executed immediately before the
-   start of signal handler. Also, the implementation can prevent some
-   implementation-defined set of signals from occurring while the signal handler runs.
+When signal handler is set to a function and a signal occurs, it is implementation defined
+whether std::signal(sig, SIG_DFL) will be executed immediately before the start of signal
+handler. Also, the implementation can prevent some implementation-defined set of signals
+from occurring while the signal handler runs.
 
-   For some of the signals, the implementation may call std::signal(sig, SIG_IGN) at
-   the startup of the program. For the rest, the implementation must call
-   std::signal(sig, SIG_DFL).
+For some of the signals, the implementation may call std::signal(sig, SIG_IGN) at the
+startup of the program. For the rest, the implementation must call std::signal(sig,
+SIG_DFL).
 
-   (Note: POSIX introduced sigaction to standardize these implementation-defined
-   behaviors)
+(Note: POSIX introduced sigaction to standardize these implementation-defined behaviors)
 
 .SH Parameters
 
-             the signal to set the signal handler to. It can be an
-             implementation-defined value or one of the following values:
+          the signal to set the signal handler to. It can be an implementation-defined
+          value or one of the following values:
 
-             SIGABRT
-   sig     - SIGFPE
-             SIGILL  defines signal types
-             SIGINT  (macro constant)
-             SIGSEGV
-             SIGTERM
-             the signal handler. This must be one of the following:
-               * SIG_DFL macro. The signal handler is set to default signal handler.
-               * SIG_IGN macro. The signal is ignored.
-   handler -   * A pointer to a function. The signature of the function must be
-                 equivalent to the following:
+          SIGABRT
+sig     - SIGFPE
+          SIGILL  defines signal types
+          SIGINT  (macro constant)
+          SIGSEGV
+          SIGTERM
+          the signal handler. This must be one of the following:
+            * SIG_DFL macro. The signal handler is set to default signal handler.
+            * SIG_IGN macro. The signal is ignored.
+handler -   * A pointer to a function. The signature of the function must be equivalent to
+              the following:
 
-             extern "C" void fun(int sig);
+          extern "C" void fun(int sig);
 
 .SH Return value
 
-   Previous signal handler on success or SIG_ERR on failure (setting a signal handler
-   can be disabled on some implementations).
+Previous signal handler on success or SIG_ERR on failure (setting a signal handler can be
+disabled on some implementations).
 
-   Signal handler
+  Signal handler
 
-   The following limitations are imposed on the user-defined function that is installed
-   as a signal handler.
+The following limitations are imposed on the user-defined function that is installed as a
+signal handler.
 
-   If the signal handler is called NOT as a result of std::abort or
-   std::raise (asynchronous signal), the behavior is undefined if
+If the signal handler is called NOT as a result of std::abort or std::raise
+(asynchronous signal), the behavior is undefined if
 
-     * the signal handler calls any function within the standard library,
-       except
+  * the signal handler calls any function within the standard library,
+    except
 
-     * std::abort
-     * std::_Exit                                                         \fI(until C++17)\fP
-     * std::quick_exit
-     * std::signal with the first argument being the number of the signal
-       currently handled (async handler can re-register itself, but not
-       other signals).
-     * the signal handler refers to any object with static storage
-       duration that is not
-       std::atomic or
-       \fI(since C++11)\fPvolatile std::sig_atomic_t.
-   A plain lock-free atomic operation is an invocation of a function f
-   from <atomic>
-   or <stdatomic.h>
-   (since C++23), such that:
+      * std::abort
+      * std::_Exit
+      * std::quick_exit                                                      \fI(until C++17)\fP
+      * std::signal with the first argument being the number of the signal
+        currently handled (async handler can re-register itself, but not
+        other signals).
 
-     * f is the function std::atomic_is_lock_free,
-     * f is the member function is_lock_free (e.g.
-       std::atomic::is_lock_free()),
-     * f is a non-static member function of std::atomic_flag,
-     * f is a non-member function, and the first parameter of f has type
-       cv std::atomic_flag*,
-     * f is a non-static member function invoked on an object obj, such
-       that obj.is_lock_free() yields true, or
-     * f is a non-member function, and for every pointer-to-atomic
-       argument arg passed to f, std::atomic_is_lock_free(arg) yields
-       true.
+  * the signal handler refers to any object with static storage duration
+    that is not
+    std::atomic or
+    \fI(since C++11)\fPvolatile std::sig_atomic_t.
+A plain lock-free atomic operation is an invocation of a function f from
+<atomic>
+or <stdatomic.h>
+(since C++23), such that:
 
-   The behavior is undefined if any signal handler performs any of the
-   following:
+  * f is the function std::atomic_is_lock_free,
+  * f is the member function is_lock_free (e.g.
+    std::atomic::is_lock_free()),
+  * f is a non-static member function of std::atomic_flag,
+  * f is a non-member function, and the first parameter of f has type cv
+    std::atomic_flag*,
+  * f is a non-static member function invoked on an object obj, such that
+    obj.is_lock_free() yields true, or
+  * f is a non-member function, and for every pointer-to-atomic argument arg
+    passed to f, std::atomic_is_lock_free(arg) yields true.
 
-     * call to any library function, except for plain lock-free atomic
-       operations and the following signal-safe functions (note, in
-       particular, dynamic allocation is not signal-safe):                \fI(since C++17)\fP
+The behavior is undefined if any signal handler performs any of the
+following:
 
-     * std::signal with the first argument being the number of the signal
-       currently handled (signal handler can re-register itself, but not
-       other signals).
-     * member functions of std::numeric_limits
-     * std::_Exit
-     * std::abort
-     * std::quick_exit
-     * The member functions of std::initializer_list and the
-       std::initializer_list overloads of std::begin and std::end
-     * std::forward, std::move, std::move_if_noexcept
-     * All functions from <type_traits>
-     * std::memcpy and std::memmove
-     * access to an object with thread storage duration
-     * a dynamic_cast expression
-     * a throw expression
-     * entry to a try block
-     * initialization of a static variable that performs dynamic
-       non-local initialization (including delayed until first ODR-use)
-     * waits for completion of initialization of any variable with static
-       storage duration due to another thread concurrently initializing
-       it
+  * call to any library function, except for plain lock-free atomic
+    operations and the following signal-safe functions (note, in particular,
+    dynamic allocation is not signal-safe):                                  \fI(since C++17)\fP
 
-   If the user defined function returns when handling SIGFPE, SIGILL, SIGSEGV or any
-   other implementation-defined signal specifying a computational exception, the
-   behavior is undefined.
+      * std::signal with the first argument being the number of the signal
+        currently handled (signal handler can re-register itself, but not
+        other signals).
+      * member functions of std::numeric_limits
+      * std::_Exit
+      * std::abort
+      * std::quick_exit
+      * The member functions of std::initializer_list and the
+        std::initializer_list overloads of std::begin and std::end
+      * std::forward, std::move, std::move_if_noexcept
+      * All functions from <type_traits>
+      * std::memcpy and std::memmove
 
-   If the signal handler is called as a result of std::abort or std::raise (synchronous
-   signal), the behavior is undefined if the signal handler calls std::raise.
+  * access to an object with thread storage duration
+  * a dynamic_cast expression
+  * a throw expression
+  * entry to a try block
+  * initialization of a static variable that performs dynamic non-local
+    initialization (including delayed until first ODR-use)
+  * waits for completion of initialization of any variable with static
+    storage duration due to another thread concurrently initializing it
 
-   On entry to the signal handler, the state of the floating-point
-   environment and the values of all objects is unspecified, except for
+If the user defined function returns when handling SIGFPE, SIGILL, SIGSEGV or any other
+implementation-defined signal specifying a computational exception, the behavior is
+undefined.
 
-     * objects of type volatile std::sig_atomic_t
+If the signal handler is called as a result of std::abort or std::raise (synchronous
+signal), the behavior is undefined if the signal handler calls std::raise.
 
-     * objects of lock-free std::atomic types                             \fI(until C++14)\fP
-     * side effects made visible through                    \fI(since C++11)\fP
-       std::atomic_signal_fence
+On entry to the signal handler, the state of the floating-point environment
+and the values of all objects is unspecified, except for
 
-   On return from a signal handler, the value of any object modified by
-   the signal handler that is not volatile std::sig_atomic_t or lock-free
-   std::atomic is indeterminate.
-   A call to the function signal() synchronizes-with any resulting
-   invocation of the signal handler.
+  * objects of type volatile std::sig_atomic_t
 
-   If a signal handler is executed as a result of a call to std::raise
-   (synchronously), then the execution of the handler is sequenced-after
-   the invocation of std::raise and sequenced-before the return from it
-   and runs on the same thread as std::raise. Execution of the handlers
-   for other signals is unsequenced with respect to the rest of the
-   program and runs on an unspecified thread.
-                                                                          \fI(since C++14)\fP
-   Two accesses to the same object of type volatile std::sig_atomic_t do
-   not result in a data race if both occur in the same thread, even if
-   one or more occurs in a signal handler. For each signal handler
-   invocation, evaluations performed by the thread invoking a signal
-   handler can be divided into two groups A and B, such that no
-   evaluations in B happen-before evaluations in A, and the evaluations
-   of such volatile std::sig_atomic_t objects take values as though all
-   evaluations in A happened-before the execution of the signal handler
-   and the execution of the signal handler happened-before all
-   evaluations in B.
+  * objects of lock-free std::atomic types                     \fI(since C++11)\fP \fI(until C++14)\fP
+  * side effects made visible through std::atomic_signal_fence
+
+On return from a signal handler, the value of any object modified by the
+signal handler that is not volatile std::sig_atomic_t or lock-free
+std::atomic is indeterminate.
+A call to the function signal() synchronizes-with any resulting invocation
+of the signal handler.
+
+If a signal handler is executed as a result of a call to std::raise
+(synchronously), then the execution of the handler is sequenced-after the
+invocation of std::raise and sequenced-before the return from it and runs on
+the same thread as std::raise. Execution of the handlers for other signals
+is unsequenced with respect to the rest of the program and runs on an
+unspecified thread.
+                                                                             \fI(since C++14)\fP
+Two accesses to the same object of type volatile std::sig_atomic_t do not
+result in a data race if both occur in the same thread, even if one or more
+occurs in a signal handler. For each signal handler invocation, evaluations
+performed by the thread invoking a signal handler can be divided into two
+groups A and B, such that no evaluations in B happen-before evaluations in
+A, and the evaluations of such volatile std::sig_atomic_t objects take
+values as though all evaluations in A happened-before the execution of the
+signal handler and the execution of the signal handler happened-before all
+evaluations in B.
 
 .SH Notes
 
-   POSIX requires that signal is thread-safe, and specifies a list of async-signal-safe
-   library functions that may be called from any signal handler.
+POSIX requires that signal is thread-safe, and specifies a list of async-signal-safe
+library functions that may be called from any signal handler.
 
-   Signal handlers are expected to have C linkage and, in general, only use the
-   features from the common subset of C and C++. However, common implementations allow
-   a function with C++ linkage to be used as a signal handler.
+Signal handlers are expected to have C linkage and, in general, only use the features from
+the common subset of C and C++. However, common implementations allow a function with C++
+linkage to be used as a signal handler.
 
 .SH Example
 
 
 // Run this code
 
- #include <csignal>
- #include <iostream>
+#include <csignal>
+#include <iostream>
 
- namespace
- {
-     volatile std::sig_atomic_t gSignalStatus;
- }
+namespace
+{
+    volatile std::sig_atomic_t gSignalStatus;
+}
 
- void signal_handler(int signal)
- {
-     gSignalStatus = signal;
- }
+void signal_handler(int signal)
+{
+    gSignalStatus = signal;
+}
 
- int main()
- {
-     // Install a signal handler
-     std::signal(SIGINT, signal_handler);
+int main()
+{
+    // Install a signal handler
+    std::signal(SIGINT, signal_handler);
 
-     std::cout << "SignalValue: " << gSignalStatus << '\\n';
-     std::cout << "Sending signal: " << SIGINT << '\\n';
-     std::raise(SIGINT);
-     std::cout << "SignalValue: " << gSignalStatus << '\\n';
- }
+    std::cout << "SignalValue: " << gSignalStatus << '\\n';
+    std::cout << "Sending signal: " << SIGINT << '\\n';
+    std::raise(SIGINT);
+    std::cout << "SignalValue: " << gSignalStatus << '\\n';
+}
 
 .SH Possible output:
 
- SignalValue: 0
- Sending signal: 2
- SignalValue: 2
+SignalValue: 0
+Sending signal: 2
+SignalValue: 2
 
 .SH References
 
-     * C++23 standard (ISO/IEC 14882:2023):
+  * C++23 standard (ISO/IEC 14882:2024):
 
-     * 17.13.5 Signal handlers [support.signal]
-     * C++20 standard (ISO/IEC 14882:2020):
+           * 17.13.5 Signal handlers [support.signal]
 
-     * 17.13.5 Signal handlers [support.signal]
-     * C++17 standard (ISO/IEC 14882:2017):
+  * C++20 standard (ISO/IEC 14882:2020):
 
-     * 21.10.4 Signal handlers [support.signal]
+           * 17.13.5 Signal handlers [support.signal]
 
-   Defect reports
+  * C++17 standard (ISO/IEC 14882:2017):
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+           * 21.10.4 Signal handlers [support.signal]
 
-      DR    Applied to              Behavior as published              Correct behavior
-   LWG 3756 C++17      it was unclear whether std::atomic_flag is      it is
-                       signal-safe
+  Defect reports
+
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
+
+   DR    Applied to                 Behavior as published                 Correct behavior
+LWG 3756 C++17      it was unclear whether std::atomic_flag is            it is
+                    signal-safe
 
 .SH See also
 
-   raise               runs the signal handler for particular signal
-                       \fI(function)\fP
-   atomic_signal_fence fence between a thread and a signal handler executed in the same
-   \fI(C++11)\fP             thread
-                       \fI(function)\fP
-   C documentation for
-   signal
+raise               runs the signal handler for particular signal
+                    \fI(function)\fP
+atomic_signal_fence fence between a thread and a signal handler executed in the same
+\fI(C++11)\fP             thread
+                    \fI(function)\fP
+C documentation for
+signal

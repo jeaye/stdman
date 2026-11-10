@@ -1,65 +1,77 @@
-.TH std::ranges::range 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::range 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::range \- std::ranges::range
 
 .SH Synopsis
-   Defined in header <ranges>
-   template< class T >
+Defined in header <ranges>
+template< class T >
 
-   concept range = requires( T& t ) {
-       ranges::begin(t); // equality-preserving for forward iterators  \fI(since C++20)\fP
-       ranges::end (t);
+concept range = requires( T& t ) {
+ranges::begin(t); // equality-preserving for forward iterators  \fI(since C++20)\fP
+ranges::end (t);
 
-   };
+};
 
-   The range concept defines the requirements of a type that allows iteration over its
-   elements by providing an iterator and sentinel that denote the elements of the
-   range.
+The range concept defines the requirements of a type that allows iteration over its
+elements by providing an iterator and sentinel that denote the elements of the range.
+
+  Semantic requirements
+
+Given an expression E such that decltype((E)) is T, T models range only if
+
+  * [ranges::begin(E), ranges::end(E)) denotes a range, and
+  * both ranges::begin(E) and ranges::end(E) are amortized constant time and do not alter
+    the value of E in a manner observable to equality-preserving expressions, and
+  * if the type of ranges::begin(E) models forward_iterator, ranges::begin(E) is
+    equality-preserving (in other words, forward iterators support multi-pass algorithms).
 
 .SH Notes
 
-   A typical range class only needs to provide two functions:
+A typical range class only needs to provide two functions:
 
-    1. A member function begin() whose return type models input_or_output_iterator.
-    2. A member function end() whose return type models sentinel_for<It>, where It is
-       the return type of begin().
+ 1. A member function begin() whose return type models input_or_output_iterator.
+ 2. A member function end() whose return type models sentinel_for<It>, where It is the
+    return type of begin().
 
-   Alternatively, they can be non-member functions, to be found by argument-dependent
-   lookup.
+Alternatively, they can be non-member functions, to be found by argument-dependent lookup.
 
 .SH Example
 
- #include <ranges>
 
- // A minimum range
- struct SimpleRange
- {
-     int* begin();
-     int* end();
- };
- static_assert(std::ranges::range<SimpleRange>);
+// Run this code
 
- // not a range: no begin/end
- struct NotRange
- {
-     int t {};
- };
- static_assert(!std::ranges::range<NotRange>);
+#include <ranges>
 
- // not a range: begin does not return an input_or_output_iterator
- struct NotRange2
- {
-     void* begin();
-     int* end();
- };
- static_assert(!std::ranges::range<NotRange2>);
+// A minimum range
+struct SimpleRange
+{
+    int* begin();
+    int* end();
+};
+static_assert(std::ranges::range<SimpleRange>);
 
-   Defect reports
+// Not a range: no begin/end
+struct NotRange
+{
+    int t {};
+};
+static_assert(!std::ranges::range<NotRange>);
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+// Not a range: begin does not return an input_or_output_iterator
+struct NotRange2
+{
+    void* begin();
+    int* end();
+};
+static_assert(!std::ranges::range<NotRange2>);
 
-      DR    Applied to           Behavior as published              Correct behavior
-                       ranges::begin(t) and ranges::end(t)        removed the
-   LWG 3915 C++20      did not require implicit expression        redundant description
-                       variations
+int main() {}
+
+  Defect reports
+
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
+
+   DR    Applied to             Behavior as published                Correct behavior
+LWG 3915 C++20      ranges::begin(t) and ranges::end(t)            removed the
+                    did not require implicit expression variations redundant description

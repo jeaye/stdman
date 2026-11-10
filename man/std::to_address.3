@@ -1,109 +1,108 @@
-.TH std::to_address 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::to_address 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::to_address \- std::to_address
 
 .SH Synopsis
-   Defined in header <memory>
-   template< class Ptr >                               \fB(1)\fP \fI(since C++20)\fP
-   constexpr auto to_address( const Ptr& p ) noexcept;
-   template< class T >                                 \fB(2)\fP \fI(since C++20)\fP
-   constexpr T* to_address( T* p ) noexcept;
+Defined in header <memory>
+template< class Ptr >                               \fB(1)\fP \fI(since C++20)\fP
+constexpr auto to_address( const Ptr& p ) noexcept;
+template< class T >                                 \fB(2)\fP \fI(since C++20)\fP
+constexpr T* to_address( T* p ) noexcept;
 
-   Obtain the address represented by p without forming a reference to the object
-   pointed to by p.
+Obtain the address represented by p without forming a reference to the object pointed to
+by p.
 
-   1) Fancy pointer overload: If the expression std::pointer_traits<Ptr>::to_address(p)
-   is well-formed, returns the result of that expression. Otherwise, returns
-   std::to_address(p.operator->()).
-   2) Raw pointer overload: If T is a function type, the program is ill-formed.
-   Otherwise, returns p unmodified.
+1) Fancy pointer overload: If the expression std::pointer_traits<Ptr>::to_address(p) is
+well-formed, returns the result of that expression. Otherwise, returns
+std::to_address(p.operator->()).
+2) Raw pointer overload: If T is a function type, the program is ill-formed. Otherwise,
+returns p unmodified.
 
 .SH Parameters
 
-   p - fancy or raw pointer
+p - fancy or raw pointer
 
 .SH Return value
 
-   Raw pointer that represents the same address as p does.
+Raw pointer that represents the same address as p does.
 
 .SH Possible implementation
 
-   template<class T>
-   constexpr T* to_address(T* p) noexcept
-   {
-       static_assert(!std::is_function_v<T>);
-       return p;
-   }
+template<class T>
+constexpr T* to_address(T* p) noexcept
+{
+    static_assert(!std::is_function_v<T>);
+    return p;
+}
 
-   template<class T>
-   constexpr auto to_address(const T& p) noexcept
-   {
-       if constexpr (requires{ std::pointer_traits<T>::to_address(p); })
-           return std::pointer_traits<T>::to_address(p);
-       else
-           return std::to_address(p.operator->());
-   }
+template<class T>
+constexpr auto to_address(const T& p) noexcept
+{
+    if constexpr (requires{ std::pointer_traits<T>::to_address(p); })
+        return std::pointer_traits<T>::to_address(p);
+    else
+        return std::to_address(p.operator->());
+}
 
 .SH Notes
 
-   std::to_address can be used even when p does not reference storage that has an
-   object constructed in it, in which case std::addressof(*p) cannot be used because
-   there is no valid object for the parameter of std::addressof to bind to.
+std::to_address can be used even when p does not reference storage that has an object
+constructed in it, in which case std::addressof(*p) cannot be used because there is no
+valid object for the parameter of std::addressof to bind to.
 
-   The fancy pointer overload of std::to_address inspects the std::pointer_traits<Ptr>
-   specialization. If instantiating that specialization is itself ill-formed (typically
-   because element_type cannot be defined), that results in a hard error outside the
-   immediate context and renders the program ill-formed.
+The fancy pointer overload of std::to_address inspects the std::pointer_traits<Ptr>
+specialization. If instantiating that specialization is itself ill-formed (typically
+because element_type cannot be defined), that results in a hard error outside the
+immediate context and renders the program ill-formed.
 
-   std::to_address may additionally be used on iterators that satisfy
-   std::contiguous_iterator.
+std::to_address may additionally be used on iterators that satisfy
+std::contiguous_iterator.
 
-    Feature-test macro   Value    Std                       Feature
-   __cpp_lib_to_address 201711L (C++20) Utility to convert a pointer to a raw pointer
-                                        (std::to_address)
+ Feature-test macro   Value    Std                          Feature
+__cpp_lib_to_address 201711L (C++20) Utility to convert a pointer to a raw pointer
+                                     (std::to_address)
 
 .SH Example
 
 
 // Run this code
 
- #include <memory>
+#include <memory>
 
- template<class A>
- auto allocator_new(A& a)
- {
-     auto p = a.allocate(1);
-     try
-     {
-         std::allocator_traits<A>::construct(a, std::to_address(p));
-     }
-     catch (...)
-     {
-         a.deallocate(p, 1);
-         throw;
-     }
-     return p;
- }
+template<class A>
+auto allocator_new(A& a)
+{
+    auto p = a.allocate(1);
+    try
+    {
+        std::allocator_traits<A>::construct(a, std::to_address(p));
+    }
+    catch (...)
+    {
+        a.deallocate(p, 1);
+        throw;
+    }
+    return p;
+}
 
- template<class A>
- void allocator_delete(A& a, typename std::allocator_traits<A>::pointer p)
- {
-     std::allocator_traits<A>::destroy(a, std::to_address(p));
-     a.deallocate(p, 1);
- }
+template<class A>
+void allocator_delete(A& a, typename std::allocator_traits<A>::pointer p)
+{
+    std::allocator_traits<A>::destroy(a, std::to_address(p));
+    a.deallocate(p, 1);
+}
 
- int main()
- {
-     std::allocator<int> a;
-     auto p = allocator_new(a);
-     allocator_delete(a, p);
- }
+int main()
+{
+    std::allocator<int> a;
+    auto p = allocator_new(a);
+    allocator_delete(a, p);
+}
 
 .SH See also
 
-   pointer_traits             provides information about pointer-like types
-   \fI(C++11)\fP                    \fI(class template)\fP
-                              obtains a raw pointer from a fancy pointer (inverse of
-   to_address                 pointer_to)
-   \fB[static]\fP (C++20)(optional) \fI\fI(public static member\fP function of\fP
-                              std::pointer_traits<Ptr>)
+pointer_traits             provides information about pointer-like types
+\fI(C++11)\fP                    \fI(class template)\fP
+to_address                 obtains a raw pointer from a fancy pointer (inverse of
+\fB[static]\fP (C++20)(optional) pointer_to)
+                           \fI(public static member function of std::pointer_traits<Ptr>)\fP

@@ -1,111 +1,175 @@
-.TH std::expected::swap 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::expected::swap 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::expected::swap \- std::expected::swap
 
 .SH Synopsis
-   constexpr void swap( expected& other ) noexcept(/*see below*/);  (since C++23)
+Primary template
+constexpr void swap( expected& other ) noexcept(/* see below */); \fB(1)\fP (since C++23)
+void partial specialization
+constexpr void swap( expected& other ) noexcept(/* see below */); \fB(2)\fP (since C++23)
 
-   Swaps the contents with those of other.
+Swaps the contents with those of other.
 
-     * If both this->has_value() and other.has_value() are true:
+1) The contained values are swapped as follows:
 
-     * If T is (possibly cv-qualified) void, no effects.
-     * Otherwise, equivalent to using std::swap; swap(**this, *other);.
-     * If both this->has_value() and other.has_value() are false, equivalent to
-       using std::swap; swap(this->error(), other.error());.
-     * If this->has_value() is false and other.has_value() is true, calls
-       other.swap(*this).
-     * If this->has_value() is true and other.has_value() is false,
+ Value of          Value of other.has_value()
+has_value()        true                 false
+true        using std::swap;    see below
+            swap(val, rhs.val);
+false       other.swap(*this);  using std::swap;
+                                swap(unex, rhs.unex);
 
-     * If T is (possibly cv-qualified) void, let unex be the member that represents the
-       unexpected value, equivalent to:
+If has_value() is true and other.has_value() is false, equivalent to:
 
- std::construct_at(std::addressof(unex), std::move(other.unex));
- std::destroy_at(std::addressof(other.unex));
+// Case 1: the move constructions of unexpected values are non-throwing:
+// “other.unex” will be restored if the construction of “other.val” fails
+if constexpr (std::is_nothrow_move_constructible_v<E>)
+{
+E temp(std::move(other.unex));
+std::destroy_at(std::addressof(other.unex));
+try
+{
+std::construct_at(std::addressof(other.val), std::move(val)); // may throw
+std::destroy_at(std::addressof(val));
+std::construct_at(std::addressof(unex), std::move(temp));
+}
+catch(...)
+{
+std::construct_at(std::addressof(other.unex), std::move(temp));
+throw;
+}
+}
+// Case 2: the move constructions of expected values are non-throwing:
+// “this->val” will be restored if the construction of “this->unex” fails
+else
+{
+T temp(std::move(val));
+std::destroy_at(std::addressof(val));
+try
+{
+std::construct_at(std::addressof(unex), std::move(other.unex)); // may throw
+std::destroy_at(std::addressof(other.unex));
+std::construct_at(std::addressof(other.val), std::move(temp));
+}
+catch(...)
+{
+std::construct_at(std::addressof(val), std::move(temp));
+throw;
+}
+}
+has_val  = false;
+rhs.has_val  = true;
 
-     * Otherwise, let val be the member that represents the expected value and unex be
-       the member that represents the unexpected value, equivalent to:
+This overload participates in overload resolution only if all following values are true:
+  * std::is_swappable_v<T>
+  * std::is_swappable_v<E>
+  * std::is_move_constructible_v<T> && std::is_move_constructible_v<E>
+  * std::is_nothrow_move_constructible_v<T> || std::is_nothrow_move_constructible_v<E>
+2) The unexpected values are swapped as follows:
 
- if constexpr (std::is_nothrow_move_constructible_v<E>) {
-     E temp(std::move(other.unex));
-     std::destroy_at(std::addressof(other.unex));
-     try {
-         std::construct_at(std::addressof(other.val), std::move(val));
-         std::destroy_at(std::addressof(val));
-         std::construct_at(std::addressof(unex), std::move(temp));
-     } catch(...) {
-         std::construct_at(std::addressof(other.unex), std::move(temp));
-         throw;
-     }
- } else {
-     T temp(std::move(val));
-     std::destroy_at(std::addressof(val));
-     try {
-         std::construct_at(std::addressof(unex), std::move(other.unex));
-         std::destroy_at(std::addressof(other.unex));
-         std::construct_at(std::addressof(other.val), std::move(temp));
-     } catch(...) {
-         std::construct_at(std::addressof(val), std::move(temp));
-         throw;
-     }
- }
+ Value of                     Value of other.has_value()
+has_value()        true                           false
+                                std::construct_at(std::addressof(unex),
+            using std::swap;    std::move(rhs.unex));
+true        swap(val, rhs.val); std::destroy_at(std::addressof(rhs.unex));
+                                has_val  = false;
+                                rhs.has_val  = true;
+false       other.swap(*this);  using std::swap;
+                                swap(unex, rhs.unex);
 
-     * In either case, if no exception was thrown, after swap, this->has_value() is
-       false, and other.has_value() is true.
-
-   This function participates in overload resolution only if
-
-     * either T is (possibly cv-qualified) void, or std::is_swappable_v<T> is true, and
-     * std::is_swappable_v<E> is true, and
-     * either T is (possibly cv-qualified) void, or std::is_move_constructible_v<T> is
-       true, and
-     * std::is_move_constructible_v<E> is true, and
-     * at least one of the following is true:
-          * T is (possibly cv-qualified) void
-          * std::is_nothrow_move_constructible_v<T>
-          * std::is_nothrow_move_constructible_v<E>
+This overload participates in overload resolution only if std::is_swappable_v<E> and
+std::is_move_constructible_v<E> are both true.
 
 .SH Parameters
 
-   other - the optional object to exchange the contents with
-
-.SH Return value
-
-   \fI(none)\fP
+other - the expected object to exchange the contents with
 
 .SH Exceptions
 
-   If T is (possibly cv-qualified) void,
-   noexcept specification:
-   noexcept(
+1)
+noexcept specification:
+noexcept(
 
-       std::is_nothrow_move_constructible_v<E> && std::is_nothrow_swappable_v<E>
+std::is_nothrow_move_constructible_v<T> && std::is_nothrow_swappable_v<T> &&
+std::is_nothrow_move_constructible_v<E> && std::is_nothrow_swappable_v<E>
 
-   )
-   Otherwise,
-   noexcept specification:
-   noexcept(
+)
+2)
+noexcept specification:
+noexcept(
 
-       std::is_nothrow_move_constructible_v<T> && std::is_nothrow_swappable_v<T> &&
-       std::is_nothrow_move_constructible_v<E> && std::is_nothrow_swappable_v<E>
+std::is_nothrow_move_constructible_v<E> && std::is_nothrow_swappable_v<E>
 
-   )
-
-   In the case of thrown exception, the states of the contained values of *this and
-   other are determined by the exception safety guarantees of swap or T's and E's move
-   constructor, whichever is called. For both *this and other, if the object contained
-   an expected value, it is left containing an expected value, and the other way round.
+)
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+
+// Run this code
+
+#include <expected>
+#include <iostream>
+#include <string>
+
+using Ex = std::expected<std::string, int>;
+
+void show(const Ex& ex1, const Ex& ex2)
+{
+    for (int i{}; i < 2; ++i)
+    {
+        std::cout << (i ? "ex2" : "ex1");
+        if (const Ex& ex = (i ? ex2 : ex1); ex.has_value())
+            std::cout << ".has_value() = " << *ex << '\\n';
+        else
+            std::cout << ".error() = " << ex.error() << '\\n';
+    }
+}
+
+int main()
+{
+    Ex ex1("\\N{CAT FACE}");
+    Ex ex2{"\\N{GREEN HEART}"};
+    show(ex1, ex2);
+    ex1.swap(ex2);
+    std::cout << "ex1.swap(ex2);\\n";
+    show(ex1, ex2);
+    std::cout << '\\n';
+
+    ex2 = std::unexpected(13);
+    show(ex1, ex2);
+    std::cout << "ex1.swap(ex2);\\n";
+    ex1.swap(ex2);
+    show(ex1, ex2);
+    std::cout << '\\n';
+
+    ex2 = std::unexpected(19937);
+    show(ex1, ex2);
+    std::cout << "ex1.swap(ex2);\\n";
+    ex1.swap(ex2);
+    show(ex1, ex2);
+}
+
+.SH Output:
+
+ex1.has_value() = 🐱
+ex2.has_value() = 💚
+ex1.swap(ex2);
+ex1.has_value() = 💚
+ex2.has_value() = 🐱
+
+ex1.has_value() = 💚
+ex2.error() = 13
+ex1.swap(ex2);
+ex1.error() = 13
+ex2.has_value() = 💚
+
+ex1.error() = 13
+ex2.error() = 19937
+ex1.swap(ex2);
+ex1.error() = 19937
+ex2.error() = 13
 
 .SH See also
 
-   swap(std::expected) specializes the std::swap algorithm
-   (C++23)             \fI(function)\fP
-
-.SH Categories:
-     * conditionally noexcept
-     * Todo no example
+swap(std::expected) specializes the std::swap algorithm
+(C++23)             \fI(function)\fP

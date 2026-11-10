@@ -1,138 +1,137 @@
-.TH std::shared_mutex::lock_shared 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::shared_mutex::lock_shared 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::shared_mutex::lock_shared \- std::shared_mutex::lock_shared
 
 .SH Synopsis
-   void lock_shared();  \fI(since C++17)\fP
+void lock_shared();  \fI(since C++17)\fP
 
-   Acquires shared ownership of the mutex. If another thread is holding the mutex in
-   exclusive ownership, a call to lock_shared will block execution until shared
-   ownership can be acquired.
+Acquires shared ownership of the mutex. If another thread is holding the mutex in
+exclusive ownership, a call to lock_shared will block execution until shared ownership can
+be acquired.
 
-   If lock_shared is called by a thread that already owns the mutex in any mode
-   (exclusive or shared), the behavior is undefined.
+If lock_shared is called by a thread that already owns the mutex in any mode (exclusive or
+shared), the behavior is undefined.
 
-   If more than the implementation-defined maximum number of shared owners already
-   locked the mutex in shared mode, lock_shared blocks execution until the number of
-   shared owners is reduced. The maximum number of owners is guaranteed to be at least
-   10000.
+If more than the implementation-defined maximum number of shared owners already locked the
+mutex in shared mode, lock_shared blocks execution until the number of shared owners is
+reduced. The maximum number of owners is guaranteed to be at least 10000.
 
-   A prior unlock() operation on the same mutex synchronizes-with (as defined in
-   std::memory_order) this operation.
+A prior unlock() operation on the same mutex synchronizes-with (as defined in
+std::memory_order) this operation.
 
 .SH Parameters
 
-   \fI(none)\fP
+\fI(none)\fP
 
 .SH Return value
 
-   \fI(none)\fP
+\fI(none)\fP
 
 .SH Exceptions
 
-   Throws std::system_error when errors occur, including errors from the underlying
-   operating system that would prevent lock from meeting its specifications. The mutex
-   is not locked in the case of any exception being thrown.
+Throws std::system_error when errors occur, including errors from the underlying operating
+system that would prevent lock from meeting its specifications. The mutex is not locked in
+the case of any exception being thrown.
 
 .SH Notes
 
-   lock_shared() is usually not called directly: std::shared_lock is used to manage
-   shared locking.
+lock_shared() is usually not called directly: std::shared_lock is used to manage shared
+locking.
 
 .SH Example
 
 
 // Run this code
 
- #include <chrono>
- #include <iostream>
- #include <mutex>
- #include <shared_mutex>
- #include <syncstream>
- #include <thread>
- #include <vector>
+#include <chrono>
+#include <iostream>
+#include <mutex>
+#include <shared_mutex>
+#include <syncstream>
+#include <thread>
+#include <vector>
 
- std::mutex stream_mutx;
- void print(auto v)
- {
-     std::unique_lock<std::mutex> lock(stream_mutx);
-     std::cout << std::this_thread::get_id() << " saw: ";
-     for (auto e : v)
-         std::cout << e << ' ';
-     std::cout << '\\n';
- }
+std::mutex stream_mutx;
+void print(auto v)
+{
+    std::unique_lock<std::mutex> lock(stream_mutx);
+    std::cout << std::this_thread::get_id() << " saw: ";
+    for (auto e : v)
+        std::cout << e << ' ';
+    std::cout << '\\n';
+}
 
- int main()
- {
-     using namespace std::chrono_literals;
-     constexpr int N_READERS = 5;
-     constexpr int LAST = -999;
+int main()
+{
+    using namespace std::chrono_literals;
+    constexpr int N_READERS = 5;
+    constexpr int LAST = -999;
 
-     std::shared_mutex smtx;
-     int product = 0;
+    std::shared_mutex smtx;
+    int product = 0;
 
-     auto writer = [&smtx, &product](int start, int end)
-     {
-         for (int i = start; i < end; ++i)
-         {
-             auto data = i;
-             {
-                 std::unique_lock<std::shared_mutex> lock(smtx);
-                 product = data;
-             }
-             std::this_thread::sleep_for(3ms);
-         }
+    auto writer = [&smtx, &product](int start, int end)
+    {
+        for (int i = start; i < end; ++i)
+        {
+            auto data = i;
+            {
+                std::unique_lock<std::shared_mutex> lock(smtx);
+                product = data;
+            }
+            std::this_thread::sleep_for(3ms);
+        }
 
-         smtx.lock(); // lock manually
-         product = LAST;
-         smtx.unlock();
-     };
+        smtx.lock(); // lock manually
+        product = LAST;
+        smtx.unlock();
+    };
 
-     auto reader = [&smtx, &product]()
-     {
-         int data = 0;
-         std::vector<int> seen;
-         do
-         {
-             {
-                 smtx.lock_shared(); // better to use: std::shared_lock lock(smtx);
-                 data = product;
-                 smtx.unlock_shared();
-             }
+    auto reader = [&smtx, &product]()
+    {
+        int data = 0;
+        std::vector<int> seen;
+        do
+        {
+            {
+                smtx.lock_shared(); // better to use: std::shared_lock lock(smtx);
+                data = product;
+                smtx.unlock_shared();
+            }
 
-             seen.push_back(data);
-             std::this_thread::sleep_for(2ms);
-         }
-         while (data != LAST);
+            seen.push_back(data);
+            std::this_thread::sleep_for(2ms);
+        }
+        while (data != LAST);
 
-         print(seen);
-     };
+        print(seen);
+    };
 
-     std::vector<std::thread> threads;
-     threads.emplace_back(writer, 1, 13);
-     threads.emplace_back(writer, 42, 52);
+    std::vector<std::thread> threads;
+    threads.emplace_back(writer, 1, 13);
+    threads.emplace_back(writer, 42, 52);
 
-     for (int i = 0; i < N_READERS; ++i)
-         threads.emplace_back(reader);
+    for (int i = 0; i < N_READERS; ++i)
+        threads.emplace_back(reader);
 
-     for (auto&& t : threads)
-         t.join();
- }
+    for (auto&& t : threads)
+        t.join();
+}
 
 .SH Possible output:
 
- 127755840 saw: 43 3 3 4 46 5 6 7 7 8 9 51 10 11 11 12 -999
- 144541248 saw: 2 44 3 4 46 5 6 7 7 8 9 51 10 11 11 12 -999
- 110970432 saw: 42 2 3 45 4 5 47 6 7 8 8 9 10 11 11 12 -999
- 119363136 saw: 42 2 3 4 46 5 6 7 7 8 9 9 10 11 11 12 12 -999
- 136148544 saw: 2 44 3 4 46 5 6 48 7 8 9 51 10 11 11 12 12 -999
+127755840 saw: 43 3 3 4 46 5 6 7 7 8 9 51 10 11 11 12 -999
+144541248 saw: 2 44 3 4 46 5 6 7 7 8 9 51 10 11 11 12 -999
+110970432 saw: 42 2 3 45 4 5 47 6 7 8 8 9 10 11 11 12 -999
+119363136 saw: 42 2 3 4 46 5 6 7 7 8 9 9 10 11 11 12 12 -999
+136148544 saw: 2 44 3 4 46 5 6 48 7 8 9 51 10 11 11 12 12 -999
 
 .SH See also
 
-   lock            locks the mutex, blocks if the mutex is not available
-                   \fI(public member function)\fP
-                   tries to lock the mutex for shared ownership, returns if the mutex
-   try_lock_shared is not available
-                   \fI(public member function)\fP
-   unlock_shared   unlocks the mutex (shared ownership)
-                   \fI(public member function)\fP
+lock            locks the mutex, blocks if the mutex is not available
+                \fI(public member function)\fP
+                tries to lock the mutex for shared ownership, returns if the mutex is not
+try_lock_shared available
+                \fI(public member function)\fP
+unlock_shared   unlocks the mutex (shared ownership)
+                \fI(public member function)\fP

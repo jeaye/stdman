@@ -1,133 +1,131 @@
-.TH std::apply 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::apply 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::apply \- std::apply
 
 .SH Synopsis
-   Defined in header <tuple>
-   template< class F, class Tuple >                                       \fI(since C++17)\fP
-   constexpr decltype(auto) apply( F&& f, Tuple&& t );                    (until C++23)
-   template< class F, tuple-like Tuple >
-   constexpr decltype(auto) apply( F&& f, Tuple&& t ) noexcept(/* see     (since C++23)
-   below */);
+Defined in header <tuple>
+template< class F, class Tuple >                                             \fI(since C++17)\fP
+constexpr decltype(auto) apply( F&& f, Tuple&& t );                          (until C++23)
+template< class F, tuple-like Tuple >
+constexpr decltype(auto) apply( F&& f, Tuple&& t ) noexcept(/* see below     (since C++23)
+*/);
 
-   Invoke the Callable object f with the elements of t as arguments.
+Invoke the Callable object f with the elements of t as arguments.
 
-   Given the exposition-only function apply-impl defined as follows: template<class
-   F,class Tuple, std::size_t... I>
-   constexpr decltype(auto)
-       apply-impl(F&& f, Tuple&& t, std::index_sequence<I...>) // exposition only
-   {
-       return INVOKE(std::forward<F>(f), std::get<I>(std::forward<Tuple>(t))...);
-   }
+Given the exposition-only function apply-impl defined as follows:
 
-   The effect is equivalent to return apply-impl(std::forward<F>(f),
-   std::forward<Tuple>(t),
-                     std::make_index_sequence<
-                         std::tuple_size_v<std::decay_t<Tuple>>>{}); .
+template<class F,class Tuple, std::size_t... I>
+constexpr decltype(auto)
+apply-impl(F&& f, Tuple&& t, std::index_sequence<I...>) // exposition only
+{
+return  INVOKE(std::forward<F>(f), std::get<I>(std::forward<Tuple>(t))...);
+}
+
+The effect is equivalent to:
+
+return  apply-impl(std::forward<F>(f), std::forward<Tuple>(t),
+std::make_index_sequence<
+std::tuple_size_v<std::decay_t<Tuple>>>{}); .
 
 .SH Parameters
 
-   f - Callable object to be invoked
-   t - tuple whose elements to be used as arguments to f
+f - Callable object to be invoked
+t - tuple whose elements to be used as arguments to f
 
 .SH Return value
 
-   The value returned by f.
+The value returned by f.
 
 .SH Exceptions
 
-   \fI(none)\fP                                                                  (until
-                                                                           C++23)
-   noexcept specification:
-   noexcept(
+\fI(none)\fP                                                                  (until C++23)
+noexcept specification:
+noexcept(
 
-       noexcept(std::invoke(std::forward<F>(f),
-                            std::get<Is>(std::forward<Tuple>(t))...))      (since
-                                                                           C++23)
-   )
+noexcept(std::invoke(std::forward<F>(f),
+std::get<Is>(std::forward<Tuple>(t))...))
+                                                                        (since C++23)
+)
 
-   where Is... denotes the parameter pack:
+where Is... denotes the pack:
 
-     * 0, 1, ..., std::tuple_size_v<std::remove_reference_t<Tuple>> - 1.
+  * 0, 1, ..., std::tuple_size_v<std::remove_reference_t<Tuple>> - 1.
 
 .SH Notes
 
-   Tuple need not be std::tuple, and instead may be anything that
-   supports std::get and std::tuple_size; in particular, std::array and   (until C++23)
-   std::pair may be used.
-   Tuple is constrained to be tuple-like, i.e. each type therein is
-   required to be a specialization of std::tuple or another type (such as (since C++23)
-   std::array and std::pair) that models tuple-like.
+Tuple need not be std::tuple, and instead may be anything that supports
+std::get and std::tuple_size; in particular, std::array and std::pair may be (until C++23)
+used.
+Tuple is constrained to be tuple-like, i.e. each type therein is required to
+be a specialization of std::tuple or another type (such as std::array and    (since C++23)
+std::pair) that models tuple-like.
 
-   Feature-test macro  Value    Std    Feature
-   __cpp_lib_apply    201603L \fI(C++17)\fP std::apply
+Feature-test macro  Value    Std    Feature
+__cpp_lib_apply    201603L \fI(C++17)\fP std::apply
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
- #include <tuple>
- #include <utility>
+#include <iostream>
+#include <tuple>
+#include <utility>
 
- int add(int first, int second) { return first + second; }
+int add(int first, int second) { return first + second; }
 
- template<typename T>
- T add_generic(T first, T second) { return first + second; }
+template<typename T>
+T add_generic(T first, T second) { return first + second; }
 
- auto add_lambda = [](auto first, auto second) { return first + second; };
+auto add_lambda = [](auto first, auto second) { return first + second; };
 
- template<typename... Ts>
- std::ostream& operator<<(std::ostream& os, std::tuple<Ts...> const& theTuple)
- {
-     std::apply
-     (
-         [&os](Ts const&... tupleArgs)
-         {
-             os << '[';
-             std::size_t n{0};
-             ((os << tupleArgs << (++n != sizeof...(Ts) ? ", " : "")), ...);
-             os << ']';
-         }, theTuple
-     );
-     return os;
- }
+template<typename... Ts>
+std::ostream& operator<<(std::ostream& os, std::tuple<Ts...> const& theTuple)
+{
+    std::apply
+    (
+        [&os](Ts const&... tupleArgs)
+        {
+            os << '[';
+            std::size_t n{0};
+            ((os << tupleArgs << (++n != sizeof...(Ts) ? ", " : "")), ...);
+            os << ']';
+        }, theTuple
+    );
+    return os;
+}
 
- int main()
- {
-     // OK
-     std::cout << std::apply(add, std::pair(1, 2)) << '\\n';
+int main()
+{
+    // OK
+    std::cout << std::apply(add, std::pair(1, 2)) << '\\n';
 
-     // Error: can't deduce the function type
-     // std::cout << std::apply(add_generic, std::make_pair(2.0f, 3.0f)) << '\\n';
+    // Error: can't deduce the function type
+    // std::cout << std::apply(add_generic, std::make_pair(2.0f, 3.0f)) << '\\n';
 
-     // OK
-     std::cout << std::apply(add_lambda, std::pair(2.0f, 3.0f)) << '\\n';
+    // OK
+    std::cout << std::apply(add_lambda, std::pair(2.0f, 3.0f)) << '\\n';
 
-     // advanced example
-     std::tuple myTuple{25, "Hello", 9.31f, 'c'};
-     std::cout << myTuple << '\\n';
- }
+    // advanced example
+    std::tuple myTuple{25, "Hello", 9.31f, 'c'};
+    std::cout << myTuple << '\\n';
+}
 
 .SH Output:
 
- 3
- 5
- [25, Hello, 9.31, c]
+3
+5
+[25, Hello, 9.31, c]
 
 .SH See also
 
-   make_tuple       creates a tuple object of the type defined by the argument types
-   \fI(C++11)\fP          \fI(function template)\fP
-   forward_as_tuple creates a tuple of forwarding references
-   \fI(C++11)\fP          \fI(function template)\fP
-   make_from_tuple  construct an object with a tuple of arguments
-   \fI(C++17)\fP          \fI(function template)\fP
-   invoke           invokes any Callable object with given arguments
-   invoke_r         and possibility to specify return type
-   \fI(C++17)\fP          (since C++23)
-   (C++23)          \fI(function template)\fP
-
-.SH Category:
-     * conditionally noexcept
+make_tuple       creates a tuple object of the type defined by the argument types
+\fI(C++11)\fP          \fI(function template)\fP
+forward_as_tuple creates a tuple of forwarding references
+\fI(C++11)\fP          \fI(function template)\fP
+make_from_tuple  construct an object with a tuple of arguments
+\fI(C++17)\fP          \fI(function template)\fP
+invoke           invokes any Callable object with given arguments
+invoke_r         and possibility to specify return type
+\fI(C++17)\fP          (since C++23)
+(C++23)          \fI(function template)\fP

@@ -1,158 +1,154 @@
-.TH std::shared_mutex 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::shared_mutex 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::shared_mutex \- std::shared_mutex
 
 .SH Synopsis
-   Defined in header <shared_mutex>
-   class shared_mutex;               \fI(since C++17)\fP
+Defined in header <shared_mutex>
+class shared_mutex;               \fI(since C++17)\fP
 
-   The shared_mutex class is a synchronization primitive that can be used to protect
-   shared data from being simultaneously accessed by multiple threads. In contrast to
-   other mutex types which facilitate exclusive access, a shared_mutex has two levels
-   of access:
+The shared_mutex class is a synchronization primitive that can be used to protect shared
+data from being simultaneously accessed by multiple threads. In contrast to other mutex
+types which facilitate exclusive access, a shared_mutex has two levels of access:
 
-     * shared - several threads can share ownership of the same mutex.
-     * exclusive - only one thread can own the mutex.
+  * shared - several threads can share ownership of the same mutex.
+  * exclusive - only one thread can own the mutex.
 
-   If one thread has acquired the exclusive lock (through lock, try_lock), no other
-   threads can acquire the lock (including the shared).
+If one thread has acquired the exclusive lock (through lock, try_lock), no other threads
+can acquire the lock (including the shared).
 
-   If one thread has acquired the shared lock (through lock_shared, try_lock_shared),
-   no other thread can acquire the exclusive lock, but can acquire the shared lock.
+If one thread has acquired the shared lock (through lock_shared, try_lock_shared), no
+other thread can acquire the exclusive lock, but can acquire the shared lock.
 
-   Only when the exclusive lock has not been acquired by any thread, the shared lock
-   can be acquired by multiple threads.
+Only when the exclusive lock has not been acquired by any thread, the shared lock can be
+acquired by multiple threads.
 
-   Within one thread, only one lock (shared or exclusive) can be acquired at the same
-   time.
+Within one thread, only one lock (shared or exclusive) can be acquired at the same time.
 
-   Shared mutexes are especially useful when shared data can be safely read by any
-   number of threads simultaneously, but a thread may only write the same data when no
-   other thread is reading or writing at the same time.
+Shared mutexes are especially useful when shared data can be safely read by any number of
+threads simultaneously, but a thread may only write the same data when no other thread is
+reading or writing at the same time.
 
-   The shared_mutex class satisfies all requirements of SharedMutex and
-   StandardLayoutType.
+The shared_mutex class satisfies all requirements of SharedMutex and StandardLayoutType.
 
 .SH Member types
 
-   Member type                    Definition
-   native_handle_type (optional*) implementation-defined
+Member type                    Definition
+native_handle_type (optional*) implementation-defined
 
 .SH Member functions
 
-   constructor     constructs the mutex
-                   \fI(public member function)\fP
-   destructor      destroys the mutex
-                   \fI(public member function)\fP
-   operator=       not copy-assignable
-   [deleted]       \fI(public member function)\fP
-         Exclusive locking
-   lock            locks the mutex, blocks if the mutex is not available
-                   \fI(public member function)\fP
-   try_lock        tries to lock the mutex, returns if the mutex is not available
-                   \fI(public member function)\fP
-   unlock          unlocks the mutex
-                   \fI(public member function)\fP
+constructor     constructs the mutex
+                \fI(public member function)\fP
+destructor      destroys the mutex
+                \fI(public member function)\fP
+operator=       not copy-assignable
+[deleted]       \fI(public member function)\fP
+      Exclusive locking
+lock            locks the mutex, blocks if the mutex is not available
+                \fI(public member function)\fP
+try_lock        tries to lock the mutex, returns if the mutex is not available
+                \fI(public member function)\fP
+unlock          unlocks the mutex
+                \fI(public member function)\fP
 .SH Shared locking
-                   locks the mutex for shared ownership, blocks if the mutex is not
-   lock_shared     available
-                   \fI(public member function)\fP
-                   tries to lock the mutex for shared ownership, returns if the mutex
-   try_lock_shared is not available
-                   \fI(public member function)\fP
-   unlock_shared   unlocks the mutex (shared ownership)
-                   \fI(public member function)\fP
+lock_shared     locks the mutex for shared ownership, blocks if the mutex is not available
+                \fI(public member function)\fP
+                tries to lock the mutex for shared ownership, returns if the mutex is not
+try_lock_shared available
+                \fI(public member function)\fP
+unlock_shared   unlocks the mutex (shared ownership)
+                \fI(public member function)\fP
 .SH Native handle
-   native_handle   returns the underlying implementation-defined native handle object
-                   \fI(public member function)\fP
+native_handle   returns the underlying implementation-defined native handle object
+                \fI(public member function)\fP
 
 .SH Example
 
-   The output below was generated on a single-core machine. When thread1 starts, it
-   enters the loop for the first time and calls increment() followed by get(). However,
-   before it can print the returned value to std::cout, the scheduler puts thread1 to
-   sleep and wakes up thread2, which obviously has time enough to run all three loop
-   iterations at once. Back to thread1, still in the first loop iteration, it finally
-   prints its local copy of the counter's value, which is 1, to std::cout and then runs
-   the remaining two loop iterations. On a multi-core machine, none of the threads is
-   put to sleep and the output is more likely to be in ascending order.
+The output below was generated on a single-core machine. When thread1 starts, it enters
+the loop for the first time and calls increment() followed by get(). However, before it
+can print the returned value to std::cout, the scheduler puts thread1 to sleep and wakes
+up thread2, which obviously has time enough to run all three loop iterations at once. Back
+to thread1, still in the first loop iteration, it finally prints its local copy of the
+counter's value, which is 1, to std::cout and then runs the remaining two loop iterations.
+On a multi-core machine, none of the threads is put to sleep and the output is more likely
+to be in ascending order.
 
 
 // Run this code
 
- #include <iostream>
- #include <mutex>
- #include <shared_mutex>
- #include <syncstream>
- #include <thread>
+#include <iostream>
+#include <mutex>
+#include <shared_mutex>
+#include <syncstream>
+#include <thread>
 
- class ThreadSafeCounter
- {
- public:
-     ThreadSafeCounter() = default;
+class ThreadSafeCounter
+{
+public:
+    ThreadSafeCounter() = default;
 
-     // Multiple threads/readers can read the counter's value at the same time.
-     unsigned int get() const
-     {
-         std::shared_lock lock(mutex_);
-         return value_;
-     }
+    // Multiple threads/readers can read the counter's value at the same time.
+    unsigned int get() const
+    {
+        std::shared_lock lock(mutex_);
+        return value_;
+    }
 
-     // Only one thread/writer can increment/write the counter's value.
-     void increment()
-     {
-         std::unique_lock lock(mutex_);
-         ++value_;
-     }
+    // Only one thread/writer can increment/write the counter's value.
+    void increment()
+    {
+        std::unique_lock lock(mutex_);
+        ++value_;
+    }
 
-     // Only one thread/writer can reset/write the counter's value.
-     void reset()
-     {
-         std::unique_lock lock(mutex_);
-         value_ = 0;
-     }
+    // Only one thread/writer can reset/write the counter's value.
+    void reset()
+    {
+        std::unique_lock lock(mutex_);
+        value_ = 0;
+    }
 
- private:
-     mutable std::shared_mutex mutex_;
-     unsigned int value_{};
- };
+private:
+    mutable std::shared_mutex mutex_;
+    unsigned int value_{};
+};
 
- int main()
- {
-     ThreadSafeCounter counter;
+int main()
+{
+    ThreadSafeCounter counter;
 
-     auto increment_and_print = [&counter]()
-     {
-         for (int i{}; i != 3; ++i)
-         {
-             counter.increment();
-             std::osyncstream(std::cout)
-                 << std::this_thread::get_id() << ' ' << counter.get() << '\\n';
-         }
-     };
+    auto increment_and_print = [&counter]()
+    {
+        for (int i{}; i != 3; ++i)
+        {
+            counter.increment();
+            std::osyncstream(std::cout)
+                << std::this_thread::get_id() << ' ' << counter.get() << '\\n';
+        }
+    };
 
-     std::thread thread1(increment_and_print);
-     std::thread thread2(increment_and_print);
+    std::thread thread1(increment_and_print);
+    std::thread thread2(increment_and_print);
 
-     thread1.join();
-     thread2.join();
- }
+    thread1.join();
+    thread2.join();
+}
 
 .SH Possible output:
 
- 123084176803584 2
- 123084176803584 3
- 123084176803584 4
- 123084185655040 1
- 123084185655040 5
- 123084185655040 6
+123084176803584 2
+123084176803584 3
+123084176803584 4
+123084185655040 1
+123084185655040 5
+123084185655040 6
 
 .SH See also
 
-   shared_timed_mutex provides shared mutual exclusion facility and implements locking
-   \fI(C++14)\fP            with a timeout
-                      \fI(class)\fP
-   shared_lock        implements movable shared mutex ownership wrapper
-   \fI(C++14)\fP            \fI(class template)\fP
-   unique_lock        implements movable mutex ownership wrapper
-   \fI(C++11)\fP            \fI(class template)\fP
+shared_timed_mutex provides shared mutual exclusion facility and implements locking with a
+\fI(C++14)\fP            timeout
+                   \fI(class)\fP
+shared_lock        implements movable shared mutex ownership wrapper
+\fI(C++14)\fP            \fI(class template)\fP
+unique_lock        implements movable mutex ownership wrapper
+\fI(C++11)\fP            \fI(class template)\fP

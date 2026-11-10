@@ -1,0 +1,51 @@
+.TH std::execution::read_env 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::execution::read_env \- std::execution::read_env
+
+.SH Synopsis
+Defined in header <execution>
+inline constexpr /*unspecified*/ read_env{};      (since C++26)
+                                                  (customization point object)
+Call signature
+execution::sender auto read_env( auto&& query );  (since C++26)
+
+A sender factory that returns a sender that reaches into a receiver’s environment and
+pulls out the current value associated with a given query object.
+
+For any query object q, the expression read_env(q) is expression-equivalent to
+/*make-sender*/(read_env, q).
+
+  Customization point objects
+
+The name execution::read_env denotes a customization point object, which is a const
+function object of a literal semiregular class type. For exposition purposes, the
+cv-unqualified version of its type is denoted as __read_env_fn.
+
+All instances of __read_env_fn are equal. The effects of invoking different instances of
+type __read_env_fn on the same arguments are equivalent, regardless of whether the
+expression denoting the instance is an lvalue or rvalue, and is const-qualified or not
+(however, a volatile-qualified instance is not required to be invocable). Thus,
+execution::read_env can be copied freely and its copies can be used interchangeably.
+
+Given a set of types Args..., if std::declval<Args>()... meet the requirements for
+arguments to execution::read_env above, __read_env_fn models
+
+  * std::invocable<__read_env_fn, Args...>,
+  * std::invocable<const __read_env_fn, Args...>,
+  * std::invocable<__read_env_fn&, Args...>, and
+  * std::invocable<const __read_env_fn&, Args...>.
+
+Otherwise, no function call operator of __read_env_fn participates in overload resolution.
+
+.SH Example
+
+An example usage of this factory is to schedule dependent work on the receiver's
+scheduler, which can be obtained with read_env(get_scheduler):
+
+std::execution::sender auto task =
+  std::execution::read_env(std::execution::get_scheduler)
+    | std::execution::let_value([](auto sched) {
+        return std::execution::starts_on(sched, /*some nested work here*/);
+    });
+
+std::this_thread::sync_wait( std::move(task) ); // wait for it to finish

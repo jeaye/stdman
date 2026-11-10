@@ -1,67 +1,106 @@
-.TH std::owner_less 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::owner_less 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::owner_less \- std::owner_less
 
 .SH Synopsis
-   Defined in header <memory>
-   template<>                  \fI(since C++17)\fP
-   struct owner_less<void>;
+Defined in header <memory>
+template< class T >                            \fI(since C++11)\fP
+struct owner_less; /* undefined */             \fI(until C++17)\fP
+template< class T = void >                     \fI(since C++17)\fP
+struct owner_less; /* undefined */
+template< class T >                    \fB(1)\fP \fB(2)\fP \fI(since C++11)\fP
+struct owner_less<std::shared_ptr<T>>;
+template< class T >                        \fB(3)\fP \fI(since C++11)\fP
+struct owner_less<std::weak_ptr<T>>;
+template<>                                 \fB(4)\fP \fI(since C++17)\fP
+struct owner_less<void>;
 
-   std::owner_less<void> is a specialization of std::owner_less with parameter types
-   deduced.
+This function object provides owner-based (as opposed to value-based) mixed-type ordering
+of both std::weak_ptr and std::shared_ptr. The order is such that two smart pointers
+compare equivalent only if they are both empty or if they share ownership, even if the
+values of the raw pointers obtained by get() are different (e.g. because they point at
+different subobjects within the same object).
+
+1) Owner-based mixed-type ordering is not provided for types other than std::shared_ptr
+and std::weak_ptr.
+2) The owner-based mixed-type ordering of std::shared_ptr.
+It is the preferred comparison predicate when building associative containers with
+std::shared_ptr as keys, that is, std::map<std::shared_ptr<T>, U,
+std::owner_less<std::shared_ptr<T>>>.
+3) The owner-based mixed-type ordering of std::weak_ptr.
+It is the preferred comparison predicate when building associative containers with
+std::weak_ptr as keys, that is, std::map<std::weak_ptr<T>, U,
+std::owner_less<std::weak_ptr<T>>>.
+4) The void specialization deduces the parameter types from the arguments.
+
+The default operator< is not defined for weak pointers, and may wrongly consider two
+shared pointers for the same object non-equivalent (see std::shared_ptr::owner_before).
+
+.SH Specializations
+
+The standard library provides a specialization of std::owner_less when T is
+not specified. In this case, the parameter types are deduced from the
+arguments (each of which must still be either a std::shared_ptr or a
+std::weak_ptr).                                                              \fI(since C++17)\fP
+
+                 function object providing mixed-type owner-based ordering
+owner_less<void> of shared and weak pointers, regardless of the type of the
+                 pointee
+                 \fI(class template specialization)\fP
+
+  Nested types
+
+Nested type                                Definition
+result_type (deprecated in C++17)          (2,3) bool             \fI(until C++20)\fP
+first_argument_type (deprecated in C++17)  \fB(2)\fP std::shared_ptr<T>
+                                           \fB(3)\fP std::weak_ptr<T>
+second_argument_type (deprecated in C++17) \fB(2)\fP std::shared_ptr<T>
+                                           \fB(3)\fP std::weak_ptr<T>
 
 .SH Member functions
 
-   operator() compares its arguments using owner-based semantics
-              \fI(function)\fP
+operator() compares its arguments using owner-based semantics
+           \fI(function)\fP
 
-std::owner_less<void>::operator()
+std::owner_less::operator()
 
-   template< class T, class U >
+member only of specialization \fB(2)\fP
+bool operator()( const std::shared_ptr<T>& lhs,  \fI(since C++11)\fP
+const std::shared_ptr<T>& rhs ) const noexcept;
+member only of specialization \fB(3)\fP
+bool operator()( const std::weak_ptr<T>& lhs,    \fI(since C++11)\fP
+const std::weak_ptr<T>& rhs ) const noexcept;
+member of both template specializations
+bool operator()( const std::shared_ptr<T>& lhs,  \fI(since C++11)\fP
+const std::weak_ptr<T>& rhs ) const noexcept;
+bool operator()( const std::weak_ptr<T>& lhs,    \fI(since C++11)\fP
+const std::shared_ptr<T>& rhs ) const noexcept;
 
-   bool operator()( const std::shared_ptr<T>& lhs,                   \fI(since C++17)\fP
+Compares lhs and rhs using owner-based semantics. Effectively calls lhs.owner_before(rhs).
 
-                    const std::shared_ptr<U>& rhs ) const noexcept;
-   template< class T, class U >
+The ordering is strict weak ordering relation.
 
-   bool operator()( const std::shared_ptr<T>& lhs,                   \fI(since C++17)\fP
-
-                    const std::weak_ptr<U>& rhs ) const noexcept;
-   template< class T, class U >
-
-   bool operator()( const std::weak_ptr<T>& lhs,                     \fI(since C++17)\fP
-
-                    const std::shared_ptr<U>& rhs ) const noexcept;
-   template< class T, class U >
-
-   bool operator()( const std::weak_ptr<T>& lhs,                     \fI(since C++17)\fP
-
-                    const std::weak_ptr<U>& rhs ) const noexcept;
-
-   Compares lhs and rhs using owner-based semantics. Effectively calls
-   lhs.owner_before(rhs).
-
-   The ordering is strict weak ordering relation.
-
-   lhs and rhs are equivalent only if they are both empty or share ownership.
+lhs and rhs are equivalent only if they are both empty or share ownership.
 
 .SH Parameters
 
-   lhs, rhs - shared-ownership pointers to compare
+lhs, rhs - shared-ownership pointers to compare
 
 .SH Return value
 
-   true if lhs is less than rhs as determined by the owner-based ordering.
+true if lhs is less than rhs as determined by the owner-based ordering, false otherwise.
 
-.SH Notes
+  Defect reports
 
-         Feature-test macro         Value    Std                 Feature
-   __cpp_lib_transparent_operators 201510L \fI(C++17)\fP Transparent std::owner_less
-                                                   (std::owner_less<void>)
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
+
+   DR    Applied to           Behavior as published               Correct behavior
+LWG 2873 C++11      operator() was not required to be noexcept required to be noexcept
 
 .SH See also
 
-   owner_before provides owner-based ordering of shared pointers
-                \fI(public member function of std::shared_ptr<T>)\fP
-   owner_before provides owner-based ordering of weak pointers
-                \fI(public member function of std::weak_ptr<T>)\fP
+owner_before provides owner-based ordering of shared pointers
+             \fI(public member function of std::shared_ptr<T>)\fP
+owner_before provides owner-based ordering of weak pointers
+             \fI(public member function of std::weak_ptr<T>)\fP

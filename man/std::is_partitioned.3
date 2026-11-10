@@ -1,119 +1,116 @@
-.TH std::is_partitioned 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_partitioned 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_partitioned \- std::is_partitioned
 
 .SH Synopsis
-   Defined in header <algorithm>
-   template< class InputIt, class UnaryPred >                   \fI(since C++11)\fP
-   bool is_partitioned( InputIt first, InputIt last,        \fB(1)\fP (constexpr since C++20)
-   UnaryPred p );
-   template< class ExecutionPolicy, class ForwardIt, class
-   UnaryPred >
+Defined in header <algorithm>
+template< class InputIt, class UnaryPred >                         \fI(since C++11)\fP
+bool is_partitioned( InputIt first, InputIt last, UnaryPred p  \fB(1)\fP (constexpr since C++20)
+);
+template< class ExecutionPolicy, class ForwardIt, class
+UnaryPred >
+                                                               \fB(2)\fP \fI(since C++17)\fP
+bool is_partitioned( ExecutionPolicy&& policy,
 
-   bool is_partitioned( ExecutionPolicy&& policy,           \fB(2)\fP \fI(since C++17)\fP
+ForwardIt first, ForwardIt last, UnaryPred p );
 
-                        ForwardIt first, ForwardIt last,
-   UnaryPred p );
+1) Checks whether [first, last) is partitioned by the predicate p: all elements satisfy p
+appear before all elements that do not.
+2) Same as \fB(1)\fP, but executed according to policy.
+This overload participates in overload resolution only if all following conditions are
+satisfied:
 
-   1) Checks whether [first, last) is partitioned by the predicate p: all elements
-   satisfy p appear before all elements that do not.
-   2) Same as \fB(1)\fP, but executed according to policy.
-   This overload participates in overload resolution only if
-
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
-                                                                             C++20)
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
-                                                                             C++20)
+std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        \fI(until C++20)\fP
+std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. \fI(since C++20)\fP
 
 .SH Parameters
 
-   first, last - the range of elements to check
-   policy      - the execution policy to use. See execution policy for details.
-                 unary predicate which returns true for the elements expected to be
-                 found in the beginning of the range.
+first, last - the range of elements to check
+policy      - the execution policy to use
+              unary predicate which returns true for the elements expected to be found in
+              the beginning of the range.
 
-                 The expression p(v) must be convertible to bool for every argument v
-   p           - of type (possibly const) VT, where VT is the value type of InputIt,
-                 regardless of value category, and must not modify v. Thus, a parameter
-                 type of VT&is not allowed
-                 , nor is VT unless for VT a move is equivalent to a copy
-                 \fI(since C++11)\fP.
+              The expression p(v) must be convertible to bool for every argument v of type
+p           - (possibly const) VT, where VT is the value type of InputIt, regardless of
+              value category, and must not modify v. Thus, a parameter type of VT&is not
+              allowed
+              , nor is VT unless for VT a move is equivalent to a copy
+              \fI(since C++11)\fP. 
 .SH Type requirements
-   -
-   InputIt must meet the requirements of LegacyInputIterator.
-   -
-   ForwardIt must meet the requirements of LegacyForwardIterator. and its value type
-   must be convertible to UnaryPred's parameter type.
-   -
-   UnaryPred must meet the requirements of Predicate.
+-
+InputIt must meet the requirements of LegacyInputIterator.
+-
+ForwardIt must meet the requirements of LegacyForwardIterator. and its value type must be
+convertible to UnaryPred's parameter type.
+-
+UnaryPred must meet the requirements of Predicate.
 
 .SH Return value
 
-   true if the elements e of [first, last) are partitioned with respect to the
-   expression p(e). false otherwise.
+true if the elements e of [first, last) are partitioned with respect to the expression
+p(e). false otherwise.
 
 .SH Complexity
 
-   At most std::distance(first, last) applications of p.
+At most std::distance(first, last) applications of p.
 
 .SH Exceptions
 
-   The overload with a template parameter named ExecutionPolicy reports errors as
-   follows:
+The overload with a template parameter named ExecutionPolicy reports errors as follows:
 
-     * If execution of a function invoked as part of the algorithm throws an exception
-       and ExecutionPolicy is one of the standard policies, std::terminate is called.
-       For any other ExecutionPolicy, the behavior is implementation-defined.
-     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
+  * If execution of a function invoked as part of the algorithm throws an exception and
+    ExecutionPolicy is one of the standard policies, std::terminate is called. For any
+    other ExecutionPolicy, the behavior is implementation-defined.
+  * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
 
 .SH Possible implementation
 
-   template<class InputIt, class UnaryPred>
-   bool is_partitioned(InputIt first, InputIt last, UnaryPred p)
-   {
-       for (; first != last; ++first)
-           if (!p(*first))
-               break;
-       for (; first != last; ++first)
-           if (p(*first))
-               return false;
-       return true;
-   }
+template<class InputIt, class UnaryPred>
+bool is_partitioned(InputIt first, InputIt last, UnaryPred p)
+{
+    for (; first != last; ++first)
+        if (!p(*first))
+            break;
+    for (; first != last; ++first)
+        if (p(*first))
+            return false;
+    return true;
+}
 
 .SH Example
 
 
 // Run this code
 
- #include <algorithm>
- #include <array>
- #include <iostream>
+#include <algorithm>
+#include <array>
+#include <iostream>
 
- int main()
- {
-     std::array<int, 9> v {1, 2, 3, 4, 5, 6, 7, 8, 9};
+int main()
+{
+    std::array<int, 9> v {1, 2, 3, 4, 5, 6, 7, 8, 9};
 
-     auto is_even = [](int i) { return i % 2 == 0; };
-     std::cout.setf(std::ios_base::boolalpha);
-     std::cout << std::is_partitioned(v.begin(), v.end(), is_even) << ' ';
+    auto is_even = [](int i) { return i % 2 == 0; };
+    std::cout.setf(std::ios_base::boolalpha);
+    std::cout << std::is_partitioned(v.begin(), v.end(), is_even) << ' ';
 
-     std::partition(v.begin(), v.end(), is_even);
-     std::cout << std::is_partitioned(v.begin(), v.end(), is_even) << ' ';
+    std::partition(v.begin(), v.end(), is_even);
+    std::cout << std::is_partitioned(v.begin(), v.end(), is_even) << ' ';
 
-     std::reverse(v.begin(), v.end());
-     std::cout << std::is_partitioned(v.cbegin(), v.cend(), is_even) << ' ';
-     std::cout << std::is_partitioned(v.crbegin(), v.crend(), is_even) << '\\n';
- }
+    std::reverse(v.begin(), v.end());
+    std::cout << std::is_partitioned(v.cbegin(), v.cend(), is_even) << ' ';
+    std::cout << std::is_partitioned(v.crbegin(), v.crend(), is_even) << '\\n';
+}
 
 .SH Output:
 
- false true false true
+false true false true
 
 .SH See also
 
-   partition              divides a range of elements into two groups
-                          \fI(function template)\fP
-   partition_point        locates the partition point of a partitioned range
-   \fI(C++11)\fP                \fI(function template)\fP
-   ranges::is_partitioned determines if the range is partitioned by the given predicate
-   (C++20)                (niebloid)
+partition              divides a range of elements into two groups
+                       \fI(function template)\fP
+partition_point        locates the partition point of a partitioned range
+\fI(C++11)\fP                \fI(function template)\fP
+ranges::is_partitioned determines if the range is partitioned by the given predicate
+(C++20)                (algorithm function object)

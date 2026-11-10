@@ -1,123 +1,122 @@
-.TH std::notify_all_at_thread_exit 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::notify_all_at_thread_exit 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::notify_all_at_thread_exit \- std::notify_all_at_thread_exit
 
 .SH Synopsis
-   Defined in header <condition_variable>
-   void notify_all_at_thread_exit( std::condition_variable& cond,      \fI(since C++11)\fP
-                                   std::unique_lock<std::mutex> lk );
+Defined in header <condition_variable>
+void notify_all_at_thread_exit( std::condition_variable& cond,  \fI(since C++11)\fP
+std::unique_lock<std::mutex> lk );
 
-   notify_all_at_thread_exit provides a mechanism to notify other threads that a given
-   thread has completely finished, including destroying all thread_local objects. It
-   operates as follows:
+notify_all_at_thread_exit provides a mechanism to notify other threads that a given thread
+has completely finished, including destroying all thread_local objects. It operates as
+follows:
 
-     * Ownership of the previously acquired lock lk is transferred to internal storage.
-     * The execution environment is modified such that when the current thread exits,
-       the condition variable cond is notified as if by lk.unlock();
-       cond.notify_all();.
+  * Ownership of the previously acquired lock lk is transferred to internal storage.
+  * The execution environment is modified such that when the current thread exits, the
+    condition variable cond is notified as if by lk.unlock();
+    cond.notify_all();.
 
-   The implied lk.unlock() is sequenced after the destruction of all objects with
-   thread local storage duration associated with the current thread.
+The implied lk.unlock() is sequenced after the destruction of all objects with thread
+local storage duration associated with the current thread.
 
-   If any of the following conditions is satisfied, the behavior is undefined:
+If any of the following conditions is satisfied, the behavior is undefined:
 
-     * lk is not locked by the calling thread.
-     * If some other threads are also waiting on cond, lk.mutex() is different from the
-       mutex unlocked by the waiting functions (wait, wait_for and wait_until) called
-       on cond by those threads.
+  * lk is not locked by the calling thread.
+  * If some other threads are also waiting on cond, lk.mutex() is different from the mutex
+    unlocked by the waiting functions (wait, wait_for and wait_until) called on cond by
+    those threads.
 
 .SH Notes
 
-   An equivalent effect may be achieved with the facilities provided by std::promise or
-   std::packaged_task.
+An equivalent effect may be achieved with the facilities provided by std::promise or
+std::packaged_task.
 
-   The supplied lock lk is held until the thread exits. Once this function has been
-   called, no more threads may acquire the same lock in order to wait on cond. If some
-   threads are waiting on this condition variable, ensure that the condition being
-   waited for is satisfied while holding the lock on lk, and that this lock is not
-   released and reacquired prior to calling notify_all_at_thread_exit to avoid
-   confusion from spurious wakeups in other threads.
+The supplied lock lk is held until the thread exits. Once this function has been called,
+no more threads may acquire the same lock in order to wait on cond. If some threads are
+waiting on this condition variable, ensure that the condition being waited for is
+satisfied while holding the lock on lk, and that this lock is not released and reacquired
+prior to calling notify_all_at_thread_exit to avoid confusion from spurious wakeups in
+other threads.
 
-   In typical use cases, this function is the last thing called by a detached thread.
+In typical use cases, this function is the last thing called by a detached thread.
 
 .SH Parameters
 
-   cond - the condition variable to notify at thread exit
-   lk   - the lock associated with the condition variable cond
+cond - the condition variable to notify at thread exit
+lk   - the lock associated with the condition variable cond
 
 .SH Return value
 
-   \fI(none)\fP
+\fI(none)\fP
 
 .SH Example
 
-   This partial code fragment illustrates how notify_all_at_thread_exit can be used to
-   avoid accessing data that depends on thread locals while those thread locals are in
-   the process of being destructed:
+This partial code fragment illustrates how notify_all_at_thread_exit can be used to avoid
+accessing data that depends on thread locals while those thread locals are in the process
+of being destructed:
 
 
 // Run this code
 
- #include <cassert>
- #include <condition_variable>
- #include <mutex>
- #include <string>
- #include <thread>
+#include <cassert>
+#include <condition_variable>
+#include <mutex>
+#include <string>
+#include <thread>
 
- std::mutex m;
- std::condition_variable cv;
+std::mutex m;
+std::condition_variable cv;
 
- bool ready = false;
- std::string result; // some arbitrary type
+bool ready = false;
+std::string result; // some arbitrary type
 
- void thread_func()
- {
-     thread_local std::string thread_local_data = "42";
+void thread_func()
+{
+    thread_local std::string thread_local_data = "42";
 
-     std::unique_lock<std::mutex> lk(m);
+    std::unique_lock<std::mutex> lk(m);
 
-     // assign a value to result using thread_local data
-     result = thread_local_data;
-     ready = true;
+    // assign a value to result using thread_local data
+    result = thread_local_data;
+    ready = true;
 
-     std::notify_all_at_thread_exit(cv, std::move(lk));
+    std::notify_all_at_thread_exit(cv, std::move(lk));
 
- }   // 1. destroy thread_locals;
-     // 2. unlock mutex;
-     // 3. notify cv.
+}   // 1. destroy thread_locals;
+    // 2. unlock mutex;
+    // 3. notify cv.
 
- int main()
- {
-     std::thread t(thread_func);
-     t.detach();
+int main()
+{
+    std::thread t(thread_func);
+    t.detach();
 
-     // do other work
-     // ...
+    // do other work
+    // ...
 
-     // wait for the detached thread
-     std::unique_lock<std::mutex> lk(m);
-     cv.wait(lk, []{ return ready; });
+    // wait for the detached thread
+    std::unique_lock<std::mutex> lk(m);
+    cv.wait(lk, []{ return ready; });
 
-     // result is ready and thread_local destructors have finished, no UB
-     assert(result == "42");
- }
+    // result is ready and thread_local destructors have finished, no UB
+    assert(result == "42");
+}
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-      DR    Applied to             Behavior as published              Correct behavior
-                       the call to notify_all_at_thread_exit          updated the
-   LWG 2140 C++11      synchronized with calls to functions waiting   synchronization
-                       on cond                                        requirement
+   DR    Applied to                Behavior as published                 Correct behavior
+                    the call to notify_all_at_thread_exit                updated the
+LWG 2140 C++11      synchronized with calls to functions waiting on cond synchronization
+                                                                         requirement
 
 .SH See also
 
-                             sets the result to specific value while delivering the
-   set_value_at_thread_exit  notification only at thread exit
-                             \fI(public member function of std::promise<R>)\fP
-                             executes the function ensuring that the result is ready
-   make_ready_at_thread_exit only once the current thread exits
-                             \fI(public member function of std::packaged_task<R(Args...)>)\fP
-
+                          sets the result to specific value while delivering the
+set_value_at_thread_exit  notification only at thread exit
+                          \fI(public member function of std::promise<R>)\fP
+                          executes the function ensuring that the result is ready only
+make_ready_at_thread_exit once the current thread exits
+                          \fI(public member function of std::packaged_task<R(Args...)>)\fP

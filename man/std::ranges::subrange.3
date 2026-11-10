@@ -1,149 +1,190 @@
-.TH std::ranges::subrange 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::subrange 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::subrange \- std::ranges::subrange
 
 .SH Synopsis
-   Defined in header <ranges>
-   template<
+Defined in header <ranges>
+template<
 
-       std::input_or_output_iterator I,
-       std::sentinel_for<I> S = I,
-       ranges::subrange_kind K = std::sized_sentinel_for<S, I> ?
-           ranges::subrange_kind::sized : ranges::subrange_kind::unsized  \fI(since C++20)\fP
-   >
-       requires (K == ranges::subrange_kind::sized ||
-   !std::sized_sentinel_for<S, I>)
+std::input_or_output_iterator I,
+std::sentinel_for<I> S = I,
+ranges::subrange_kind K = std::sized_sentinel_for<S, I> ?
+ranges::subrange_kind::sized :
+ranges::subrange_kind::unsized                                  \fB(1)\fP \fI(since C++20)\fP
+>
+requires (K == ranges::subrange_kind::sized ||
+!std::sized_sentinel_for<S, I>)
+class subrange
 
-   class subrange : public ranges::view_interface<subrange<I, S, K>>
+: public ranges::view_interface<subrange<I, S, K>>
+Helper concepts
+template<class From, class To>
 
-   The subrange class template combines together an iterator and a sentinel into a
-   single view.
+concept /*uses-nonqualification-pointer-conversion*/ =          \fB(2)\fP (exposition only*)
 
-   Additionally, the subrange is a sized_range whenever the final template parameter is
-   subrange_kind::sized (which happens when std::sized_sentinel_for<S, I> is satisfied
-   or when size is passed explicitly as a constructor argument). The size record is
-   needed to be stored if and only if std::sized_sentinel_for<S, I> is false and K is
-   subrange_kind::sized.
+/* see description */;
+template<class From, class To>                                  \fB(3)\fP (exposition only*)
+concept /*convertible-to-non-slicing*/ = /* see description */;
+
+1) The subrange class template combines together an iterator and a sentinel into a single
+view. It models sized_range whenever the final template parameter is
+subrange_kind::sized (which happens when std::sized_sentinel_for<S, I> is satisfied or
+when size is passed explicitly as a constructor argument).
+2) Determines whether From is convertible to To without qualification conversions.
+Equivalent to:
+
+template<class From, class To>
+concept /*uses-nonqualification-pointer-conversion*/ =
+    std::is_pointer_v<From> && std::is_pointer_v<To> &&
+        !std::convertible_to<std::remove_pointer_t<From>(*)[],
+                             std::remove_pointer_t<To>(*)[]>;
+
+3) Determines whether From is convertible to To without derived-to-base conversion:
+
+template<class From, class To>
+concept /*convertible-to-non-slicing*/ =
+    std::convertible_to<From, To> &&
+        !/*uses-nonqualification-pointer-conversion*/
+            <std::decay_t<From>, std::decay_t<To>>;
+
+  Data members
+
+Member                                                  Definition
+                                                        K == ranges::subrange_kind::sized
+                                                        &&
+constexpr bool StoreSize \fB[static]\fP                       !std::sized_sentinel_for<S, I>
+                                                        (exposition-only static member
+                                                        constant*)
+                                                        an iterator to the beginning of
+I begin_                                                the subrange
+                                                        (exposition-only member object*)
+                                                        a sentinel denoting the end of the
+S end_                                                  subrange
+                                                        (exposition-only member object*)
+make-unsigned-like-t ﻿<std::iter_difference_t<I>> size_ the size of the subrange
+(present only if StoreSize is true)                     (exposition-only member object*)
 
 .SH Member functions
 
-   constructor       creates a new subrange
-   (C++20)           \fI(public member function)\fP
-   operator PairLike converts the subrange to a pair-like type
-   (C++20)           \fI(public member function)\fP
+constructor       creates a new subrange
+                  \fI(public member function)\fP
+operator PairLike converts the subrange to a pair-like type
+                  \fI(public member function)\fP
 .SH Observers
-   begin             obtains the iterator
-   (C++20)           \fI(public member function)\fP
-   end               obtains the sentinel
-   (C++20)           \fI(public member function)\fP
-   empty             checks whether the subrange is empty
-   (C++20)           \fI(public member function)\fP
-   size              obtains the size of the subrange
-   (C++20)           \fI(public member function)\fP
+begin             obtains the iterator
+                  \fI(public member function)\fP
+end               obtains the sentinel
+                  \fI(public member function)\fP
+empty             checks whether the subrange is empty
+                  \fI(public member function)\fP
+size              obtains the size of the subrange
+                  \fI(public member function)\fP
 .SH Iterator operations
-   advance           advances the iterator by given distance
-   (C++20)           \fI(public member function)\fP
-   prev              obtains a copy of the subrange with its iterator decremented by a
-   (C++20)           given distance
-                     \fI(public member function)\fP
-   next              obtains a copy of the subrange with its iterator advanced by a
-   (C++20)           given distance
-                     \fI(public member function)\fP
-         Inherited from std::ranges::view_interface
-   cbegin            returns a constant iterator to the beginning of the range.
-   (C++23)           \fI(public member function of std::ranges::view_interface<D>)\fP
-   cend              returns a sentinel for the constant iterator of the range.
-   (C++23)           \fI(public member function of std::ranges::view_interface<D>)\fP
-   operator bool     returns whether the derived view is not empty. Provided if
-   (C++20)           ranges::empty is applicable to it.
-                     \fI(public member function of std::ranges::view_interface<D>)\fP
-   data              gets the address of derived view's data. Provided if its iterator
-   (C++20)           type satisfies contiguous_iterator.
-                     \fI(public member function of std::ranges::view_interface<D>)\fP
-   front             returns the first element in the derived view. Provided if it
-   (C++20)           satisfies forward_range.
-                     \fI(public member function of std::ranges::view_interface<D>)\fP
-   back              returns the last element in the derived view. Provided if it
-   (C++20)           satisfies bidirectional_range and common_range.
-                     \fI(public member function of std::ranges::view_interface<D>)\fP
-   operator[]        returns the n^th element in the derived view. Provided if it
-   (C++20)           satisfies random_access_range.
-                     \fI(public member function of std::ranges::view_interface<D>)\fP
+advance           advances the iterator by given distance
+                  \fI(public member function)\fP
+                  obtains a copy of the subrange with its iterator decremented by a given
+prev              distance
+                  \fI(public member function)\fP
+                  obtains a copy of the subrange with its iterator advanced by a given
+next              distance
+                  \fI(public member function)\fP
+      Inherited from std::ranges::view_interface
+cbegin            returns a constant iterator to the beginning of the range.
+(C++23)           \fI(public member function of std::ranges::view_interface<D>)\fP
+cend              returns a sentinel for the constant iterator of the range.
+(C++23)           \fI(public member function of std::ranges::view_interface<D>)\fP
+                  returns whether the derived view is not empty. Provided if ranges::empty
+operator bool     is applicable to it.
+                  \fI(public member function of std::ranges::view_interface<D>)\fP
+                  gets the address of derived view's data. Provided if its iterator type
+data              satisfies contiguous_iterator.
+                  \fI(public member function of std::ranges::view_interface<D>)\fP
+                  returns the first element in the derived view. Provided if it satisfies
+front             forward_range.
+                  \fI(public member function of std::ranges::view_interface<D>)\fP
+                  returns the last element in the derived view. Provided if it satisfies
+back              bidirectional_range and common_range.
+                  \fI(public member function of std::ranges::view_interface<D>)\fP
+                  returns the n^th element in the derived view. Provided if it satisfies
+operator[]        random_access_range.
+                  \fI(public member function of std::ranges::view_interface<D>)\fP
 
-   Deduction guides
+  Deduction guides
 
 .SH Non-member functions
 
-   get(std::ranges::subrange) obtains iterator or sentinel from a std::ranges::subrange
-   (C++20)                    \fI(function template)\fP
+get(std::ranges::subrange) obtains iterator or sentinel from a std::ranges::subrange
+(C++20)                    \fI(function template)\fP
 
 .SH Helper types
 
-   ranges::subrange_kind                     specifies whether a std::ranges::subrange
-   (C++20)                                   models std::ranges::sized_range
-                                             \fI(enum)\fP
-   std::tuple_size<std::ranges::subrange>    obtains the number of components of a
-   (C++20)                                   std::ranges::subrange
-                                             \fI(class template specialization)\fP
-   std::tuple_element<std::ranges::subrange> obtains the type of the iterator or the
-   (C++20)                                   sentinel of a std::ranges::subrange
-                                             \fI(class template specialization)\fP
+ranges::subrange_kind                     specifies whether a std::ranges::subrange models
+(C++20)                                   std::ranges::sized_range
+                                          \fI(enum)\fP
+std::tuple_size<std::ranges::subrange>    obtains the size of a std::ranges::subrange
+(C++20)                                   \fI(class template specialization)\fP
+std::tuple_element<std::ranges::subrange> obtains the type of the iterator or the sentinel
+(C++20)                                   of a std::ranges::subrange
+                                          \fI(class template specialization)\fP
 
-   Helper templates
+  Helper templates
 
-   template< class I, class S, ranges::subrange_kind K >
-   inline constexpr bool enable_borrowed_range<ranges::subrange<I, S, K>> = true;
+template< class I, class S, ranges::subrange_kind K >
+constexpr bool ranges::enable_borrowed_range<ranges::subrange<I, S, K>> =    \fI(since C++20)\fP
+true;
 
-   This specialization of std::ranges::enable_borrowed_range makes subrange satisfy
-   borrowed_range.
+This specialization of ranges::enable_borrowed_range makes subrange satisfy
+borrowed_range.
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
- #include <map>
- #include <ranges>
- #include <string_view>
+#include <map>
+#include <print>
+#include <ranges>
 
- template<class V>
- void mutate(V& v)
- {
-     v += 'A' - 'a';
- }
+void make_uppercase(char& v)
+{
+    v += 'A' - 'a';
+}
 
- template<class K, class V>
- void mutate_map_values(std::multimap<K, V>& m, K k)
- {
-     auto [first, last] = m.equal_range(k);
-     for (auto& [_, v] : std::ranges::subrange(first, last))
-         mutate(v);
- }
+void uppercase_transform(std::multimap<int, char>& m, int k)
+{
+    auto [first, last] = m.equal_range(k);
+    for (auto& [_, v] : std::ranges::subrange(first, last))
+        make_uppercase(v);
+}
 
- int main()
- {
-     auto print = [](std::string_view rem, auto const& mm)
-     {
-         std::cout << rem << "{ ";
-         for (const auto& [k, v] : mm)
-             std::cout << '{' << k << ",'" << v << "'} ";
-         std::cout << "}\\n";
-     };
-
-     std::multimap<int, char> mm{{4,'a'}, {3,'-'}, {4,'b'}, {5,'-'}, {4,'c'}};
-     print("Before: ", mm);
-     mutate_map_values(mm, 4);
-     print("After:  ", mm);
- }
+int main()
+{
+    std::multimap<int, char> mm{{4, 'a'}, {3, '-'}, {4, 'b'}, {5, '-'}, {4, 'c'}};
+    std::println("Before: {}", mm);
+    uppercase_transform(mm, 4);
+    std::println("After:  {}", mm);
+}
 
 .SH Output:
 
- Before: { {3,'-'} {4,'a'} {4,'b'} {4,'c'} {5,'-'} }
- After:  { {3,'-'} {4,'A'} {4,'B'} {4,'C'} {5,'-'} }
+Before: {3: '-', 4: 'a', 4: 'b', 4: 'c', 5: '-'}
+After:  {3: '-', 4: 'A', 4: 'B', 4: 'C', 5: '-'}
+
+  Defect reports
+
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
+
+   DR    Applied to                Behavior as published                 Correct behavior
+LWG 3470 C++20      convertible-to-non-slicing might reject              always accepts
+                    qualification conversions                            them
 
 .SH See also
 
-   ranges::view_interface helper class template for defining a view, using the
-   (C++20)                curiously recurring template pattern
-                          \fI(class template)\fP
+ranges::view_interface helper class template for defining a view, using the curiously
+(C++20)                recurring template pattern
+                       \fI(class template)\fP
+
+.SH External links
+
+Read/write all values of a std::multimap with a given key in C++20 — SO

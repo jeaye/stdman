@@ -1,206 +1,263 @@
-.TH std::expected::expected 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::expected::expected 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::expected::expected \- std::expected::expected
 
 .SH Synopsis
-   constexpr expected();                                           \fB(1)\fP  (since C++23)
-   constexpr expected( const expected& other );                    \fB(2)\fP  (since C++23)
-   constexpr expected( expected&& other ) noexcept(/* see below    \fB(3)\fP  (since C++23)
-   */);
-   template< class U, class G >
-   constexpr explicit(/* see below */) expected( const expected<U, \fB(4)\fP  (since C++23)
-   G>& other );
-   template< class U, class G >
-   constexpr explicit(/* see below */) expected( expected<U, G>&&  \fB(5)\fP  (since C++23)
-   other );
-   template< class U = T >                                              (since C++23)
-   constexpr explicit(!std::is_convertible_v<U, T>) expected( U&&  \fB(6)\fP  (T is not cv
-   v );                                                                 void)
-   template< class G >
+Main template
+constexpr expected();                                            \fB(1)\fP  (since C++23)
+constexpr expected( const expected& other );                     \fB(2)\fP  (since C++23)
+constexpr expected( expected&& other ) noexcept(/* see below     \fB(3)\fP  (since C++23)
+*/);
+template< class U, class G >                                          (since C++23)
+constexpr expected( const expected<U, G>& other );               \fB(4)\fP  (conditionally
+                                                                      explicit)
+template< class U, class G >                                          (since C++23)
+constexpr expected( expected<U, G>&& other );                    \fB(5)\fP  (conditionally
+                                                                      explicit)
+template< class U = T >
+constexpr explicit(!std::is_convertible_v<U, T>) expected( U&& v \fB(6)\fP  (since C++23)
+);
+template< class G >
 
-   constexpr explicit(!std::is_convertible_v<const G&, E>)         \fB(7)\fP  (since C++23)
+constexpr explicit(!std::is_convertible_v<const G&, E>)          \fB(7)\fP  (since C++23)
 
-       expected( const std::unexpected<G>& e );
-   template< class G >
+expected( const std::unexpected<G>& e );
+template< class G >
 
-   constexpr explicit(!std::is_convertible_v<G, E>)                \fB(8)\fP  (since C++23)
+constexpr explicit(!std::is_convertible_v<G, E>)                 \fB(8)\fP  (since C++23)
 
-       expected( std::unexpected<G>&& e );
-   template< class... Args >                                            (since C++23)
-   constexpr explicit expected( std::in_place_t, Args&&... args ); \fB(9)\fP  (T is not cv
-                                                                        void)
-   template< class U, class... Args >
-                                                                        (since C++23)
-   constexpr explicit expected( std::in_place_t,                   \fB(10)\fP (T is not cv
-                                                                        void)
-                                std::initializer_list<U> il,
-   Args&&... args );
-   constexpr explicit expected( std::in_place_t ) noexcept;        \fB(11)\fP (since C++23)
-                                                                        (T is cv void)
-   template< class... Args >                                       \fB(12)\fP (since C++23)
-   constexpr explicit expected( std::unexpect_t, Args&&... args );
-   template< class U, class... Args >
+expected( std::unexpected<G>&& e );
+template< class... Args >                                        \fB(9)\fP  (since C++23)
+constexpr explicit expected( std::in_place_t, Args&&... args );
+template< class U, class... Args >
 
-   constexpr explicit expected( std::unexpect_t,                   \fB(13)\fP (since C++23)
+constexpr explicit                                               \fB(10)\fP (since C++23)
+expected( std::in_place_t,
 
-                                std::initializer_list<U> il,
-   Args&&... args );
+std::initializer_list<U> il, Args&&... args );
+template< class... Args >                                        \fB(11)\fP (since C++23)
+constexpr explicit expected( std::unexpect_t, Args&&... args );
+template< class U, class... Args >
 
-   Constructs a new expected object.
+constexpr explicit                                               \fB(12)\fP (since C++23)
+expected( std::unexpect_t,
 
-   1) Default constructor. If T is not (possibly cv-qualified) void, constructs an
-   object that contains an expected value, which is value-initialized.
-   After construction, has_value() returns true.
-   This overload participates in overload resolution only if T is (possibly
-   cv-qualified) void or std::is_default_constructible_v<T> is true.
-   2) Copy constructor. If other.has_value() is false, the new object contains an
-   unexpected value, which is direct-initialized from other.error(). Otherwise, if T is
-   not (possibly cv-qualified) void, the new object contains an expected value, which
-   is direct-initialized from *other.
-   After construction, has_value() is equal to other.has_value().
-   This constructor is defined as deleted unless
-     * either T is (possibly cv-qualified) void, or std::is_copy_constructible_v<T> is
-       true, and
-     * std::is_copy_constructible_v<E> is true.
-   This constructor is trivial if
-     * either T is (possibly cv-qualified) void, or
-       std::is_trivially_copy_constructible_v<T> is true, and
-     * std::is_trivially_copy_constructible_v<E> is true.
-   3) Move constructor. If other.has_value() is false, the new object contains an
-   unexpected value, which is direct-initialized from std::move(other.error()).
-   Otherwise, if T is not (possibly cv-qualified) void, the new object contains an
-   expected value, which is direct-initialized from std::move(*other).
-   After construction, has_value() is equal to other.has_value().
-   This constructor participates in overload resolution only if
-     * either T is (possibly cv-qualified) void, or std::is_move_constructible_v<T> is
-       true, and
-     * std::is_move_constructible_v<E> is true.
-   This constructor is trivial if
-     * std::is_trivially_move_constructible_v<T> is true, and
-     * std::is_trivially_move_constructible_v<E> is true.
-   4,5) Let
-     * UF be std::add_lvalue_reference_t<const U> for \fB(4)\fP and U for \fB(5)\fP, and
-     * GF be const G& for \fB(4)\fP and G for \fB(5)\fP.
-   If other.has_value() is false, the new object contains an unexpected value, which is
-   direct-initialized from std::forward<GF>(other.error()). Otherwise, if T is not
-   (possibly cv-qualified) void, the new object contains an expected value, which is
-   direct-initialized from std::forward<UF>(*other).
-   After construction, has_value() is equal to other.has_value().
-   Each of these constructors does not participate in overload resolution unless the
-   following conditions are met respectively:
-     * Either
-          * T is (possibly cv-qualified) void, and std::is_void_v<U> is true, or
-          * std::is_constructible_v<T, UF> is true.
-     * std::is_constructible_v<E, GF> is true.
-     * If T is not (possibly cv-qualified) bool, T is not constructible or convertible
-       from any expression of type (possibly const) std::expected<U, G>, i.e., the
-       following 8 values are all false:
-          * std::is_constructible_v<T, std::expected<U, G>&
-          * std::is_constructible_v<T, std::expected<U, G>
-          * std::is_constructible_v<T, const std::expected<U, G>&
-          * std::is_constructible_v<T, const std::expected<U, G>
-          * std::is_convertible_v<std::expected<U, G>&, T>
-          * std::is_convertible_v<std::expected<U, G>, T>
-          * std::is_convertible_v<const std::expected<U, G>&, T>
-          * std::is_convertible_v<const std::expected<U, G>, T>
-     * std::unexpected<E> is not constructible from any expression of type (possibly
-       const) std::expected<U, G>, i.e., the following 4 values are all false:
-          * std::is_constructible_v<std::unexpected<E>, std::expected<U, G>&
-          * std::is_constructible_v<std::unexpected<E>, std::expected<U, G>
-          * std::is_constructible_v<std::unexpected<E>, const std::expected<U, G>&
-          * std::is_constructible_v<std::unexpected<E>, const std::expected<U, G>
-   These constructors are explicit if std::is_convertible_v<UF, T> or
-   std::is_convertible_v<GF, E> is false.
-   6) Constructs an object that contains an expected value, initialized as if
-   direct-initializing (but not direct-list-initializing) an object of type T with the
-   expression std::forward<U>(v).
-   After construction, has_value() returns true.
-   This constructor does not participate in overload resolution unless the following
-   conditions are met:
-     * T is not (possibly cv-qualified) void.
-     * std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> is false.
-     * std::is_same_v<expected, std::remove_cvref_t<U>> is false.
-     * std::is_constructible_v<T, U> is true.
-     * std::remove_cvref_t<U> is not a specialization of std::unexpected.
-     * If T is (possibly cv-qualified) bool, std::remove_cvref_t<U> is not a
-       specialization of std::expected.
-   7,8) Let GF be const G& for \fB(7)\fP and G for \fB(8)\fP. Constructs an object that contains an
-   unexpected value, which is direct-initialized from std::forward<GF>(e.error()).
-   After construction, has_value() returns false.
-   These overloads participate in overload resolution only if
-   std::is_constructible_v<E, GF> is true.
-   9) Constructs an object that contains an expected value, which is direct-initialized
-   from the arguments std::forward<Args>(args)....
-   After construction, has_value() returns true.
-   This overload participates in overload resolution only if std::is_constructible_v<T,
-   Args...> is true.
-   10) Constructs an object that contains an expected value, which is
-   direct-initialized from the arguments il, std::forward<Args>(args)....
-   After construction, has_value() returns true.
-   This overload participates in overload resolution only if std::is_constructible_v<T,
-   std::initializer_list<U>&, Args...> is true.
-   11) Constructs an object such that after construction, has_value() returns true.
-   12) Constructs an object that contains an unexpected value, which is
-   direct-initialized from the arguments std::forward<Args>(args)....
-   After construction, has_value() returns false.
-   This overload participates in overload resolution only if std::is_constructible_v<E,
-   Args...> is true.
-   13) Constructs an object that contains an unexpected value, which is
-   direct-initialized from the arguments il, std::forward<Args>(args)....
-   After construction, has_value() returns false.
-   This overload participates in overload resolution only if std::is_constructible_v<E,
-   std::initializer_list<U>&, Args...> is true.
+std::initializer_list<U> il, Args&&... args );
+void partial specialization
+constexpr expected();                                            \fB(13)\fP (since C++23)
+constexpr expected( const expected& other );                     \fB(14)\fP (since C++23)
+constexpr expected( expected&& other )                           \fB(15)\fP (since C++23)
+noexcept(std::is_nothrow_move_constructible_v<E>);
+template< class U, class G >
+
+constexpr explicit(!std::is_convertible_v<const G&, E>)          \fB(16)\fP (since C++23)
+
+expected( const expected<U, G>& other );
+template< class U, class G >
+
+constexpr explicit(!std::is_convertible_v<G, E>)                 \fB(17)\fP (since C++23)
+
+expected( expected<U, G>&& other );
+template< class G >
+
+constexpr explicit(!std::is_convertible_v<const G&, E>)          \fB(18)\fP (since C++23)
+
+expected( const std::unexpected<G>& e );
+template< class G >
+
+constexpr explicit(!std::is_convertible_v<G, E>)                 \fB(19)\fP (since C++23)
+
+expected( std::unexpected<G>&& e );
+template< class... Args >                                        \fB(20)\fP (since C++23)
+constexpr explicit expected( std::in_place_t );
+template< class... Args >                                        \fB(21)\fP (since C++23)
+constexpr explicit expected( std::unexpect_t, Args&&... args );
+template< class U, class... Args >
+
+constexpr explicit                                               \fB(22)\fP (since C++23)
+expected( std::unexpect_t,
+
+std::initializer_list<U> il, Args&&... args );
+
+Constructs a new expected object.
 
 .SH Parameters
 
-   other   - another expected object whose contained value is copied
-   e       - std::unexpected object whose contained value is copied
-   v       - value with which to initialize the contained value
-   args... - arguments with which to initialize the contained value
-   il      - initializer list with which to initialize the contained value
+other - another expected object whose contained value is copied
+e     - std::unexpected object whose contained value is copied
+v     - value with which to initialize the contained value
+args  - arguments with which to initialize the contained value
+il    - initializer list with which to initialize the contained value
+
+  Effects
+
+    Primary template constructors
+
+         Initialization                   Initializer for...                       has_value()
+Overload     method                                                                   after
+                            the expected value         the unexpected value       construction
+\fB(1)\fP      Value          (empty)                     -                           true
+                                                                                other.has_value()
+\fB(2)\fP                     *other                      other.error()                 * If true, only
+                                                                                    initializes
+\fB(3)\fP                     std::move(*other)           std::move(other.error())        the expected
+                                                                                    value.
+                        std::forward<const U&>      std::forward<const G&>        * If false,
+\fB(4)\fP                     (*other)                    (other.error())                 only
+                                                                                    initializes
+                                                    std::forward<G>                 the
+\fB(5)\fP      Direct         std::forward<U>(*other)     (other.error())                 unexpected
+         (non-list)                                                                 value.
+\fB(6)\fP                     std::forward<U>(v)          -                           true
+\fB(7)\fP                                                 std::forward<const G&>
+                        -                           (e.error())                 false
+\fB(8)\fP                                                 std::forward<G>(e.error())
+\fB(9)\fP                     std::forward<Args>(args)...
+\fB(10)\fP                    il,                         -                           true
+                        std::forward<Args>(args)...
+\fB(11)\fP                                                std::forward<Args>(args)...
+\fB(12)\fP                    -                           il,                         false
+                                                    std::forward<Args>(args)...
+
+    void partial specialization constructors
+
+Overload   Initialization     Initializer for the unexpected        has_value() after
+               method                     value                       construction
+\fB(13)\fP     N/A                -                                  true
+\fB(14)\fP                        rhs.error()
+\fB(15)\fP                        std::move(rhs.error)               other.has_value()
+\fB(16)\fP                        std::forward<const                   * If false, initializes
+         Direct (non-list)  G&>(rhs.error())                       the unexpected value.
+\fB(17)\fP                        std::forward<G>(rhs.error())
+\fB(18)\fP                        std::forward<const G&>(e.error())  false
+\fB(19)\fP                        std::forward<G>(e.error())
+\fB(20)\fP     N/A                -                                  true
+\fB(21)\fP     Direct (non-list)  std::forward<Args>(args)...        false
+\fB(22)\fP                        il, std::forward<Args>(args)...
+
+  Constraints and supplement information
+
+    Primary template constructors
+
+1) This overload participates in overload resolution only if
+std::is_default_constructible_v<T> is true.
+2) This constructor is defined as deleted unless std::is_copy_constructible_v<T> and
+std::is_copy_constructible_v<E> are both true.
+This constructor is trivial if std::is_trivially_copy_constructible_v<T> and
+std::is_trivially_copy_constructible_v<E> are both true.
+3) This overload participates in overload resolution only if
+std::is_move_constructible_v<T> and std::is_move_constructible_v<E> are both true.
+This constructor is trivial if std::is_trivially_move_constructible_v<T> and
+std::is_trivially_move_constructible_v<E> are both true.
+4,5) These overloads participate in overload resolution only if all following conditions
+are satisfied:
+  * For overload \fB(4)\fP, std::is_constructible_v<T, const U&> and std::is_constructible_v<E,
+    const G&> are both true.
+  * For overload \fB(5)\fP, std::is_constructible_v<T, U> and std::is_constructible_v<E, G> are
+    both true.
+  * If T is not (possibly cv-qualified) bool, the following 8 values are all false:
+       * std::is_constructible_v<T, std::expected<U, G>&>
+       * std::is_constructible_v<T, std::expected<U, G>>
+       * std::is_constructible_v<T, const std::expected<U, G>&>
+       * std::is_constructible_v<T, const std::expected<U, G>>
+       * std::is_convertible_v<std::expected<U, G>&, T>
+       * std::is_convertible_v<std::expected<U, G>, T>
+       * std::is_convertible_v<const std::expected<U, G>&, T>
+       * std::is_convertible_v<const std::expected<U, G>, T>
+  * The following 4 values are all false:
+       * std::is_constructible_v<std::unexpected<E>, std::expected<U, G>&>
+       * std::is_constructible_v<std::unexpected<E>, std::expected<U, G>>
+       * std::is_constructible_v<std::unexpected<E>, const std::expected<U, G>&>
+       * std::is_constructible_v<std::unexpected<E>, const std::expected<U, G>>
+4) This constructor is explicit if std::is_convertible_v<const U&, T> or
+std::is_convertible_v<const G&, E> is false.
+5) This constructor is explicit if std::is_convertible_v<U, T> or std::is_convertible_v<G,
+E> is false.
+6) This overload participates in overload resolution only if all following conditions are
+satisfied:
+  * std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> is false.
+  * std::is_same_v<std::expected<T, E>, std::remove_cvref_t<U>> is false.
+  * std::is_constructible_v<T, U> is true.
+  * std::remove_cvref_t<U> is not a specialization of std::unexpected.
+  * If T is (possibly cv-qualified) bool, std::remove_cvref_t<U> is not a specialization
+    of std::expected.
+7) This overload participates in overload resolution only if std::is_constructible_v<E,
+const G&> is true.
+8) This overload participates in overload resolution only if std::is_constructible_v<E, G>
+is true.
+9) This overload participates in overload resolution only if std::is_constructible_v<T,
+Args...> is true.
+10) This overload participates in overload resolution only if std::is_constructible_v<T,
+std::initializer_list<U>&, Args...> is true.
+11) This overload participates in overload resolution only if std::is_constructible_v<E,
+Args...> is true.
+12) This overload participates in overload resolution only if std::is_constructible_v<E,
+std::initializer_list<U>&, Args...> is true.
+
+    void partial specialization constructors
+
+14) This constructor is defined as deleted unless std::is_copy_constructible_v<E> is true.
+This constructor is trivial if std::is_trivially_copy_constructible_v<E> is true.
+15) This overload participates in overload resolution only if
+std::is_move_constructible_v<E> is true.
+This constructor is trivial if std::is_trivially_move_constructible_v<E> is true.
+16,17) These overloads participate in overload resolution only if all following conditions
+are satisfied:
+  * For overload \fB(16)\fP, std::is_constructible_v<E, const G&> is true.
+  * For overload \fB(17)\fP, std::is_constructible_v<E, G> is true.
+  * std::is_void_v<U> is true.
+  * The following 4 values are all false:
+       * std::is_constructible_v<std::unexpected<E>, std::expected<U, G>&>
+       * std::is_constructible_v<std::unexpected<E>, std::expected<U, G>>
+       * std::is_constructible_v<std::unexpected<E>, const std::expected<U, G>&>
+       * std::is_constructible_v<std::unexpected<E>, const std::expected<U, G>>
+18) This overload participates in overload resolution only if std::is_constructible_v<E,
+const G&> is true.
+19) This overload participates in overload resolution only if std::is_constructible_v<E,
+G> is true.
+21) This overload participates in overload resolution only if std::is_constructible_v<E,
+Args...> is true.
+22) This overload participates in overload resolution only if std::is_constructible_v<E,
+std::initializer_list<U>&, Args...> is true.
 
 .SH Exceptions
 
-   1) Throws any exception thrown by the constructor of T.
-   If T is (possibly cv-qualified) void,
-   noexcept specification:
-   noexcept
+    Primary template constructors
 
-   2) Throws any exception thrown by the constructor of T or E.
-   3) If T is (possibly cv-qualified) void,
-   noexcept specification:
-   noexcept(std::is_nothrow_move_constructible_v<E>)
-   Otherwise,
-   noexcept specification:
-   noexcept(std::is_nothrow_move_constructible_v<T>
-       && std::is_nothrow_move_constructible_v<E>)
-   4,5) Throws any exception thrown by the constructor of T or E.
-   6) Throws any exception thrown by the constructor of T.
-   7,8) Throws any exception thrown by the constructor of E.
-   9,10) Throws any exception thrown by the constructor of T.
-   12,13) Throws any exception thrown by the constructor of E.
+1) Throws any exception thrown by the initialization of the expected value.
+2) Throws any exception thrown by the initialization of the expected or unexpected value.
+3) Throws any exception thrown by the initialization of the expected or unexpected value.
+noexcept specification:
+noexcept(std::is_nothrow_move_constructible_v<T>
+&& std::is_nothrow_move_constructible_v<E>)
+4,5) Throws any exception thrown by the initialization of the expected or unexpected
+value.
+6) Throws any exception thrown by the initialization of the expected value.
+7,8) Throws any exception thrown by the initialization of the unexpected value.
+9,10) Throws any exception thrown by the initialization of the expected value.
+11,12) Throws any exception thrown by the initialization of the unexpected value.
+
+    void partial specialization constructors
+
+14-19) Throws any exception thrown by the initialization of the unexpected value.
+21,22) Throws any exception thrown by the initialization of the unexpected value.
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+ This section is incomplete
+ Reason: no example
 
 .SH See also
 
-   unexpected       represented as an unexpected value
-   (C++23)          \fI(class template)\fP
-   in_place
-   in_place_type
-   in_place_index   in-place construction tag
-   in_place_t       (tag)
-   in_place_type_t
-   in_place_index_t
-   \fI(C++17)\fP
-   unexpect         in-place construction tag for unexpected value in expected
-   unexpect_t       (tag)
-   (C++23)
-
-.SH Categories:
-     * unconditionally noexcept
-     * conditionally noexcept
-     * Todo no example
+unexpected       represented as an unexpected value
+(C++23)          \fI(class template)\fP
+in_place
+in_place_type
+in_place_index   in-place construction tag
+in_place_t       (tag)
+in_place_type_t
+in_place_index_t
+\fI(C++17)\fP
+unexpect         in-place construction tag for unexpected value in expected
+unexpect_t       (tag)
+(C++23)

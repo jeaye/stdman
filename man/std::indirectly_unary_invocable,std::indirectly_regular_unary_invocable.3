@@ -1,45 +1,95 @@
-.TH std::indirectly_unary_invocable,std::indirectly_regular_unary_invocable 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::indirectly_unary_invocable,std::indirectly_regular_unary_invocable 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::indirectly_unary_invocable,std::indirectly_regular_unary_invocable \- std::indirectly_unary_invocable,std::indirectly_regular_unary_invocable
 
 .SH Synopsis
-   Defined in header <iterator>
-   template< class F, class I >
+Defined in header <iterator>
+std::indirectly_unary_invocable
+template< class F, class I >
 
-       concept indirectly_unary_invocable =
-           std::indirectly_readable<I> &&
-           std::copy_constructible<F> &&
-           std::invocable<F&, std::iter_value_t<I>&> &&                   \fI(since C++20)\fP
-           std::invocable<F&, std::iter_reference_t<I>> &&
-           std::invocable<F&, std::iter_common_reference_t<I>> &&
-           std::common_reference_with<
-               std::invoke_result_t<F&, std::iter_value_t<I>&>,
+concept indirectly_unary_invocable =
+std::indirectly_readable<I> &&
+std::copy_constructible<F> &&
+std::invocable<F&, /*indirect-value-t*/<I>> &&           \fI(since C++20)\fP
+std::invocable<F&, std::iter_reference_t<I>> &&
+std::common_reference_with<
+std::invoke_result_t<F&, /*indirect-value-t*/<I>>,
 
-               std::invoke_result_t<F&, std::iter_reference_t<I>>>;
-   template< class F, class I >
+std::invoke_result_t<F&, std::iter_reference_t<I>>>;
+std::indirectly_regular_unary_invocable
+template< class F, class I >
 
-       concept indirectly_regular_unary_invocable =
-           std::indirectly_readable<I> &&
-           std::copy_constructible<F> &&
-           std::regular_invocable<F&, std::iter_value_t<I>&> &&
-           std::regular_invocable<F&, std::iter_reference_t<I>> &&        \fI(since C++20)\fP
-           std::regular_invocable<F&, std::iter_common_reference_t<I>>
-   &&
-           std::common_reference_with<
-               std::invoke_result_t<F&, std::iter_value_t<I>&>,
+concept indirectly_regular_unary_invocable =
+std::indirectly_readable<I> &&
+std::copy_constructible<F> &&
+std::regular_invocable<F&, /*indirect-value-t*/<I>> &&   \fI(since C++20)\fP
+std::regular_invocable<F&, std::iter_reference_t<I>> &&
+std::common_reference_with<
+std::invoke_result_t<F&, /*indirect-value-t*/<I>>,
 
-               std::invoke_result_t<F&, std::iter_reference_t<I>>>;
+std::invoke_result_t<F&, std::iter_reference_t<I>>>;
 
-   The concepts indirectly_unary_invocable and indirectly_regular_unary_invocable
-   specify requirements for algorithms that call (regular) unary invocables as their
-   arguments. The key difference between these concepts and std::invocable is that they
-   are applied to the type the I references, rather than I itself.
-
-   Semantic requirements
-
-   Each concept is modeled by F and I only if all concepts it subsume are modeled.
+The concepts indirectly_unary_invocable and indirectly_regular_unary_invocable specify
+requirements for algorithms that call (regular) unary invocables as their arguments. The
+key difference between these concepts and std::invocable is that they are applied to the
+type the I references, rather than I itself.
 
 .SH Notes
 
-   The distinction between indirectly_unary_invocable and
-   indirectly_regular_unary_invocable is purely semantic.
+The distinction between indirectly_unary_invocable and indirectly_regular_unary_invocable
+is purely semantic.
+
+.SH Example
+
+
+// Run this code
+
+#include <algorithm>
+#include <iterator>
+#include <print>
+#include <ranges>
+
+struct IntWrapper
+{
+    int i;
+
+    explicit IntWrapper(int i) : i(i) {}
+    IntWrapper(IntWrapper&&) = default;
+    IntWrapper& operator=(IntWrapper&&) = default;
+};
+
+int main()
+{
+    auto ints  = std::views::iota(1, 10);
+    auto print = [] (IntWrapper w) { std::print("{} ", w.i); };
+    auto wrap  = [] (int i) { return IntWrapper{i}; };
+
+    using Proj = std::projected<decltype(ints.begin()), decltype(wrap)>;
+
+    // error (evaluated to false) until P2609R3:
+    // this was because 'std::iter_value_t<Proj> &' is the same as 'IntWrapper&'
+    // which is not convertible to 'IntWrapper' (implicitly deleted copy ctor)
+    static_assert(std::indirectly_unary_invocable<decltype(print), Proj>);
+
+    // if the compile-time check above evaluates to true, then this is well-formed:
+    std::ranges::for_each(ints, print, wrap);
+}
+
+.SH Output:
+
+1 2 3 4 5 6 7 8 9
+
+  Defect reports
+
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
+
+  DR    Applied to             Behavior as published                  Correct behavior
+                   some requirements were defined in terms of     defined in terms of
+P2609R3 C++20      std::iter_value_t<I>&                          /*indirect-value-t*/<I>
+                   which mishandled projections resulting in      to correctly handle such
+                   incompatibility with invocable F&              projections
+                   corresponding concepts required F& to satisfy
+P2997R1 C++20      invocable and                                  does not require
+                   regular_invocable, respectively, with
+                   std::iter_common_reference_t<I>

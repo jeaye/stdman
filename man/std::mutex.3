@@ -1,109 +1,114 @@
-.TH std::mutex 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::mutex 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::mutex \- std::mutex
 
 .SH Synopsis
-   Defined in header <mutex>
-   class mutex;               \fI(since C++11)\fP
+Defined in header <mutex>
+class mutex;               \fI(since C++11)\fP
 
-   The mutex class is a synchronization primitive that can be used to protect shared
-   data from being simultaneously accessed by multiple threads.
+The mutex class is a synchronization primitive that can be used to protect shared data
+from being simultaneously accessed by multiple threads.
 
-   mutex offers exclusive, non-recursive ownership semantics:
+mutex offers exclusive, non-recursive ownership semantics:
 
-     * A calling thread owns a mutex from the time that it successfully calls either
-       lock or try_lock until it calls unlock.
-     * When a thread owns a mutex, all other threads will block (for calls to lock) or
-       receive a false return value (for try_lock) if they attempt to claim ownership
-       of the mutex.
-     * A calling thread must not own the mutex prior to calling lock or try_lock.
+  * A calling thread owns a mutex from the time that it successfully calls either lock or
+    try_lock until it calls unlock.
+  * When a thread owns a mutex, all other threads will block (for calls to lock) or
+    receive a false return value (for try_lock) if they attempt to claim ownership of the
+    mutex.
+  * A calling thread must not own the mutex prior to calling lock or try_lock.
 
-   The behavior of a program is undefined if a mutex is destroyed while still owned by
-   any threads, or a thread terminates while owning a mutex. The mutex class satisfies
-   all requirements of Mutex and StandardLayoutType.
+The behavior of a program is undefined if a mutex is destroyed while still owned by any
+threads, or a thread terminates while owning a mutex. The mutex class satisfies all
+requirements of Mutex and StandardLayoutType.
 
-   std::mutex is neither copyable nor movable.
+std::mutex is neither copyable nor movable.
+
+  Nested types
+
+Name                           Definition
+native_handle_type (optional*) implementation-defined
 
 .SH Member functions
 
-   constructor   constructs the mutex
-                 \fI(public member function)\fP
-   destructor    destroys the mutex
-                 \fI(public member function)\fP
-   operator=     not copy-assignable
-   [deleted]     \fI(public member function)\fP
+constructor   constructs the mutex
+              \fI(public member function)\fP
+destructor    destroys the mutex
+              \fI(public member function)\fP
+operator=     not copy-assignable
+[deleted]     \fI(public member function)\fP
 .SH Locking
-   lock          locks the mutex, blocks if the mutex is not available
-                 \fI(public member function)\fP
-   try_lock      tries to lock the mutex, returns if the mutex is not available
-                 \fI(public member function)\fP
-   unlock        unlocks the mutex
-                 \fI(public member function)\fP
+lock          locks the mutex, blocks if the mutex is not available
+              \fI(public member function)\fP
+try_lock      tries to lock the mutex, returns if the mutex is not available
+              \fI(public member function)\fP
+unlock        unlocks the mutex
+              \fI(public member function)\fP
 .SH Native handle
-   native_handle returns the underlying implementation-defined native handle object
-                 \fI(public member function)\fP
+native_handle returns the underlying implementation-defined native handle object
+              \fI(public member function)\fP
 
 .SH Notes
 
-   std::mutex is usually not accessed directly: std::unique_lock, std::lock_guard,
-   or std::scoped_lock
-   \fI(since C++17)\fP manage locking in a more exception-safe manner.
+std::mutex is usually not accessed directly: std::unique_lock, std::lock_guard,
+or std::scoped_lock
+\fI(since C++17)\fP manage locking in a more exception-safe manner.
 
 .SH Example
 
-   This example shows how a mutex can be used to protect an std::map shared between two
-   threads.
+This example shows how a mutex can be used to protect an std::map shared between two
+threads.
 
 
 // Run this code
 
- #include <chrono>
- #include <iostream>
- #include <map>
- #include <mutex>
- #include <string>
- #include <thread>
+#include <chrono>
+#include <iostream>
+#include <map>
+#include <mutex>
+#include <string>
+#include <thread>
 
- std::map<std::string, std::string> g_pages;
- std::mutex g_pages_mutex;
+std::map<std::string, std::string> g_pages;
+std::mutex g_pages_mutex;
 
- void save_page(const std::string& url)
- {
-     // simulate a long page fetch
-     std::this_thread::sleep_for(std::chrono::seconds(2));
-     std::string result = "fake content";
+void save_page(const std::string& url)
+{
+    // simulate a long page fetch
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::string result = "fake content";
 
-     std::lock_guard<std::mutex> guard(g_pages_mutex);
-     g_pages[url] = result;
- }
+    std::lock_guard<std::mutex> guard(g_pages_mutex);
+    g_pages[url] = result;
+}
 
- int main()
- {
-     std::thread t1(save_page, "http://foo");
-     std::thread t2(save_page, "http://bar");
-     t1.join();
-     t2.join();
+int main()
+{
+    std::thread t1(save_page, "http://foo");
+    std::thread t2(save_page, "http://bar");
+    t1.join();
+    t2.join();
 
-     // safe to access g_pages without lock now, as the threads are joined
-     for (const auto& [url, page] : g_pages)
-         std::cout << url << " => " << page << '\\n';
- }
+    // safe to access g_pages without lock now, as the threads are joined
+    for (const auto& [url, page] : g_pages)
+        std::cout << url << " => " << page << '\\n';
+}
 
 .SH Output:
 
- http://bar => fake content
- http://foo => fake content
+http://bar => fake content
+http://foo => fake content
 
 .SH See also
 
-   recursive_mutex    provides mutual exclusion facility which can be locked
-   \fI(C++11)\fP            recursively by the same thread
-                      \fI(class)\fP
-   lock_guard         implements a strictly scope-based mutex ownership wrapper
-   \fI(C++11)\fP            \fI(class template)\fP
-   unique_lock        implements movable mutex ownership wrapper
-   \fI(C++11)\fP            \fI(class template)\fP
-   scoped_lock        deadlock-avoiding RAII wrapper for multiple mutexes
-   \fI(C++17)\fP            \fI(class template)\fP
-   condition_variable provides a condition variable associated with a std::unique_lock
-   \fI(C++11)\fP            \fI(class)\fP
+recursive_mutex    provides mutual exclusion facility which can be locked recursively by
+\fI(C++11)\fP            the same thread
+                   \fI(class)\fP
+lock_guard         implements a strictly scope-based mutex ownership wrapper
+\fI(C++11)\fP            \fI(class template)\fP
+unique_lock        implements movable mutex ownership wrapper
+\fI(C++11)\fP            \fI(class template)\fP
+scoped_lock        deadlock-avoiding RAII wrapper for multiple mutexes
+\fI(C++17)\fP            \fI(class template)\fP
+condition_variable provides a condition variable associated with a std::unique_lock
+\fI(C++11)\fP            \fI(class)\fP

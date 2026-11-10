@@ -1,115 +1,120 @@
-.TH std::uncaught_exception,std::uncaught_exceptions 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uncaught_exception,std::uncaught_exceptions 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uncaught_exception,std::uncaught_exceptions \- std::uncaught_exception,std::uncaught_exceptions
 
 .SH Synopsis
-   Defined in header <exception>
-   bool uncaught_exception() throw();          \fI(until C++11)\fP
-                                               \fI(since C++11)\fP
-   bool uncaught_exception() noexcept; \fB(1)\fP     (deprecated in C++17)
-                                               (removed in C++20)
-   int uncaught_exceptions() noexcept;     \fB(2)\fP \fI(since C++17)\fP
+Defined in header <exception>
+bool uncaught_exception() throw();          \fI(until C++11)\fP
+                                            \fI(since C++11)\fP
+bool uncaught_exception() noexcept; \fB(1)\fP     (deprecated in C++17)
+                                            (removed in C++20)
+int uncaught_exceptions() noexcept;     \fB(2)\fP \fI(since C++17)\fP
+                                            (constexpr since C++26)
 
-   1) Detects if the current thread has a live exception object, that is, an exception
-   has been thrown or rethrown and not yet entered a matching catch clause,
-   std::terminate or std::unexpected. In other words, std::uncaught_exception detects
-   if stack unwinding is currently in progress.
-   2) Detects how many exceptions in the current thread have been thrown or rethrown
-   and not yet entered their matching catch clauses.
+1) Detects if the current thread has a live exception object, that is, an exception has
+been thrown or rethrown and not yet entered a matching catch clause, std::terminate or
+std::unexpected. In other words, std::uncaught_exception detects if stack unwinding is
+currently in progress.
+2) Detects how many exceptions in the current thread have been thrown or rethrown and not
+yet entered their matching catch clauses.
 
-   Sometimes it's safe to throw an exception even while std::uncaught_exception() ==
-   true. For example, if stack unwinding causes an object to be destructed, the
-   destructor for that object could run code that throws an exception as long as the
-   exception is caught by some catch block before escaping the destructor.
+Sometimes it's safe to throw an exception even while
+std::uncaught_exception() == true
+\fI(until C++17)\fP
+std::uncaught_exceptions() > 0
+\fI(since C++17)\fP. For example, if stack unwinding causes an object to be destructed, the
+destructor for that object could run code that throws an exception as long as the
+exception is caught by some catch block before escaping the destructor.
 
 .SH Parameters
 
-   \fI(none)\fP
+\fI(none)\fP
 
 .SH Return value
 
-   1) true if stack unwinding is currently in progress in this thread, false otherwise.
-   2) The number of uncaught exception objects in the current thread.
+1) true if stack unwinding is currently in progress in this thread, false otherwise.
+2) The number of uncaught exception objects in the current thread.
 
 .SH Notes
 
-   An example where int-returning uncaught_exceptions is used is the boost.log library:
-   the expression BOOST_LOG(logger) << foo(); first creates a guard object and records
-   the number of uncaught exceptions in its constructor. The output is performed by the
-   guard object's destructor unless foo() throws (in which case the number of uncaught
-   exceptions in the destructor is greater than what the constructor observed).
+An example where int-returning uncaught_exceptions is used is the boost.log library: the
+expression BOOST_LOG(logger) << foo(); first creates a guard object and records the number
+of uncaught exceptions in its constructor. The output is performed by the guard object's
+destructor unless foo() throws (in which case the number of uncaught exceptions in the
+destructor is greater than what the constructor observed).
 
-   std::experimental::scope_fail and std::experimental::scope_success in LFTS v3 rely
-   on the functionality of uncaught_exceptions, because their destructors need to do
-   different things that depend on whether is called during stack unwinding.
+std::experimental::scope_fail and std::experimental::scope_success in LFTS v3 rely on the
+functionality of uncaught_exceptions, because their destructors need to do different
+things that depend on whether is called during stack unwinding.
 
-        Feature-test macro        Value    Std           Feature
-   __cpp_lib_uncaught_exceptions 201411L \fI(C++17)\fP std::uncaught_exceptions
+      Feature-test macro        Value    Std              Feature
+__cpp_lib_uncaught_exceptions  201411L \fI(C++17)\fP std::uncaught_exceptions
+__cpp_lib_constexpr_exceptions 202411L (C++26) constexpr for exception types
 
 .SH Example
 
 
 // Run this code
 
- #include <exception>
- #include <iostream>
- #include <stdexcept>
+#include <exception>
+#include <iostream>
+#include <stdexcept>
 
- struct Foo
- {
-     char id{'?'};
-     int count = std::uncaught_exceptions();
+struct Foo
+{
+    char id{'?'};
+    int count = std::uncaught_exceptions();
 
-     ~Foo()
-     {
-         count == std::uncaught_exceptions()
-             ? std::cout << id << ".~Foo() called normally\\n"
-             : std::cout << id << ".~Foo() called during stack unwinding\\n";
-     }
- };
+    ~Foo()
+    {
+        count == std::uncaught_exceptions()
+            ? std::cout << id << ".~Foo() called normally\\n"
+            : std::cout << id << ".~Foo() called during stack unwinding\\n";
+    }
+};
 
- int main()
- {
-     Foo f{'f'};
+int main()
+{
+    Foo f{'f'};
 
-     try
-     {
-         Foo g{'g'};
-         std::cout << "Exception thrown\\n";
-         throw std::runtime_error("test exception");
-     }
-     catch (const std::exception& e)
-     {
-         std::cout << "Exception caught: " << e.what() << '\\n';
-     }
- }
+    try
+    {
+        Foo g{'g'};
+        std::cout << "Exception thrown\\n";
+        throw std::runtime_error("test exception");
+    }
+    catch (const std::exception& e)
+    {
+        std::cout << "Exception caught: " << e.what() << '\\n';
+    }
+}
 
 .SH Possible output:
 
- Exception thrown
- g.~Foo() called during stack unwinding
- Exception caught: test exception
- f.~Foo() called normally
+Exception thrown
+g.~Foo() called during stack unwinding
+Exception caught: test exception
+f.~Foo() called normally
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-     DR   Applied to             Behavior as published               Correct behavior
-   LWG 70 C++98      the exception specification of                specified as throw()
-                     uncaught_exception() was missing
+  DR   Applied to                Behavior as published                  Correct behavior
+LWG 70 C++98      the exception specification of uncaught_exception() specified as throw()
+                  was missing
 
 .SH See also
 
-   terminate         function called when exception handling fails
-                     \fI(function)\fP
-   exception_ptr     shared pointer type for handling exception objects
-   \fI(C++11)\fP           \fI(typedef)\fP
-   current_exception captures the current exception in a std::exception_ptr
-   \fI(C++11)\fP           \fI(function)\fP
+terminate         function called when exception handling fails
+                  \fI(function)\fP
+exception_ptr     shared pointer type for handling exception objects
+\fI(C++11)\fP           \fI(typedef)\fP
+current_exception captures the current exception in a std::exception_ptr
+\fI(C++11)\fP           \fI(function)\fP
 
 .SH External links
 
-   1.  GOTW issue 47: Uncaught Exceptions
-   2.  Rationale for std::uncaught_exceptions (N4125)
+1. GOTW issue 47: Uncaught Exceptions
+2. Rationale for std::uncaught_exceptions (N4125)

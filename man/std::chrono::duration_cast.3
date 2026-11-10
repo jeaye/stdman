@@ -1,96 +1,115 @@
-.TH std::chrono::duration_cast 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::chrono::duration_cast 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::chrono::duration_cast \- std::chrono::duration_cast
 
 .SH Synopsis
-   Defined in header <chrono>
-   template< class ToDuration, class Rep, class Period >
-   constexpr ToDuration duration_cast( const                              \fI(since C++11)\fP
-   std::chrono::duration<Rep,Period>& d );
+Defined in header <chrono>
+template< class ToDuration, class Rep, class Period >
+constexpr ToDuration duration_cast( const std::chrono::duration<Rep,         \fI(since C++11)\fP
+Period>& d );
 
-   Converts a std::chrono::duration to a duration of different type ToDuration.
+Converts a std::chrono::duration to a duration of different type ToDuration.
 
-   The function does not participate in overload resolution unless ToDuration is a
-   specialization of std::chrono::duration.
+The function only participate in overload resolution if ToDuration is a specialization of
+std::chrono::duration.
 
-   No implicit conversions are used. Multiplications and divisions are avoided where
-   possible, if it is known at compile time that one or more parameters are 1.
-   Computations are done in the widest type available and converted, as if by
-   static_cast, to the result type only when finished.
+Let
+
+  * ToRep be typename ToDuration::rep,
+  * ToPeriod be typename ToDuration::period,
+  * CF be std::ratio_divide<Period, ToPeriod>,
+  * CR be std::common_type<Rep, ToRep, std::intmax_t>::type,
+  * cr_count be static_cast<CR>(d.count()),
+  * cr_num be static_cast<CR>(CF::num), and
+  * cr_den be static_cast<CR>(CF::den),
+
+the result is:
+
+                                        CF::num
+                            1                           not 1
+          1   ToDuration(static_cast<ToRep> ToDuration(static_cast<ToRep>
+CF::den       (d.count()))                  (cr_count * cr_num))
+        not 1 ToDuration(static_cast<ToRep> ToDuration(static_cast<ToRep>
+              (cr_count / cr_den))          (cr_count * cr_num / cr_den))
 
 .SH Parameters
 
-   d - duration to convert
+d - duration to convert
 
 .SH Return value
 
-   d converted to a duration of type ToDuration.
+d converted to a duration of type ToDuration.
 
 .SH Notes
 
-   Casting between integer durations where the source period is exactly divisible by
-   the target period (e.g. hours to minutes) or between floating-point durations can be
-   performed with ordinary casts or implicitly via std::chrono::duration constructors,
-   no duration_cast is needed.
+No implicit conversions are used. Multiplications and divisions are avoided where
+possible, if it is known at compile time that one or more parameters are 1. Computations
+are done in the widest type available and converted, as if by static_cast, to the result
+type only when finished.
 
-   Casting from a floating-point duration to an integer duration is subject to
-   undefined behavior when the floating-point value is NaN, infinity, or too large to
-   be representable by the target's integer type. Otherwise, casting to an integer
-   duration is subject to truncation as with any static_cast to an integer type.
+Casting between integer durations where the source period is exactly divisible by the
+target period (e.g. hours to minutes) or between floating-point durations can be performed
+with ordinary casts or implicitly via std::chrono::duration constructors, no duration_cast
+is needed.
+
+Casting from a floating-point duration to an integer duration is subject to undefined
+behavior when the floating-point value is NaN, infinity, or too large to be representable
+by the target's integer type. Otherwise, casting to an integer duration is subject to
+truncation as with any static_cast to an integer type.
 
 .SH Example
 
-   This example measures the execution time of a function.
+This example measures the execution time of a function.
 
 
 // Run this code
 
- #include <chrono>
- #include <iostream>
- #include <ratio>
- #include <thread>
+#include <chrono>
+#include <iostream>
+#include <ratio>
+#include <thread>
 
- void f()
- {
-     std::this_thread::sleep_for(std::chrono::seconds(1));
- }
+void f()
+{
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+}
 
- int main()
- {
-     const auto t1 = std::chrono::high_resolution_clock::now();
-     f();
-     const auto t2 = std::chrono::high_resolution_clock::now();
+int main()
+{
+    const auto t1 = std::chrono::high_resolution_clock::now();
+    f();
+    const auto t2 = std::chrono::high_resolution_clock::now();
 
-     // floating-point duration: no duration_cast needed
-     const std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+    // floating-point duration: no duration_cast needed
+    const std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
 
-     // integral duration: requires duration_cast
-     const auto int_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+    // integral duration: requires duration_cast
+    const auto int_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
 
-     // converting integral duration to integral duration of
-     // shorter divisible time unit: no duration_cast needed
-     const std::chrono::duration<long, std::micro> int_usec = int_ms;
+    // converting integral duration to integral duration of
+    // shorter divisible time unit: no duration_cast needed
+    const std::chrono::duration<long, std::micro> int_usec = int_ms;
 
-     std::cout << "f() took " << fp_ms << ", or "
-               << int_ms << " (whole milliseconds), or "
-               << int_usec << " (whole microseconds)\\n";
- }
+    std::cout << "f() took " << fp_ms << ", or "
+              << int_ms << " (whole milliseconds), or "
+              << int_usec << " (whole microseconds)\\n";
+}
 
 .SH Possible output:
 
- f() took 1000.14ms, or 1000ms (whole milliseconds), or 1000000us (whole microseconds)
+f() took 1000.14ms, or 1000ms (whole milliseconds), or 1000000us (whole microseconds)
 
 .SH See also
 
-   duration                     a time interval
-   \fI(C++11)\fP                      \fI(class template)\fP
-   time_point_cast              converts a time point to another time point on the same
-   \fI(C++11)\fP                      clock, with a different duration
-                                \fI(function template)\fP
-   floor(std::chrono::duration) converts a duration to another, rounding down
-   \fI(C++17)\fP                      \fI(function template)\fP
-   ceil(std::chrono::duration)  converts a duration to another, rounding up
-   \fI(C++17)\fP                      \fI(function template)\fP
-   round(std::chrono::duration) converts a duration to another, rounding to nearest,
-   \fI(C++17)\fP                      ties to even
-                                \fI(function template)\fP
+duration                     a time interval
+\fI(C++11)\fP                      \fI(class template)\fP
+time_point_cast              converts a time point to another time point on the same
+\fI(C++11)\fP                      clock, with a different duration
+                             \fI(function template)\fP
+floor(std::chrono::duration) converts a duration to another, rounding down
+\fI(C++17)\fP                      \fI(function template)\fP
+ceil(std::chrono::duration)  converts a duration to another, rounding up
+\fI(C++17)\fP                      \fI(function template)\fP
+round(std::chrono::duration) converts a duration to another, rounding to nearest, ties to
+\fI(C++17)\fP                      even
+                             \fI(function template)\fP

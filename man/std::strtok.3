@@ -1,135 +1,135 @@
-.TH std::strtok 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::strtok 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::strtok \- std::strtok
 
 .SH Synopsis
-   Defined in header <cstring>
-   char* strtok( char* str, const char* delim );
+Defined in header <cstring>
+char* strtok( char* str, const char* delim );
 
-   Finds the next token in a null-terminated byte string pointed to by str. The
-   separator characters are identified by null-terminated byte string pointed to by
-   delim.
+Finds the next token in a null-terminated byte string pointed to by str. The separator
+characters are identified by null-terminated byte string pointed to by delim.
 
-   This function is designed to be called multiple times to obtain successive tokens
-   from the same string.
+This function is designed to be called multiple times to obtain successive tokens from the
+same string.
 
-     * If str is not a null pointer, the call is treated as the first call to strtok
-       for this particular string. The function searches for the first character which
-       is not contained in delim.
+  * If str is not a null pointer, the call is treated as the first call to strtok for this
+    particular string. The function searches for the first character which is not
+    contained in delim.
 
-     * If no such character was found, there are no tokens in str at all, and the
-       function returns a null pointer.
-     * If such character was found, it is the beginning of the token. The function then
-       searches from that point on for the first character that is contained in delim.
+           * If no such character was found, there are no tokens in str at all, and the
+             function returns a null pointer.
+           * If such character was found, it is the beginning of the token. The function
+             then searches from that point on for the first character that is contained in
+             delim.
 
-     * If no such character was found, str has only one token, and the future calls to
-       strtok will return a null pointer.
-     * If such character was found, it is replaced by the null character '\\0' and the
-       pointer to the following character is stored in a static location for subsequent
-       invocations.
-     * The function then returns the pointer to the beginning of the token.
-     * If str is a null pointer, the call is treated as a subsequent call to strtok:
-       the function continues from where it left in previous invocation. The behavior
-       is the same as if the previously stored pointer is passed as str.
+                        * If no such character was found, str has only one token, and the
+                          future calls to strtok will return a null pointer.
+                        * If such character was found, it is replaced by the null
+                          character '\\0' and the pointer to the following character is
+                          stored in a static location for subsequent invocations.
+
+           * The function then returns the pointer to the beginning of the token.
+
+  * If str is a null pointer, the call is treated as a subsequent call to strtok: the
+    function continues from where it left in previous invocation. The behavior is the same
+    as if the previously stored pointer is passed as str.
 
 .SH Parameters
 
-   str   - pointer to the null-terminated byte string to tokenize
-   delim - pointer to the null-terminated byte string identifying delimiters
+str   - pointer to the null-terminated byte string to tokenize
+delim - pointer to the null-terminated byte string identifying delimiters
 
 .SH Return value
 
-   Pointer to the beginning of the next token or a nullptr if there are no more tokens.
+Pointer to the beginning of the next token or a nullptr if there are no more tokens.
 
 .SH Notes
 
-   This function is destructive: it writes the '\\0' characters in the elements of the
-   string str. In particular, a string literal cannot be used as the first argument of
-   std::strtok.
+This function is destructive: it writes the '\\0' characters in the elements of the string
+str. In particular, a string literal cannot be used as the first argument of std::strtok.
 
-   Each call to this function modifies a static variable: is not thread safe.
+Each call to this function modifies a static variable: is not thread safe.
 
-   Unlike most other tokenizers, the delimiters in std::strtok can be different for
-   each subsequent token, and can even depend on the contents of the previous tokens.
+Unlike most other tokenizers, the delimiters in std::strtok can be different for each
+subsequent token, and can even depend on the contents of the previous tokens.
 
 .SH Possible implementation
 
-   char* strtok(char* str, const char* delim)
-   {
-       static char* buffer;
+char* strtok(char* str, const char* delim)
+{
+    static char* buffer;
 
-       if (str != nullptr)
-           buffer = str;
+    if (str != nullptr)
+        buffer = str;
 
-       buffer += std::strspn(buffer, delim);
+    buffer += std::strspn(buffer, delim);
 
-       if (*buffer == '\\0')
-           return nullptr;
+    if (*buffer == '\\0')
+        return nullptr;
 
-       char* const tokenBegin = buffer;
+    char* const tokenBegin = buffer;
 
-       buffer += std::strcspn(buffer, delim);
+    buffer += std::strcspn(buffer, delim);
 
-       if (*buffer != '\\0')
-           *buffer++ = '\\0';
+    if (*buffer != '\\0')
+        *buffer++ = '\\0';
 
-       return tokenBegin;
-   }
+    return tokenBegin;
+}
 
-   Actual C++ library implementations of this function delegate to the C library, where
-   it may be implemented directly (as in MUSL libc), or in terms of its reentrant
-   version (as in GNU libc).
+Actual C++ library implementations of this function delegate to the C library, where it
+may be implemented directly (as in MUSL libc), or in terms of its reentrant version (as in
+GNU libc).
 
 .SH Example
 
 
 // Run this code
 
- #include <cstring>
- #include <iomanip>
- #include <iostream>
+#include <cstring>
+#include <iomanip>
+#include <iostream>
 
- int main()
- {
-     char input[] = "one + two * (three - four)!";
-     const char* delimiters = "! +- (*)";
-     char* token = std::strtok(input, delimiters);
-     while (token)
-     {
-         std::cout << std::quoted(token) << ' ';
-         token = std::strtok(nullptr, delimiters);
-     }
+int main()
+{
+    char input[] = "one + two * (three - four)!";
+    const char* delimiters = "! +- (*)";
+    char* token = std::strtok(input, delimiters);
+    while (token)
+    {
+        std::cout << std::quoted(token) << ' ';
+        token = std::strtok(nullptr, delimiters);
+    }
 
-     std::cout << "\\nContents of the input string now:\\n\\"";
-     for (std::size_t n = 0; n < sizeof input; ++n)
-     {
-         if (const char c = input[n]; c != '\\0')
-             std::cout << c;
-         else
-             std::cout << "\\\\0";
-     }
-     std::cout << "\\"\\n";
- }
+    std::cout << "\\nContents of the input string now:\\n\\"";
+    for (std::size_t n = 0; n < sizeof input; ++n)
+    {
+        if (const char c = input[n]; c != '\\0')
+            std::cout << c;
+        else
+            std::cout << "\\\\0";
+    }
+    std::cout << "\\"\\n";
+}
 
 .SH Output:
 
- "one" "two" "three" "four"
- Contents of the input string now:
- "one\\0+ two\\0* (three\\0- four\\0!\\0"
+"one" "two" "three" "four"
+Contents of the input string now:
+"one\\0+ two\\0* (three\\0- four\\0!\\0"
 
 .SH See also
 
-                      finds the first location of any character from a set of
-   strpbrk            separators
-                      \fI(function)\fP
-                      returns the length of the maximum initial segment that consists
-   strcspn            of only the characters not found in another byte string
-                      \fI(function)\fP
-                      returns the length of the maximum initial segment that consists
-   strspn             of only the characters found in another byte string
-                      \fI(function)\fP
-   ranges::split_view a view over the subranges obtained from splitting another view
-   views::split       using a delimiter
-   (C++20)            \fI(class template)\fP (range adaptor object)
-   C documentation for
-   strtok
+strpbrk            finds the first location of any character from a set of separators
+                   \fI(function)\fP
+                   returns the length of the maximum initial segment that consists
+strcspn            of only the characters not found in another byte string
+                   \fI(function)\fP
+                   returns the length of the maximum initial segment that consists
+strspn             of only the characters found in another byte string
+                   \fI(function)\fP
+ranges::split_view a view over the subranges obtained from splitting another view using a
+views::split       delimiter
+(C++20)            \fI(class template)\fP (range adaptor object)
+C documentation for
+strtok

@@ -1,72 +1,75 @@
-.TH std::ranges::join_with_view::iterator::operator++,-- 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::join_with_view::iterator::operator++,-- 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::join_with_view::iterator::operator++,-- \- std::ranges::join_with_view::iterator::operator++,--
 
 .SH Synopsis
-   constexpr /*iterator*/& operator++();                  \fB(1)\fP (since C++23)
-   constexpr void operator++( int );                      \fB(2)\fP (since C++23)
-   constexpr /*iterator*/ operator++( int )
+constexpr /*iterator*/& operator++();           \fB(1)\fP (since C++23)
+constexpr void operator++( int );               \fB(2)\fP (since C++23)
+constexpr /*iterator*/ operator++( int )
 
-     requires std::is_reference_v<InnerBase> &&           \fB(3)\fP (since C++23)
-              ranges::forward_range<Base> &&
+requires std::is_reference_v</*InnerBase*/> &&  \fB(3)\fP (since C++23)
+ranges::forward_range</*Base*/> &&
 
-              ranges::forward_range<InnerBase>;
-   constexpr /*iterator*/& operator--()
+ranges::forward_range</*InnerBase*/>;
+constexpr /*iterator*/& operator--()
 
-     requires std::is_reference_v<InnerBase> &&
-              ranges::bidirectional_range<Base> &&
-              ranges::bidirectional_range<InnerBase> &&   \fB(4)\fP (since C++23)
-              ranges::common_range<InnerBase> &&
-              ranges::bidirectional_range<PatternBase> &&
+requires std::is_reference_v</*InnerBase*/> &&
+ranges::bidirectional_range</*Base*/> &&
+ranges::bidirectional_range</*InnerBase*/> &&   \fB(4)\fP (since C++23)
+ranges::common_range</*InnerBase*/> &&
+ranges::bidirectional_range</*PatternBase*/> &&
 
-              ranges::common_range<PatternBase>;
-   constexpr /*iterator*/ operator--( int )
+ranges::common_range</*PatternBase*/>;
+constexpr /*iterator*/ operator--( int )
 
-     requires std::is_reference_v<InnerBase> &&
-              ranges::bidirectional_range<Base> &&
-              ranges::bidirectional_range<InnerBase> &&   \fB(5)\fP (since C++23)
-              ranges::common_range<InnerBase> &&
-              ranges::bidirectional_range<PatternBase> &&
+requires std::is_reference_v</*InnerBase*/> &&
+ranges::bidirectional_range</*Base*/> &&
+ranges::bidirectional_range</*InnerBase*/> &&   \fB(5)\fP (since C++23)
+ranges::common_range</*InnerBase*/> &&
+ranges::bidirectional_range</*PatternBase*/> &&
 
-              ranges::common_range<PatternBase>;
+ranges::common_range</*PatternBase*/>;
 
-   Increments or decrements the iterator.
+Increments or decrements the iterator.
 
-   1) Increments the stored inner iterator. (The inner iterator may point to either
-   InnerBase or PatternBase.)
-     * If the incremented inner iterator reaches the end of the pattern range, it is
-       destroyed, and an iterator to the beginning of the next inner range is
-       constructed.
-     * If the incremented inner iterator reaches the end of the inner range, the outer
-       iterator is incremented, and if the outer iterator is not the end iterator, the
-       inner iterator is destroyed and an iterator to the beginning of the pattern
-       range is constructed.
-     * The above steps may be repeated (e.g. if the pattern is empty), until either the
-       inner range is not empty, or the outer iterator reaches the end.
-   2) Equivalent to ++*this;
-   3) Equivalent to auto tmp = *this; ++*this; return tmp;
-   4) If the outer iterator is the end iterator, it is decremented. Then:
-     * If the stored inner iterator refers to the beginning of the inner range, it is
-       destroyed, and an iterator to the end of the pattern range is constructed.
-     * If the stored inner iterator refers to the beginning of the pattern range, it is
-       destroyed, the outer iterator is decremented, and an iterator to end of the
-       inner range is constructed.
-     * The above steps may be repeated (e.g. if the pattern is empty), until the inner
-       range is not empty.
-   Finally, the inner iterator is decremented.
-   5) Equivalent to auto tmp = *this; --*this; return tmp;
+1) Increments the inner iterator as if by std::visit([](auto& it){ ++it; },
+inner_it_ ﻿);.
+After that, adjusts the inner and outer iterators as follows:
+  * If the incremented inner iterator is the past-the-end iterator of the pattern range,
+    it is set to an iterator to the beginning of the next inner range.
+  * If the incremented inner iterator is the past-the-end iterator of an inner range, the
+    outer iterator is incremented. Then:
 
-   If InnerBase is not a reference, the inner range is stored in the parent
-   join_with_view for iteration. The inner range need not be movable.
+           * If the incremented outer iterator is not the past-the-end iterator of the
+             outer range, the inner iterator is set to an iterator to the beginning of the
+             pattern range.
+           * Otherwise, if std::is_reference_v<InnerBase ﻿﻿> is true, the inner iterator
+             is set to a pattern iterator holding a singular value.
 
-   If InnerBase is a reference, and the outer iterator reaches the end, the inner
-   iterator points to the beginning of the pattern range.
-
-.SH Parameters
-
-   \fI(none)\fP
+  * Repeats the operations above until either the inner iterator is not a past-the-end
+    iterator, or the outer iterator is a past-the-end iterator.
+2) Equivalent to ++*this;.
+3) Equivalent to auto tmp = *this;
+++*this;
+return tmp;.
+4) If the outer iterator is the past-the-end iterator of the outer range, decrements it
+and sets the inner iterator to the past-the-end iterator of the last inner range,
+otherwise do nothing.
+After that, adjusts the inner and outer iterators as follows:
+  * If the inner iterator refers to the beginning of an inner range, it is set to the
+    past-the-end iterator of the pattern range.
+  * If the inner iterator refers to the beginning of the pattern range, the outer iterator
+    is decremented, and the inner iterator is set to the past-the-end iterator of the
+    previous inner range.
+  * Repeats the operations above until the inner iterator does not refer to the beginning
+    of any range.
+Finally, decrements the inner iterator as if by std::visit([](auto& it){ --it; },
+inner_it_ ﻿);.
+5) Equivalent to auto tmp = *this;
+--*this;
+return tmp;.
 
 .SH Return value
 
-   1,4) *this
-   3,5) A copy of *this that was made before the change.
+1,4) *this
+3,5) A copy of *this that was made before the change.

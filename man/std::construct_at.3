@@ -1,86 +1,94 @@
-.TH std::construct_at 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::construct_at 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::construct_at \- std::construct_at
 
 .SH Synopsis
-   Defined in header <memory>
-   template< class T, class... Args >                  \fI(since C++20)\fP
-   constexpr T* construct_at( T* p, Args&&... args );
+Defined in header <memory>
+template< class T, class... Args >                         \fI(since C++20)\fP
+constexpr T* construct_at( T* location, Args&&... args );
 
-   Creates a T object initialized with arguments args... at given address p.
-   Specialization of this function template participates in overload resolution only if
-   ::new(std::declval<void*>()) T(std::declval<Args>()...) is well-formed in an
-   unevaluated context.
+Creates a T object initialized with the arguments in args at given address location.
 
-   Equivalent to
+Equivalent to if constexpr (std::is_array_v<T>)
+return ::new (voidify ﻿(*location)) T[1]();
+else
+return ::new (voidify ﻿(*location)) T(std::forward<Args>(args)...);
+, except that construct_at may be used in evaluation of constant expressions
+(until C++26).
 
- return ::new (static_cast<void*>(p)) T(std::forward<Args>(args)...);
+When construct_at is called in the evaluation of some constant expression expr, location
+must point to either a storage obtained by std::allocator<T>::allocate or an object whose
+lifetime began within the evaluation of expr.
 
-   except that construct_at may be used in evaluation of constant expressions.
+This overload participates in overload resolution only if all following conditions are
+satisfied:
 
-   When construct_at is called in the evaluation of some constant expression e, the
-   argument p must point to either storage obtained by std::allocator<T>::allocate or
-   an object whose lifetime began within the evaluation of e.
+  * std::is_unbounded_array_v<T> is false.
+  * ::new(std::declval<void*>()) T(std::declval<Args>()...) is well-formed when treated as
+    an unevaluated operand.
+
+If std::is_array_v<T> is true and sizeof...(Args) is nonzero, the program is ill-formed.
 
 .SH Parameters
 
-   p       - pointer to the uninitialized storage on which a T object will be
-             constructed
-   args... - arguments used for initialization
+location - pointer to the uninitialized storage on which a T object will be constructed
+args...  - arguments used for initialization
 
 .SH Return value
 
-   p
+location
 
 .SH Example
 
 
 // Run this code
 
- #include <bit>
- #include <memory>
+#include <bit>
+#include <memory>
 
- class S
- {
-     int x_;
-     float y_;
-     double z_;
- public:
-     constexpr S(int x, float y, double z) : x_{x}, y_{y}, z_{z} {}
-     [[nodiscard("no side-effects!")]]
-     constexpr bool operator==(const S&) const noexcept = default;
- };
+class S
+{
+    int x_;
+    float y_;
+    double z_;
+public:
+    constexpr S(int x, float y, double z) : x_{x}, y_{y}, z_{z} {}
+    [[nodiscard("no side-effects!")]]
+    constexpr bool operator==(const S&) const noexcept = default;
+};
 
- consteval bool test()
- {
-     alignas(S) unsigned char storage[sizeof(S)]{};
-     S uninitialized = std::bit_cast<S>(storage);
-     std::destroy_at(&uninitialized);
-     S* ptr = std::construct_at(std::addressof(uninitialized), 42, 2.71f, 3.14);
-     const bool res{*ptr == S{42, 2.71f, 3.14}};
-     std::destroy_at(ptr);
-     return res;
- }
- static_assert(test());
+consteval bool test()
+{
+    alignas(S) unsigned char storage[sizeof(S)]{};
+    S uninitialized = std::bit_cast<S>(storage);
+    std::destroy_at(&uninitialized);
+    S* ptr = std::construct_at(std::addressof(uninitialized), 42, 2.71f, 3.14);
+    const bool res{*ptr == S{42, 2.71f, 3.14}};
+    std::destroy_at(ptr);
+    return res;
+}
+static_assert(test());
 
- int main() {}
+int main() {}
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-      DR    Applied to       Behavior as published              Correct behavior
-   LWG 3870 C++20      construct_at could create objects  only cv-unqualified types are
-                       of a cv-qualified types            permitted
+   DR    Applied to          Behavior as published                 Correct behavior
+LWG 3436 C++20      construct_at could not create objects of can value-initialize bounded
+                    array types                              arrays
+LWG 3870 C++20      construct_at could create objects of     only cv-unqualified types are
+                    cv-qualified types                       permitted
 
 .SH See also
 
-   allocate             allocates uninitialized storage
-                        \fI(public member function of std::allocator<T>)\fP
-   construct            constructs an object in the allocated storage
-   \fB[static]\fP             \fI(function template)\fP
-   destroy_at           destroys an object at a given address
-   \fI(C++17)\fP              \fI(function template)\fP
-   ranges::construct_at creates an object at a given address
-   (C++20)              (niebloid)
+allocate             allocates uninitialized storage
+                     \fI(public member function of std::allocator<T>)\fP
+construct            constructs an object in the allocated storage
+\fB[static]\fP             \fI(function template)\fP
+destroy_at           destroys an object at a given address
+\fI(C++17)\fP              \fI(function template)\fP
+ranges::construct_at creates an object at a given address
+(C++20)              (algorithm function object)

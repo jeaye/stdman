@@ -1,0 +1,78 @@
+.TH std::ranges::concat_view::size 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::concat_view::size \- std::ranges::concat_view::size
+
+.SH Synopsis
+constexpr auto size()                      \fB(1)\fP (since C++26)
+requires(sized_range<Views> && ...);
+constexpr auto size() const                \fB(2)\fP (since C++26)
+requires(sized_range<const Views> && ...);
+
+Returns the number of elements.
+
+Equivalent to return std::apply
+(
+[](auto... sizes)
+{
+using CT = ranges::common_type_t<decltype(sizes)...>;
+return (make-unsigned-like-t ﻿<CT>(sizes) + ...);
+},
+tuple-transform ﻿(ranges::size,  views_ ﻿)
+); .
+
+.SH Return value
+
+As described above.
+
+.SH Complexity
+
+Constant.
+
+.SH Notes
+
+The complexity of concat_view is constant time (even though in some cases it is a linear
+function of the number of ranges it concatenates which is a statically known parameter of
+this view) because time complexity as required by the ranges concepts are formally
+expressed with respect to the total number of elements (the size) of a given range, and
+not to the statically known parameters of that range.
+
+.SH Example
+
+The preliminary version can be checked out on Compiler Explorer.
+
+
+// Run this code
+
+#include <cassert>
+#include <forward_list>
+#include <list>
+#include <ranges>
+
+int main()
+{
+    constexpr static auto a = {1, 2};
+    constexpr static auto b = {1, 2, 3};
+    constexpr static auto c = {1, 2, 3, 4};
+
+    constexpr auto con{std::views::concat(a, b, c)};
+    static_assert(std::ranges::sized_range<decltype(con)>);
+    static_assert(con.size() == 2 + 3 + 4);
+
+    std::forward_list d = b;
+    static_assert(not std::ranges::sized_range<std::forward_list<int>>);
+    const auto cat{std::views::concat(b, c, d)};
+    static_assert(not std::ranges::sized_range<decltype(cat)>);
+//  auto x = cat.size(); // error: cat is not sized_range because of d
+
+    std::list e = c;
+    const auto dog{std::views::concat(a, b, e)};
+    static_assert(std::ranges::sized_range<decltype(dog)>);
+    assert(dog.size() == 2 + 3 + 4);
+}
+
+.SH See also
+
+ranges::size  returns an integer equal to the size of a range
+(C++20)       (customization point object)
+ranges::ssize returns a signed integer equal to the size of a range
+(C++20)       (customization point object)

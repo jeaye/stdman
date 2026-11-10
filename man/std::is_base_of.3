@@ -1,121 +1,129 @@
-.TH std::is_base_of 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_base_of 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_base_of \- std::is_base_of
 
 .SH Synopsis
-   Defined in header <type_traits>
-   template< class Base, class Derived >  \fI(since C++11)\fP
-   struct is_base_of;
+Defined in header <type_traits>
+template< class Base, class Derived >  \fI(since C++11)\fP
+struct is_base_of;
 
-   std::is_base_of is a BinaryTypeTrait.
+std::is_base_of is a BinaryTypeTrait.
 
-   If Derived is derived from Base or if both are the same non-union class (in both
-   cases ignoring cv-qualification), provides the member constant value equal to true.
-   Otherwise value is false.
+If Derived is derived from Base or if both are the same non-union class (in both cases
+ignoring cv-qualification), provides the member constant value equal to true. Otherwise
+value is false.
 
-   If both Base and Derived are non-union class types, and they are not the same type
-   (ignoring cv-qualification), Derived should be a complete type; otherwise the
-   behavior is undefined.
+If both Base and Derived are non-union class types, and they are not the same type
+(ignoring cv-qualification), Derived should be a complete type; otherwise the behavior is
+undefined.
 
-   If the program adds specializations for std::is_base_of
-   or std::is_base_of_v
-   \fI(since C++17)\fP, the behavior is undefined.
+If the program adds specializations for std::is_base_of
+or std::is_base_of_v
+\fI(since C++17)\fP, the behavior is undefined.
+
+  Helper variable template
+
+template< class Base, class Derived >                            \fI(since C++17)\fP
+constexpr bool is_base_of_v = is_base_of<Base, Derived>::value;
+
+Inherited from std::integral_constant
 
 .SH Member constants
 
-   value    true if Derived is derived from Base or if both are the same non-union
-   \fB[static]\fP class (in both cases ignoring cv-qualification), false otherwise
-            \fI(public static member constant)\fP
+value    true if Derived is derived from Base or if both are the same non-union class (in
+\fB[static]\fP both cases ignoring cv-qualification), false otherwise
+         \fI(public static member constant)\fP
 
 .SH Member functions
 
-   operator bool converts the object to bool, returns value
-                 \fI(public member function)\fP
-   operator()    returns value
-   \fI(C++14)\fP       \fI(public member function)\fP
+operator bool converts the object to bool, returns value
+              \fI(public member function)\fP
+operator()    returns value
+\fI(C++14)\fP       \fI(public member function)\fP
 
 .SH Member types
 
-   Type       Definition
-   value_type bool
-   type       std::integral_constant<bool, value>
+Type       Definition
+value_type bool
+type       std::integral_constant<bool, value>
 
 .SH Notes
 
-   std::is_base_of<A, B>::value is true even if A is a private, protected, or ambiguous
-   base class of B. In many situations, std::is_convertible<B*, A*> is the more
-   appropriate test.
+std::is_base_of<A, B>::value is true even if A is a private, protected, or ambiguous base
+class of B. In many situations, std::is_convertible<B*, A*> is the more appropriate test.
 
-   Although no class is its own base, std::is_base_of<T, T>::value is true because the
-   intent of the trait is to model the "is-a" relationship, and T is a T. Despite that,
-   std::is_base_of<int, int>::value is false because only classes participate in the
-   relationship that this trait models.
+Although no class is its own base, std::is_base_of<T, T>::value is true because the intent
+of the trait is to model the "is-a" relationship, and T is a T. Despite that,
+std::is_base_of<int, int>::value is false because only classes participate in the
+relationship that this trait models.
 
-   Possible Implementation
+  Possible Implementation
 
-   namespace details
-   {
-       template<typename B>
-       std::true_type test_ptr_conv(const volatile B*);
-       template<typename>
-       std::false_type test_ptr_conv(const volatile void*);
+namespace details
+{
+    template<typename B>
+    std::true_type test_ptr_conv(const volatile B*);
+    template<typename>
+    std::false_type test_ptr_conv(const volatile void*);
 
-       template<typename B, typename D>
-       auto test_is_base_of(int) -> decltype(test_ptr_conv<B>(static_cast<D*>(nullptr)));
-       template<typename, typename>
-       auto test_is_base_of(...) -> std::true_type; // private or ambiguous base
-   }
+    template<typename B, typename D>
+    auto test_is_base_of(int) -> decltype(test_ptr_conv<B>(static_cast<D*>(nullptr)));
+    template<typename, typename>
+    auto test_is_base_of(...) -> std::true_type; // private or ambiguous base
+}
 
-   template<typename Base, typename Derived>
-   struct is_base_of :
-       std::integral_constant<
-           bool,
-           std::is_class<Base>::value &&
-           std::is_class<Derived>::value &&
-           decltype(details::test_is_base_of<Base, Derived>\fB(0)\fP)::value
-       > {};
+template<typename Base, typename Derived>
+struct is_base_of :
+    std::integral_constant<
+        bool,
+        std::is_class<Base>::value &&
+        std::is_class<Derived>::value &&
+        decltype(details::test_is_base_of<Base, Derived>\fB(0)\fP)::value
+    > {};
 
 .SH Example
 
 
 // Run this code
 
- #include <type_traits>
+#include <type_traits>
 
- class A {};
- class B : A {};
- class C : B {};
- class D {};
- union E {};
- using I = int;
+class A {};
+class B : A {};
+class C : B {};
+class D {};
+union E {};
+using I = int;
 
- static_assert
- (
-     std::is_base_of_v<A, A> == true &&
-     std::is_base_of_v<A, B> == true &&
-     std::is_base_of_v<A, C> == true &&
-     std::is_base_of_v<A, D> != true &&
-     std::is_base_of_v<B, A> != true &&
-     std::is_base_of_v<E, E> != true &&
-     std::is_base_of_v<I, I> != true
- );
+static_assert
+(
+    std::is_base_of_v<A, A> == true &&
+    std::is_base_of_v<A, B> == true &&
+    std::is_base_of_v<A, C> == true &&
+    std::is_base_of_v<A, D> != true &&
+    std::is_base_of_v<B, A> != true &&
+    std::is_base_of_v<E, E> != true &&
+    std::is_base_of_v<I, I> != true
+);
 
- int main() {}
+int main() {}
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-      DR    Applied to        Behavior as published              Correct behavior
-   LWG 2015 C++11      the behavior might be undefined if  the base characteristic is
-                       Derived is an incomplete union type std::false_type in this case
+   DR    Applied to        Behavior as published              Correct behavior
+LWG 2015 C++11      the behavior might be undefined if  the base characteristic is
+                    Derived is an incomplete union type std::false_type in this case
 
 .SH See also
 
-   is_convertible
-   is_nothrow_convertible checks if a type can be converted to the other type
-   \fI(C++11)\fP                \fI(class template)\fP
-   (C++20)
-   derived_from           specifies that a type is derived from another type
-   (C++20)                (concept)
+is_virtual_base_of     checks if a type is a virtual base of the other type
+(C++26)                \fI(class template)\fP
+is_convertible
+is_nothrow_convertible checks if a type can be converted to the other type
+\fI(C++11)\fP                \fI(class template)\fP
+(C++20)
+derived_from           specifies that a type is derived from another type
+(C++20)                (concept)

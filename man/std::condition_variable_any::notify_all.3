@@ -1,106 +1,102 @@
-.TH std::condition_variable_any::notify_all 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::condition_variable_any::notify_all 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::condition_variable_any::notify_all \- std::condition_variable_any::notify_all
 
 .SH Synopsis
-   void notify_all() noexcept;  \fI(since C++11)\fP
+void notify_all() noexcept;  \fI(since C++11)\fP
 
-   Unblocks all threads currently waiting for *this.
+Unblocks all threads currently waiting for *this.
 
 .SH Parameters
 
-   \fI(none)\fP
+\fI(none)\fP
 
 .SH Return value
 
-   \fI(none)\fP
+\fI(none)\fP
 
 .SH Notes
 
-   The effects of notify_one()/notify_all() and each of the three atomic parts of
-   wait()/wait_for()/wait_until() (unlock+wait, wakeup, and lock) take place in a
-   single total order that can be viewed as modification order of an atomic variable:
-   the order is specific to this individual condition variable. This makes it
-   impossible for notify_one() to, for example, be delayed and unblock a thread that
-   started waiting just after the call to notify_one() was made.
+The effects of notify_one()/notify_all() and each of the three atomic parts of
+wait()/wait_for()/wait_until() (unlock+wait, wakeup, and lock) take place in a single
+total order that can be viewed as modification order of an atomic variable: the order is
+specific to this individual condition variable. This makes it impossible for notify_one()
+to, for example, be delayed and unblock a thread that started waiting just after the call
+to notify_one() was made.
 
-   The notifying thread does not need to hold the lock on the same mutex as the one
-   held by the waiting thread(s). Doing so may be a pessimization, since the notified
-   thread would immediately block again, waiting for the notifying thread to release
-   the lock, though some implementations recognize the pattern and do not attempt to
-   wake up the thread that is notified under lock.
+The notifying thread does not need to hold the lock on the same mutex as the one held by
+the waiting thread(s). Doing so may be a pessimization, since the notified thread would
+immediately block again, waiting for the notifying thread to release the lock, though some
+implementations recognize the pattern and do not attempt to wake up the thread that is
+notified under lock.
 
 .SH Example
 
 
-
 // Run this code
 
- #include <chrono>
- #include <condition_variable>
- #include <iostream>
- #include <thread>
+#include <chrono>
+#include <condition_variable>
+#include <iostream>
+#include <thread>
 
- std::condition_variable_any cv;
- std::mutex cv_m; // This mutex is used for three purposes:
-                  // 1) to synchronize accesses to i
-                  // 2) to synchronize accesses to std::cerr
-                  // 3) for the condition variable cv
- int i = 0;
+std::condition_variable_any cv;
+std::mutex cv_m; // This mutex is used for three purposes:
+                 // 1) to synchronize accesses to i
+                 // 2) to synchronize accesses to std::cerr
+                 // 3) for the condition variable cv
+int i = 0;
 
- void waits()
- {
-     std::unique_lock<std::mutex> lk(cv_m);
-     std::cerr << "Waiting... \\n";
-     cv.wait(lk, []{ return i == 1; });
-     std::cerr << "...finished waiting. i == 1\\n";
- }
+void waits()
+{
+    std::unique_lock<std::mutex> lk(cv_m);
+    std::cerr << "Waiting... \\n";
+    cv.wait(lk, []{ return i == 1; });
+    std::cerr << "...finished waiting. i == 1\\n";
+}
 
- void signals()
- {
-     std::this_thread::sleep_for(std::chrono::seconds(1));
-     {
-         std::lock_guard<std::mutex> lk(cv_m);
-         std::cerr << "Notifying...\\n";
-     }
-     cv.notify_all();
+void signals()
+{
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    {
+        std::lock_guard<std::mutex> lk(cv_m);
+        std::cerr << "Notifying...\\n";
+    }
+    cv.notify_all();
 
-     std::this_thread::sleep_for(std::chrono::seconds(1));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
-     {
-         std::lock_guard<std::mutex> lk(cv_m);
-         i = 1;
-         std::cerr << "Notifying again...\\n";
-     }
-     cv.notify_all();
- }
+    {
+        std::lock_guard<std::mutex> lk(cv_m);
+        i = 1;
+        std::cerr << "Notifying again...\\n";
+    }
+    cv.notify_all();
+}
 
- int main()
- {
-     std::thread t1(waits), t2(waits), t3(waits), t4(signals);
-     t1.join();
-     t2.join();
-     t3.join();
-     t4.join();
- }
+int main()
+{
+    std::thread t1(waits), t2(waits), t3(waits), t4(signals);
+    t1.join();
+    t2.join();
+    t3.join();
+    t4.join();
+}
 
 .SH Possible output:
 
- Waiting...
- Waiting...
- Waiting...
- Notifying...
- Notifying again...
- ...finished waiting. i == 1
- ...finished waiting. i == 1
- ...finished waiting. i == 1
+Waiting...
+Waiting...
+Waiting...
+Notifying...
+Notifying again...
+...finished waiting. i == 1
+...finished waiting. i == 1
+...finished waiting. i == 1
 
 .SH See also
 
-   notify_one notifies one waiting thread
-              \fI(public member function)\fP
-   C documentation for
-   cnd_broadcast
-
-.SH Hidden category:
-     * Pages with unreviewed LWG DR marker
+notify_one notifies one waiting thread
+           \fI(public member function)\fP
+C documentation for
+cnd_broadcast

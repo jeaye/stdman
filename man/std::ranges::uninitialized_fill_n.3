@@ -1,138 +1,135 @@
-.TH std::ranges::uninitialized_fill_n 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::uninitialized_fill_n 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::uninitialized_fill_n \- std::ranges::uninitialized_fill_n
 
 .SH Synopsis
-   Defined in header <memory>
-   Call signature
-   template< no-throw-forward-range I, class T >
+Defined in header <memory>
+Call signature
+template< no-throw-forward-range I, class T >
 
-   requires std::constructible_from<std::iter_value_t<I>, const T&>       \fI(since C++20)\fP
+requires std::constructible_from<std::iter_value_t<I>, const T&>   \fI(since C++20)\fP
+I uninitialized_fill_n( I first, std::iter_difference_t<I> count,  (constexpr since C++26)
 
-   I uninitialized_fill_n( I first, std::iter_difference_t<I> n, const
-   T& x );
+const T& value );
 
-   Constructs n copies of the given value x in an uninitialized memory area, designated
-   by the range [first, first + n), as if by
+Copies value to an uninitialized memory area first + [0, count) as if by return
+ranges::uninitialized_fill(std::counted_iterator(first, count),
+std::default_sentinel, value).base();
 
- for (; n--; ++first) {
-     ::new (static_cast<void*>(std::addressof(*first)))
-         std::remove_reference_t<std::iter_reference_t<I>>(x);
- }
+If an exception is thrown during the initialization, the objects already constructed are
+destroyed in an unspecified order.
 
-   If an exception is thrown during the initialization, the objects already constructed
-   are destroyed in an unspecified order.
+The function-like entities described on this page are algorithm function objects
+(informally known as niebloids), that is:
 
-   The function-like entities described on this page are niebloids, that is:
-
-     * Explicit template argument lists cannot be specified when calling any of them.
-     * None of them are visible to argument-dependent lookup.
-     * When any of them are found by normal unqualified lookup as the name to the left
-       of the function-call operator, argument-dependent lookup is inhibited.
-
-   In practice, they may be implemented as function objects, or with special compiler
-   extensions.
+  * Explicit template argument lists cannot be specified when calling any of them.
+  * None of them are visible to argument-dependent lookup.
+  * When any of them are found by normal unqualified lookup as the name to the left of the
+    function-call operator, argument-dependent lookup is inhibited.
 
 .SH Parameters
 
-   first - the beginning of the range of the elements to initialize
-   n     - number of elements to construct
-   x     - the value to construct the elements with
+first - the beginning of the range of the elements to initialize
+count - number of elements to construct
+value - the value to construct the elements with
 
 .SH Return value
 
-   An iterator equal to first + n.
+As described above.
 
 .SH Complexity
 
-   Linear in n.
+Linear in count.
 
 .SH Exceptions
 
-   The exception thrown on construction of the elements in the destination range, if
-   any.
+Any exception thrown on construction of the elements in the destination range.
 
 .SH Notes
 
-   An implementation may improve the efficiency of the ranges::uninitialized_fill_n,
-   e.g. by using ranges::fill_n, if the value type of the output range is TrivialType.
+An implementation may improve the efficiency of the ranges::uninitialized_fill_n, e.g. by
+using ranges::fill_n, if the value type of the output range is TrivialType.
+
+      Feature-test macro         Value    Std                    Feature
+__cpp_lib_raw_memory_algorithms 202411L (C++26) constexpr for specialized memory
+                                                algorithms
 
 .SH Possible implementation
 
-   struct uninitialized_fill_n_fn
-   {
-       template<no-throw-forward-range I, class T>
-       requires std::constructible_from<std::iter_value_t<I>, const T&>
-       I operator()(I first, std::iter_difference_t<I> n, const T& x) const
-       {
-           I rollback{first};
-           try
-           {
-               for (; n-- > 0; ++first)
-                   ranges::construct_at(std::addressof(*first), x);
-               return first;
-           }
-           catch (...) // rollback: destroy constructed elements
-           {
-               for (; rollback != first; ++rollback)
-                   ranges::destroy_at(std::addressof(*rollback));
-               throw;
-           }
-       }
-   };
+struct uninitialized_fill_n_fn
+{
+    template<no-throw-forward-range I, class T>
+    requires std::constructible_from<std::iter_value_t<I>, const T&>
+    I operator()(I first, std::iter_difference_t<I> n, const T& x) const
+    {
+        I rollback{first};
+        try
+        {
+            for (; n-- > 0; ++first)
+                ranges::construct_at(std::addressof(*first), x);
+            return first;
+        }
+        catch (...) // rollback: destroy constructed elements
+        {
+            for (; rollback != first; ++rollback)
+                ranges::destroy_at(std::addressof(*rollback));
+            throw;
+        }
+    }
+};
 
-   inline constexpr uninitialized_fill_n_fn uninitialized_fill_n{};
+inline constexpr uninitialized_fill_n_fn uninitialized_fill_n{};
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
- #include <memory>
- #include <string>
+#include <iostream>
+#include <memory>
+#include <string>
 
- int main()
- {
-     constexpr int n{3};
-     alignas(alignof(std::string)) char out[n * sizeof(std::string)];
+int main()
+{
+    constexpr int n{3};
+    alignas(alignof(std::string)) char out[n * sizeof(std::string)];
 
-     try
-     {
-         auto first{reinterpret_cast<std::string*>(out)};
-         auto last = std::ranges::uninitialized_fill_n(first, n, "cppreference");
+    try
+    {
+        auto first{reinterpret_cast<std::string*>(out)};
+        auto last = std::ranges::uninitialized_fill_n(first, n, "cppreference");
 
-         for (auto it{first}; it != last; ++it)
-             std::cout << *it << '\\n';
+        for (auto it{first}; it != last; ++it)
+            std::cout << *it << '\\n';
 
-         std::ranges::destroy(first, last);
-     }
-     catch (...)
-     {
-         std::cout << "Exception!\\n";
-     }
- }
+        std::ranges::destroy(first, last);
+    }
+    catch (...)
+    {
+        std::cout << "Exception!\\n";
+    }
+}
 
 .SH Output:
 
- cppreference
- cppreference
- cppreference
+cppreference
+cppreference
+cppreference
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-      DR    Applied to              Behavior as published              Correct behavior
-   LWG 3870 C++20      this algorithm might create objects on a const  kept disallowed
-                       storage
+   DR    Applied to                 Behavior as published                 Correct behavior
+LWG 3870 C++20      this algorithm might create objects on a const        kept disallowed
+                    storage
 
 .SH See also
 
-   ranges::uninitialized_fill copies an object to an uninitialized area of memory,
-   (C++20)                    defined by a range
-                              (niebloid)
-                              copies an object to an uninitialized area of memory,
-   uninitialized_fill_n       defined by a start and a count
-                              \fI(function template)\fP
+ranges::uninitialized_fill copies an object to an uninitialized area of memory, defined by
+(C++20)                    a range
+                           (algorithm function object)
+                           copies an object to an uninitialized area of memory, defined by
+uninitialized_fill_n       a start and a count
+                           \fI(function template)\fP

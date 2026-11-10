@@ -1,82 +1,88 @@
-.TH std::uninitialized_copy_n 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_copy_n 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_copy_n \- std::uninitialized_copy_n
 
 .SH Synopsis
-   Defined in header <memory>
-   template< class InputIt, class Size, class NoThrowForwardIt >
+Defined in header <memory>
+template< class InputIt, class Size, class NoThrowForwardIt >
 
-   NoThrowForwardIt uninitialized_copy_n( InputIt first, Size count,  \fB(1)\fP \fI(since C++11)\fP
+NoThrowForwardIt uninitialized_copy_n( InputIt first, Size     \fB(1)\fP \fI(since C++11)\fP
+count,                                                             (constexpr since C++26)
 
-                                          NoThrowForwardIt d_first );
-   template< class ExecutionPolicy, class ForwardIt,
+NoThrowForwardIt d_first );
+template< class ExecutionPolicy, class ForwardIt,
 
-             class Size, class NoThrowForwardIt >
-   NoThrowForwardIt uninitialized_copy_n( ExecutionPolicy&& policy,   \fB(2)\fP \fI(since C++17)\fP
-                                          ForwardIt first, Size
-   count,
+class Size, class NoThrowForwardIt >
+NoThrowForwardIt uninitialized_copy_n( ExecutionPolicy&&       \fB(2)\fP \fI(since C++17)\fP
+policy,
+ForwardIt first, Size count,
 
-                                          NoThrowForwardIt d_first );
+NoThrowForwardIt d_first );
 
-   1) Copies count elements from a range beginning at first to an uninitialized memory
-   area beginning at d_first as if by
-   for (; n > 0; ++d_first, (void) ++first, --n)
-        ::new (static_cast<void*>(std::addressof(*d_first)))
-           typename std::iterator_traits<NoThrowForwardIt>::value_type(*first);
-   If an exception is thrown during the initialization, the objects already constructed
-   are destroyed in an unspecified order.
+1) Copies count elements from a range beginning at first to an uninitialized memory area
+beginning at d_first as if by
 
-   If d_first + [0, n) overlaps with first + [0, n), the behavior is      \fI(since C++20)\fP
-   undefined.
+for (; count > 0; ++d_first, (void) ++first, --count)
+::new (voidify(*d_first))
+typename std::iterator_traits<NoThrowForwardIt>::value_type(*first);
 
-   2) Same as \fB(1)\fP, but executed according to policy. This overload participates in
-   overload resolution only if
+If an exception is thrown during the initialization, the objects already constructed are
+destroyed in an unspecified order.
+2) Same as \fB(1)\fP, but executed according to policy.
+This overload participates in overload resolution only if all following conditions are
+satisfied:
 
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
-                                                                             C++20)
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
-                                                                             C++20)
+std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        \fI(until C++20)\fP
+std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. \fI(since C++20)\fP
+
+If d_first + [0, count) overlaps with first + [0, count), the behavior   \fI(since C++20)\fP
+is undefined.
 
 .SH Parameters
 
-   first              -          the beginning of the range of the elements to copy
-   count              -          the number of elements to copy
-   d_first            -          the beginning of the destination range
-   policy             -          the execution policy to use. See execution policy for
-                                 details.
+first              -          the beginning of the range of the elements to copy
+count              -          the number of elements to copy
+d_first            -          the beginning of the destination range
+policy             -          the execution policy to use
 .SH Type requirements
-   -
-   InputIt must meet the requirements of LegacyInputIterator.
-   -
-   ForwardIt must meet the requirements of LegacyForwardIterator.
-   -
-   NoThrowForwardIt must meet the requirements of LegacyForwardIterator.
-   -
-   No increment, assignment, comparison, or indirection through valid instances of
-   NoThrowForwardIt may throw exceptions.
+-
+InputIt must meet the requirements of LegacyInputIterator.
+-
+ForwardIt must meet the requirements of LegacyForwardIterator.
+-
+NoThrowForwardIt must meet the requirements of LegacyForwardIterator.
+-
+No increment, assignment, comparison, or indirection through valid instances of
+NoThrowForwardIt may throw exceptions.
 
 .SH Return value
 
-   Iterator to the element past the last element copied.
+Iterator to the element past the last element copied.
 
 .SH Complexity
 
-   Linear in count.
+Linear in count.
 
 .SH Exceptions
 
-   The overload with a template parameter named ExecutionPolicy reports errors as
-   follows:
+The overload with a template parameter named ExecutionPolicy reports errors as follows:
 
-     * If execution of a function invoked as part of the algorithm throws an exception
-       and ExecutionPolicy is one of the standard policies, std::terminate is called.
-       For any other ExecutionPolicy, the behavior is implementation-defined.
-     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
+  * If execution of a function invoked as part of the algorithm throws an exception and
+    ExecutionPolicy is one of the standard policies, std::terminate is called. For any
+    other ExecutionPolicy, the behavior is implementation-defined.
+  * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
+
+.SH Notes
+
+      Feature-test macro         Value    Std                    Feature
+__cpp_lib_raw_memory_algorithms 202411L (C++26) constexpr for specialized memory
+                                                algorithms, \fB(1)\fP
 
 .SH Possible implementation
 
 template<class InputIt, class Size, class NoThrowForwardIt>
-NoThrowForwardIt uninitialized_copy_n(InputIt first, Size count, NoThrowForwardIt d_first)
+constexpr NoThrowForwardIt uninitialized_copy_n(InputIt first, Size count,
+                                                NoThrowForwardIt d_first)
 {
     using T = typename std::iterator_traits<NoThrowForwardIt>::value_type;
     NoThrowForwardIt current = d_first;
@@ -99,59 +105,56 @@ NoThrowForwardIt uninitialized_copy_n(InputIt first, Size count, NoThrowForwardI
 
 // Run this code
 
- #include <algorithm>
- #include <iostream>
- #include <memory>
- #include <string>
- #include <tuple>
- #include <vector>
+#include <algorithm>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <tuple>
+#include <vector>
 
- int main()
- {
-     std::vector<std::string> v = {"This", "is", "an", "example"};
+int main()
+{
+    std::vector<std::string> v = {"This", "is", "an", "example"};
 
-     std::string* p;
-     std::size_t sz;
-     std::tie(p, sz) = std::get_temporary_buffer<std::string>(v.size());
-     sz = std::min(sz, v.size());
+    std::string* p;
+    std::size_t sz;
+    std::tie(p, sz) = std::get_temporary_buffer<std::string>(v.size());
+    sz = std::min(sz, v.size());
 
-     std::uninitialized_copy_n(v.begin(), sz, p);
+    std::uninitialized_copy_n(v.begin(), sz, p);
 
-     for (std::string* i = p; i != p + sz; ++i)
-     {
-         std::cout << *i << ' ';
-         i->~basic_string<char>();
-     }
-     std::cout << '\\n';
+    for (std::string* i = p; i != p + sz; ++i)
+    {
+        std::cout << *i << ' ';
+        i->~basic_string<char>();
+    }
+    std::cout << '\\n';
 
-     std::return_temporary_buffer(p);
- }
+    std::return_temporary_buffer(p);
+}
 
 .SH Possible output:
 
- This is an example
+This is an example
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-      DR    Applied to            Behavior as published              Correct behavior
-                       the effect description used a for loop with
-                       the iteration                                discards the value
-   LWG 2133 C++98      expression ++d_first, ++first, --n, which    of one operand to
-                       results                                      disable those ADLs
-                       in argument-dependent lookups of operator,
-   LWG 2433 C++11      this algorithm might be hijacked by          uses std::addressof
-                       overloaded operator&
-   LWG 3870 C++20      this algorithm might create objects on a     kept disallowed
-                       const storage
+   DR    Applied to               Behavior as published                 Correct behavior
+                    the effect description used a for loop with the    discards the value
+LWG 2133 C++98      iteration                                          of one operand to
+                    expression ++d_first, ++first, --count, which      disable those ADLs
+                    results in argument-dependent lookups of operator,
+LWG 2433 C++11      this algorithm might be hijacked by overloaded     uses std::addressof
+                    operator&
+LWG 3870 C++20      this algorithm might create objects on a const     kept disallowed
+                    storage
 
 .SH See also
 
-                                copies a range of objects to an uninitialized area of
-   uninitialized_copy           memory
-                                \fI(function template)\fP
-   ranges::uninitialized_copy_n copies a number of objects to an uninitialized area of
-   (C++20)                      memory
-                                (niebloid)
+uninitialized_copy           copies a range of objects to an uninitialized area of memory
+                             \fI(function template)\fP
+ranges::uninitialized_copy_n copies a number of objects to an uninitialized area of memory
+(C++20)                      (algorithm function object)

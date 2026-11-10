@@ -1,157 +1,149 @@
-.TH std::common_reference 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::common_reference 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::common_reference \- std::common_reference
 
 .SH Synopsis
-   Defined in header <type_traits>
-   template< class... T >           \fI(since C++20)\fP
-   struct common_reference;
+Defined in header <type_traits>
+template< class... T >           \fI(since C++20)\fP
+struct common_reference;
 
-   Determines the common reference type of the types T..., that is, the type to which
-   all the types in T... can be converted or bound. If such a type exists (as
-   determined according to the rules below), the member type names that type.
-   Otherwise, there is no member type. The behavior is undefined if any of the types in
-   T... is an incomplete type other than (possibly cv-qualified) void.
+Determines the common reference type of the types T..., that is, the type to which all the
+types in T... can be converted or bound. If such a type exists (as determined according to
+the rules below), the member type names that type. Otherwise, there is no member type. The
+behavior is undefined if any of the types in T... is an incomplete type other than
+(possibly cv-qualified) void.
 
-   When given reference types, common_reference attempts to find a reference type to
-   which the supplied reference types can all be bound, but may return a non-reference
-   type if it cannot find such a reference type.
+When given reference types, common_reference attempts to find a reference type to which
+the supplied reference types can all be bound, but may return a non-reference type if it
+cannot find such a reference type.
 
-     * If sizeof...(T) is zero, there is no member type.
-     * If sizeof...(T) is one (i.e., T... contains only one type T0), the member type
-       names the same type as T0.
-     * If sizeof...(T) is two (i.e., T... contains two types T1 and T2):
-          * Let type S be the simple common reference type of T1 and T2 (as defined
-            below). The member type type names S if all of the conditions below are
-            satisfied:
-               * T1 and T2 are both reference types
-               * S is well-formed
+  * If sizeof...(T) is zero, there is no member type.
+  * If sizeof...(T) is one (i.e., T... contains only one type T0), the member type names
+    the same type as T0.
+  * If sizeof...(T) is two (i.e., T... contains two types T1 and T2):
+       * Let type S be the simple common reference type of T1 and T2 (as defined below).
+         The member type type names S if all of the conditions below are satisfied:
+            * T1 and T2 are both reference types
+            * S is well-formed
 
-     * std::is_convertible_v<std::add_pointer_t<T1>,
-       std::add_pointer_t<S>> and                                         (since C++23)
-       std::is_convertible_v<std::add_pointer_t<T2>,
-       std::add_pointer_t<S>> are true;
+              * std::is_convertible_v<std::add_pointer_t<T1>,
+                std::add_pointer_t<S>> and                                          (since
+                std::is_convertible_v<std::add_pointer_t<T2>,                       C++23)
+                std::add_pointer_t<S>> are true;
 
-     * Otherwise, if std::basic_common_reference<std::remove_cvref_t<T1>,
-       std::remove_cvref_t<T2>, T1Q, T2Q>::type exists, where TiQ is a unary alias
-       template such that TiQ<U> is U with the addition of Ti's cv- and reference
-       qualifiers, then the member type type names that type;
-     *
-          * Otherwise, if decltype(false? val<T1>() : val<T2>()), where val is a
-            function template template<class T> T val();, is a valid type, then the
-            member type type names that type;
-          * Otherwise, if std::common_type_t<T1, T2> is a valid type, then the member
-            type type names that type;
-          * Otherwise, there is no member type.
-     * If sizeof...(T) is greater than two (i.e., T... consists of the types T1, T2,
-       R...), then if std::common_reference_t<T1, T2> exists, the member type denotes
-       std::common_reference_t<std::common_reference_t<T1, T2>, R...> if such a type
-       exists. In all other cases, there is no member type.
+           * Otherwise, if std::basic_common_reference<std::remove_cvref_t<T1>,
+             std::remove_cvref_t<T2>, T1Q, T2Q>::type exists, where TiQ is a unary alias
+             template such that TiQ<U> is U with the addition of Ti's cv- and reference
+             qualifiers, then the member type type names that type;
 
-   The simple common reference type of two reference types T1 and T2 is defined as
-   follows:
+  * 
+       * Otherwise, if decltype(false? val<T1>() : val<T2>()), where val is a function
+         template template<class T> T val();, is a valid type, then the member type type
+         names that type;
+       * Otherwise, if std::common_type_t<T1, T2> is a valid type, then the member type
+         type names that type;
+       * Otherwise, there is no member type.
+  * If sizeof...(T) is greater than two (i.e., T... consists of the types T1, T2, R...),
+    then if std::common_reference_t<T1, T2> exists, the member type denotes
+    std::common_reference_t<std::common_reference_t<T1, T2>, R...> if such a type exists.
+    In all other cases, there is no member type.
 
-     * If T1 is cv1 X& and T2 is cv2 Y& (i.e., both are lvalue reference types): their
-       simple common reference type is decltype(false? std::declval<cv12 X&>() :
-       std::declval<cv12 Y&>()), where cv12 is the union of cv1 and cv2, if that type
-       exists and is a reference type;
-     * If T1 and T2 are both rvalue reference types: if the simple common reference
-       type of T1& and T2& (determined according to the previous bullet) exists, then
-       let C denote that type's corresponding rvalue reference type. If
-       std::is_convertible_v<T1, C> and std::is_convertible_v<T2, C> are both true,
-       then the simple common reference type of T1 and T2 is C;
-     * Otherwise, one of the two types must be an lvalue reference type A& and the
-       other must be an rvalue reference type B&& (A and B might be cv-qualified). Let
-       D denote the simple common reference type of A& and B const&, if any. If D
-       exists and std::is_convertible_v<B&&, D> is true, then the simple common
-       reference type is D;
-     * Otherwise, there's no simple common reference type.
+The simple common reference type of two reference types T1 and T2 is defined as follows:
 
-   See Conditional operator for the definition of the type of expression false ? X : Y
-   like the ones used above.
+  * If T1 is cv1 X& and T2 is cv2 Y& (i.e., both are lvalue reference types): their simple
+    common reference type is decltype(false? std::declval<cv12 X&>() : std::declval<cv12
+    Y&>()), where cv12 is the union of cv1 and cv2, if that type exists and is a reference
+    type;
+  * If T1 and T2 are both rvalue reference types: if the simple common reference type of
+    T1& and T2& (determined according to the previous bullet) exists, then let C denote
+    that type's corresponding rvalue reference type. If std::is_convertible_v<T1, C> and
+    std::is_convertible_v<T2, C> are both true, then the simple common reference type of
+    T1 and T2 is C;
+  * Otherwise, one of the two types must be an lvalue reference type A& and the other must
+    be an rvalue reference type B&& (A and B might be cv-qualified). Let D denote the
+    simple common reference type of A& and B const&, if any. If D exists and
+    std::is_convertible_v<B&&, D> is true, then the simple common reference type is D;
+  * Otherwise, there's no simple common reference type.
+
+See Conditional operator for the definition of the type of expression false ? X : Y like
+the ones used above.
 
 .SH Member types
 
-   Name Definition
-   type the common reference type for all T...
+Name Definition
+type the common reference type for all T...
 
 .SH Helper types
 
-   template< class... T >
-   using common_reference_t = std::common_reference<T...>::type;
-   template< class T, class U, template<class> class TQual, template<class> class
-   UQual >
-   struct basic_common_reference {};
+template< class... T >
+using common_reference_t = std::common_reference<T...>::type;
+template< class T, class U, template<class> class TQual, template<class> class UQual >
+struct basic_common_reference {};
 
-   The class template basic_common_reference is a customization point that allows users
-   to influence the result of common_reference for user-defined types (typically proxy
-   references). The primary template is empty.
+The class template basic_common_reference is a customization point that allows users to
+influence the result of common_reference for user-defined types (typically proxy
+references). The primary template is empty.
 
 .SH Specializations
 
-   A program may specialize std::basic_common_reference<T, U, TQual, UQual> on the
-   first two parameters T and U if std::is_same_v<T, std::decay_t<T>> and
-   std::is_same_v<U, std::decay_t<U>> are both true and at least one of them depends on
-   a program-defined type.
+A program may specialize std::basic_common_reference<T, U, TQual, UQual> on the first two
+parameters T and U if std::is_same_v<T, std::decay_t<T>> and std::is_same_v<U,
+std::decay_t<U>> are both true and at least one of them depends on a program-defined type.
 
-   If such a specialization has a member named type, it must be a public and
-   unambiguous member that names a type to which both TQual<T> and UQual<U> are
-   convertible. Additionally, std::basic_common_reference<T, U, TQual, UQual>::type and
-   std::basic_common_reference<U, T, UQual, TQual>::type must denote the same type.
+If such a specialization has a member named type, it must be a public and unambiguous
+member that names a type to which both TQual<T> and UQual<U> are convertible.
+Additionally, std::basic_common_reference<T, U, TQual, UQual>::type and
+std::basic_common_reference<U, T, UQual, TQual>::type must denote the same type.
 
-   A program may not specialize basic_common_reference on the third or fourth
-   parameters, nor may it specialize common_reference itself. A program that adds
-   specializations in violation of these rules has undefined behavior.
+A program may not specialize basic_common_reference on the third or fourth parameters, nor
+may it specialize common_reference itself. A program that adds specializations in
+violation of these rules has undefined behavior.
 
-   The standard library provides following specializations of basic_common_reference:
+The standard library provides following specializations of basic_common_reference:
 
-                                                       determines the common reference
-   std::basic_common_reference<std::pair>              type of two pairs
-   (C++23)                                             \fI(class template specialization)\fP
-
-                                                       determines the common reference
-   std::basic_common_reference<tuple-like>             type of a tuple and a tuple-like
-   (C++23)                                             type
-                                                       \fI(class template specialization)\fP
-
-                                                       determines the common reference
-   std::basic_common_reference<std::reference_wrapper> type of reference_wrapper and
-   (C++23)                                             non-reference_wrapper
-                                                       \fI(class template specialization)\fP
-
+std::basic_common_reference<std::pair>              determines the common reference type
+(C++23)                                             of two pairs
+                                                    \fI(class template specialization)\fP
+std::basic_common_reference<tuple-like>             determines the common reference type
+(C++23)                                             of a tuple and a tuple-like type
+                                                    \fI(class template specialization)\fP
+                                                    determines the common reference type
+std::basic_common_reference<std::reference_wrapper> of reference_wrapper and
+(C++23)                                             non-reference_wrapper
+                                                    \fI(class template specialization)\fP
 
 .SH Notes
 
-       Feature-test macro      Value    Std                    Feature
-   __cpp_lib_common_reference 202302L (C++23) Make std::common_reference_t of
-                                              std::reference_wrapper a reference type
+    Feature-test macro      Value    Std                       Feature
+__cpp_lib_common_reference 202302L (C++23) Make std::common_reference_t of
+                                           std::reference_wrapper a reference type
 
 .SH Examples
 
 
 // Run this code
 
- #include <concepts>
- #include <type_traits>
+#include <concepts>
+#include <type_traits>
 
- static_assert(
-     std::same_as<
-         int&,
-         std::common_reference_t<
-             std::add_lvalue_reference_t<int>,
-             std::add_lvalue_reference_t<int>&,
-             std::add_lvalue_reference_t<int>&&,
-             std::add_lvalue_reference_t<int>const,
-             std::add_lvalue_reference_t<int>const&
-         >
-     >
- );
+static_assert(
+    std::same_as<
+        int&,
+        std::common_reference_t<
+            std::add_lvalue_reference_t<int>,
+            std::add_lvalue_reference_t<int>&,
+            std::add_lvalue_reference_t<int>&&,
+            std::add_lvalue_reference_t<int>const,
+            std::add_lvalue_reference_t<int>const&
+        >
+    >
+);
 
- int main() {}
+int main() {}
 
 .SH See also
 
-   common_type           determines the common type of a group of types
-   \fI(C++11)\fP               \fI(class template)\fP
-   common_reference_with specifies that two types share a common reference type
-   (C++20)               (concept)
+common_type           determines the common type of a group of types
+\fI(C++11)\fP               \fI(class template)\fP
+common_reference_with specifies that two types share a common reference type
+(C++20)               (concept)

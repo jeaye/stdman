@@ -1,128 +1,125 @@
-.TH std::lock_guard 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::lock_guard 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::lock_guard \- std::lock_guard
 
 .SH Synopsis
-   Defined in header <mutex>
-   template< class Mutex >    \fI(since C++11)\fP
-   class lock_guard;
+Defined in header <mutex>
+template< class Mutex >    \fI(since C++11)\fP
+class lock_guard;
 
-   The class lock_guard is a mutex wrapper that provides a convenient RAII-style
-   mechanism for owning a mutex for the duration of a scoped block.
+The class lock_guard is a mutex wrapper that provides a convenient RAII-style mechanism
+for owning a mutex for the duration of a scoped block.
 
-   When a lock_guard object is created, it attempts to take ownership of the mutex it
-   is given. When control leaves the scope in which the lock_guard object was created,
-   the lock_guard is destructed and the mutex is released.
+When a lock_guard object is created, it attempts to take ownership of the mutex it is
+given. When control leaves the scope in which the lock_guard object was created, the
+lock_guard is destructed and the mutex is released.
 
-   The lock_guard class is non-copyable.
+The lock_guard class is non-copyable.
 
 .SH Template parameters
 
-   Mutex - the type of the mutex to lock. The type must meet the BasicLockable
-           requirements
+Mutex - the type of the mutex to lock. The type must meet the BasicLockable requirements
 
 .SH Member types
 
-   Member type Definition
-   mutex_type  Mutex
+Member type Definition
+mutex_type  Mutex
 
 .SH Member functions
 
-   constructor   constructs a lock_guard, optionally locking the given mutex
-                 \fI(public member function)\fP
-   destructor    destructs the lock_guard object, unlocks the underlying mutex
-                 \fI(public member function)\fP
-   operator=     not copy-assignable
-   [deleted]     \fI(public member function)\fP
+constructor   constructs a lock_guard, optionally locking the given mutex
+              \fI(public member function)\fP
+destructor    destructs the lock_guard object, unlocks the underlying mutex
+              \fI(public member function)\fP
+operator=     not copy-assignable
+[deleted]     \fI(public member function)\fP
 
 .SH Notes
 
-   A common beginner error is to "forget" to give a lock_guard variable a name, e.g.
-   std::lock_guard(mtx); (which default constructs a lock_guard variable named mtx) or
-   std::lock_guard{mtx}; (which constructs a prvalue object that is immediately
-   destroyed), thereby not actually constructing a lock that holds a mutex for the rest
-   of the scope.
+A common beginner error is to "forget" to give a lock_guard variable a name, e.g.
+std::lock_guard(mtx); (which default constructs a lock_guard variable named mtx) or
+std::lock_guard{mtx}; (which constructs a prvalue object that is immediately destroyed),
+thereby not actually constructing a lock that holds a mutex for the rest of the scope.
 
-   std::scoped_lock offers an alternative for lock_guard that provides
-   the ability to lock multiple mutexes using a deadlock avoidance        \fI(since C++17)\fP
-   algorithm.
+std::scoped_lock offers an alternative for lock_guard that provides the      \fI(since C++17)\fP
+ability to lock multiple mutexes using a deadlock avoidance algorithm.
 
 .SH Example
 
-   Demonstrates safe and unsafe increments of a volatile variable by two threads.
+Demonstrates safe and unsafe increments of a volatile variable by two threads.
 
 
 // Run this code
 
- #include <iostream>
- #include <mutex>
- #include <string_view>
- #include <syncstream>
- #include <thread>
+#include <iostream>
+#include <mutex>
+#include <string_view>
+#include <syncstream>
+#include <thread>
 
- volatile int g_i = 0;
- std::mutex g_i_mutex;  // protects g_i
+volatile int g_i = 0;
+std::mutex g_i_mutex;  // protects g_i
 
- void safe_increment(int iterations)
- {
-     const std::lock_guard<std::mutex> lock(g_i_mutex);
-     while (iterations-- > 0)
-         g_i = g_i + 1;
-     std::cout << "thread #" << std::this_thread::get_id() << ", g_i: " << g_i << '\\n';
+void safe_increment(int iterations)
+{
+    const std::lock_guard<std::mutex> lock(g_i_mutex);
+    while (iterations-- > 0)
+        g_i = g_i + 1;
+    std::cout << "thread #" << std::this_thread::get_id() << ", g_i: " << g_i << '\\n';
 
-     // g_i_mutex is automatically released when lock goes out of scope
- }
+    // g_i_mutex is automatically released when lock goes out of scope
+}
 
- void unsafe_increment(int iterations)
- {
-     while (iterations-- > 0)
-         g_i = g_i + 1;
-     std::osyncstream(std::cout) << "thread #" << std::this_thread::get_id()
-                                 << ", g_i: " << g_i << '\\n';
- }
+void unsafe_increment(int iterations)
+{
+    while (iterations-- > 0)
+        g_i = g_i + 1;
+    std::osyncstream(std::cout) << "thread #" << std::this_thread::get_id()
+                                << ", g_i: " << g_i << '\\n';
+}
 
- int main()
- {
-     auto test = [](std::string_view fun_name, auto fun)
-     {
-         g_i = 0;
-         std::cout << fun_name << ":\\nbefore, g_i: " << g_i << '\\n';
-         {
-             std::jthread t1(fun, 1'000'000);
-             std::jthread t2(fun, 1'000'000);
-         }
-         std::cout << "after, g_i: " << g_i << "\\n\\n";
-     };
-     test("safe_increment", safe_increment);
-     test("unsafe_increment", unsafe_increment);
- }
+int main()
+{
+    auto test = [](std::string_view fun_name, auto fun)
+    {
+        g_i = 0;
+        std::cout << fun_name << ":\\nbefore, g_i: " << g_i << '\\n';
+        {
+            std::jthread t1(fun, 1'000'000);
+            std::jthread t2(fun, 1'000'000);
+        }
+        std::cout << "after, g_i: " << g_i << "\\n\\n";
+    };
+    test("safe_increment", safe_increment);
+    test("unsafe_increment", unsafe_increment);
+}
 
 .SH Possible output:
 
- safe_increment:
- before, g_i: 0
- thread #140121493231360, g_i: 1000000
- thread #140121484838656, g_i: 2000000
- after, g_i: 2000000
+safe_increment:
+before, g_i: 0
+thread #140121493231360, g_i: 1000000
+thread #140121484838656, g_i: 2000000
+after, g_i: 2000000
 
- unsafe_increment:
- before, g_i: 0
- thread #140121484838656, g_i: 1028945
- thread #140121493231360, g_i: 1034337
- after, g_i: 1034337
+unsafe_increment:
+before, g_i: 0
+thread #140121484838656, g_i: 1028945
+thread #140121493231360, g_i: 1034337
+after, g_i: 1034337
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-      DR    Applied to              Behavior as published              Correct behavior
-   LWG 2981 C++17      redundant deduction guide from                  removed
-                       lock_guard<Mutex> was provided
+   DR    Applied to                 Behavior as published                 Correct behavior
+LWG 2981 C++17      redundant deduction guide from lock_guard<Mutex> was  removed
+                    provided
 
 .SH See also
 
-   unique_lock implements movable mutex ownership wrapper
-   \fI(C++11)\fP     \fI(class template)\fP
-   scoped_lock deadlock-avoiding RAII wrapper for multiple mutexes
-   \fI(C++17)\fP     \fI(class template)\fP
+unique_lock implements movable mutex ownership wrapper
+\fI(C++11)\fP     \fI(class template)\fP
+scoped_lock deadlock-avoiding RAII wrapper for multiple mutexes
+\fI(C++17)\fP     \fI(class template)\fP
