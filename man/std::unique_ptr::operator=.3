@@ -1,115 +1,118 @@
-.TH std::unique_ptr::operator= 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::unique_ptr::operator= 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::unique_ptr::operator= \- std::unique_ptr::operator=
 
 .SH Synopsis
-   unique_ptr& operator=( unique_ptr&& r ) noexcept;       \fB(1)\fP (constexpr since C++23)
-   template< class U, class E >                            \fB(2)\fP (constexpr since C++23)
-   unique_ptr& operator=( unique_ptr<U, E>&& r ) noexcept;
-   unique_ptr& operator=( std::nullptr_t ) noexcept;       \fB(3)\fP (constexpr since C++23)
-   unique_ptr& operator=( const unique_ptr& ) = delete;    \fB(4)\fP
+unique_ptr& operator=( unique_ptr&& r ) noexcept;       \fB(1)\fP (constexpr since C++23)
+template< class U, class E >                            \fB(2)\fP (constexpr since C++23)
+unique_ptr& operator=( unique_ptr<U, E>&& r ) noexcept;
+unique_ptr& operator=( std::nullptr_t ) noexcept;       \fB(3)\fP (constexpr since C++23)
+unique_ptr& operator=( const unique_ptr& ) = delete;    \fB(4)\fP
 
-   1) Move assignment operator. Transfers ownership from r to *this as if by calling
-   reset(r.release()) followed by assigning get_deleter() from
-   std::forward<Deleter>(r.get_deleter()).
-   This overload participates in overload resolution only if
-   std::is_move_assignable<Deleter>::value is true.
-   If Deleter is not a reference type, the behavior is undefined if
-     * Deleter is not MoveAssignable, or
-     * assigning get_deleter() from an rvalue of type Deleter would throw an exception.
-   Otherwise (Deleter is a reference type), the behavior is undefined if
-     * std::remove_reference<Deleter>::type is not CopyAssignable, or
-     * assigning get_deleter() from an lvalue of type Deleter would throw an exception.
-   2) Converting assignment operator. Transfers ownership from r to *this as if by
-   calling reset(r.release()) followed by assigning get_deleter() from
-   std::forward<E>(r.get_deleter()).
-   For the primary template, this overload participates in overload resolution only if
-     * U is not an array type,
-     * unique_ptr<U, E>::pointer is implicitly convertible to pointer, and
-     * std::is_assignable<Deleter&, E&&>::value is true.
-   For the array specialization (unique_ptr<T[]>), this overload participates in
-   overload resolution only if
-     * U is an array type,
-     * pointer is the same type as element_type*,
-     * unique_ptr<U, E>::pointer is the same type as unique_ptr<U, E>::element_type*,
-     * unique_ptr<U, E>::element_type(*)[] is convertible to element_type(*)[], and
-     * std::is_assignable<Deleter&, E&&>::value is true.
-   If E is not a reference type, the behavior is undefined if assigning get_deleter()
-   from an rvalue of type E is ill-formed or would throw an exception.
-   Otherwise (E is a reference type), the behavior is undefined if assigning
-   get_deleter() from an lvalue of type E is ill-formed or would throw an exception.
-   3) Effectively the same as calling reset().
-   4) Copy assignment operator is explicitly deleted.
+1) Move assignment operator. Transfers ownership from r to *this as if by calling
+reset(r.release()) followed by assigning get_deleter() from
+std::forward<Deleter>(r.get_deleter()).
+This overload participates in overload resolution only if
+std::is_move_assignable<Deleter>::value is true.
+If Deleter is not a reference type, the behavior is undefined if
+  * Deleter is not MoveAssignable, or
+  * assigning get_deleter() from an rvalue of type Deleter would throw an exception.
+Otherwise (Deleter is a reference type), the behavior is undefined if
+  * std::remove_reference<Deleter>::type is not CopyAssignable, or
+  * assigning get_deleter() from an lvalue of type Deleter would throw an exception.
+2) Converting assignment operator. Transfers ownership from r to *this as if by calling
+reset(r.release()) followed by assigning get_deleter() from
+std::forward<E>(r.get_deleter()).
+This overload participates in overload resolution only if all following conditions are
+satisfied:
+  * std::is_assignable<Deleter&, E&&>::value is true.
+  * For the primary template, all following conditions are satisfied:
+       * U is not an array type.
+       * unique_ptr<U, E>::pointer is implicitly convertible to pointer, and.
+  * For the array specialization (unique_ptr<T[]>), all following conditions are
+    satisfied:
+       * U is an array type.
+       * pointer is the same type as element_type*.
+       * unique_ptr<U, E>::pointer is the same type as unique_ptr<U, E>::element_type*.
+       * unique_ptr<U, E>::element_type(*)[] is convertible to element_type(*)[].
+If E is not a reference type, the behavior is undefined if assigning get_deleter() from an
+rvalue of type E is ill-formed or would throw an exception.
+Otherwise (E is a reference type), the behavior is undefined if assigning get_deleter()
+from an lvalue of type E is ill-formed or would throw an exception.
+3) Effectively the same as calling reset().
+4) Copy assignment operator is explicitly deleted.
 
 .SH Parameters
 
-   r - smart pointer from which ownership will be transferred
+r - smart pointer from which ownership will be transferred
 
 .SH Return value
 
-   *this
+*this
 
 .SH Notes
 
-   As a move-only type, unique_ptr's assignment operator only accepts rvalues arguments
-   (e.g. the result of std::make_unique or a std::move'd unique_ptr variable).
+As a move-only type, unique_ptr's assignment operator only accepts rvalues arguments (e.g.
+the result of std::make_unique or a std::move'd unique_ptr variable).
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
- #include <memory>
+#include <iostream>
+#include <memory>
 
- struct Foo
- {
-     int id;
-     Foo(int id) : id(id) { std::cout << "Foo " << id << '\\n'; }
-     ~Foo() { std::cout << "~Foo " << id << '\\n'; }
- };
+struct Foo
+{
+    int id;
+    Foo(int id) : id(id) { std::cout << "Foo " << id << '\\n'; }
+    ~Foo() { std::cout << "~Foo " << id << '\\n'; }
+};
 
- int main()
- {
-     std::unique_ptr<Foo> p1(std::make_unique<Foo>(1));
+int main()
+{
+    std::unique_ptr<Foo> p1(std::make_unique<Foo>(1));
 
-     {
-         std::cout << "Creating new Foo...\\n";
-         std::unique_ptr<Foo> p2(std::make_unique<Foo>(2));
-         // p1 = p2; // Error ! can't copy unique_ptr
-         p1 = std::move(p2);
-         std::cout << "About to leave inner block...\\n";
+    {
+        std::cout << "Creating new Foo...\\n";
+        std::unique_ptr<Foo> p2(std::make_unique<Foo>(2));
+        // p1 = p2; // Error ! can't copy unique_ptr
+        p1 = std::move(p2);
+        std::cout << "About to leave inner block...\\n";
 
-         // Foo instance will continue to live,
-         // despite p2 going out of scope
-     }
+        // Foo instance will continue to live,
+        // despite p2 going out of scope
+    }
 
-     std::cout << "About to leave program...\\n";
- }
+    std::cout << "About to leave program...\\n";
+}
 
 .SH Output:
 
- Foo 1
- Creating new Foo...
- Foo 2
- ~Foo 1
- About to leave inner block...
- About to leave program...
- ~Foo 2
+Foo 1
+Creating new Foo...
+Foo 2
+~Foo 1
+About to leave inner block...
+About to leave program...
+~Foo 2
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-    DR  Applied         Behavior as published                  Correct behavior
-          to
-   LWG          for overload \fB(2)\fP, get_deleter() was    corrected to
-   2047 C++11   assigned from                          std::forward<E>(r.get_deleter())
-                std::forward<Deleter>(r.get_deleter())
-   LWG  C++11   unique_ptr<T[]>::operator=             accepts
-   2118         rejected qualification conversions
-   LWG  C++11   the converting assignment operator was constrained
-   2228         not constrained
-   LWG  C++11   the move assignment operator was not   constrained
-   2899         constrained
+   DR    Applied          Behavior as published                   Correct behavior
+           to
+                 for overload \fB(2)\fP, get_deleter() was      corrected to
+LWG 2047 C++11   assigned from                            std::forward<E>(r.get_deleter())
+                 std::forward<Deleter>(r.get_deleter())
+LWG 2118 C++11   unique_ptr<T[]>::operator=               accepts
+                 rejected qualification conversions
+LWG 2228 C++11   the converting assignment operator       added the constraint
+(N4366)          was missing the assignability constraint
+LWG 2246 C++11   the assignment target of the converted   specified as get_deleter()
+                 deleter of r was not specified
+LWG 2899 C++11   the move assignment operator was not     constrained
+                 constrained

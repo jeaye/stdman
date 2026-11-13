@@ -1,117 +1,117 @@
-.TH std::uninitialized_fill 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_fill 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_fill \- std::uninitialized_fill
 
 .SH Synopsis
-   Defined in header <memory>
-   template< class ForwardIt, class T >
-   void uninitialized_fill( ForwardIt first, ForwardIt last, const T& \fB(1)\fP
-   value );
-   template< class ExecutionPolicy, class ForwardIt, class T >
+Defined in header <memory>
+template< class NoThrowForwardIt, class T >
 
-   void uninitialized_fill( ExecutionPolicy&& policy,                 \fB(2)\fP \fI(since C++17)\fP
+void uninitialized_fill( NoThrowForwardIt first,               \fB(1)\fP (constexpr since C++26)
 
-                            ForwardIt first, ForwardIt last, const T&
-   value );
+NoThrowForwardIt last, const T& value );
+template< class ExecutionPolicy, class NoThrowForwardIt, class
+T >
 
-   1) Copies the given value to an uninitialized memory area, defined by the range
-   [first, last) as if by for (; first != last; ++first)
-       ::new (/* VOIDIFY */(*first))
-           typename std::iterator_traits<ForwardIt>::value_type(value);
-   where /* VOIDIFY */(e) is:
+void uninitialized_fill( ExecutionPolicy&& policy,             \fB(2)\fP \fI(since C++17)\fP
+NoThrowForwardIt first,
 
-   static_cast<void*>(&e)                \fI(until C++11)\fP
-   static_cast<void*>(std::addressof(e)) \fI(since C++11)\fP
+NoThrowForwardIt last, const T& value );
 
-   If an exception is thrown during the initialization, the objects already constructed
-   are destroyed in an unspecified order.
-   2) Same as \fB(1)\fP, but executed according to policy. This overload participates in
-   overload resolution only if
+1) Copies value to an uninitialized memory area [first, last) as if by
 
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
-                                                                             C++20)
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
-                                                                             C++20)
+for (; first != last; ++first)
+::new (voidify(*first))
+typename std::iterator_traits<NoThrowForwardIt>::value_type(value);
+
+If an exception is thrown during the initialization, the objects already constructed are
+destroyed in an unspecified order.
+2) Same as \fB(1)\fP, but executed according to policy.
+This overload participates in overload resolution only if all following conditions are
+satisfied:
+
+std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        \fI(until C++20)\fP
+std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. \fI(since C++20)\fP
 
 .SH Parameters
 
-   first, last          -         the range of the elements to initialize
-   value                -         the value to construct the elements with
-   policy               -         the execution policy to use. See execution policy for
-                                  details.
+first, last          -         the range of the elements to initialize
+value                -         the value to construct the elements with
+policy               -         the execution policy to use
 .SH Type requirements
-   -
-   ForwardIt must meet the requirements of LegacyForwardIterator.
-   -
-   No increment, assignment, comparison, or indirection through valid instances of
-   ForwardIt may throw exceptions.
-   Applying &* to a ForwardIt value must yield a pointer to its value type.
-   \fI(until C++11)\fP
-
-.SH Return value
-
-   \fI(none)\fP
+-
+NoThrowForwardIt must meet the requirements of LegacyForwardIterator.
+-
+No increment, assignment, comparison, or indirection through valid instances of
+NoThrowForwardIt may throw exceptions.
+Applying &* to a NoThrowForwardIt value must yield a pointer to its value type.
+\fI(until C++11)\fP
 
 .SH Complexity
 
-   Linear in the distance between first and last.
+Linear in the distance between first and last.
 
 .SH Exceptions
 
-   The overload with a template parameter named ExecutionPolicy reports errors as
-   follows:
+The overload with a template parameter named ExecutionPolicy reports errors as follows:
 
-     * If execution of a function invoked as part of the algorithm throws an exception
-       and ExecutionPolicy is one of the standard policies, std::terminate is called.
-       For any other ExecutionPolicy, the behavior is implementation-defined.
-     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
+  * If execution of a function invoked as part of the algorithm throws an exception and
+    ExecutionPolicy is one of the standard policies, std::terminate is called. For any
+    other ExecutionPolicy, the behavior is implementation-defined.
+  * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
+
+.SH Notes
+
+      Feature-test macro         Value    Std                    Feature
+__cpp_lib_raw_memory_algorithms 202411L (C++26) constexpr for specialized memory
+                                                algorithms, \fB(1)\fP
 
 .SH Possible implementation
 
-   template<class ForwardIt, class T>
-   void uninitialized_fill(ForwardIt first, ForwardIt last, const T& value)
-   {
-       using V = typename std::iterator_traits<ForwardIt>::value_type;
-       ForwardIt current = first;
-       try
-       {
-           for (; current != last; ++current)
-               ::new (static_cast<void*>(std::addressof(*current))) V(value);
-       }
-       catch (...)
-       {
-           for (; first != current; ++first)
-               first->~V();
-           throw;
-       }
-   }
+template<class NoThrowForwardIt, class T>
+constexpr void uninitialized_fill(NoThrowForwardIt first, NoThrowForwardIt last,
+                                  const T& value)
+{
+    using V = typename std::iterator_traits<NoThrowForwardIt>::value_type;
+    NoThrowForwardIt current = first;
+    try
+    {
+        for (; current != last; ++current)
+            ::new (static_cast<void*>(std::addressof(*current))) V(value);
+    }
+    catch (...)
+    {
+        for (; first != current; ++first)
+            first->~V();
+        throw;
+    }
+}
 
 .SH Example
 
 
 // Run this code
 
- #include <algorithm>
- #include <iostream>
- #include <memory>
- #include <string>
+#include <algorithm>
+#include <iostream>
+#include <memory>
+#include <string>
 
- int main()
- {
-     const std::size_t sz = 4;
-     std::allocator<std::string> alloc;
-     std::string* p = alloc.allocate(sz);
+int main()
+{
+    const std::size_t sz = 4;
+    std::allocator<std::string> alloc;
+    std::string* p = alloc.allocate(sz);
 
-     std::uninitialized_fill(p, p + sz, "Example");
+    std::uninitialized_fill(p, p + sz, "Example");
 
-     for (std::string* i = p; i != p + sz; ++i)
-     {
-         std::cout << *i << '\\n';
-         i->~basic_string<char>();
-     }
+    for (std::string* i = p; i != p + sz; ++i)
+    {
+        std::cout << *i << '\\n';
+        i->~basic_string<char>();
+    }
 
-     alloc.deallocate(p, sz);
- }
+    alloc.deallocate(p, sz);
+}
 
 .SH Output:
 
@@ -120,26 +120,26 @@ std::uninitialized_fill \- std::uninitialized_fill
 .SH Example
 .SH Example
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-      DR    Applied to          Behavior as published              Correct behavior
-                       given T as the value type of ForwardIt,
-   LWG 866  C++98      if                                      uses global replacement-
-                       T::operator new exists, the program     new instead
-                       might be ill-formed
-   LWG 2433 C++11      this algorithm might be hijacked by     uses std::addressof
-                       overloaded operator&
-   LWG 3870 C++20      this algorithm might create objects on  kept disallowed
-                       a const storage
+   DR    Applied to            Behavior as published                 Correct behavior
+                    given T as the value type of
+LWG 866  C++98      NoThrowForwardIt, if                         uses global placement new
+                    T::operator new exists, the program might be instead
+                    ill-formed
+LWG 2433 C++11      this algorithm might be hijacked by          uses std::addressof
+                    overloaded operator&
+LWG 3870 C++20      this algorithm might create objects on a     kept disallowed
+                    const storage
 
 .SH See also
 
-                              copies an object to an uninitialized area of memory,
-   uninitialized_fill_n       defined by a start and a count
-                              \fI(function template)\fP
-   ranges::uninitialized_fill copies an object to an uninitialized area of memory,
-   (C++20)                    defined by a range
-                              (niebloid)
+                           copies an object to an uninitialized area of memory, defined by
+uninitialized_fill_n       a start and a count
+                           \fI(function template)\fP
+ranges::uninitialized_fill copies an object to an uninitialized area of memory, defined by
+(C++20)                    a range
+                           (algorithm function object)

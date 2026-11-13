@@ -1,116 +1,115 @@
-.TH std::fwide 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::fwide 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::fwide \- std::fwide
 
 .SH Synopsis
-   Defined in header <cwchar>
-   int fwide( std::FILE* stream, int mode );
+Defined in header <cwchar>
+int fwide( std::FILE* stream, int mode );
 
-   If mode > 0, attempts to make stream wide-oriented. If mode < 0, attempts to make
-   stream byte-oriented. If mode == 0, only queries the current orientation of the
-   stream.
+If mode > 0, attempts to make stream wide-oriented. If mode < 0, attempts to make stream
+byte-oriented. If mode == 0, only queries the current orientation of the stream.
 
-   If the orientation of the stream has already been decided (by executing output or by
-   an earlier call to fwide), this function does nothing.
+If the orientation of the stream has already been decided (by executing output or by an
+earlier call to fwide), this function does nothing.
 
 .SH Parameters
 
-   stream - pointer to the C I/O stream to modify or query
-   mode   - integer value greater than zero to set the stream wide, less than zero to
-            set the stream narrow, or zero to query only
+stream - pointer to the C I/O stream to modify or query
+mode   - integer value greater than zero to set the stream wide, less than zero to set the
+         stream narrow, or zero to query only
 
 .SH Return value
 
-   An integer greater than zero if the stream is wide-oriented after this call, less
-   than zero if the stream is byte-oriented after this call, and zero if the stream has
-   no orientation.
+An integer greater than zero if the stream is wide-oriented after this call, less than
+zero if the stream is byte-oriented after this call, and zero if the stream has no
+orientation.
 
 .SH Example
 
-   The following code sets and resets the stream orientation.
+The following code sets and resets the stream orientation.
 
 
 // Run this code
 
- #include <cstdio>
- #include <cstdlib>
- #include <cwchar>
- #include <iostream>
+#include <cstdio>
+#include <cstdlib>
+#include <cwchar>
+#include <iostream>
 
- void show_orientation(int n)
- {
-     n < 0 ? std::wcout << "\\tnarrow orientation\\n" :
-     n > 0 ? std::wcout << "\\twide orientation\\n" :
-             std::wcout << "\\tno orientation\\n";
- }
+void show_orientation(int n)
+{
+    n < 0 ? std::wcout << "\\tnarrow orientation\\n" :
+    n > 0 ? std::wcout << "\\twide orientation\\n" :
+            std::wcout << "\\tno orientation\\n";
+}
 
- void try_read(FILE* fp)
- {
-     if (const int c = std::fgetc(fp); c == EOF)
-         std::wcout << "\\tnarrow character read failed\\n";
-     else
-         std::wcout << "\\tnarrow character read '" << static_cast<char>(c) << "'\\n";
+void try_read(FILE* fp)
+{
+    if (const int c = std::fgetc(fp); c == EOF)
+        std::wcout << "\\tnarrow character read failed\\n";
+    else
+        std::wcout << "\\tnarrow character read '" << static_cast<char>(c) << "'\\n";
 
-     if (const wint_t wc = std::fgetwc(fp); wc == WEOF)
-         std::wcout << "\\twide character read failed\\n";
-     else
-         std::wcout << "\\twide character read '" << static_cast<wchar_t>(wc) << "'\\n";
- }
+    if (const wint_t wc = std::fgetwc(fp); wc == WEOF)
+        std::wcout << "\\twide character read failed\\n";
+    else
+        std::wcout << "\\twide character read '" << static_cast<wchar_t>(wc) << "'\\n";
+}
 
- int main()
- {
-     enum fwide_orientation : int { narrow = -1, query, wide };
+int main()
+{
+    enum fwide_orientation : int { narrow = -1, query, wide };
 
-     FILE* fp = std::fopen("main.cpp", "r");
-     if (!fp)
-     {
-         std::wcerr << "fopen() failed\\n";
-         return EXIT_FAILURE;
-     }
+    FILE* fp = std::fopen("main.cpp", "r");
+    if (!fp)
+    {
+        std::wcerr << "fopen() failed\\n";
+        return EXIT_FAILURE;
+    }
 
-     std::wcout << "1) A newly opened stream has no orientation.\\n";
-     show_orientation(std::fwide(fp, fwide_orientation::query));
+    std::wcout << "1) A newly opened stream has no orientation.\\n";
+    show_orientation(std::fwide(fp, fwide_orientation::query));
 
-     std::wcout << "2) Establish byte orientation.\\n";
-     show_orientation(std::fwide(fp, fwide_orientation::narrow));
-     try_read(fp);
+    std::wcout << "2) Establish byte orientation.\\n";
+    show_orientation(std::fwide(fp, fwide_orientation::narrow));
+    try_read(fp);
 
-     std::wcout << "3) Only freopen() can reset stream orientation.\\n";
-     if (std::freopen("main.cpp", "r", fp) == NULL)
-     {
-         std::wcerr << "freopen() failed\\n";
-         return EXIT_FAILURE;
-     }
+    std::wcout << "3) Only freopen() can reset stream orientation.\\n";
+    if (std::freopen("main.cpp", "r", fp) == NULL)
+    {
+        std::wcerr << "freopen() failed\\n";
+        return EXIT_FAILURE;
+    }
 
-     std::wcout << "4) A reopened stream has no orientation.\\n";
-     show_orientation(std::fwide(fp, fwide_orientation::query));
+    std::wcout << "4) A reopened stream has no orientation.\\n";
+    show_orientation(std::fwide(fp, fwide_orientation::query));
 
-     std::wcout << "5) Establish wide orientation.\\n";
-     show_orientation(std::fwide(fp, fwide_orientation::wide));
-     try_read(fp);
+    std::wcout << "5) Establish wide orientation.\\n";
+    show_orientation(std::fwide(fp, fwide_orientation::wide));
+    try_read(fp);
 
-     std::fclose(fp);
- }
+    std::fclose(fp);
+}
 
 .SH Possible output:
 
- 1) A newly opened stream has no orientation.
-         no orientation
- 2) Establish byte orientation.
-         narrow orientation
-         narrow character read '#'
-         wide character read failed
- 3) Only freopen() can reset stream orientation.
- 4) A reopened stream has no orientation.
-         no orientation
- 5) Establish wide orientation.
-         wide orientation
-         narrow character read failed
-         wide character read '#'
+1) A newly opened stream has no orientation.
+        no orientation
+2) Establish byte orientation.
+        narrow orientation
+        narrow character read '#'
+        wide character read failed
+3) Only freopen() can reset stream orientation.
+4) A reopened stream has no orientation.
+        no orientation
+5) Establish wide orientation.
+        wide orientation
+        narrow character read failed
+        wide character read '#'
 
 .SH See also
 
-   fopen opens a file
-         \fI(function)\fP
-   C documentation for
-   fwide
+fopen  opens a file
+       \fI(function)\fP
+C documentation for
+fwide

@@ -1,0 +1,121 @@
+.TH std::inplace_vector::operator= 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::inplace_vector::operator= \- std::inplace_vector::operator=
+
+.SH Synopsis
+constexpr inplace_vector& operator=( const inplace_vector& other );   \fB(1)\fP (since C++26)
+constexpr inplace_vector& operator=( inplace_vector&& other )         \fB(2)\fP (since C++26)
+noexcept(/* see below */);
+constexpr inplace_vector& operator=( std::initializer_list<T> init ); \fB(3)\fP (since C++26)
+
+Replaces the contents of the inplace_vector.
+
+1) Copy assignment operator. Also a trivial copy assignment operator, if
+std::inplace_vector<T, N> has a trivial destructor, and
+std::is_trivially_copy_constructible_v<T> && std::is_trivially_copy_assignable_v<T> is
+true. Replaces the contents with a copy of the contents of other.
+2) Move assignment operator. Also a trivial move assignment operator, if
+std::inplace_vector<T, N> has a trivial destructor, and
+std::is_trivially_move_constructible_v<T> && std::is_trivially_move_assignable_v<T> is
+true. Replaces the contents with those of other using move semantics (i.e., the data in
+other is moved from other into this container). other is in a valid but unspecified state
+afterwards.
+3) Replaces the contents with those identified by initializer list init.
+
+.SH Parameters
+
+other - another inplace_vector to be used as source to initialize the elements of the
+        container with
+init  - initializer list to initialize the elements of the container with
+
+.SH Complexity
+
+1,2) Linear in the size of *this and other.
+3) Linear in the size of *this and init.
+
+.SH Exceptions
+
+2)
+noexcept specification:
+noexcept(N == 0 ||
+
+(std::is_nothrow_move_assignable_v<T> &&
+
+std::is_nothrow_move_constructible_v<T>))
+3) Throws std::bad_alloc if init.size() > N.
+
+.SH Example
+
+
+// Run this code
+
+#include <initializer_list>
+#include <inplace_vector>
+#include <new>
+#include <print>
+#include <ranges>
+#include <string>
+
+int main()
+{
+    std::inplace_vector<int, 4> x({1, 2, 3}), y;
+    std::println("Initially:");
+    std::println("x = {}", x);
+    std::println("y = {}", y);
+
+    std::println("Copy assignment copies data from x to y:");
+    y = x; // overload (1)
+    std::println("x = {}", x);
+    std::println("y = {}", y);
+
+    std::inplace_vector<std::string, 3> z, w{"\\N{CAT}", "\\N{GREEN HEART}"};
+    std::println("Initially:");
+    std::println("z = {}", z);
+    std::println("w = {}", w);
+
+    std::println("Move assignment moves data from w to z:");
+    z = std::move(w); // overload (2)
+    std::println("z = {}", z);
+    std::println("w = {}", w); // w is in valid but unspecified state
+
+    auto l = {4, 5, 6, 7};
+    std::println("Assignment of initializer_list {} to x:", l);
+    x = l; // overload (3)
+    std::println("x = {}", x);
+
+    std::println("Assignment of initializer_list with size bigger than N throws:");
+    try
+    {
+        x = {1, 2, 3, 4, 5}; // throws: (initializer list size == 5) > (capacity N == 4)
+    }
+    catch(const std::bad_alloc& ex)
+    {
+        std::println("ex.what(): {}", ex.what());
+    }
+}
+
+.SH Possible output:
+
+Initially:
+x = [1, 2, 3]
+y = []
+Copy assignment copies data from x to y:
+x = [1, 2, 3]
+y = [1, 2, 3]
+Initially:
+z = []
+w = ["🐈", "💚"]
+Move assignment moves data from w to z:
+z = ["🐈", "💚"]
+w = ["", ""]
+Assignment of initializer_list [4, 5, 6, 7] to x:
+x = [4, 5, 6, 7]
+Assignment of initializer_list with size bigger than N throws:
+ex.what(): std::bad_alloc
+
+.SH See also
+
+constructor   constructs the inplace_vector
+              \fI(public member function)\fP
+assign        assigns values to the container
+              \fI(public member function)\fP

@@ -1,111 +1,111 @@
-.TH std::c16rtomb 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::c16rtomb 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::c16rtomb \- std::c16rtomb
 
 .SH Synopsis
-   Defined in header <cuchar>
-   std::size_t c16rtomb( char* s, char16_t c16, std::mbstate_t* ps );  \fI(since C++11)\fP
+Defined in header <cuchar>
+std::size_t c16rtomb( char* s, char16_t c16, std::mbstate_t* ps );  \fI(since C++11)\fP
 
-   Converts a single code point from variable-length 16-bit character representation
-   (typically, UTF-16) to a narrow multibyte character representation.
+Converts a single code point from variable-length 16-bit character representation
+(typically, UTF-16) to a narrow multibyte character representation.
 
-   If s is not a null pointer and c16 is the last 16-bit code unit in a valid
-   variable-length encoding of a code point, the function determines the number of
-   bytes necessary to store the multibyte character representation of that code point
-   (including any shift sequences, and taking into account the current multibyte
-   conversion state *ps), and stores the multibyte character representation in the
-   character array whose first element is pointed to by s, updating *ps as necessary.
-   At most MB_CUR_MAX bytes can be written by this function.
+If s is not a null pointer and c16 is the last 16-bit code unit in a valid variable-length
+encoding of a code point, the function determines the number of bytes necessary to store
+the multibyte character representation of that code point (including any shift sequences,
+and taking into account the current multibyte conversion state *ps), and stores the
+multibyte character representation in the character array whose first element is pointed
+to by s, updating *ps as necessary. At most MB_CUR_MAX bytes can be written by this
+function.
 
-   If s is a null pointer, the call is equivalent to std::c16rtomb(buf, u'\\0', ps) for
-   some internal buffer buf.
+If s is a null pointer, the call is equivalent to std::c16rtomb(buf, u'\\0', ps) for some
+internal buffer buf.
 
-   If c16 is not the final code unit in a 16-bit representation of a wide character, it
-   does not write to the array pointed to by s, only *ps is updated.
+If c16 is not the final code unit in a 16-bit representation of a wide character, it does
+not write to the array pointed to by s, only *ps is updated.
 
-   If c16 is the null wide character u'\\0', a null byte is stored, preceded by any
-   shift sequence necessary to restore the initial shift state and the conversion state
-   parameter *ps is updated to represent the initial shift state.
+If c16 is the null wide character u'\\0', a null byte is stored, preceded by any shift
+sequence necessary to restore the initial shift state and the conversion state parameter
+*ps is updated to represent the initial shift state.
 
-   The multibyte encoding used by this function is specified by the currently active C
-   locale.
+The multibyte encoding used by this function is specified by the currently active C
+locale.
 
 .SH Parameters
 
-   s   - pointer to narrow character array where the multibyte character will be stored
-   c16 - the 16-bit character to convert
-   ps  - pointer to the conversion state object used when interpreting the multibyte
-         string
+s   - pointer to narrow character array where the multibyte character will be stored
+c16 - the 16-bit character to convert
+ps  - pointer to the conversion state object used when interpreting the multibyte string
 
 .SH Return value
 
-   On success, returns the number of bytes (including any shift sequences) written to
-   the character array whose first element is pointed to by s. This value may be 0,
-   e.g. when processing the first char16_t in a surrogate pair.
+On success, returns the number of bytes (including any shift sequences) written to the
+character array whose first element is pointed to by s. This value may be 0, e.g. when
+processing the first char16_t in a surrogate pair.
 
-   On failure (if c16 is not a valid 16-bit character), returns -1, stores EILSEQ in
-   errno, and leaves *ps in unspecified state.
+On failure (if c16 is not a valid 16-bit character), returns -1, stores EILSEQ in errno,
+and leaves *ps in unspecified state.
 
 .SH Notes
 
-   The C++ standard defers to the C standard for the semantics of this function. In C11
-   as published, unlike std::mbrtoc16, which converts variable-width multibyte (such as
-   UTF-8) to variable-width 16-bit (such as UTF-16) encoding, this function can only
-   convert single-unit 16-bit encoding, meaning it cannot convert UTF-16 to UTF-8
-   despite that being the original intent of this function. This was corrected by the
-   post-C11 defect report DR488.
+The C++ standard defers to the C standard for the semantics of this function. In C11 as
+published, unlike std::mbrtoc16, which converts variable-width multibyte (such as UTF-8)
+to variable-width 16-bit (such as UTF-16) encoding, this function can only convert
+single-unit 16-bit encoding, meaning it cannot convert UTF-16 to UTF-8 despite that being
+the original intent of this function. This was corrected by the post-C11 defect report
+DR488.
 
 .SH Example
 
-   Note: this example assumes the fix for the defect report 488 is applied.
+The example assumes that the fix for the defect report 488 is applied.
 
 
 // Run this code
 
- #include <climits>
- #include <clocale>
- #include <cuchar>
- #include <iomanip>
- #include <iostream>
- #include <string_view>
+#include <climits>
+#include <clocale>
+#include <cuchar>
+#include <iomanip>
+#include <iostream>
+#include <string_view>
 
- int main()
- {
-     std::setlocale(LC_ALL, "en_US.utf8");
-     std::u16string_view strv = u"zß水🍌"; // or z\\u00df\\u6c34\\U0001F34C
-     std::cout << "Processing " << strv.size() << " UTF-16 code units: [ ";
-     for (char16_t c : strv)
-         std::cout << std::showbase << std::hex << static_cast<int>(c) << ' ';
-     std::cout << "]\\n";
+int main()
+{
+    std::setlocale(LC_ALL, "en_US.utf8");
+    std::u16string_view strv = u"zß水🍌"; // or z\\u00df\\u6c34\\U0001F34C
+    std::cout << "Processing " << strv.size() << " UTF-16 code units: [ ";
+    for (char16_t c : strv)
+        std::cout << std::showbase << std::hex << static_cast<int>(c) << ' ';
+    std::cout << "]\\n";
 
-     std::mbstate_t state{};
-     char out[MB_LEN_MAX]{};
-     for (char16_t c : strv)
-     {
-         std::size_t rc = std::c16rtomb(out, c, &state);
-         std::cout << static_cast<int>(c) << " converted to [ ";
-         if (rc != (std::size_t) - 1)
-             for (unsigned char c8 : std::string_view{out, rc})
-                 std::cout << +c8 << ' ';
-         std::cout << "]\\n";
-     }
- }
+    std::mbstate_t state{};
+    char out[MB_LEN_MAX]{};
+    for (char16_t c : strv)
+    {
+        std::size_t rc = std::c16rtomb(out, c, &state);
+        std::cout << static_cast<int>(c) << " converted to [ ";
+        if (rc != (std::size_t) - 1)
+            for (unsigned char c8 : std::string_view{out, rc})
+                std::cout << +c8 << ' ';
+        std::cout << "]\\n";
+    }
+}
 
 .SH Output:
 
- Processing 5 UTF-16 code units: [ 0x7a 0xdf 0x6c34 0xd83c 0xdf4c ]
- 0x7a converted to [ 0x7a ]
- 0xdf converted to [ 0xc3 0x9f ]
- 0x6c34 converted to [ 0xe6 0xb0 0xb4 ]
- 0xd83c converted to [ ]
- 0xdf4c converted to [ 0xf0 0x9f 0x8d 0x8c ]
+Processing 5 UTF-16 code units: [ 0x7a 0xdf 0x6c34 0xd83c 0xdf4c ]
+0x7a converted to [ 0x7a ]
+0xdf converted to [ 0xc3 0x9f ]
+0x6c34 converted to [ 0xe6 0xb0 0xb4 ]
+0xd83c converted to [ ]
+0xdf4c converted to [ 0xf0 0x9f 0x8d 0x8c ]
 
 .SH See also
 
-   mbrtoc16  converts a narrow multibyte character to UTF-16 encoding
-   \fI(C++11)\fP   \fI(function)\fP
-   do_out    converts a string from InternT to ExternT, such as when writing to file
-   \fB[virtual]\fP \fI\fI(virtual protected member function\fP of\fP
-             std::codecvt<InternT,ExternT,StateT>)
-   C documentation for
-   c16rtomb
+mbrtoc16  converts a narrow multibyte character to UTF-16 encoding
+\fI(C++11)\fP   \fI(function)\fP
+c8rtomb   converts UTF-8 string to narrow multibyte encoding
+(C++20)   \fI(function)\fP
+do_out    converts a string from InternT to ExternT, such as when writing to file
+\fB[virtual]\fP \fI(virtual protected member function of std::codecvt<InternT,ExternT,StateT>)\fP
+C documentation for
+c16rtomb

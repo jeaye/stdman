@@ -1,106 +1,103 @@
-.TH std::ranges::destroy_n 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::destroy_n 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::destroy_n \- std::ranges::destroy_n
 
 .SH Synopsis
-   Defined in header <memory>
-   Call signature
-   template< no-throw-input-iterator I >
+Defined in header <memory>
+Call signature
+template< no-throw-input-iterator I >
 
-       requires std::destructible<std::iter_value_t<I>>                   \fI(since C++20)\fP
+requires std::destructible<std::iter_value_t<I>>                         \fI(since C++20)\fP
 
-   constexpr I destroy_n( I first, std::iter_difference_t<I> n )
-   noexcept;
+constexpr I destroy_n( I first, std::iter_difference_t<I> n ) noexcept;
 
-   Destroys the n objects in the range starting at first, equivalent to
+Destroys the n objects in the range starting at first, equivalent to
 
- return std::ranges::destroy(std::counted_iterator(first, n), std::default_sentinel).base();
+return std::ranges::destroy(std::counted_iterator(first, n), std::default_sentinel).base();
 
-   The function-like entities described on this page are niebloids, that is:
+The function-like entities described on this page are algorithm function objects
+(informally known as niebloids), that is:
 
-     * Explicit template argument lists cannot be specified when calling any of them.
-     * None of them are visible to argument-dependent lookup.
-     * When any of them are found by normal unqualified lookup as the name to the left
-       of the function-call operator, argument-dependent lookup is inhibited.
-
-   In practice, they may be implemented as function objects, or with special compiler
-   extensions.
+  * Explicit template argument lists cannot be specified when calling any of them.
+  * None of them are visible to argument-dependent lookup.
+  * When any of them are found by normal unqualified lookup as the name to the left of the
+    function-call operator, argument-dependent lookup is inhibited.
 
 .SH Parameters
 
-   first - the beginning of the range of elements to destroy
-   n     - the number of elements to destroy
+first - the beginning of the range of elements to destroy
+n     - the number of elements to destroy
 
 .SH Return value
 
-   The end of the range of objects that has been destroyed.
+The end of the range of objects that has been destroyed.
 
 .SH Complexity
 
-   Linear in n.
+Linear in n.
 
 .SH Possible implementation
 
-   struct destroy_n_fn
-   {
-       template<no-throw-input-iterator I>
-           requires std::destructible<std::iter_value_t<I>>
-       constexpr I operator()(I first, std::iter_difference_t<I> n) const noexcept
-       {
-           for (; n != 0; (void)++first, --n)
-               std::ranges::destroy_at(std::addressof(*first));
-           return first;
-       }
-   };
+struct destroy_n_fn
+{
+    template<no-throw-input-iterator I>
+        requires std::destructible<std::iter_value_t<I>>
+    constexpr I operator()(I first, std::iter_difference_t<I> n) const noexcept
+    {
+        for (; n != 0; (void)++first, --n)
+            std::ranges::destroy_at(std::addressof(*first));
+        return first;
+    }
+};
 
-   inline constexpr destroy_n_fn destroy_n{};
+inline constexpr destroy_n_fn destroy_n{};
 
 .SH Example
 
-   The following example demonstrates how to use ranges::destroy_n to destroy a
-   contiguous sequence of elements.
+The following example demonstrates how to use ranges::destroy_n to destroy a contiguous
+sequence of elements.
 
 
 // Run this code
 
- #include <iostream>
- #include <memory>
- #include <new>
+#include <iostream>
+#include <memory>
+#include <new>
 
- struct Tracer
- {
-     int value;
-     ~Tracer() { std::cout << value << " destructed\\n"; }
- };
+struct Tracer
+{
+    int value;
+    ~Tracer() { std::cout << value << " destructed\\n"; }
+};
 
- int main()
- {
-     alignas(Tracer) unsigned char buffer[sizeof(Tracer) * 8];
+int main()
+{
+    alignas(Tracer) unsigned char buffer[sizeof(Tracer) * 8];
 
-     for (int i = 0; i < 8; ++i)
-         new(buffer + sizeof(Tracer) * i) Tracer{i}; //manually construct objects
+    for (int i = 0; i < 8; ++i)
+        new(buffer + sizeof(Tracer) * i) Tracer{i}; //manually construct objects
 
-     auto ptr = std::launder(reinterpret_cast<Tracer*>(buffer));
+    auto ptr = std::launder(reinterpret_cast<Tracer*>(buffer));
 
-     std::ranges::destroy_n(ptr, 8);
- }
+    std::ranges::destroy_n(ptr, 8);
+}
 
 .SH Output:
 
- 0 destructed
- 1 destructed
- 2 destructed
- 3 destructed
- 4 destructed
- 5 destructed
- 6 destructed
- 7 destructed
+0 destructed
+1 destructed
+2 destructed
+3 destructed
+4 destructed
+5 destructed
+6 destructed
+7 destructed
 
 .SH See also
 
-   ranges::destroy_at destroys an object at a given address
-   (C++20)            (niebloid)
-   ranges::destroy    destroys a range of objects
-   (C++20)            (niebloid)
-   destroy_n          destroys a number of objects in a range
-   \fI(C++17)\fP            \fI(function template)\fP
+ranges::destroy_at destroys an object at a given address
+(C++20)            (algorithm function object)
+ranges::destroy    destroys a range of objects
+(C++20)            (algorithm function object)
+destroy_n          destroys a number of objects in a range
+\fI(C++17)\fP            \fI(function template)\fP

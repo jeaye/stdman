@@ -1,131 +1,130 @@
-.TH std::current_exception 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::current_exception 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::current_exception \- std::current_exception
 
 .SH Synopsis
-   Defined in header <exception>
-   std::exception_ptr current_exception() noexcept;  \fI(since C++11)\fP
+Defined in header <exception>
+std::exception_ptr current_exception() noexcept;  \fI(since C++11)\fP
+                                                  (constexpr since C++26)
 
-   If called during exception handling (typically, in a catch clause), captures the
-   current exception object and creates an std::exception_ptr that holds either a copy
-   or a reference to that exception object (depending on the implementation). The
-   referenced object remains valid at least as long as there is an exception_ptr object
-   that refers to it.
+If called during exception handling (typically, in a catch clause), captures the current
+exception object and creates an std::exception_ptr that holds either a copy or a reference
+to that exception object (depending on the implementation). The referenced object remains
+valid at least as long as there is an exception_ptr object that refers to it.
 
-   If the implementation of this function requires a call to new and the call fails,
-   the returned pointer will hold a reference to an instance of std::bad_alloc.
+If the implementation of this function requires a call to new and the call fails, the
+returned pointer will hold a reference to an instance of std::bad_alloc.
 
-   If the implementation of this function requires copying the captured exception
-   object and its copy constructor throws an exception, the returned pointer will hold
-   a reference to the exception thrown. If the copy constructor of the thrown exception
-   object also throws, the returned pointer may hold a reference to an instance of
-   std::bad_exception to break the endless loop.
+If the implementation of this function requires copying the captured exception object and
+its copy constructor throws an exception, the returned pointer will hold a reference to
+the exception thrown. If the copy constructor of the thrown exception object also throws,
+the returned pointer may hold a reference to an instance of std::bad_exception to break
+the endless loop.
 
-   If the function is called when no exception is being handled, an empty
-   std::exception_ptr is returned.
+If the function is called when no exception is being handled, an empty std::exception_ptr
+is returned.
 
-   This function can be called in a std::terminate_handler to retrieve the exception
-   which has provoked the invocation of std::terminate.
-
-.SH Parameters
-
-   \fI(none)\fP
+This function can be called in a std::terminate_handler to retrieve the exception which
+has provoked the invocation of std::terminate.
 
 .SH Return value
 
-   An instance of std::exception_ptr holding a reference to the exception object, or a
-   copy of the exception object, or to an instance of std::bad_alloc or to an instance
-   of std::bad_exception.
+An instance of std::exception_ptr holding a reference to the exception object, or a copy
+of the exception object, or to an instance of std::bad_alloc or to an instance of
+std::bad_exception.
 
 .SH Notes
 
-   On the implementations that follow Itanium C++ ABI (GCC, Clang, etc), exceptions are
-   allocated on the heap when thrown (except for std::bad_alloc in some cases), and
-   this function simply creates the smart pointer referencing the previously-allocated
-   object, On MSVC, exceptions are allocated on stack when thrown, and this function
-   performs the heap allocation and copies the exception object.
+On the implementations that follow Itanium C++ ABI (GCC, Clang, etc), exceptions are
+allocated on the heap when thrown (except for std::bad_alloc in some cases), and this
+function simply creates the smart pointer referencing the previously-allocated object, On
+MSVC, exceptions are allocated on stack when thrown, and this function performs the heap
+allocation and copies the exception object.
 
-   On Windows in managed CLR environments [1], the implementation will store a
-   std::bad_exception when the current exception is a managed exception ([2]). Note
-   that catch(...) catches also managed exceptions:
+On Windows in managed CLR environments [1], the implementation will store a
+std::bad_exception when the current exception is a managed exception ([2]). Note that
+catch(...) catches also managed exceptions:
 
- #include <exception>
+#include <exception>
 
- int main()
- {
-     try
-     {
-         throw gcnew System::Exception("Managed exception");
-     }
-     catch (...)
-     {
-         std::exception_ptr ex = std::current_exception();
-         try
-         {
-             std::rethrow_exception(ex);
-         }
-         catch (std::bad_exception const &)
-         {
-             // This will be printed.
-             std::cout << "Bad exception" << std::endl;
-         }
-     }
- }
+int main()
+{
+    try
+    {
+        throw gcnew System::Exception("Managed exception");
+    }
+    catch (...)
+    {
+        std::exception_ptr ex = std::current_exception();
+        try
+        {
+            std::rethrow_exception(ex);
+        }
+        catch (std::bad_exception const &)
+        {
+            // This will be printed.
+            std::cout << "Bad exception" << std::endl;
+        }
+    }
+}
+
+      Feature-test macro        Value    Std              Feature
+__cpp_lib_constexpr_exceptions 202411L (C++26) constexpr for exception types
 
 .SH Example
 
 
-
 // Run this code
 
- #include <exception>
- #include <iostream>
- #include <stdexcept>
- #include <string>
+#include <exception>
+#include <iostream>
+#include <stdexcept>
+#include <string>
 
- void handle_eptr(std::exception_ptr eptr) // passing by value is ok
- {
-     try
-     {
-         if (eptr)
-             std::rethrow_exception(eptr);
-     }
-     catch(const std::exception& e)
-     {
-         std::cout << "Caught exception: '" << e.what() << "'\\n";
-     }
- }
+void handle_eptr(std::exception_ptr eptr) // passing by value is OK
+{
+    try
+    {
+        if (eptr)
+            std::rethrow_exception(eptr);
+    }
+    catch(const std::exception& e)
+    {
+        std::cout << "Caught exception: '" << e.what() << "'\\n";
+    }
+}
 
- int main()
- {
-     std::exception_ptr eptr;
+int main()
+{
+    std::exception_ptr eptr;
 
-     try
-     {
-         std::string().at(1); // this generates a std::out_of_range
-     }
-     catch(...)
-     {
-         eptr = std::current_exception(); // capture
-     }
+    try
+    {
+        [[maybe_unused]]
+        char ch = std::string().at(1); // this generates a std::out_of_range
+    }
+    catch(...)
+    {
+        eptr = std::current_exception(); // capture
+    }
 
-     handle_eptr(eptr);
+    handle_eptr(eptr);
 
- } // destructor for std::out_of_range called here, when the eptr is destructed
+} // destructor for std::out_of_range called here, when the eptr is destructed
 
 .SH Possible output:
 
- Caught exception: 'basic_string::at: __n (which is 1) >= this->size() (which is 0)'
+Caught exception: 'basic_string::at: __n (which is 1) >= this->size() (which is 0)'
 
 .SH See also
 
-   exception_ptr       shared pointer type for handling exception objects
-   \fI(C++11)\fP             \fI(typedef)\fP
-   rethrow_exception   throws the exception from an std::exception_ptr
-   \fI(C++11)\fP             \fI(function)\fP
-   make_exception_ptr  creates an std::exception_ptr from an exception object
-   \fI(C++11)\fP             \fI(function template)\fP
-   uncaught_exception
-   uncaught_exceptions checks if exception handling is currently in progress
-   (removed in C++20)  \fI(function)\fP
-   \fI(C++17)\fP
+exception_ptr       shared pointer type for handling exception objects
+\fI(C++11)\fP             \fI(typedef)\fP
+rethrow_exception   throws the exception from an std::exception_ptr
+\fI(C++11)\fP             \fI(function)\fP
+make_exception_ptr  creates an std::exception_ptr from an exception object
+\fI(C++11)\fP             \fI(function template)\fP
+uncaught_exception
+uncaught_exceptions checks if exception handling is currently in progress
+(removed in C++20*) \fI(function)\fP
+\fI(C++17)\fP

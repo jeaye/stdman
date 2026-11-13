@@ -1,168 +1,164 @@
-.TH std::atomic_fetch_add,std::atomic_fetch_add_explicit 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::atomic_fetch_add,std::atomic_fetch_add_explicit 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::atomic_fetch_add,std::atomic_fetch_add_explicit \- std::atomic_fetch_add,std::atomic_fetch_add_explicit
 
 .SH Synopsis
-   Defined in header <atomic>
-   template< class T >
+Defined in header <atomic>
+template< class T >
 
-   T atomic_fetch_add( std::atomic<T>* obj,                           \fB(1)\fP \fI(since C++11)\fP
+T atomic_fetch_add( std::atomic<T>* obj,                   \fB(1)\fP \fI(since C++11)\fP
 
-                       typename std::atomic<T>::difference_type arg )
-   noexcept;
-   template< class T >
+typename std::atomic<T>::difference_type arg ) noexcept;
+template< class T >
 
-   T atomic_fetch_add( volatile std::atomic<T>* obj,                  \fB(2)\fP \fI(since C++11)\fP
+T atomic_fetch_add( volatile std::atomic<T>* obj,          \fB(2)\fP \fI(since C++11)\fP
 
-                       typename std::atomic<T>::difference_type arg )
-   noexcept;
-   template< class T >
+typename std::atomic<T>::difference_type arg ) noexcept;
+template< class T >
 
-   T atomic_fetch_add_explicit( std::atomic<T>* obj,
-                                typename                              \fB(3)\fP \fI(since C++11)\fP
-   std::atomic<T>::difference_type arg,
+T atomic_fetch_add_explicit( std::atomic<T>* obj,          \fB(3)\fP \fI(since C++11)\fP
+typename std::atomic<T>::difference_type arg,
 
-                                std::memory_order order ) noexcept;
-   template< class T >
+std::memory_order order ) noexcept;
+template< class T >
 
-   T atomic_fetch_add_explicit( volatile std::atomic<T>* obj,
-                                typename                              \fB(4)\fP \fI(since C++11)\fP
-   std::atomic<T>::difference_type arg,
+T atomic_fetch_add_explicit( volatile std::atomic<T>* obj, \fB(4)\fP \fI(since C++11)\fP
+typename std::atomic<T>::difference_type arg,
 
-                                std::memory_order order ) noexcept;
+std::memory_order order ) noexcept;
 
-   Performs atomic addition. Atomically adds arg to the value pointed to by obj and
-   returns the value obj held previously. The operation is performed as if the
-   following was executed:
+Performs atomic addition. Atomically adds arg to the value pointed to by obj and returns
+the value obj held previously. The operation is performed as if the following was
+executed:
 
-   1,2) obj->fetch_add(arg)
-   3,4) obj->fetch_add(arg, order)
+1,2) obj->fetch_add(arg)
+3,4) obj->fetch_add(arg, order)
 
-   If std::atomic<T> has no fetch_add member (this member is only provided for integral
-   , floating-point
-   \fI(since C++20)\fP and pointer types except bool), the program is ill-formed.
+If std::atomic<T> has no fetch_add member (this member is only provided for integral
+, floating-point
+\fI(since C++20)\fP and pointer types except bool), the program is ill-formed.
 
 .SH Parameters
 
-   obj   - pointer to the atomic object to modify
-   arg   - the value to add to the value stored in the atomic object
-   order - the memory synchronization ordering
+obj   - pointer to the atomic object to modify
+arg   - the value to add to the value stored in the atomic object
+order - the memory synchronization ordering
 
 .SH Return value
 
-   The value immediately preceding the effects of this function in the modification
-   order of *obj.
+The value immediately preceding the effects of this function in the modification order of
+*obj.
 
 .SH Example
 
-   Single-writer/multiple-reader lock can be made with std::atomic_fetch_add. Note that
-   this simplistic implementation is not lockout-free.
+Single-writer/multiple-reader lock can be made with std::atomic_fetch_add. Note that this
+simplistic implementation is not lockout-free.
 
 
 // Run this code
 
- #include <atomic>
- #include <chrono>
- #include <iostream>
- #include <string>
- #include <thread>
- #include <vector>
+#include <atomic>
+#include <chrono>
+#include <iostream>
+#include <string>
+#include <thread>
+#include <vector>
 
- using namespace std::chrono_literals;
+using namespace std::chrono_literals;
 
- // meaning of cnt:
- //  5: readers and writer are in race. There are no active readers or writers.
- //  4...0: there are 1...5 active readers, The writer is blocked.
- // -1: writer won the race and readers are blocked.
+// meaning of cnt:
+//  5: readers and writer are in race. There are no active readers or writers.
+//  4...0: there are 1...5 active readers, The writer is blocked.
+// -1: writer won the race and readers are blocked.
 
- const int N = 5; // four concurrent readers are allowed
- std::atomic<int> cnt(N);
+const int N = 5; // four concurrent readers are allowed
+std::atomic<int> cnt(N);
 
- std::vector<int> data;
+std::vector<int> data;
 
- void reader(int id)
- {
-     for (;;)
-     {
-         // lock
-         while (std::atomic_fetch_sub(&cnt, 1) <= 0)
-             std::atomic_fetch_add(&cnt, 1);
+void reader(int id)
+{
+    for (;;)
+    {
+        // lock
+        while (std::atomic_fetch_sub(&cnt, 1) <= 0)
+            std::atomic_fetch_add(&cnt, 1);
 
-         // read
-         if (!data.empty())
-             std::cout << ("reader " + std::to_string(id) +
-                           " sees " + std::to_string(*data.rbegin()) + '\\n');
-         if (data.size() == 25)
-             break;
+        // read
+        if (!data.empty())
+            std::cout << ("reader " + std::to_string(id) +
+                          " sees " + std::to_string(*data.rbegin()) + '\\n');
+        if (data.size() == 25)
+            break;
 
-         // unlock
-         std::atomic_fetch_add(&cnt, 1);
+        // unlock
+        std::atomic_fetch_add(&cnt, 1);
 
-         // pause
-         std::this_thread::sleep_for(1ms);
-     }
- }
+        // pause
+        std::this_thread::sleep_for(1ms);
+    }
+}
 
- void writer()
- {
-     for (int n = 0; n < 25; ++n)
-     {
-         // lock
-         while (std::atomic_fetch_sub(&cnt, N + 1) != N)
-             std::atomic_fetch_add(&cnt, N + 1);
+void writer()
+{
+    for (int n = 0; n < 25; ++n)
+    {
+        // lock
+        while (std::atomic_fetch_sub(&cnt, N + 1) != N)
+            std::atomic_fetch_add(&cnt, N + 1);
 
-         // write
-         data.push_back(n);
-         std::cout << "writer pushed back " << n << '\\n';
+        // write
+        data.push_back(n);
+        std::cout << "writer pushed back " << n << '\\n';
 
-         // unlock
-         std::atomic_fetch_add(&cnt, N + 1);
+        // unlock
+        std::atomic_fetch_add(&cnt, N + 1);
 
-         // pause
-         std::this_thread::sleep_for(1ms);
-     }
- }
+        // pause
+        std::this_thread::sleep_for(1ms);
+    }
+}
 
- int main()
- {
-     std::vector<std::thread> v;
-     for (int n = 0; n < N; ++n)
-         v.emplace_back(reader, n);
-     v.emplace_back(writer);
+int main()
+{
+    std::vector<std::thread> v;
+    for (int n = 0; n < N; ++n)
+        v.emplace_back(reader, n);
+    v.emplace_back(writer);
 
-     for (auto& t : v)
-         t.join();
- }
+    for (auto& t : v)
+        t.join();
+}
 
 .SH Output:
 
- writer pushed back 0
- reader 2 sees 0
- reader 3 sees 0
- reader 1 sees 0
- <...>
- reader 2 sees 24
- reader 4 sees 24
- reader 1 sees 24
+writer pushed back 0
+reader 2 sees 0
+reader 3 sees 0
+reader 1 sees 0
+<...>
+reader 2 sees 24
+reader 4 sees 24
+reader 1 sees 24
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-     DR    Applied to         Behavior as published         Correct behavior
-   P0558R1 C++11      exact type match was required because T is only deduced
-                      T was deduced from multiple arguments from obj
+  DR    Applied to         Behavior as published         Correct behavior
+P0558R1 C++11      exact type match was required because T is only deduced
+                   T was deduced from multiple arguments from obj
 
 .SH See also
 
-                             atomically adds the argument to the value stored in the
-   fetch_add                 atomic object and obtains the value held previously
-                             \fI(public member function of std::atomic<T>)\fP
-   atomic_fetch_sub          subtracts a non-atomic value from an atomic object and
-   atomic_fetch_sub_explicit obtains the previous value of the atomic
-   \fI(C++11)\fP                   \fI(function template)\fP
-   \fI(C++11)\fP
-   C documentation for
-   atomic_fetch_add,
-   atomic_fetch_add_explicit
+                          atomically adds the argument to the value stored in the atomic
+fetch_add                 object and obtains the value held previously
+                          \fI(public member function of std::atomic<T>)\fP
+atomic_fetch_sub          subtracts a non-atomic value from an atomic object and obtains
+atomic_fetch_sub_explicit the previous value of the atomic
+\fI(C++11)\fP                   \fI(function template)\fP
+\fI(C++11)\fP
+C documentation for
+atomic_fetch_add,
+atomic_fetch_add_explicit

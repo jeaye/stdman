@@ -1,72 +1,91 @@
-.TH std::variant::visit 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::variant::visit 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::variant::visit \- std::variant::visit
 
 .SH Synopsis
-   template< class Self, class Visitor >                              \fB(1)\fP (since C++26)
-   constexpr decltype(auto) visit( this Self&& self, Visitor&& vis );
-   template< class R, class Self, class Visitor >                     \fB(2)\fP (since C++26)
-   constexpr R visit( this Self&& self, Visitor&& vis );
+template< class Self, class Visitor >                              \fB(1)\fP (since C++26)
+constexpr decltype(auto) visit( this Self&& self, Visitor&& vis );
+template< class R, class Self, class Visitor >                     \fB(2)\fP (since C++26)
+constexpr R visit( this Self&& self, Visitor&& vis );
 
-   Applies the visitor vis (a Callable that can be called with any combination of types
-   from the variant) to the variant held by self.
+Applies the visitor vis (a Callable that can be called with any combination of types from
+the variant) to the variant held by self.
 
-   Given type V as decltype(std::forward_like<Self>(std::declval<variant>())), the
-   equivalent call is:
+Given type V as decltype(std::forward_like<Self>(std::declval<variant>())), the equivalent
+call is:
 
-   1) return std::visit(std::forward<Visitor>(vis), (V) self);.
-   2) return std::visit<R>(std::forward<Visitor>(vis), (V) self);.
+1) return std::visit(std::forward<Visitor>(vis), (V) self);.
+2) return std::visit<R>(std::forward<Visitor>(vis), (V) self);.
 
 .SH Parameters
 
-   vis  - a Callable that accepts every possible alternative from the variant
-   self - variant to pass to the visitor
+vis  - a Callable that accepts every possible alternative from the variant
+self - variant to pass to the visitor
 
 .SH Return value
 
-   1) The result of the std::visit invocation.
-   2) Nothing if R is (possibly cv-qualified) void; otherwise the result of the
-   std::visit<R> invocation.
+1) The result of the std::visit invocation.
+2) Nothing if R is (possibly cv-qualified) void; otherwise the result of the std::visit<R>
+invocation.
 
 .SH Exceptions
 
-   Only throws if the call to std::visit throws.
+Only throws if the call to std::visit throws.
 
 .SH Notes
 
-   Feature-test macro  Value    Std     Feature
-   __cpp_lib_variant  202306L (C++26) member visit
+Feature-test macro  Value    Std     Feature
+__cpp_lib_variant  202306L (C++26) member visit
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
- #include <string>
- #include <variant>
+#include <print>
+#include <string>
+#include <string_view>
+#include <variant>
 
- // helper type for the visitor
- template<class... Ts>
- struct overloads : Ts... { using Ts::operator()...; };
+struct Base {};
+struct Derived : Base {};
 
- int main()
- {
-     std::variant<int, std::string> var1{42}, var2{"abc"};
+// helper type for the visitor
+template<class... Ts>
+struct overloads : Ts... { using Ts::operator()...; };
 
-     auto use_int = [](int i){ std::cout << "int = " << i << '\\n'; };
-     auto use_str = [](std::string s){ std::cout << "string = " << s << '\\n'; };
+// the variant to visit
+using var_t = std::variant<int, std::string, Derived>;
 
- #if (__cpp_lib_variant >= 202306L)
-     var1.visit(overloads{use_int, use_str});
-     var2.visit(overloads{use_int, use_str});
- #else
-     std::visit(overloads{use_int, use_str}, var1);
-     std::visit(overloads{use_int, use_str}, var2);
- #endif
- }
+int main()
+{
+    const auto visitor = overloads
+    {
+        [](int i){ std::print("int = {}\\n", i); },
+        [](std::string_view s){ std::println("string = “{}”", s); },
+        [](const Base&){ std::println("base"); }
+    };
+
+    const var_t var1 = 42, var2 = "abc", var3 = Derived();
+
+#if (__cpp_lib_variant >= 202306L)
+    var1.visit(visitor);
+    var2.visit(visitor);
+    var3.visit(visitor);
+#else
+    std::visit(visitor, var1);
+    std::visit(visitor, var2);
+    std::visit(visitor, var3);
+#endif
+}
 
 .SH Output:
 
- int = 42
- string = abc
+int = 42
+string = “abc”
+base
+
+.SH See also
+
+visit   calls the provided functor with the arguments held by one or more variants
+\fI(C++17)\fP \fI(function template)\fP

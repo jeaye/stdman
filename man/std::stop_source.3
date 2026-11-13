@@ -1,140 +1,134 @@
-.TH std::stop_source 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::stop_source 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::stop_source \- std::stop_source
 
 .SH Synopsis
-   Defined in header <stop_token>
-   class stop_source;              \fI(since C++20)\fP
+Defined in header <stop_token>
+class stop_source;              \fI(since C++20)\fP
 
-   The stop_source class provides the means to issue a stop request, such as for
-   std::jthread cancellation. A stop request made for one stop_source object is visible
-   to all stop_sources and std::stop_tokens of the same associated stop-state; any
-   std::stop_callback(s) registered for associated std::stop_token(s) will be invoked,
-   and any std::condition_variable_any objects waiting on associated std::stop_token(s)
-   will be awoken.
+The stop_source class provides the means to issue a stop request, such as for std::jthread
+cancellation. A stop request made for one stop_source object is visible to all
+stop_sources and std::stop_tokens of the same associated stop-state; any
+std::stop_callback(s) registered for associated std::stop_token(s) will be invoked, and
+any std::condition_variable_any objects waiting on associated std::stop_token(s) will be
+awoken.
 
-   Once a stop is requested, it cannot be withdrawn. Additional stop requests have no
-   effect.
+Once a stop is requested, it cannot be withdrawn. Additional stop requests have no effect.
 
 .SH Member functions
 
-   constructor    constructs new stop_source object
-                  \fI(public member function)\fP
-   destructor     destructs the stop_source object
-                  \fI(public member function)\fP
-   operator=      assigns the stop_source object
-                  \fI(public member function)\fP
+constructor    constructs new stop_source object
+               \fI(public member function)\fP
+destructor     destructs the stop_source object
+               \fI(public member function)\fP
+operator=      assigns the stop_source object
+               \fI(public member function)\fP
 .SH Modifiers
-   request_stop   makes a stop request for the associated stop-state, if any
-                  \fI(public member function)\fP
-   swap           swaps two stop_source objects
-                  \fI(public member function)\fP
+request_stop   makes a stop request for the associated stop-state, if any
+               \fI(public member function)\fP
+swap           swaps two stop_source objects
+               \fI(public member function)\fP
 .SH Observers
-   get_token      returns a stop_token for the associated stop-state
-                  \fI(public member function)\fP
-   stop_requested checks whether the associated stop-state has been requested to stop
-                  \fI(public member function)\fP
-   stop_possible  checks whether associated stop-state can be requested to stop
-                  \fI(public member function)\fP
+get_token      returns a stop_token for the associated stop-state
+               \fI(public member function)\fP
+stop_requested checks whether the associated stop-state has been requested to stop
+               \fI(public member function)\fP
+stop_possible  checks whether associated stop-state can be requested to stop
+               \fI(public member function)\fP
 
 .SH Non-member functions
 
-   operator==             compares two std::stop_source objects
-                          \fI(function)\fP
-   swap(std::stop_source) specializes the std::swap algorithm
-   (C++20)                \fI(function)\fP
+operator==             compares two std::stop_source objects
+(C++20)                \fI(function)\fP
+swap(std::stop_source) specializes the std::swap algorithm
+(C++20)                \fI(function)\fP
 
-   Helper constants
+  Helper tags
 
-   nostopstate a std::nostopstate_t instance for use in stop_source constructor
-   (C++20)     (constant)
-
-.SH Helper classes
-
-   nostopstate_t placeholder type for use in stop_source constructor
-   (C++20)       \fI(class)\fP
+nostopstate   a tag used for stop_source to indicate no associated stop-state upon
+nostopstate_t construction
+(C++20)       (tag)
 
 .SH Notes
 
-   For the purposes of std::jthread cancellation the stop_source object should be
-   retrieved from the std::jthread object using get_stop_source(); or stop should be
-   requested directly from the std::jthread object using request_stop(). This will then
-   use the same associated stop-state as that passed into the std::jthread's invoked
-   function argument (i.e., the function being executed on its thread).
+For the purposes of std::jthread cancellation the stop_source object should be retrieved
+from the std::jthread object using get_stop_source(); or stop should be requested directly
+from the std::jthread object using request_stop(). This will then use the same associated
+stop-state as that passed into the std::jthread's invoked function argument (i.e., the
+function being executed on its thread).
 
-   For other uses, however, a stop_source can be constructed separately using the
-   default constructor, which creates new stop-state.
+For other uses, however, a stop_source can be constructed separately using the default
+constructor, which creates new stop-state.
 
-   Feature-test macro  Value    Std              Feature
-   __cpp_lib_jthread  201911L (C++20) Stop token and joining thread
+Feature-test macro  Value    Std              Feature
+__cpp_lib_jthread  201911L (C++20) Stop token and joining thread
 
 .SH Example
 
 
 // Run this code
 
- #include <chrono>
- #include <iostream>
- #include <stop_token>
- #include <thread>
+#include <chrono>
+#include <iostream>
+#include <stop_token>
+#include <thread>
 
- using namespace std::chrono_literals;
+using namespace std::chrono_literals;
 
- void worker_fun(int id, std::stop_source stop_source)
- {
-     std::stop_token stoken = stop_source.get_token();
-     for (int i = 10; i; --i)
-     {
-         std::this_thread::sleep_for(300ms);
-         if (stoken.stop_requested())
-         {
-             std::printf("  worker%d is requested to stop\\n", id);
-             return;
-         }
-         std::printf("  worker%d goes back to sleep\\n", id);
-     }
- }
+void worker_fun(int id, std::stop_token stoken)
+{
+    for (int i = 10; i; --i)
+    {
+        std::this_thread::sleep_for(300ms);
+        if (stoken.stop_requested())
+        {
+            std::printf("  worker%d is requested to stop\\n", id);
+            return;
+        }
+        std::printf("  worker%d goes back to sleep\\n", id);
+    }
+}
 
- int main()
- {
-     std::jthread threads[4];
-     std::cout << std::boolalpha;
-     auto print = [](const std::stop_source& source)
-     {
-         std::printf("stop_source stop_possible = %s, stop_requested = %s\\n",
-                     source.stop_possible() ? "true" : "false",
-                     source.stop_requested() ? "true" : "false");
-     };
+int main()
+{
+    std::jthread threads[4];
+    std::cout << std::boolalpha;
+    auto print = [](const std::stop_source& source)
+    {
+        std::printf("stop_source stop_possible = %s, stop_requested = %s\\n",
+                    source.stop_possible() ? "true" : "false",
+                    source.stop_requested() ? "true" : "false");
+    };
 
-     // Common source
-     std::stop_source stop_source;
+    // Common source
+    std::stop_source stop_source;
 
-     print(stop_source);
+    print(stop_source);
 
-     // Create worker threads
-     for (int i = 0; i < 4; ++i)
-         threads[i] = std::jthread(worker_fun, i + 1, stop_source);
+    // Create worker threads
+    for (int i = 0; i < 4; ++i)
+        threads[i] = std::jthread(worker_fun, i + 1, stop_source.get_token());
 
-     std::this_thread::sleep_for(500ms);
+    std::this_thread::sleep_for(500ms);
 
-     std::puts("Request stop");
-     stop_source.request_stop();
+    std::puts("Request stop");
+    stop_source.request_stop();
 
-     print(stop_source);
+    print(stop_source);
 
-     // Note: destructor of jthreads will call join so no need for explicit calls
- }
+    // Note: destructor of jthreads will call join so no need for explicit calls
+}
 
 .SH Possible output:
 
- stop_source stop_possible = true, stop_requested = false
-   worker2 goes back to sleep
-   worker3 goes back to sleep
-   worker1 goes back to sleep
-   worker4 goes back to sleep
- Request stop
- stop_source stop_possible = true, stop_requested = true
-   worker3 is requested to stop
-   worker1 is requested to stop
-   worker2 is requested to stop
-   worker4 is requested to stop
+stop_source stop_possible = true, stop_requested = false
+  worker2 goes back to sleep
+  worker3 goes back to sleep
+  worker1 goes back to sleep
+  worker4 goes back to sleep
+Request stop
+stop_source stop_possible = true, stop_requested = true
+  worker3 is requested to stop
+  worker1 is requested to stop
+  worker2 is requested to stop
+  worker4 is requested to stop

@@ -1,0 +1,105 @@
+.TH std::copyable_function::copyable_function 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::copyable_function::copyable_function \- std::copyable_function::copyable_function
+
+.SH Synopsis
+copyable_function() noexcept;                                           \fB(1)\fP (since C++26)
+copyable_function( std::nullptr_t ) noexcept;                           \fB(2)\fP (since C++26)
+copyable_function( const copyable_function& other );                    \fB(3)\fP (since C++26)
+copyable_function( copyable_function&& other ) noexcept;                \fB(4)\fP (since C++26)
+template< class F >                                                     \fB(5)\fP (since C++26)
+copyable_function( F&& f );
+template< class T, class... CArgs >                                     \fB(6)\fP (since C++26)
+explicit copyable_function( std::in_place_type_t<T>, CArgs&&... args );
+template< class T, class U, class... CArgs >
+
+explicit copyable_function( std::in_place_type_t<T>,                    \fB(7)\fP (since C++26)
+
+std::initializer_list<U> il, CArgs&&... args );
+
+Creates a new std::copyable_function.
+
+1,2) Default constructor and the constructor taking nullptr construct an empty
+std::copyable_function.
+3) Copy constructor constructs a std::copyable_function whose target is a copy of the
+target of other. Otherwise, constructs an empty std::copyable_function if other is empty.
+4) Move constructor constructs a std::copyable_function whose target is that of other.
+other is in a valid but unspecified state after move construction.
+5) Let VT be std::decay_t<F>. If f is a null function pointer, a null pointer to member
+value, or an empty std::copyable_function (may be any other specialization), then
+constructs an empty std::copyable_function. Otherwise, constructs a std::copyable_function
+whose target is of type VT and direct-non-list-initialized with std::forward<F>(f).
+  * This overload participates in overload resolution only if VT is neither same as
+    copyable_function nor a specialization of std::in_place_type_t, and
+    /*is-callable-from*/<VT> (see below) is true.
+  * The program is ill-formed if std::is_constructible_v<VT, F> or
+    std::is_copy_constructible_v<VT> is not true.
+6) Let VT be std::decay_t<T>. Constructs a std::copyable_function whose target is of type
+VT and direct-non-list-initialized with std::forward<CArgs>(args)....
+  * This overload participates in overload resolution only if both
+    std::is_constructible_v<VT, CArgs...> and /*is-callable-from*/<VT> (see below) are
+    true.
+  * The program is ill-formed if VT is not the same type as T or
+    std::is_copy_constructible_v<VT> is not true.
+7) Let VT be std::decay_t<T>. Constructs a std::copyable_function whose target is of type
+VT and direct-non-list-initialized with il, std::forward<CArgs>(args)....
+  * This overload participates in overload resolution only if both
+    std::is_constructible_v<VT, std::initializer_list<U>&, CArgs...> and
+    /*is-callable-from*/<VT> (see below) are true.
+  * The program is ill-formed if VT is not the same type as T or
+    std::is_copy_constructible_v<VT> is not true.
+
+For constructors (5-7), the behavior is undefined unless VT satisfies both Destructible
+and CopyConstructible requirements.
+
+The constant /*is-callable-from*/<VT> is dependent on cv, ref, and noex in the template
+parameter of std::copyable_function as below:
+
+cv ref noexcept(noex)    /*is-callable-from*/<VT>
+                         std::is_invocable_r_v<R, VT, Args...> &&
+noexcept(false)
+                         std::is_invocable_r_v<R, VT&, Args...>
+                         std::is_nothrow_invocable_r_v<R, VT, Args...> &&
+noexcept(true)
+                         std::is_nothrow_invocable_r_v<R, VT&, Args...>
+                         std::is_invocable_r_v<R, const VT, Args...> &&
+const noexcept(false)
+                         std::is_invocable_r_v<R, const VT&, Args...>
+                         std::is_nothrow_invocable_r_v<R, const VT, Args...> &&
+const noexcept(true)
+                         std::is_nothrow_invocable_r_v<R, const VT&, Args...>
+& noexcept(false)        std::is_invocable_r_v<R, VT&, Args...>
+& noexcept(true)         std::is_nothrow_invocable_r_v<R, VT&, Args...>
+const & noexcept(false)  std::is_invocable_r_v<R, const VT&, Args...>
+const & noexcept(true)   std::is_nothrow_invocable_r_v<R, const VT&, Args...>
+&& noexcept(false)       std::is_invocable_r_v<R, VT, Args...>
+&& noexcept(true)        std::is_nothrow_invocable_r_v<R, VT, Args...>
+const && noexcept(false) std::is_invocable_r_v<R, const VT, Args...>
+const && noexcept(true)  std::is_nothrow_invocable_r_v<R, const VT, Args...>
+
+.SH Parameters
+
+other - another std::copyable_function to copy or move from
+f     - a function or a Callable object to wrap
+args  - arguments to construct the target object
+il    - std::initializer_list to construct the target object
+
+.SH Exceptions
+
+3) May throw std::bad_alloc on allocation failure or propagate the exception thrown by the
+initialization of the target.
+5-7) May throw std::bad_alloc on allocation failure or propagate the exception thrown by
+the initialization of the target. No exception is thrown if VT is a function pointer type
+or a specialization of std::reference_wrapper.
+
+.SH Example
+
+ This section is incomplete
+ Reason: no example
+
+.SH See also
+
+constructor   constructs a new std::function instance
+              \fI(public member function of std::function<R(Args...)>)\fP
+constructor   constructs a new std::move_only_function object
+              \fI(public member function of std::move_only_function)\fP

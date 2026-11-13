@@ -1,174 +1,188 @@
-.TH std::scoped_allocator_adaptor 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::scoped_allocator_adaptor 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::scoped_allocator_adaptor \- std::scoped_allocator_adaptor
 
 .SH Synopsis
-   Defined in header <scoped_allocator>
-   template< class OuterAlloc, class... InnerAllocs >
+Defined in header <scoped_allocator>
+template< class OuterAlloc, class... InnerAllocs >
 
-   class scoped_allocator_adaptor                      \fI(since C++11)\fP
+class scoped_allocator_adaptor                      \fI(since C++11)\fP
 
-       : public OuterAlloc;
+: public OuterAlloc;
 
-   The std::scoped_allocator_adaptor class template is an allocator which can be used
-   with multilevel containers (vector of sets of lists of tuples of maps, etc). It is
-   instantiated with one outer allocator type OuterAlloc and zero or more inner
-   allocator types InnerAlloc.... A container constructed directly with a
-   scoped_allocator_adaptor uses OuterAlloc to allocate its elements, but if an element
-   is itself a container, it uses the first inner allocator. The elements of that
-   container, if they are themselves containers, use the second inner allocator, etc.
-   If there are more levels to the container than there are inner allocators, the last
-   inner allocator is reused for all further nested containers.
+The std::scoped_allocator_adaptor class template is an allocator which can be used with
+multilevel containers (vector of sets of lists of tuples of maps, etc). It is instantiated
+with one outer allocator type OuterAlloc and zero or more inner allocator types
+InnerAlloc.... A container constructed directly with a scoped_allocator_adaptor uses
+OuterAlloc to allocate its elements, but if an element is itself a container, it uses the
+first inner allocator. The elements of that container, if they are themselves containers,
+use the second inner allocator, etc. If there are more levels to the container than there
+are inner allocators, the last inner allocator is reused for all further nested
+containers.
 
-   The purpose of this adaptor is to correctly initialize stateful allocators in nested
-   containers, such as when all levels of a nested container must be placed in the same
-   shared memory segment. The adaptor's constructor takes the arguments for all
-   allocators in the list, and each nested container obtains its allocator's state from
-   the adaptor as needed.
+The purpose of this adaptor is to correctly initialize stateful allocators in nested
+containers, such as when all levels of a nested container must be placed in the same
+shared memory segment. The adaptor's constructor takes the arguments for all allocators in
+the list, and each nested container obtains its allocator's state from the adaptor as
+needed.
 
-   For the purpose of scoped_allocator_adaptor, if the next inner allocator is A, any
-   class T for which std::uses_allocator<T,A>::value == true participates in the
-   recursion as if it was a container. Additionally, std::pair is treated as such a
-   container by specific overloads of scoped_allocator_adaptor::construct.
+For the purpose of scoped_allocator_adaptor, if the next inner allocator is A, any class T
+for which std::uses_allocator<T,A>::value == true participates in the recursion as if it
+was a container. Additionally, std::pair is treated as such a container by specific
+overloads of scoped_allocator_adaptor::construct.
 
-   Typical implementation holds an instance of a
-   std::scoped_allocator_adaptor<InnerAllocs...> as a member object.
+Typical implementation holds an instance of a
+std::scoped_allocator_adaptor<InnerAllocs...> as a member object.
 
-   Note that std::pmr::polymorphic allocators propagate to nested containers following
-   uses-allocator construction and do not need (and do not work with)
-   std::scoped_allocator_adaptor.
+Note that std::pmr::polymorphic_allocators propagate to nested containers following
+uses-allocator construction and do not need (and do not work with)
+std::scoped_allocator_adaptor.
 
-.SH Member types
+  Nested types
 
-   Type                       Definition
-   outer_allocator_type       OuterAlloc
-                              scoped_allocator_adaptor<InnerAllocs...> or, if
-   inner_allocator_type       sizeof...(InnerAllocs) == 0,
-                              scoped_allocator_adaptor<OuterAlloc>
-   value_type                 std::allocator_traits<OuterAlloc>::value_type
-   size_type                  std::allocator_traits<OuterAlloc>::size_type
-   difference_type            std::allocator_traits<OuterAlloc>::difference_type
-   pointer                    std::allocator_traits<OuterAlloc>::pointer
-   const_pointer              std::allocator_traits<OuterAlloc>::const_pointer
-   void_pointer               std::allocator_traits<OuterAlloc>::void_pointer
-   const_void_pointer         std::allocator_traits<OuterAlloc>::const_void_pointer
-   propagate_on_container_copy_assignment
+Type                 Definition
+outer_allocator_type OuterAlloc
+                       * scoped_allocator_adaptor<OuterAlloc> if sizeof...(InnerAllocs) is
+inner_allocator_type     zero
+                       * scoped_allocator_adaptor<InnerAllocs...> otherwise
+value_type           std::allocator_traits<OuterAlloc>::value_type
+size_type            std::allocator_traits<OuterAlloc>::size_type
+difference_type      std::allocator_traits<OuterAlloc>::difference_type
+pointer              std::allocator_traits<OuterAlloc>::pointer
+const_pointer        std::allocator_traits<OuterAlloc>::const_pointer
+void_pointer         std::allocator_traits<OuterAlloc>::void_pointer
+const_void_pointer   std::allocator_traits<OuterAlloc>::const_void_pointer
 
-   std::true_type if
-   std::allocator_traits<A>::propagate_on_container_copy_assignment::value is true for
-   at least one allocator A among OuterAlloc and InnerAlloc...
-   propagate_on_container_move_assignment
+Given the set of OuterAlloc and InnerAlloc... as Allocs:
 
-   std::true_type if
-   std::allocator_traits<A>::propagate_on_container_move_assignment::value is true for
-   at least one allocator A among OuterAlloc and InnerAlloc...
-   propagate_on_container_swap
-
-   std::true_type if std::allocator_traits<A>::propagate_on_container_swap::value is
-   true for at least one allocator A among OuterAlloc and InnerAlloc...
-   is_always_equal
-
-   std::true_type if std::allocator_traits<A>::is_always_equal::value is true for every
-   allocator A among OuterAlloc and InnerAlloc...
-   rebind
-
-         template< class T >
-   struct rebind
-   {
-       typedef scoped_allocator_adaptor<
-           std::allocator_traits<OuterAlloc>::template rebind_alloc<T>,
-           InnerAllocs...
-       > other;
-   };
+Type                                   Definition
+                                         * std::true_type if there exists a type A in
+                                           Allocs such that std::allocator_traits<A>::
+propagate_on_container_copy_assignment     propagate_on_container_copy_assignment::value
+                                           is true
+                                         * std::false_type otherwise
+                                         * std::true_type if there exists a type A in
+                                           Allocs such that std::allocator_traits<A>::
+propagate_on_container_move_assignment     propagate_on_container_move_assignment::value
+                                           is true
+                                         * std::false_type otherwise
+                                         * std::true_type if there exists a type A in
+propagate_on_container_swap                Allocs such that std::allocator_traits<A>::
+                                           propagate_on_container_swap::value is true
+                                         * std::false_type otherwise
+                                         * std::true_type if there exists a type A in
+is_always_equal                            Allocs such that std::allocator_traits<A>::
+                                           is_always_equal::value is true
+                                         * std::false_type otherwise
 
 .SH Member functions
 
-                                         creates a new scoped_allocator_adaptor
-   constructor                           instance
-                                         \fI(public member function)\fP
-   destructor                            destructs a scoped_allocator_adaptor instance
-                                         \fI(public member function)\fP
-   operator=                             assigns a scoped_allocator_adaptor
-                                         \fI(public member function)\fP
-   inner_allocator                       obtains an inner_allocator reference
-                                         \fI(public member function)\fP
-   outer_allocator                       obtains an outer_allocator reference
-                                         \fI(public member function)\fP
-                                         allocates uninitialized storage using the
-   allocate                              outer allocator
-                                         \fI(public member function)\fP
-   deallocate                            deallocates storage using the outer allocator
-                                         \fI(public member function)\fP
-                                         returns the largest allocation size supported
-   max_size                              by the outer allocator
-                                         \fI(public member function)\fP
-                                         constructs an object in allocated storage,
-   construct                             passing the inner allocator to its constructor
-                                         if appropriate
-                                         \fI(public member function)\fP
-   destroy                               destructs an object in allocated storage
-                                         \fI(public member function)\fP
-                                         copies the state of scoped_allocator_adaptor
-   select_on_container_copy_construction and all its allocators
-                                         \fI(public member function)\fP
+constructor                           creates a new scoped_allocator_adaptor object
+                                      \fI(public member function)\fP
+destructor                            destructs a scoped_allocator_adaptor object
+                                      \fI(public member function)\fP
+operator=                             assigns a scoped_allocator_adaptor
+                                      \fI(public member function)\fP
+inner_allocator                       obtains an inner_allocator reference
+                                      \fI(public member function)\fP
+outer_allocator                       obtains an outer_allocator reference
+                                      \fI(public member function)\fP
+                                      allocates uninitialized storage using the outer
+allocate                              allocator
+                                      \fI(public member function)\fP
+deallocate                            deallocates storage using the outer allocator
+                                      \fI(public member function)\fP
+                                      returns the largest allocation size supported by the
+max_size                              outer allocator
+                                      \fI(public member function)\fP
+                                      constructs an object in allocated storage, passing
+construct                             the inner allocator to its constructor if
+                                      appropriate
+                                      \fI(public member function)\fP
+destroy                               destructs an object in allocated storage
+                                      \fI(public member function)\fP
+                                      copies the state of scoped_allocator_adaptor and all
+select_on_container_copy_construction its allocators
+                                      \fI(public member function)\fP
+      Exposition-only function templates
+outermost                             obtains the outermost allocator
+                                      (exposition-only member function*)
+outermost-construct                   constructs an object using the outermost allocator
+                                      (exposition-only member function*)
+outermost-destroy                     destroys an object using the outermost allocator
+                                      (exposition-only member function*)
 
 .SH Non-member functions
 
-   operator==         compares two scoped_allocator_adaptor instances
-   operator!=         \fI(function template)\fP
-   (removed in C++20)
+operator==         compares two scoped_allocator_adaptor objects
+operator!=         \fI(function template)\fP
+(removed in C++20)
 
-   Deduction guides\fI(since C++17)\fP
+  Deduction guides\fI(since C++17)\fP
+
+  Nested classes
+
+Class  Definition
+       template< class T >
+
+       struct rebind
+rebind {
+       using other = scoped_allocator_adaptor
+       <std::allocator_traits<OuterAlloc>::template rebind_alloc<T>,
+       InnerAllocs...>;
+       };
 
 .SH Example
 
 
 // Run this code
 
- #include <boost/interprocess/allocators/adaptive_pool.hpp>
- #include <boost/interprocess/managed_shared_memory.hpp>
- #include <scoped_allocator>
- #include <vector>
+#include <boost/interprocess/allocators/adaptive_pool.hpp>
+#include <boost/interprocess/managed_shared_memory.hpp>
+#include <scoped_allocator>
+#include <vector>
 
- namespace bi = boost::interprocess;
+namespace bi = boost::interprocess;
 
- template<class T> using alloc = bi::adaptive_pool<T,
-                                     bi::managed_shared_memory::segment_manager>;
- using ipc_row = std::vector<int, alloc<int>>;
- using ipc_matrix = std::vector<ipc_row, std::scoped_allocator_adaptor<alloc<ipc_row>>>;
+template<class T>
+using alloc = bi::adaptive_pool<T, bi::managed_shared_memory::segment_manager>;
 
- int main ()
- {
-     bi::managed_shared_memory s(bi::create_only, "Demo", 65536);
+using ipc_row = std::vector<int, alloc<int>>;
 
-     // create vector of vectors in shared memory
-     ipc_matrix v(s.get_segment_manager());
+using ipc_matrix = std::vector<ipc_row, std::scoped_allocator_adaptor<alloc<ipc_row>>>;
 
-     // for all these additions, the inner vectors obtain their allocator arguments
-     // from the outer vector's scoped_allocator_adaptor
-     v.resize(1);
-     v[0].push_back(1);
-     v.emplace_back(2);
-     std::vector<int> local_row = {1, 2, 3};
-     v.emplace_back(local_row.begin(), local_row.end());
+int main()
+{
+    bi::managed_shared_memory s(bi::create_only, "Demo", 65536);
 
-     bi::shared_memory_object::remove("Demo");
- }
+    // create vector of vectors in shared memory
+    ipc_matrix v(s.get_segment_manager());
 
-   Defect reports
+    // for all these additions, the inner vectors obtain their allocator arguments
+    // from the outer vector's scoped_allocator_adaptor
+    v.resize(1);
+    v[0].push_back(1);
+    v.emplace_back(2);
+    std::vector<int> local_row = {1, 2, 3};
+    v.emplace_back(local_row.begin(), local_row.end());
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+    bi::shared_memory_object::remove("Demo");
+}
 
-      DR    Applied to             Behavior as published              Correct behavior
-   LWG 2108 C++11      there was no way to show if                    is_always_equal
-                       scoped_allocator_adaptor is stateless          provided
+  Defect reports
+
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
+
+   DR    Applied to             Behavior as published                 Correct behavior
+LWG 2108 C++11      there was no way to show if                   provided is_always_equal
+                    scoped_allocator_adaptor is stateless
 
 .SH See also
 
-   allocator_traits provides information about allocator types
-   \fI(C++11)\fP          \fI(class template)\fP
-   uses_allocator   checks if the specified type supports uses-allocator construction
-   \fI(C++11)\fP          \fI(class template)\fP
-   allocator        the default allocator
-                    \fI(class template)\fP
+allocator_traits provides information about allocator types
+\fI(C++11)\fP          \fI(class template)\fP
+uses_allocator   checks if the specified type supports uses-allocator construction
+\fI(C++11)\fP          \fI(class template)\fP
+allocator        the default allocator
+                 \fI(class template)\fP

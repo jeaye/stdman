@@ -1,142 +1,139 @@
-.TH std::deque::shrink_to_fit 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::deque::shrink_to_fit 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::deque::shrink_to_fit \- std::deque::shrink_to_fit
 
 .SH Synopsis
-   void shrink_to_fit();
+void shrink_to_fit();
 
-   Requests the removal of unused capacity.
+Requests the removal of unused capacity.
 
-   It is a non-binding request to reduce the memory usage without changing the size of
-   the sequence. It depends on the implementation whether the request is fulfilled.
+It is a non-binding request to reduce the memory usage without changing the size of the
+sequence. It depends on the implementation whether the request is fulfilled.
 
-   All iterators (including the end() iterator) and references are invalidated.
+All iterators (including the end() iterator) and all references to the elements are
+invalidated.
 
-.SH Parameters
-
-   \fI(none)\fP
-
-.SH Type requirements
-   -
-   T must meet the requirements of MoveInsertable into *this. \fI(since C++11)\fP
-
-.SH Return value
-
-   \fI(none)\fP
+If T is not MoveInsertable into std::deque<T, Allocator>, the behavior is    \fI(since C++11)\fP
+undefined.
 
 .SH Complexity
 
-   At most linear in the size of the container.
+At most linear in the size of the container.
 
 .SH Exceptions
-                                                                          \fI(since C++11)\fP
-   If an exception is thrown other than by the move constructor of a
-   non-CopyInsertable T, there are no effects.
+                                                                             \fI(since C++11)\fP
+If an exception is thrown other than by the move constructor of a
+non-CopyInsertable T, there are no effects.
 
 .SH Notes
 
-   In libstdc++, shrink_to_fit() is not available in C++98 mode.
+In libstdc++, shrink_to_fit() is not available in C++98 mode.
 
 .SH Example
 
 
-
 // Run this code
 
- #include <cstddef>
- #include <deque>
- #include <iostream>
- #include <new>
+#include <cstddef>
+#include <deque>
+#include <iostream>
+#include <new>
 
- // Minimal C++11 allocator with debug output.
- template<class Tp>
- struct NAlloc
- {
-     typedef Tp value_type;
+// Minimal C++11 allocator with debug output.
+template<class Tp>
+struct NAlloc
+{
+    typedef Tp value_type;
 
-     NAlloc() = default;
+    NAlloc() = default;
 
-     template<class T> NAlloc(const NAlloc<T>&) {}
+    template<class T> NAlloc(const NAlloc<T>&) {}
 
-     Tp* allocate(std::size_t n)
-     {
-         n *= sizeof(Tp);
-         std::cout << "allocating " << n << " bytes\\n";
-         return static_cast<Tp*>(::operator new(n));
-     }
+    Tp* allocate(std::size_t n)
+    {
+        n *= sizeof(Tp);
+        std::cout << "allocating " << n << " bytes\\n";
+        return static_cast<Tp*>(::operator new(n));
+    }
 
-     void deallocate(Tp* p, std::size_t n)
-     {
-         std::cout << "deallocating " << n*sizeof*p << " bytes\\n";
-         ::operator delete(p);
-     }
- };
- template<class T, class U>
- bool operator==(const NAlloc<T>&, const NAlloc<U>&) { return true; }
- template<class T, class U>
- bool operator!=(const NAlloc<T>&, const NAlloc<U>&) { return false; }
+    void deallocate(Tp* p, std::size_t n)
+    {
+        std::cout << "deallocating " << n*sizeof*p << " bytes\\n";
+        ::operator delete(p);
+    }
+};
+template<class T, class U>
+bool operator==(const NAlloc<T>&, const NAlloc<U>&) { return true; }
+template<class T, class U>
+bool operator!=(const NAlloc<T>&, const NAlloc<U>&) { return false; }
 
- int main()
- {
-     // std::queue has no capacity() function (like std::vector).
-     // Because of this, we use a custom allocator to show the
-     // working of shrink_to_fit.
+int main()
+{
+    // std::queue has no capacity() function (like std::vector).
+    // Because of this, we use a custom allocator to show the
+    // working of shrink_to_fit.
 
-     std::cout << "Default-construct deque:\\n";
-     std::deque<int, NAlloc<int>> deq;
+    std::cout << "Default-construct deque:\\n";
+    std::deque<int, NAlloc<int>> deq;
 
-     std::cout << "\\nAdd 300 elements:\\n";
-     for (int i = 1000; i < 1300; ++i)
-         deq.push_back(i);
+    std::cout << "\\nAdd 300 elements:\\n";
+    for (int i = 1000; i < 1300; ++i)
+        deq.push_back(i);
 
-     std::cout << "\\nPop 100 elements:\\n";
-     for (int i = 0; i < 100; ++i)
-         deq.pop_front();
+    std::cout << "\\nPop 100 elements:\\n";
+    for (int i = 0; i < 100; ++i)
+        deq.pop_front();
 
-     std::cout << "\\nRun shrink_to_fit:\\n";
-     deq.shrink_to_fit();
+    std::cout << "\\nRun shrink_to_fit:\\n";
+    deq.shrink_to_fit();
 
-     std::cout << "\\nDestroy deque as it goes out of scope:\\n";
- }
+    std::cout << "\\nDestroy deque as it goes out of scope:\\n";
+}
 
 .SH Possible output:
 
- Default-construct deque:
- allocating 64 bytes
- allocating 512 bytes
+Default-construct deque:
+allocating 64 bytes
+allocating 512 bytes
 
- Add 300 elements:
- allocating 512 bytes
- allocating 512 bytes
+Add 300 elements:
+allocating 512 bytes
+allocating 512 bytes
 
- Pop 100 elements:
+Pop 100 elements:
 
- Run shrink_to_fit:
- allocating 64 bytes
- allocating 512 bytes
- allocating 512 bytes
- deallocating 512 bytes
- deallocating 512 bytes
- deallocating 512 bytes
- deallocating 64 bytes
+Run shrink_to_fit:
+allocating 64 bytes
+allocating 512 bytes
+allocating 512 bytes
+deallocating 512 bytes
+deallocating 512 bytes
+deallocating 512 bytes
+deallocating 64 bytes
 
- Destroy deque as it goes out of scope:
- deallocating 512 bytes
- deallocating 512 bytes
- deallocating 64 bytes
+Destroy deque as it goes out of scope:
+deallocating 512 bytes
+deallocating 512 bytes
+deallocating 64 bytes
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-      DR    Applied to              Behavior as published              Correct behavior
-   LWG 850  C++98      std::deque lacked explicit shrink-to-fit        provided
-                       operations
-   LWG 2033 C++11      1. T was not required to be MoveInsertable      1. required
-                       2. the complexity requirement was missing       2. added
+   DR    Applied to            Behavior as published                 Correct behavior
+LWG 850  C++98      std::deque lacked explicit shrink-to-fit    provided
+                    operations
+                    1. the complexity requirement was missing
+LWG 2033 C++98      (C++98)                                     1. added
+         C++11      2. T was not required to be MoveInsertable  2. required
+                    \fI(C++11)\fP
+                    1. references, pointers, and iterators were
+LWG 2223 C++98      not invalidated (C++98)                     1. they may be invalidated
+         C++11      2. there was no exception safety guarantee  2. added
+                    \fI(C++11)\fP
 
 .SH See also
 
-   size returns the number of elements
-        \fI(public member function)\fP
+size returns the number of elements
+     \fI(public member function)\fP

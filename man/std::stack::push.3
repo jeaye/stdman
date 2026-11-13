@@ -1,140 +1,136 @@
-.TH std::stack::push 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::stack::push 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::stack::push \- std::stack::push
 
 .SH Synopsis
-   void push( const value_type& value );
-   void push( value_type&& value );       \fI(since C++11)\fP
+void push( const value_type& value ); \fB(1)\fP
+void push( value_type&& value );      \fB(2)\fP \fI(since C++11)\fP
 
-   Pushes the given element value to the top of the stack.
+Pushes the given element value to the top of the stack.
 
-   1) Effectively calls c.push_back(value).
-   2) Effectively calls c.push_back(std::move(value)).
+1) Equivalent to: c.push_back(value).
+2) Equivalent to: c.push_back(std::move(value)).
 
 .SH Parameters
 
-   value - the value of the element to push
+value - the value of the element to push
 
 .SH Return value
 
-   \fI(none)\fP
+\fI(none)\fP
 
 .SH Complexity
 
-   Equal to the complexity of Container::push_back.
+Equal to the complexity of Container::push_back.
 
 .SH Example
 
-   This program implements the BrainHack DSL, when the use of std::stack is an
-   idiomatic way to process paired brackets.
+This program implements the BrainHack DSL, when the use of std::stack is an idiomatic way
+to process paired brackets.
 
 
 // Run this code
 
- #include <array>
- #include <cstdint>
- #include <iostream>
- #include <map>
- #include <stack>
- #include <stdexcept>
- #include <string_view>
+#include <array>
+#include <cstdint>
+#include <iostream>
+#include <map>
+#include <stack>
+#include <stdexcept>
+#include <string_view>
 
- class BrainHackInterpreter
- {
-     std::map<unsigned, unsigned> open_brackets, close_brackets;
-     unsigned program_pos_{0};
-     std::array<std::uint8_t, 32768> data_;
-     int data_pos_{0};
+class BrainHackInterpreter
+{
+    std::map<unsigned, unsigned> open_brackets, close_brackets;
+    std::array<std::uint8_t, 32768> data_{0};
+    unsigned program_{0};
+    int pos_{0};
 
-     void collect_brackets_positions(const std::string_view program)
-     {
-         std::stack<unsigned> brackets_stack;
+    void collect_brackets(const std::string_view program)
+    {
+        std::stack<unsigned> brackets_stack;
 
-         for (auto pos{0U}; pos != program.length(); ++pos)
-         {
-             const char c{program[pos]};
-             if ('[' == c)
-                 brackets_stack.push(pos);
-             else if (']' == c)
-             {
-                 if (brackets_stack.empty())
-                     throw std::runtime_error("brackets [] do not match!");
-                 else
-                 {
-                     open_brackets[brackets_stack.top()] = pos;
-                     close_brackets[pos] = brackets_stack.top();
-                     brackets_stack.pop();
-                 }
-             }
-         }
+        for (auto pos{0U}; pos != program.length(); ++pos)
+        {
+            if (const char c{program[pos]}; '[' == c)
+                brackets_stack.push(pos);
+            else if (']' == c)
+            {
+                if (brackets_stack.empty())
+                    throw std::runtime_error("Brackets [] do not match!");
+                else
+                {
+                    open_brackets[brackets_stack.top()] = pos;
+                    close_brackets[pos] = brackets_stack.top();
+                    brackets_stack.pop();
+                }
+            }
+        }
 
-         if (!brackets_stack.empty())
-             throw std::runtime_error("brackets [] do not match!");
-     }
+        if (!brackets_stack.empty())
+            throw std::runtime_error("Brackets [] do not match!");
+    }
 
-     void check_data_pos(int pos)
-     {
-         if (pos < 0 || pos >= static_cast<int>(data_.size()))
-             throw std::out_of_range{"data pointer out of bound"};
-     }
+    void check_data_pos(int pos)
+    {
+        if (pos < 0 or static_cast<int>(data_.size()) <= pos)
+            throw std::out_of_range{"Data pointer out of bound!"};
+    }
 
- public:
-     BrainHackInterpreter(const std::string_view program)
-     {
-         collect_brackets_positions(program);
-         data_.fill(0);
+public:
+    BrainHackInterpreter(const std::string_view program)
+    {
+        for (collect_brackets(program); program_ < program.length(); ++program_)
+            switch (program[program_])
+            {
+                case '<':
+                    check_data_pos(--pos_);
+                    break;
+                case '>':
+                    check_data_pos(++pos_);
+                    break;
+                case '-':
+                    --data_[pos_];
+                    break;
+                case '+':
+                    ++data_[pos_];
+                    break;
+                case '.':
+                    std::cout << data_[pos_];
+                    break;
+                case ',':
+                    std::cin >> data_[pos_];
+                    break;
+                case '[':
+                    if (data_[pos_] == 0)
+                        program_ = open_brackets[program_];
+                    break;
+                case ']':
+                    if (data_[pos_] != 0)
+                        program_ = close_brackets[program_];
+                    break;
+            }
+    }
+};
 
-         for (; program_pos_ < program.length(); ++program_pos_)
-             switch (program[program_pos_])
-             {
-                 case '<':
-                     check_data_pos(--data_pos_);
-                     break;
-                 case '>':
-                     check_data_pos(++data_pos_);
-                     break;
-                 case '-':
-                     --data_[data_pos_];
-                     break;
-                 case '+':
-                     ++data_[data_pos_];
-                     break;
-                 case '.':
-                     std::cout << data_[data_pos_];
-                     break;
-                 case ',':
-                     std::cin >> data_[data_pos_];
-                     break;
-                 case '[':
-                     if (data_[data_pos_] == 0)
-                         program_pos_ = open_brackets[program_pos_];
-                     break;
-                 case ']':
-                     if (data_[data_pos_] != 0)
-                         program_pos_ = close_brackets[program_pos_];
-                     break;
-             }
-     }
- };
-
- int main()
- {
-     BrainHackInterpreter
-     {
-         "++++++++[>++>>++>++++>++++<<<<<-]>[<+++>>+++<-]>[<+"
-         "+>>>+<<-]<[>+>+<<-]>>>--------.<<+++++++++.<<----.>"
-         ">>>>.<<<------.>..++.<++.+.-.>.<.>----.<--.++.>>>+."
-     };
-     std::cout << '\\n';
- }
+int main()
+{
+    BrainHackInterpreter
+    {
+        "++++++++[>++>>++>++++>++++<<<<<-]>[<+++>>+++<-]>[<+"
+        "+>>>+<<-]<[>+>+<<-]>>>--------.<<+++++++++.<<----.>"
+        ">>>>.<<<------.>..++.<++.+.-.>.<.>----.<--.++.>>>+."
+    };
+    std::cout << '\\n';
+}
 
 .SH Output:
 
- Hi, cppreference!
+Hi, cppreference!
 
 .SH See also
 
-   emplace constructs element in-place at the top
-   \fI(C++11)\fP \fI(public member function)\fP
-   pop     removes the top element
-           \fI(public member function)\fP
+emplace constructs element in-place at the top
+\fI(C++11)\fP \fI(public member function)\fP
+pop     removes the top element
+        \fI(public member function)\fP

@@ -1,100 +1,100 @@
-.TH std::ranges::take_view::take_view 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::take_view::take_view 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::take_view::take_view \- std::ranges::take_view::take_view
 
 .SH Synopsis
-   take_view() requires std::default_initializable<V> = default;      \fB(1)\fP \fI(since C++20)\fP
-   constexpr explicit take_view( V base,                              \fB(2)\fP \fI(since C++20)\fP
-   ranges::range_difference_t<V> count );
+take_view() requires std::default_initializable<V> = default;            \fB(1)\fP \fI(since C++20)\fP
+constexpr explicit take_view( V base, ranges::range_difference_t<V>      \fB(2)\fP \fI(since C++20)\fP
+count );
 
-   Constructs a take_view.
+Constructs a take_view.
 
-   1) Default constructor. Value-initializes the underlying view and initializes the
-   count to 0. After construction, base() returns a copy of V() and size() returns 0.
-   2) Initializes the underlying view with std::move(base) and the count with count.
-   After construction, base() returns a copy of base and size() returns the smaller of
-   count and ranges::size(base).
+1) Default constructor. Value-initializes the underlying view base_ and initializes the
+count_ to 0. After construction, base() returns a copy of V() and size() returns 0.
+2) Initializes the underlying view base_ with std::move(base) and the count_ with count.
+After construction, base() returns a copy of base and size() returns the smaller of count
+and ranges::size(base).
 
 .SH Parameters
 
-   base  - the underlying view
-   count - number of elements to take
+base  - the underlying view
+count - number of elements to take
 
 .SH Example
 
-   Prints first n prime numbers that are generated using Sieve of Eratosthenes method.
+Prints first n prime numbers that are generated using Sieve of Eratosthenes method.
 
 
 // Run this code
 
- #include <bit>
- #include <bitset>
- #include <iomanip>
- #include <iostream>
- #include <limits>
- #include <ranges>
+#include <bit>
+#include <bitset>
+#include <iomanip>
+#include <iostream>
+#include <limits>
+#include <ranges>
 
- constexpr unsigned clog2(auto x) // ~ ⌈ log₂(x) ⌉
- {
-     return std::numeric_limits<decltype(x)>::digits - std::countl_zero(x);
- }
+constexpr unsigned clog2(auto x) // ≈ ⌈ log₂(x) ⌉
+{
+    return std::numeric_limits<decltype(x)>::digits - std::countl_zero(x);
+}
 
- template<unsigned Count>
- struct FirstPrimes
- {
-     static constexpr int count = Count;
+template<unsigned Count>
+struct FirstPrimes
+{
+    static constexpr int count = Count;
 
-     constexpr bool operator()(int n) // is prime?
-     {
-         return n < 2 ? false :
-                n == 2 ? true :
-                n % 2 == 0 or bits_.test(n / 2) ? false : true;
-     }
- private:
-     consteval static auto init()
-     {
-         std::bitset<size_ / 2 + 1> bits;
-         for (int n{3}; n < size_; n += 2)
-             for (int i{n}, j{3}, k{}; (k = i * j) < size_; j += 2)
-                 bits.set(k / 2);
-         return bits;
-     }
+    constexpr bool operator()(int n) // is prime?
+    {
+        return n < 2 ? false :
+               n == 2 ? true :
+               n % 2 == 0 or bits_.test(n / 2) ? false : true;
+    }
+private:
+    consteval static auto init()
+    {
+        std::bitset<size_ / 2 + 1> bits;
+        for (int n{3}; n < size_; n += 2)
+            for (int i{n}, j{3}, k{}; (k = i * j) < size_; j += 2)
+                bits.set(k / 2);
+        return bits;
+    }
 
-     // Keep only odd numbers; 0 means it is a prime
-     constexpr static auto bits_ { init() };
+    // Keep only odd numbers; 0 means it is a prime
+    constexpr static auto bits_ { init() };
 
-     // a(n) <= n * (log(n) + log(log(n)))
-     static constexpr int size_ = Count * (clog2(Count) + clog2(clog2(Count)));
- };
+    // a(n) <= n * (log(n) + log(log(n)))
+    static constexpr int size_ = Count * (clog2(Count) + clog2(clog2(Count)));
+};
 
- int main()
- {
-     constexpr FirstPrimes<42> primes;
+int main()
+{
+    constexpr FirstPrimes<42> primes;
 
-     auto primes_view = std::ranges::take_view{ std::views::iota(1)
-                                              | std::views::filter(primes)
-                                              , primes.count };
+    auto primes_view = std::ranges::take_view{ std::views::iota(1)
+                                             | std::views::filter(primes)
+                                             , primes.count };
 
-     std::cout << "First " << primes.count << " prime numbers are:\\n";
-     for (int new_line{1}; const int prime : primes_view)
-         std::cout << std::setw(3) << prime << (new_line++ % 7 ? ' ' : '\\n');
- }
+    std::cout << "First " << primes.count << " prime numbers are:\\n";
+    for (int new_line{1}; const int prime : primes_view)
+        std::cout << std::setw(3) << prime << (new_line++ % 7 ? ' ' : '\\n');
+}
 
 .SH Output:
 
- First 42 prime numbers are:
-   2   3   5   7  11  13  17
-  19  23  29  31  37  41  43
-  47  53  59  61  67  71  73
-  79  83  89  97 101 103 107
- 109 113 127 131 137 139 149
- 151 157 163 167 173 179 181
+First 42 prime numbers are:
+  2   3   5   7  11  13  17
+ 19  23  29  31  37  41  43
+ 47  53  59  61  67  71  73
+ 79  83  89  97 101 103 107
+109 113 127 131 137 139 149
+151 157 163 167 173 179 181
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-      DR     Applied to             Behavior as published              Correct behavior
-   LWG 3714  C++20      the multi-parameter constructor was not        made explicit
-   (P2711R1)            explicit
+   DR     Applied to              Behavior as published               Correct behavior
+LWG 3714  C++20      the multi-parameter constructor was not explicit made explicit
+(P2711R1)

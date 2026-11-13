@@ -1,87 +1,88 @@
-.TH std::uninitialized_copy 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uninitialized_copy 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uninitialized_copy \- std::uninitialized_copy
 
 .SH Synopsis
-   Defined in header <memory>
-   template< class InputIt, class NoThrowForwardIt >
+Defined in header <memory>
+template< class InputIt, class NoThrowForwardIt >
 
-   NoThrowForwardIt uninitialized_copy( InputIt first, InputIt last,  \fB(1)\fP
+NoThrowForwardIt uninitialized_copy( InputIt first, InputIt    \fB(1)\fP (constexpr since C++26)
+last,
 
-                                        NoThrowForwardIt d_first );
-   template< class ExecutionPolicy, class ForwardIt, class
-   NoThrowForwardIt >
+NoThrowForwardIt d_first );
+template< class ExecutionPolicy, class ForwardIt,
 
-   NoThrowForwardIt uninitialized_copy( ExecutionPolicy&& policy,     \fB(2)\fP \fI(since C++17)\fP
-                                        ForwardIt first, ForwardIt
-   last,
+class NoThrowForwardIt >
+NoThrowForwardIt uninitialized_copy( ExecutionPolicy&& policy, \fB(2)\fP \fI(since C++17)\fP
+ForwardIt first, ForwardIt last,
 
-                                        NoThrowForwardIt d_first );
+NoThrowForwardIt d_first );
 
-   1) Copies elements from the range [first, last) to an uninitialized memory area
-   beginning at d_first as if by for (; first != last; ++d_first, (void) ++first)
-       ::new (/* VOIDIFY */(*d_first))
-           typename std::iterator_traits<NoThrowForwardIt>::value_type(*first);
-   where /* VOIDIFY */(e) is:
+1) Copies elements from the range [first, last) to an uninitialized memory area beginning
+at d_first as if by
 
-   static_cast<void*>(&e)                \fI(until C++11)\fP
-   static_cast<void*>(std::addressof(e)) \fI(since C++11)\fP
+for (; first != last; ++d_first, (void) ++first)
+::new (voidify(*d_first))
+typename std::iterator_traits<NoThrowForwardIt>::value_type(*first);
 
-   If an exception is thrown during the initialization, the objects already constructed
-   are destroyed in an unspecified order.
+If an exception is thrown during the initialization, the objects already constructed are
+destroyed in an unspecified order.
+2) Same as \fB(1)\fP, but executed according to policy.
+This overload participates in overload resolution only if all following conditions are
+satisfied:
 
-   If d_first + [0, std::distance(first, last)) overlaps with             \fI(since C++20)\fP
-   [first, last), the behavior is undefined.
+std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        \fI(until C++20)\fP
+std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. \fI(since C++20)\fP
 
-   2) Same as \fB(1)\fP, but executed according to policy. This overload participates in
-   overload resolution only if
-
-   std::is_execution_policy_v<std::decay_t<ExecutionPolicy>> is true.        (until
-                                                                             C++20)
-   std::is_execution_policy_v<std::remove_cvref_t<ExecutionPolicy>> is true. (since
-                                                                             C++20)
+If d_first + [0, std::distance(first, last)) overlaps with [first, last),  \fI(since C++20)\fP
+the behavior is undefined.
 
 .SH Parameters
 
-   first, last           -        the range of the elements to copy
-   d_first               -        the beginning of the destination range
-   policy                -        the execution policy to use. See execution policy for
-                                  details.
+first, last            -         the range of the elements to copy
+d_first                -         the beginning of the destination range
+policy                 -         the execution policy to use
 .SH Type requirements
-   -
-   InputIt must meet the requirements of LegacyInputIterator.
-   -
-   ForwardIt must meet the requirements of LegacyForwardIterator.
-   -
-   NoThrowForwardIt must meet the requirements of LegacyForwardIterator.
-   -
-   No increment, assignment, comparison, or indirection through valid instances of
-   NoThrowForwardIt may throw exceptions.
-   Applying &* to a NoThrowForwardIt value must yield a pointer to its value type.
-   \fI(until C++11)\fP
+-
+InputIt must meet the requirements of LegacyInputIterator.
+-
+ForwardIt must meet the requirements of LegacyForwardIterator.
+-
+NoThrowForwardIt must meet the requirements of LegacyForwardIterator.
+-
+No increment, assignment, comparison, or indirection through valid instances of
+NoThrowForwardIt may throw exceptions.
+Applying &* to a NoThrowForwardIt value must yield a pointer to its value type.
+\fI(until C++11)\fP
 
 .SH Return value
 
-   Iterator to the element past the last element copied.
+Iterator to the element past the last element copied.
 
 .SH Complexity
 
-   Linear in the distance between first and last.
+Linear in the distance between first and last.
 
 .SH Exceptions
 
-   The overload with a template parameter named ExecutionPolicy reports errors as
-   follows:
+The overload with a template parameter named ExecutionPolicy reports errors as follows:
 
-     * If execution of a function invoked as part of the algorithm throws an exception
-       and ExecutionPolicy is one of the standard policies, std::terminate is called.
-       For any other ExecutionPolicy, the behavior is implementation-defined.
-     * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
+  * If execution of a function invoked as part of the algorithm throws an exception and
+    ExecutionPolicy is one of the standard policies, std::terminate is called. For any
+    other ExecutionPolicy, the behavior is implementation-defined.
+  * If the algorithm fails to allocate memory, std::bad_alloc is thrown.
+
+.SH Notes
+
+      Feature-test macro         Value    Std                    Feature
+__cpp_lib_raw_memory_algorithms 202411L (C++26) constexpr for specialized memory
+                                                algorithms, \fB(1)\fP
 
 .SH Possible implementation
 
 template<class InputIt, class NoThrowForwardIt>
-NoThrowForwardIt uninitialized_copy(InputIt first, InputIt last, NoThrowForwardIt d_first)
+constexpr NoThrowForwardIt uninitialized_copy(InputIt first, InputIt last,
+                                              NoThrowForwardIt d_first)
 {
     using T = typename std::iterator_traits<NoThrowForwardIt>::value_type;
     NoThrowForwardIt current = d_first;
@@ -104,65 +105,61 @@ NoThrowForwardIt uninitialized_copy(InputIt first, InputIt last, NoThrowForwardI
 
 // Run this code
 
- #include <cstdlib>
- #include <iostream>
- #include <memory>
- #include <string>
+#include <cstdlib>
+#include <iostream>
+#include <memory>
+#include <string>
 
- int main()
- {
-     const char *v[] = {"This", "is", "an", "example"};
+int main()
+{
+    const char *v[] = {"This", "is", "an", "example"};
 
-     auto sz = std::size(v);
+    auto sz = std::size(v);
 
-     if (void *pbuf = std::aligned_alloc(alignof(std::string), sizeof(std::string) * sz))
-     {
-         try
-         {
-             auto first = static_cast<std::string*>(pbuf);
-             auto last = std::uninitialized_copy(std::begin(v), std::end(v), first);
+    if (void *pbuf = std::aligned_alloc(alignof(std::string), sizeof(std::string) * sz))
+    {
+        try
+        {
+            auto first = static_cast<std::string*>(pbuf);
+            auto last = std::uninitialized_copy(std::begin(v), std::end(v), first);
 
-             for (auto it = first; it != last; ++it)
-                 std::cout << *it << '_';
-             std::cout << '\\n';
+            for (auto it = first; it != last; ++it)
+                std::cout << *it << '_';
+            std::cout << '\\n';
 
-             std::destroy(first, last);
-         }
-         catch (...) {}
-         std::free(pbuf);
-     }
- }
+            std::destroy(first, last);
+        }
+        catch (...) {}
+        std::free(pbuf);
+    }
+}
 
 .SH Output:
 
- This_is_an_example_
+This_is_an_example_
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-      DR    Applied to          Behavior as published              Correct behavior
-                       given T as the value type of
-   LWG 866  C++98      NoThrowForwardIt, if                    uses global replacement-
-                       T::operator new exists, the program     new instead
-                       might be ill-formed
-                       the effect description used a for loop
-                       with the iteration                      discards the value
-   LWG 2133 C++98      expression ++d_first, ++first, which    of one operand
-                       results                                 to disable that ADL
-                       in an argument-dependent lookup of
-                       operator,
-   LWG 2433 C++11      this algorithm might be hijacked by     uses std::addressof
-                       overloaded operator&
-   LWG 3870 C++20      this algorithm might create objects on  kept disallowed
-                       a const storage
+   DR    Applied to             Behavior as published                 Correct behavior
+                    given T as the value type of
+LWG 866  C++98      NoThrowForwardIt, if                          uses global replacement-
+                    T::operator new exists, the program might be  new instead
+                    ill-formed
+                    the effect description used a for loop with   discards the value
+LWG 2133 C++98      the iteration                                 of one operand
+                    expression ++d_first, ++first, which results  to disable that ADL
+                    in an argument-dependent lookup of operator,
+LWG 2433 C++11      this algorithm might be hijacked by           uses std::addressof
+                    overloaded operator&
+LWG 3870 C++20      this algorithm might create objects on a      kept disallowed
+                    const storage
 
 .SH See also
 
-   uninitialized_copy_n       copies a number of objects to an uninitialized area of
-   \fI(C++11)\fP                    memory
-                              \fI(function template)\fP
-   ranges::uninitialized_copy copies a range of objects to an uninitialized area of
-   (C++20)                    memory
-                              (niebloid)
+uninitialized_copy_n       copies a number of objects to an uninitialized area of memory
+\fI(C++11)\fP                    \fI(function template)\fP
+ranges::uninitialized_copy copies a range of objects to an uninitialized area of memory
+(C++20)                    (algorithm function object)

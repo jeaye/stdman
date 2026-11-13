@@ -1,151 +1,146 @@
-.TH std::ranges::fill 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::fill 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::fill \- std::ranges::fill
 
 .SH Synopsis
-   Defined in header <algorithm>
-   Call signature
-   template< class T, std::output_iterator<const
-   T&> O, std::sentinel_for<O> S >                          \fI(since C++20)\fP
-   constexpr O fill( O first, S last, const T&              (until C++26)
-   value );
-   template< class O, std::sentinel_for<O> S, class
-   T = std::iter_value_t<O> >
+Defined in header <algorithm>
+Call signature
+template< class T, std::output_iterator<const T&> O,           \fI(since C++20)\fP
+std::sentinel_for<O> S >                                       (until C++26)
+constexpr O fill( O first, S last, const T& value );
+template< class O, std::sentinel_for<O> S, class T =
+std::iter_value_t<O> >
+                                                               (since C++26)
+requires std::output_iterator<O, const T&>
 
-   requires std::output_iterator<O, const T&>               (since C++26)
+constexpr O fill( O first, S last, const T& value );
+template< class T, ranges::output_range<const T&> R >  \fB(1)\fP                   \fI(since C++20)\fP
+constexpr ranges::borrowed_iterator_t<R> fill( R&& r,                        (until C++26)
+const T& value );
+template< class R, class T = ranges::range_value_t<R>
+>                                                          \fB(2)\fP
 
-   constexpr O fill( O first, S last, const T&
-   value );                                         \fB(1)\fP
-   template< class T, ranges::output_range<const
-   T&> R >                                                                \fI(since C++20)\fP
-   constexpr ranges::borrowed_iterator_t<R> fill(                         (until C++26)
-   R&& r, const T& value );
-   template< class R, class T =
-   std::range_value_t<R> >                              \fB(2)\fP
+requires ranges::output_range<R, const T&>                                   (since C++26)
 
-   requires ranges::output_range<R, const T&>                             (since C++26)
+constexpr ranges::borrowed_iterator_t<R> fill( R&& r,
+const T& value );
 
-   constexpr ranges::borrowed_iterator_t<R> fill(
-   R&& r, const T& value );
+1) Assigns the given value to the elements in the range [first, last).
+2) Same as \fB(1)\fP, but uses r as the source range, as if using ranges::begin(r) as first and
+ranges::end(r) as last.
 
-   1) Assigns the given value to the elements in the range [first, last).
-   2) Same as \fB(1)\fP, but uses r as the source range, as if using ranges::begin(r) as
-   first and ranges::end(r) as last.
+The function-like entities described on this page are algorithm function objects
+(informally known as niebloids), that is:
 
-   The function-like entities described on this page are niebloids, that is:
-
-     * Explicit template argument lists cannot be specified when calling any of them.
-     * None of them are visible to argument-dependent lookup.
-     * When any of them are found by normal unqualified lookup as the name to the left
-       of the function-call operator, argument-dependent lookup is inhibited.
-
-   In practice, they may be implemented as function objects, or with special compiler
-   extensions.
+  * Explicit template argument lists cannot be specified when calling any of them.
+  * None of them are visible to argument-dependent lookup.
+  * When any of them are found by normal unqualified lookup as the name to the left of the
+    function-call operator, argument-dependent lookup is inhibited.
 
 .SH Parameters
 
-   first, last - the range of elements to modify
-   r           - the range of elements to modify
-   value       - the value to be assigned
+first, last - the range of elements to modify
+r           - the range of elements to modify
+value       - the value to be assigned
 
 .SH Return value
 
-   An output iterator that compares equal to last.
+An output iterator that compares equal to last.
 
 .SH Complexity
 
-   Exactly last - first assignments.
+Exactly last - first assignments.
 
 .SH Possible implementation
 
-   struct fill_fn
-   {
-       template<class O, std::sentinel_for<O> S, class T = std::iter_value_t<O>>
-       requires std::output_iterator<O, const T&>
-       constexpr O operator()(O first, S last, const T& value) const
-       {
-           while (first != last)
-               *first++ = value;
+struct fill_fn
+{
+    template<class O, std::sentinel_for<O> S, class T = std::iter_value_t<O>>
+    requires std::output_iterator<O, const T&>
+    constexpr O operator()(O first, S last, const T& value) const
+    {
+        while (first != last)
+            *first++ = value;
 
-           return first;
-       }
+        return first;
+    }
 
-       template<class R, class T = std::range_value_t<R>>
-       requires ranges::output_range<R, const T&>
-       constexpr ranges::borrowed_iterator_t<R> operator()(R&& r, const T& value) const
-       {
-           return (*this)(ranges::begin(r), ranges::end(r), value);
-       }
-   };
+    template<class R, class T = ranges::range_value_t<R>>
+    requires ranges::output_range<R, const T&>
+    constexpr ranges::borrowed_iterator_t<R> operator()(R&& r, const T& value) const
+    {
+        return (*this)(ranges::begin(r), ranges::end(r), value);
+    }
+};
 
-   inline constexpr fill_fn fill;
+inline constexpr fill_fn fill;
 
 .SH Notes
 
-             Feature-test macro           Value    Std              Feature
-   __cpp_lib_algorithm_default_value_type 202403 (C++26) List-initialization for
-                                                         algorithms (1,2)
+          Feature-test macro           Value    Std                 Feature
+__cpp_lib_algorithm_default_value_type 202403 (C++26) List-initialization for algorithms
+                                                      (1,2)
 
 .SH Example
 
 
 // Run this code
 
- #include <algorithm>
- #include <complex>
- #include <iostream>
- #include <vector>
+#include <algorithm>
+#include <complex>
+#include <iostream>
+#include <vector>
 
- void println(const auto& seq)
- {
-     for (const auto& e : seq)
-         std::cout << e << ' ';
-     std::cout << '\\n';
- }
+void println(const auto& seq)
+{
+    for (const auto& e : seq)
+        std::cout << e << ' ';
+    std::cout << '\\n';
+}
 
- int main()
- {
-     std::vector<int> v{0, 1, 2, 3, 4, 5};
+int main()
+{
+    std::vector<int> v{0, 1, 2, 3, 4, 5};
 
-     // set all elements to -1 using overload (1)
-     std::ranges::fill(v.begin(), v.end(), -1);
-     println(v);
+    // set all elements to -1 using overload (1)
+    std::ranges::fill(v.begin(), v.end(), -1);
+    println(v);
 
-     // set all element to 10 using overload (2)
-     std::ranges::fill(v, 10);
-     println(v);
+    // set all element to 10 using overload (2)
+    std::ranges::fill(v, 10);
+    println(v);
 
-     std::vector<std::complex<double>> nums{{1, 3}, {2, 2}, {4, 8}};
-     println(nums);
-     #ifdef __cpp_lib_algorithm_default_value_type
-         std::ranges::fill(nums, {4, 2}); // T gets deduced
-     #else
-         std::ranges::fill(nums, std::complex<double>{4, 2});
-     #endif
-     println(nums);
- }
+    std::vector<std::complex<double>> nums{{1, 3}, {2, 2}, {4, 8}};
+    println(nums);
+    #ifdef __cpp_lib_algorithm_default_value_type
+        std::ranges::fill(nums, {4, 2}); // T gets deduced
+    #else
+        std::ranges::fill(nums, std::complex<double>{4, 2});
+    #endif
+    println(nums);
+}
 
 .SH Output:
 
- -1 -1 -1 -1 -1 -1
- 10 10 10 10 10 10
- (1,3) (2,2) (4,8)
- (4,2) (4,2) (4,2)
+-1 -1 -1 -1 -1 -1
+10 10 10 10 10 10
+(1,3) (2,2) (4,8)
+(4,2) (4,2) (4,2)
 
 .SH See also
 
-   ranges::fill_n          assigns a value to a number of elements
-   (C++20)                 (niebloid)
-   ranges::copy
-   ranges::copy_if         copies a range of elements to a new location
-   (C++20)                 (niebloid)
-   (C++20)
-   ranges::generate        saves the result of a function in a range
-   (C++20)                 (niebloid)
-   ranges::transform       applies a function to a range of elements
-   (C++20)                 (niebloid)
-   ranges::generate_random fills a range with random numbers from a uniform random bit
-   (C++26)                 generator
-                           (niebloid)
-   fill                    copy-assigns the given value to every element in a range
-                           \fI(function template)\fP
+ranges::fill_n          assigns a value to a number of elements
+(C++20)                 (algorithm function object)
+ranges::copy
+ranges::copy_if         copies a range of elements to a new location
+(C++20)                 (algorithm function object)
+(C++20)
+ranges::generate        saves the result of a function in a range
+(C++20)                 (algorithm function object)
+ranges::transform       applies a function to a range of elements
+(C++20)                 (algorithm function object)
+ranges::generate_random fills a range with random numbers from a uniform random bit
+(C++26)                 generator
+                        (algorithm function object)
+fill                    copy-assigns the given value to every element in a range
+                        \fI(function template)\fP

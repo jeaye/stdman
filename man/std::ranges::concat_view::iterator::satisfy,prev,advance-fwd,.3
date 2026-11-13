@@ -1,0 +1,117 @@
+.TH std::ranges::concat_view::iterator::satisfy,prev,advance-fwd, 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
+.SH NAME
+std::ranges::concat_view::iterator::satisfy,prev,advance-fwd, \- std::ranges::concat_view::iterator::satisfy,prev,advance-fwd,
+
+.SH Synopsis
+
+template< std::size_t N >                                           \fB(1)\fP (exposition only*)
+constexpr auto /*get-iter*/();
+template< std::size_t I >                                           \fB(2)\fP (exposition only*)
+constexpr auto /*get-view*/();
+template< std::size_t I >                                           \fB(3)\fP (exposition only*)
+constexpr auto /*get-begin*/();
+template< std::size_t I >                                           \fB(4)\fP (exposition only*)
+constexpr auto /*get-end*/();
+template< std::size_t N >
+constexpr auto /*to-underlying-diff-type*/( difference_type value   \fB(5)\fP (exposition only*)
+);
+
+The mini helper templates simplify the description of the main helper templates and member
+functions. They are not included in the C++ standard documents.
+
+1) Obtains the underlying iterator contained in it_ ﻿.
+Returns std::get<N>(it_ ﻿).
+2) Obtains the Ith view in the parent concat_view.
+Returns std::get<I>(parent_ ﻿->views_ ﻿).
+3) Obtains an iterator to the beginning of the Ith view in the parent concat_view.
+Returns ranges::begin(get-view ﻿<I>()).
+4) Obtains a past-the-end iterator or a sentinel of the Ith view in the parent
+concat_view.
+Returns ranges::end(get-view ﻿<I>()).
+5) Converts value to the underlying difference type of the underlying iterator contained
+in it_ ﻿.
+Returns static_cast<std::iter_difference_t<std::variant_alternative_t<N,
+base-iter ﻿>>>(value).
+
+std::ranges::concat_view::iterator::satisfy<N>
+
+template< std::size_t N >      (exposition only*)
+constexpr void /*satisfy*/();
+
+Adjusts the current (global) position of it_ ﻿.
+
+  * If N is sizeof...(Views) - 1, does nothing.
+  * Otherwise, equivalent to if (get-iter ﻿<N>() ==  get-end ﻿<N>())
+    {
+    it_ ﻿.template emplace<N + 1>(get-begin ﻿<N + 1>());
+    satisfy ﻿<N + 1>();
+    }.
+
+std::ranges::concat_view::iterator::prev<N>
+
+template< size_t N >        (exposition only*)
+constexpr void /*prev*/();
+
+Moves it_ to the previous (global) position.
+
+  * If N is 0, equivalent to --get-iter ﻿<0>();.
+  * Otherwise, equivalent to if (get-iter ﻿<N>() ==  get-begin ﻿<N>())
+    {
+    it_ ﻿.template emplace<N - 1>(get-end ﻿<N - 1>());
+    prev ﻿<N - 1>();
+    }
+    else
+    --get-iter ﻿<0>();.
+
+std::ranges::concat_view::iterator::advance-fwd<N>
+
+template< size_t N >
+
+constexpr void /*advance-fwd*/( difference_type offset,  (exposition only*)
+
+difference_type steps );
+
+Advances the current (global) position step steps forward.
+
+  * If N is sizeof...(Views) - 1, equivalent to get-iter ﻿<N>() +=
+    to-underlying-diff-type ﻿(steps);.
+  * Otherwise, equivalent to auto n_size = ranges::distance(get-view ﻿<N>()));
+    if (offset + steps < n_size)
+    get-iter ﻿<N>() +=  to-underlying-diff-type ﻿(steps);
+    else
+    {
+    it_ ﻿.template emplace<N + 1>(get-begin ﻿<N + 1>());
+    advance-fwd ﻿<N + 1>(0, offset + steps - n_size);
+    }.
+
+.SH Parameters
+
+offset - the offset of the current (global) position from the beginning of range it_
+         currently refers into
+steps  - the number of steps to advance forward
+
+std::ranges::concat_view::iterator::advance-bwd<N>
+
+template< size_t N >
+
+constexpr void /*advance-bwd*/( difference_type offset,  (exposition only*)
+
+difference_type steps );
+
+Advances the current (global) position steps steps backward.
+
+  * If N is 0, equivalent to get-iter ﻿<N>() -=  to-underlying-diff-type ﻿(steps);.
+  * Otherwise, equivalent to if (offset >= steps)
+    get-iter ﻿<N>() -=  to-underlying-diff-type ﻿(steps);
+    else
+    {
+    auto prev_size = ranges::distance(get-view ﻿<N - 1>());
+    it_ ﻿.template emplace<N - 1>(get-end ﻿<N - 1>());
+    advance-bwd ﻿<N - 1>(prev_size, steps - offset);
+    }.
+
+.SH Parameters
+
+offset - the offset of the current (global) position from the beginning of range it_
+         currently refers into
+steps  - the number of steps to advance backward

@@ -1,74 +1,73 @@
-.TH std::kill_dependency 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::kill_dependency 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::kill_dependency \- std::kill_dependency
 
 .SH Synopsis
-   Defined in header <atomic>
-   template< class T >                 \fI(since C++11)\fP
-   T kill_dependency( T y ) noexcept;
+Defined in header <atomic>
+template< class T >                 \fI(since C++11)\fP
+T kill_dependency( T y ) noexcept;
 
-   Informs the compiler that the dependency tree started by an
-   std::memory_order_consume atomic load operation does not extend past the return
-   value of std::kill_dependency; that is, the argument does not carry a dependency
-   into the return value.
+Informs the compiler that the dependency tree started by an std::memory_order_consume
+atomic load operation does not extend past the return value of std::kill_dependency; that
+is, the argument does not carry a dependency into the return value.
 
-   This may be used to avoid unnecessary std::memory_order_acquire fences when the
-   dependency chain leaves function scope (and the function does not have the
-   [[carries_dependency]] attribute).
+This may be used to avoid unnecessary std::memory_order_acquire fences when the dependency
+chain leaves function scope (and the function does not have the [[carries_dependency]]
+attribute).
 
 .SH Parameters
 
-   y - the expression whose return value is to be removed from a dependency tree
+y - the expression whose return value is to be removed from a dependency tree
 
 .SH Return value
 
-   Returns y, no longer a part of a dependency tree.
+Returns y, no longer a part of a dependency tree.
 
 .SH Examples
 
-       file1.cpp:
+      file1.cpp:
 
- struct Foo
- {
-     int* a;
-     int* b;
- };
+struct Foo
+{
+    int* a;
+    int* b;
+};
 
- std::atomic<Foo*> foo_head[10];
- int foo_array[10][10];
+std::atomic<Foo*> foo_head[10];
+int foo_array[10][10];
 
- // consume operation starts a dependency chain, which escapes this function
- [[carries_dependency]] Foo* f(int i)
- {
-     return foo_head[i].load(memory_order_consume);
- }
+// consume operation starts a dependency chain, which escapes this function
+[[carries_dependency]] Foo* f(int i)
+{
+    return foo_head[i].load(memory_order_consume);
+}
 
- // the dependency chain enters this function through the right parameter and is
- // killed before the function ends (so no extra acquire operation takes place)
- int g(int* x, int* y [[carries_dependency]])
- {
-     return std::kill_dependency(foo_array[*x][*y]);
- }
+// the dependency chain enters this function through the right parameter and is
+// killed before the function ends (so no extra acquire operation takes place)
+int g(int* x, int* y [[carries_dependency]])
+{
+    return std::kill_dependency(foo_array[*x][*y]);
+}
 
-       file2.cpp:
+      file2.cpp:
 
- [[carries_dependency]] struct Foo* f(int i);
- int g(int* x, int* y [[carries_dependency]]);
+[[carries_dependency]] struct Foo* f(int i);
+int g(int* x, int* y [[carries_dependency]]);
 
- int c = 3;
- void h(int i)
- {
-     Foo* p;
-     p = f(i); // dependency chain started inside f continues into p without undue acquire
-     do_something_with(g(&c, p->a)); // p->b is not brought in from the cache
-     do_something_with(g(p->a, &c)); // left argument does not have the carries_dependency
-                                     // attribute: memory acquire fence may be issued
-                                     // p->b becomes visible before g() is entered
- }
+int c = 3;
+void h(int i)
+{
+    Foo* p;
+    p = f(i); // dependency chain started inside f continues into p without undue acquire
+    do_something_with(g(&c, p->a)); // p->b is not brought in from the cache
+    do_something_with(g(p->a, &c)); // left argument does not have the carries_dependency
+                                    // attribute: memory acquire fence may be issued
+                                    // p->b becomes visible before g() is entered
+}
 
 .SH See also
 
-   memory_order defines memory ordering constraints for the given atomic operation
-   \fI(C++11)\fP      \fI(enum)\fP
-   C documentation for
-   kill_dependency
+memory_order defines memory ordering constraints for the given atomic operation
+\fI(C++11)\fP      \fI(enum)\fP
+C documentation for
+kill_dependency

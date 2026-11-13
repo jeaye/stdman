@@ -1,168 +1,165 @@
-.TH std::condition_variable_any::wait 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::condition_variable_any::wait 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::condition_variable_any::wait \- std::condition_variable_any::wait
 
 .SH Synopsis
-   template< class Lock >                                           \fB(1)\fP \fI(since C++11)\fP
-   void wait( Lock& lock );
-   template< class Lock, class Predicate >                          \fB(2)\fP \fI(since C++11)\fP
-   void wait( Lock& lock, Predicate pred );
-   template< class Lock, class Predicate >                          \fB(3)\fP \fI(since C++20)\fP
-   bool wait( Lock& lock, std::stop_token stoken, Predicate pred );
+template< class Lock >                                           \fB(1)\fP \fI(since C++11)\fP
+void wait( Lock& lock );
+template< class Lock, class Predicate >                          \fB(2)\fP \fI(since C++11)\fP
+void wait( Lock& lock, Predicate pred );
+template< class Lock, class Predicate >                          \fB(3)\fP \fI(since C++20)\fP
+bool wait( Lock& lock, std::stop_token stoken, Predicate pred );
 
-   wait causes the current thread to block until the condition variable is notified or
-   a spurious wakeup occurs. pred can be optionally provided to detect spurious wakeup.
+wait causes the current thread to block until the condition variable is notified or a
+spurious wakeup occurs. pred can be optionally provided to detect spurious wakeup.
 
-   1) Atomically calls lock.unlock() and blocks on *this.
-   The thread will be unblocked when notify_all() or notify_one() is executed. It may
-   also be unblocked spuriously.
-   When unblocked, calls lock.lock() (possibly blocking on the lock), then returns.
-   2,3) Waiting for a specific condition to become true, can be used to ignore spurious
-   awakenings.
-   2) Equivalent to
-   while (!pred())
-       wait(lock);
-   3) Registers *this for the duration of this call, to be notified if a stop request
-   is made on stoken's associated stop-state; it is then equivalent to
-   while (!stoken.stop_requested())
-   {
-       if (pred())
-           return true;
-       wait(lock);
-   }
-   return pred();
-   If pred() is ill-formed, or
-   the return value of pred() is not convertible to bool
-   \fI(until C++20)\fP
-   decltype(pred()) does not model boolean-testable
-   \fI(since C++20)\fP, the program is ill-formed.
+1) Atomically calls lock.unlock() and blocks on *this.
+The thread will be unblocked when notify_all() or notify_one() is executed. It may also be
+unblocked spuriously.
+When unblocked, calls lock.lock() (possibly blocking on the lock), then returns.
+2,3) Waiting for a specific condition to become true, can be used to ignore spurious
+awakenings.
+2) Equivalent to
+while (!pred())
+wait(lock);
+3) Registers *this for the duration of this call, to be notified if a stop request is made
+on stoken's associated stop-state; it is then equivalent to
+while (!stoken.stop_requested())
+{
+if (pred())
+return true;
+wait(lock);
+}
+return pred();
 
-   Right after wait returns, lock is locked by the calling thread. If this
-   postcondition cannot be satisfied^[1], calls std::terminate.
+Right after wait returns, lock is locked by the calling thread. If this postcondition
+cannot be satisfied^[1], calls std::terminate.
 
-    1. ↑ This can happen if the re-locking of the mutex throws an exception.
+ 1. ↑ This can happen if the re-locking of the mutex throws an exception.
 
 .SH Parameters
 
-   lock   - an lock which must be locked by the calling thread
-   stoken - a stop token to register interruption for
-   pred   - the predicate to check whether the waiting can be completed
+lock          -        an lock which must be locked by the calling thread
+stoken        -        a stop token to register interruption for
+pred          -        the predicate to check whether the waiting can be completed
 .SH Type requirements
-   -
-   Lock must meet the requirements of BasicLockable.
-   -
-   Predicate must meet the requirements of FunctionObject.
+-
+Lock must meet the requirements of BasicLockable.
+-
+Predicate must meet the requirements of FunctionObject.
+-
+pred() must be a valid expression, and its type and value category must meet the
+BooleanTestable requirements.
 
 .SH Return value
 
-   1,2) \fI(none)\fP
-   3) The latest result of pred() before returning to the caller.
+1,2) \fI(none)\fP
+3) The latest result of pred() before returning to the caller.
 
 .SH Exceptions
 
-   1) Does not throw.
-   2,3) Any exception thrown by pred.
+1) Does not throw.
+2,3) Any exception thrown by pred.
 
 .SH Notes
 
-   The returned value of overload \fB(3)\fP indicates whether pred evaluated to true,
-   regardless of whether there was a stop requested or not.
+The returned value of overload \fB(3)\fP indicates whether pred evaluated to true, regardless of
+whether there was a stop requested or not.
 
-   The effects of notify_one()/notify_all() and each of the three atomic parts of
-   wait()/wait_for()/wait_until() (unlock+wait, wakeup, and lock) take place in a
-   single total order that can be viewed as modification order of an atomic variable:
-   the order is specific to this individual condition variable. This makes it
-   impossible for notify_one() to, for example, be delayed and unblock a thread that
-   started waiting just after the call to notify_one() was made.
+The effects of notify_one()/notify_all() and each of the three atomic parts of
+wait()/wait_for()/wait_until() (unlock+wait, wakeup, and lock) take place in a single
+total order that can be viewed as modification order of an atomic variable: the order is
+specific to this individual condition variable. This makes it impossible for notify_one()
+to, for example, be delayed and unblock a thread that started waiting just after the call
+to notify_one() was made.
 
 .SH Example
 
 
-
 // Run this code
 
- #include <chrono>
- #include <condition_variable>
- #include <iostream>
- #include <thread>
+#include <chrono>
+#include <condition_variable>
+#include <iostream>
+#include <thread>
 
- std::condition_variable_any cv;
- std::mutex cv_m; // This mutex is used for three purposes:
-                  // 1) to synchronize accesses to i
-                  // 2) to synchronize accesses to std::cerr
-                  // 3) for the condition variable cv
- int i = 0;
+std::condition_variable_any cv;
+std::mutex cv_m; // This mutex is used for three purposes:
+                 // 1) to synchronize accesses to i
+                 // 2) to synchronize accesses to std::cerr
+                 // 3) for the condition variable cv
+int i = 0;
 
- void waits()
- {
-     std::unique_lock<std::mutex> lk(cv_m);
-     std::cerr << "Waiting... \\n";
-     cv.wait(lk, []{ return i == 1; });
-     std::cerr << "...finished waiting. i == 1\\n";
- }
+void waits()
+{
+    std::unique_lock<std::mutex> lk(cv_m);
+    std::cerr << "Waiting... \\n";
+    cv.wait(lk, []{ return i == 1; });
+    std::cerr << "...finished waiting. i == 1\\n";
+}
 
- void signals()
- {
-     std::this_thread::sleep_for(std::chrono::seconds(1));
-     {
-         std::lock_guard<std::mutex> lk(cv_m);
-         std::cerr << "Notifying...\\n";
-     }
-     cv.notify_all();
+void signals()
+{
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    {
+        std::lock_guard<std::mutex> lk(cv_m);
+        std::cerr << "Notifying...\\n";
+    }
+    cv.notify_all();
 
-     std::this_thread::sleep_for(std::chrono::seconds(1));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
-     {
-         std::lock_guard<std::mutex> lk(cv_m);
-         i = 1;
-         std::cerr << "Notifying again...\\n";
-     }
-     cv.notify_all();
- }
+    {
+        std::lock_guard<std::mutex> lk(cv_m);
+        i = 1;
+        std::cerr << "Notifying again...\\n";
+    }
+    cv.notify_all();
+}
 
- int main()
- {
-     std::thread t1(waits), t2(waits), t3(waits), t4(signals);
-     t1.join();
-     t2.join();
-     t3.join();
-     t4.join();
- }
+int main()
+{
+    std::thread t1(waits), t2(waits), t3(waits), t4(signals);
+    t1.join();
+    t2.join();
+    t3.join();
+    t4.join();
+}
 
 .SH Possible output:
 
- Waiting...
- Waiting...
- Waiting...
- Notifying...
- Notifying again...
- ...finished waiting. i == 1
- ...finished waiting. i == 1
- ...finished waiting. i == 1
+Waiting...
+Waiting...
+Waiting...
+Notifying...
+Notifying again...
+...finished waiting. i == 1
+...finished waiting. i == 1
+...finished waiting. i == 1
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-      DR    Applied to        Behavior as published              Correct behavior
-   LWG 2135 C++11      the behavior was unclear if         calls std::terminate in this
-                       lock.lock() throws an exception     case
+   DR     Applied to          Behavior as published                 Correct behavior
+LWG 2114             convertibility to bool was too weak to
+(P2167R3) C++11      reflect the expectation of               requirements strengthened
+                     implementations
+LWG 2135  C++11      the behavior was unclear if lock.lock()  calls std::terminate in this
+                     throws an exception                      case
 
 .SH See also
 
-              blocks the current thread until the condition variable is awakened or
-   wait_for   after the specified timeout duration
-              \fI(public member function)\fP
-              blocks the current thread until the condition variable is awakened or
-   wait_until until specified time point has been reached
-              \fI(public member function)\fP
-   C documentation for
-   cnd_wait
+           blocks the current thread until the condition variable is awakened or after the
+wait_for   specified timeout duration
+           \fI(public member function)\fP
+           blocks the current thread until the condition variable is awakened or until
+wait_until specified time point has been reached
+           \fI(public member function)\fP
+C documentation for
+cnd_wait
 
 .SH External links
 
-   1.  The Old New Thing article: Spurious wake-ups in Win32 condition variables.
-
-.SH Hidden category:
-     * Pages with unreviewed LWG DR marker
+The Old New Thing article: Spurious wake-ups in Win32 condition variables.

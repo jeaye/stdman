@@ -1,75 +1,114 @@
-.TH std::iter_value_t,std::iter_reference_t,std::iter_const_reference_t, 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::iter_value_t,std::iter_reference_t,std::iter_const_reference_t, 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::iter_value_t,std::iter_reference_t,std::iter_const_reference_t, \- std::iter_value_t,std::iter_reference_t,std::iter_const_reference_t,
 
 .SH Synopsis
 
-   Defined in header <iterator>
-   template< class T >                                                   (exposition
-   concept /*dereferenceable*/ = /* see below */;                        only*)
-   template< class T >                                               \fB(1)\fP \fI(since C++20)\fP
-   using iter_value_t = /* see below */;
-   template< /*dereferenceable*/ T >                                 \fB(2)\fP \fI(since C++20)\fP
-   using iter_reference_t = decltype(*std::declval<T&>());
-   template< std::indirectly_readable T >
+Defined in header <iterator>
+template< class T >                                     \fB(1)\fP \fI(since C++20)\fP
+using iter_value_t = /* see below */;
+template< /*dereferenceable*/ T >                       \fB(2)\fP \fI(since C++20)\fP
+using iter_reference_t = decltype(*std::declval<T&>());
+template< std::indirectly_readable T >
 
-   using iter_const_reference_t = std::common_reference_t<const
-   std::iter_value_t<T>&&,                                           \fB(3)\fP (since C++23)
+using iter_const_reference_t =                          \fB(3)\fP (since C++23)
+std::common_reference_t<const std::iter_value_t<T>&&,
 
+std::iter_reference_t<T>>;
+template< class T >                                     \fB(4)\fP \fI(since C++20)\fP
+using iter_difference_t = /* see below */;
+template< /*dereferenceable*/ T>
 
-    std::iter_reference_t<T>>;
-   template< class T >                                               \fB(4)\fP \fI(since C++20)\fP
-   using iter_difference_t = /* see below */;
-   template< /*dereferenceable*/ T>
+requires /* see below */                                \fB(5)\fP \fI(since C++20)\fP
+using iter_rvalue_reference_t =
 
-       requires /* see below */                                      \fB(5)\fP \fI(since C++20)\fP
+decltype(ranges::iter_move(std::declval<T&>()));
+template< std::indirectly_readable T >
 
-   using iter_rvalue_reference_t =
-   decltype(ranges::iter_move(std::declval<T&>()));
-   template< std::indirectly_readable T >
+using iter_common_reference_t =                         \fB(6)\fP \fI(since C++20)\fP
+std::common_reference_t<std::iter_reference_t<T>,
 
-   using iter_common_reference_t =
-   std::common_reference_t<std::iter_reference_t<T>,                 \fB(6)\fP \fI(since C++20)\fP
+/*indirect-value-t*/<T>>;
+Helper templates
+template< class T >                                     \fB(7)\fP (exposition only*)
+concept /*dereferenceable*/ = /* see below */;
+template< std::indirectly_readable T >                  \fB(8)\fP (exposition only*)
+using /*indirect-value-t*/ = /* see below */;
 
+Compute the associated types of an iterator.
 
-   std::iter_value_t<T>&>;
+1) Computes the value type of T.
+  * If std::iterator_traits<std::remove_cvref_t<T>> is not specialized, then
+    std::iter_value_t<T> is
+    std::indirectly_readable_traits<std::remove_cvref_t<T>>::value_type.
+  * Otherwise, it is std::iterator_traits<std::remove_cvref_t<T>>::value_type.
+2) Computes the reference type of T.
+3) Computes the const reference type of T.
+4) Computes the difference type of T.
+  * If std::iterator_traits<std::remove_cvref_t<T>> is not specialized, then
+    std::iter_difference_t<T> is
+    std::incrementable_traits<std::remove_cvref_t<T>>::difference_type.
+  * Otherwise, it is std::iterator_traits<std::remove_cvref_t<T>>::difference_type.
+5) Computes the rvalue reference type of T. The constraint on this alias template is
+satisfied if and only if the expression ranges::iter_move(std::declval<T&>()) is valid and
+has a referenceable type.
+6) Computes the common reference type of T. This is the common reference type between its
+reference type and an lvalue reference to its value type.
+7) The exposition-only concept dereferenceable is satisfied if and only if the expression
+*std::declval<T&>() is valid and has a referenceable type.
+8) The exposition-only alias template indirect-value-t denotes the following:
+  * std::invoke_result_t<Proj&, /*indirect-value-t*/<I>> if T is the same as
+    std::projected<I, Proj> for some types I and Proj.
+  * Otherwise, std::iter_value_t<T>&.
 
-   Compute the associated types of an iterator. The exposition-only concept
-   dereferenceable is satisfied if and only if the expression *std::declval<T&>() is
-   valid and has a referenceable type (in particular, not void).
+  Defect reports
 
-   1) Computes the value type of T.
-     * If std::iterator_traits<std::remove_cvref_t<T>> is not specialized, then
-       std::iter_value_t<T> is
-       std::indirectly_readable_traits<std::remove_cvref_t<T>>::value_type.
-     * Otherwise, it is std::iterator_traits<std::remove_cvref_t<T>>::value_type.
-   2) Computes the reference type of T.
-   3) Computes the const reference type of T.
-   4) Computes the difference type of T.
-     * If std::iterator_traits<std::remove_cvref_t<T>> is not specialized, then
-       std::iter_difference_t<T> is
-       std::incrementable_traits<std::remove_cvref_t<T>>::difference_type.
-     * Otherwise, it is std::iterator_traits<std::remove_cvref_t<T>>::difference_type.
-   5) Computes the rvalue reference type of T. The "see below" portion of the
-   constraint on this alias template is satisfied if and only if the expression
-   ranges::iter_move(std::declval<T&>()) is valid and has a referenceable type (in
-   particular, not void).
-   6) Computes the common reference type of T. This is the common reference type
-   between its reference type and an lvalue reference to its value type.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
+
+  DR    Applied to              Behavior as published                 Correct behavior
+                   std::iter_common_reference_t was defined in
+                   terms                                           defined in terms of
+P2609R3 C++20      of std::iter_value_t<T>& which incorrectly      /*indirect-value-t*/<T>
+                   handled                                         to handle such cases
+                   std::projected types that project into rvalue
+                   reference types
 
 .SH See also
 
-   indirectly_readable        specifies that a type is indirectly readable by applying
-   (C++20)                    operator *
-                              (concept)
-   weakly_incrementable       specifies that a semiregular type can be incremented with
-   (C++20)                    pre- and post-increment operators
-                              (concept)
-   indirectly_readable_traits computes the value type of an indirectly_readable type
-   (C++20)                    \fI(class template)\fP
-   incrementable_traits       computes the difference type of a weakly_incrementable
-   (C++20)                    type
-                              \fI(class template)\fP
-                              provides uniform interface to the properties of an
-   iterator_traits            iterator
-                              \fI(class template)\fP
+indirectly_readable              specifies that a type is indirectly readable by applying
+(C++20)                          operator *
+                                 (concept)
+weakly_incrementable             specifies that a semiregular type can be incremented with
+(C++20)                          pre- and post-increment operators
+                                 (concept)
+indirectly_readable_traits       computes the value type of an indirectly_readable type
+(C++20)                          \fI(class template)\fP
+incrementable_traits             computes the difference type of a weakly_incrementable
+(C++20)                          type
+                                 \fI(class template)\fP
+                                 provides uniform interface to the properties of an
+iterator_traits                  iterator
+                                 \fI(class template)\fP
+ranges::iterator_t
+ranges::const_iterator_t
+ranges::sentinel_t
+ranges::const_sentinel_t         obtains iterator and sentinel types of a range
+(C++20)                          (alias template)
+(C++23)
+(C++20)
+(C++23)
+ranges::range_reference_t
+ranges::range_const_reference_t
+ranges::range_rvalue_reference_t
+ranges::range_common_reference_t obtains reference types of a range
+(C++20)                          (alias template)
+(C++23)
+(C++20)
+(C++20)
+ranges::range_difference_t
+ranges::range_size_t
+ranges::range_value_t            obtains size, difference, and value types of a range
+(C++20)                          (alias template)
+(C++20)
+(C++20)

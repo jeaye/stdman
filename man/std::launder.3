@@ -1,138 +1,135 @@
-.TH std::launder 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::launder 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::launder \- std::launder
 
 .SH Synopsis
-   Defined in header <new>
-   template< class T >                                   \fI(since C++17)\fP
-   constexpr T* launder( T* p ) noexcept;                \fI(until C++20)\fP
-   template< class T >                                   \fI(since C++20)\fP
-   [[nodiscard]] constexpr T* launder( T* p ) noexcept;
+Defined in header <new>
+template< class T >                     \fI(since C++17)\fP
+constexpr T* launder( T* p ) noexcept;
 
-   Provenance fence with respect to p. Returns a pointer to the same memory that p
-   points to, but where the referent object is assumed to have a distinct lifetime and
-   dynamic type.
+Devirtualization fence with respect to p. Returns a pointer to an object at the same
+address that p represents, while the object can be a new base class subobject whose most
+derived class is different from that of the original *p object.
 
-   Formally, given
+Formally, given
 
-     * the pointer p represents the address A of a byte in memory
-     * an object x is located at the address A
-     * x is within its lifetime
-     * the type of x is the same as T, ignoring cv-qualifiers at every level
-     * every byte that would be reachable through the result is reachable through p
-       (bytes are reachable through a pointer that points to an object y if those bytes
-       are within the storage of an object z that is pointer-interconvertible with y,
-       or within the immediately enclosing array of which z is an element).
+  * the pointer p represents the address A of a byte in memory
+  * an object x is located at the address A
+  * x is within its lifetime
+  * the type of x is the same as T, ignoring cv-qualifiers at every level
+  * every byte that would be reachable through the result is reachable through p (bytes
+    are reachable through a pointer that points to an object y if those bytes are within
+    the storage of an object z that is pointer-interconvertible with y, or within the
+    immediately enclosing array of which z is an element).
 
-   Then std::launder(p) returns a value of type T* that points to the object x.
-   Otherwise, the behavior is undefined.
+Then std::launder(p) returns a value of type T* that points to the object x. Otherwise,
+the behavior is undefined.
 
-   The program is ill-formed if T is a function type or (possibly cv-qualified) void.
+The program is ill-formed if T is a function type or (possibly cv-qualified) void.
 
-   std::launder may be used in a core constant expression if and only if the
-   (converted) value of its argument may be used in place of the function invocation.
-   In other words, std::launder does not relax restrictions in constant evaluation.
+std::launder may be used in a core constant expression if and only if the (converted)
+value of its argument may be used in place of the function invocation. In other words,
+std::launder does not relax restrictions in constant evaluation.
 
 .SH Notes
 
-   std::launder has no effect on its argument. Its return value must be used to access
-   the object. Thus, it's always an error to discard the return value.
+std::launder has no effect on its argument. Its return value must be used to access the
+object. Thus, it's always an error to discard the return value.
 
-   Typical uses of std::launder include:
+Typical uses of std::launder include:
 
-     * Obtaining a pointer to an object created in the storage of an existing object of
-       the same type, where pointers to the old object cannot be reused (for instance,
-       because either object is a base class subobject);
-     * Obtaining a pointer to an object created by placement new from a pointer to an
-       object providing storage for that object.
+  * Obtaining a pointer to an object created in the storage of an existing object of the
+    same type, where pointers to the old object cannot be reused (for instance, because
+    either object is a base class subobject);
+  * Obtaining a pointer to an object created by placement new from a pointer to an object
+    providing storage for that object.
 
-   The reachability restriction ensures that std::launder cannot be used to access
-   bytes not accessible through the original pointer, thereby interfering with the
-   compiler's escape analysis.
+The reachability restriction ensures that std::launder cannot be used to access bytes not
+accessible through the original pointer, thereby interfering with the compiler's escape
+analysis.
 
- int x[10];
- auto p = std::launder(reinterpret_cast<int(*)[10]>(&x[0])); // OK
+int x[10];
+auto p = std::launder(reinterpret_cast<int(*)[10]>(&x[0])); // OK
 
- int x2[2][10];
- auto p2 = std::launder(reinterpret_cast<int(*)[10]>(&x2[0][0]));
- // Undefined behavior: x2[1] would be reachable through the resulting pointer to x2[0]
- // but is not reachable from the source
+int x2[2][10];
+auto p2 = std::launder(reinterpret_cast<int(*)[10]>(&x2[0][0]));
+// Undefined behavior: x2[1] would be reachable through the resulting pointer to x2[0]
+// but is not reachable from the source
 
- struct X { int a[10]; } x3, x4[2]; // standard layout; assume no padding
- auto p3 = std::launder(reinterpret_cast<int(*)[10]>(&x3.a[0])); // OK
- auto p4 = std::launder(reinterpret_cast<int(*)[10]>(&x4[0].a[0]));
- // Undefined behavior: x4[1] would be reachable through the resulting pointer to x4[0].a
- // (which is pointer-interconvertible with x4[0]) but is not reachable from the source
+struct X { int a[10]; } x3, x4[2]; // standard layout; assume no padding
+auto p3 = std::launder(reinterpret_cast<int(*)[10]>(&x3.a[0])); // OK
+auto p4 = std::launder(reinterpret_cast<int(*)[10]>(&x4[0].a[0]));
+// Undefined behavior: x4[1] would be reachable through the resulting pointer to x4[0].a
+// (which is pointer-interconvertible with x4[0]) but is not reachable from the source
 
- struct Y { int a[10]; double y; } x5;
- auto p5 = std::launder(reinterpret_cast<int(*)[10]>(&x5.a[0]));
- // Undefined behavior: x5.y would be reachable through the resulting pointer to x5.a
- // but is not reachable from the source
+struct Y { int a[10]; double y; } x5;
+auto p5 = std::launder(reinterpret_cast<int(*)[10]>(&x5.a[0]));
+// Undefined behavior: x5.y would be reachable through the resulting pointer to x5.a
+// but is not reachable from the source
 
 .SH Example
 
 
 // Run this code
 
- #include <cassert>
- #include <cstddef>
- #include <new>
+#include <cassert>
+#include <cstddef>
+#include <new>
 
- struct Base
- {
-     virtual int transmogrify();
- };
+struct Base
+{
+    virtual int transmogrify();
+};
 
- struct Derived : Base
- {
-     int transmogrify() override
-     {
-         new(this) Base;
-         return 2;
-     }
- };
+struct Derived : Base
+{
+    int transmogrify() override
+    {
+        new(this) Base;
+        return 2;
+    }
+};
 
- int Base::transmogrify()
- {
-     new(this) Derived;
-     return 1;
- }
+int Base::transmogrify()
+{
+    new(this) Derived;
+    return 1;
+}
 
- static_assert(sizeof(Derived) == sizeof(Base));
+static_assert(sizeof(Derived) == sizeof(Base));
 
- int main()
- {
-     // Case 1: the new object failed to be transparently replaceable because
-     // it is a base subobject but the old object is a complete object.
-     Base base;
-     int n = base.transmogrify();
-     // int m = base.transmogrify(); // undefined behavior
-     int m = std::launder(&base)->transmogrify(); // OK
-     assert(m + n == 3);
+int main()
+{
+    // Case 1: the new object failed to be transparently replaceable because
+    // it is a base subobject but the old object is a complete object.
+    Base base;
+    int n = base.transmogrify();
+    // int m = base.transmogrify(); // undefined behavior
+    int m = std::launder(&base)->transmogrify(); // OK
+    assert(m + n == 3);
 
-     // Case 2: access to a new object whose storage is provided
-     // by a byte array through a pointer to the array.
-     struct Y { int z; };
-     alignas(Y) std::byte s[sizeof(Y)];
-     Y* q = new(&s) Y{2};
-     const int f = reinterpret_cast<Y*>(&s)->z; // Class member access is undefined
-                                                // behavior: reinterpret_cast<Y*>(&s)
-                                                // has value "pointer to s" and does
-                                                // not point to a Y object
-     const int g = q->z; // OK
-     const int h = std::launder(reinterpret_cast<Y*>(&s))->z; // OK
+    // Case 2: access to a new object whose storage is provided
+    // by a byte array through a pointer to the array.
+    struct Y { int z; };
+    alignas(Y) std::byte s[sizeof(Y)];
+    Y* q = new(&s) Y{2};
+    const int f = reinterpret_cast<Y*>(&s)->z; // Class member access is undefined
+                                               // behavior: reinterpret_cast<Y*>(&s)
+                                               // has value "pointer to s" and does
+                                               // not point to a Y object
+    const int g = q->z; // OK
+    const int h = std::launder(reinterpret_cast<Y*>(&s))->z; // OK
 
-     [](...){}(f, g, h); // evokes [[maybe_unused]] effect
- }
+    [](...){}(f, g, h); // evokes [[maybe_unused]] effect
+}
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-      DR    Applied to              Behavior as published              Correct behavior
-                       definition of reachable did not consider
-   LWG 2859 C++17      pointer                                         included
-                       arithmetic from pointer-interconvertible object
-   LWG 3495 C++17      std::launder might make pointer to an inactive  forbidden
-                       member dereferenceable in constant expression
+   DR    Applied to              Behavior as published               Correct behavior
+LWG 2859 C++17      definition of reachable did not consider pointer included
+                    arithmetic from pointer-interconvertible object
+LWG 3495 C++17      std::launder might make pointer to an inactive   forbidden
+                    member dereferenceable in constant expression

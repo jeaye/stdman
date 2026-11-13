@@ -1,161 +1,158 @@
-.TH std::set_terminate 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::set_terminate 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::set_terminate \- std::set_terminate
 
 .SH Synopsis
-   Defined in header <exception>
-   std::terminate_handler set_terminate( std::terminate_handler f )       \fI(until C++11)\fP
-   throw();
-   std::terminate_handler set_terminate( std::terminate_handler f )       \fI(since C++11)\fP
-   noexcept;
+Defined in header <exception>
+std::terminate_handler set_terminate( std::terminate_handler f ) throw();   \fI(until C++11)\fP
+std::terminate_handler set_terminate( std::terminate_handler f ) noexcept;  \fI(since C++11)\fP
 
-   Makes f the new global terminate handler function and returns the previously
-   installed std::terminate_handler. f shall terminate execution of the program without
-   returning to its caller, otherwise the behavior is undefined.
+Makes f the new global terminate handler function and returns the previously installed
+std::terminate_handler. f shall terminate execution of the program without returning to
+its caller, otherwise the behavior is undefined.
 
-   This function is thread-safe. Every call to std::set_terminate
-   synchronizes-with (see std::memory_order) subsequent calls to          \fI(since C++11)\fP
-   std::set_terminate and std::get_terminate.
+This function is thread-safe. Every call to std::set_terminate
+synchronizes-with (see std::memory_order) subsequent calls to                \fI(since C++11)\fP
+std::set_terminate and std::get_terminate.
 
 .SH Parameters
 
-   f - pointer to function of type std::terminate_handler, or null pointer
+f - pointer to function of type std::terminate_handler, or null pointer
 
 .SH Return value
 
-   The previously-installed terminate handler, or a null pointer value if none was
-   installed.
+The previously-installed terminate handler, or a null pointer value if none was installed.
 
 .SH Example
 
 
 // Run this code
 
- #include <cstdlib>
- #include <exception>
- #include <iostream>
+#include <cstdlib>
+#include <exception>
+#include <iostream>
 
- int main()
- {
-     std::set_terminate([]()
-     {
-         std::cout << "Unhandled exception\\n" << std::flush;
-         std::abort();
-     });
-     throw 1;
- }
+int main()
+{
+    std::set_terminate([]()
+    {
+        std::cout << "Unhandled exception\\n" << std::flush;
+        std::abort();
+    });
+    throw 1;
+}
 
 .SH Possible output:
 
- Unhandled exception
- bash: line 7:  7743 Aborted                 (core dumped) ./a.out
+Unhandled exception
+bash: line 7:  7743 Aborted                 (core dumped) ./a.out
 
-   The terminate handler will also work for launched threads, so it can be used as an
-   alternative to wrapping the thread function with a try/catch block. In the following
-   example, since the exception is unhandled, std::terminate will be called.
+The terminate handler will also work for launched threads, so it can be used as an
+alternative to wrapping the thread function with a try/catch block. In the following
+example, since the exception is unhandled, std::terminate will be called.
 
 
 // Run this code
 
- #include <iostream>
- #include <thread>
+#include <iostream>
+#include <thread>
 
- void run()
- {
-     throw std::runtime_error("Thread failure");
- }
+void run()
+{
+    throw std::runtime_error("Thread failure");
+}
 
- int main()
- {
-     try
-     {
-         std::thread t{run};
-         t.join();
-         return EXIT_SUCCESS;
-     }
-     catch (const std::exception& exc)
-     {
-         std::cerr << "Exception: " << exc.what() << '\\n';
-     }
-     catch (...)
-     {
-         std::cerr << "Unknown exception caught\\n";
-     }
-     return EXIT_FAILURE;
- }
+int main()
+{
+    try
+    {
+        std::thread t{run};
+        t.join();
+        return EXIT_SUCCESS;
+    }
+    catch (const std::exception& ex)
+    {
+        std::cerr << "Exception: " << ex.what() << '\\n';
+    }
+    catch (...)
+    {
+        std::cerr << "Unknown exception caught\\n";
+    }
+    return EXIT_FAILURE;
+}
 
 .SH Possible output:
 
- terminate called after throwing an instance of 'std::runtime_error'
-   what():  Thread failure
- Aborted (core dumped)
+terminate called after throwing an instance of 'std::runtime_error'
+  what():  Thread failure
+Aborted (core dumped)
 
-   With the introduction of the terminate handler, the exception thrown from the
-   non-main thread can be analyzed, and exit can be gracefully performed.
+With the introduction of the terminate handler, the exception thrown from the non-main
+thread can be analyzed, and exit can be gracefully performed.
 
 
 // Run this code
 
- #include <iostream>
- #include <thread>
+#include <iostream>
+#include <thread>
 
- class foo
- {
- public:
-     foo() { std::cerr << "foo::foo()\\n"; }
-     ~foo() { std::cerr << "foo::~foo()\\n"; }
- };
+class foo
+{
+public:
+    foo() { std::cerr << "foo::foo()\\n"; }
+    ~foo() { std::cerr << "foo::~foo()\\n"; }
+};
 
- // Static object, expecting destructor on exit
- foo f;
+// Static object, expecting destructor on exit
+foo f;
 
- void run()
- {
-     throw std::runtime_error("Thread failure");
- }
+void run()
+{
+    throw std::runtime_error("Thread failure");
+}
 
- int main()
- {
-     std::set_terminate([]()
-     {
-         try
-         {
-             std::exception_ptr eptr{std::current_exception()};
-             if (eptr)
-             {
-                 std::rethrow_exception(eptr);
-             }
-             else
-             {
-                 std::cerr << "Exiting without exception\\n";
-             }
-         }
-         catch (const std::exception& exc)
-         {
-             std::cerr << "Exception: " << exc.what() << '\\n';
-         }
-         catch (...)
-         {
-             std::cerr << "Unknown exception caught\\n";
-         }
-         std::exit(EXIT_FAILURE);
-     });
+int main()
+{
+    std::set_terminate([]()
+    {
+        try
+        {
+            std::exception_ptr eptr{std::current_exception()};
+            if (eptr)
+            {
+                std::rethrow_exception(eptr);
+            }
+            else
+            {
+                std::cerr << "Exiting without exception\\n";
+            }
+        }
+        catch (const std::exception& ex)
+        {
+            std::cerr << "Exception: " << ex.what() << '\\n';
+        }
+        catch (...)
+        {
+            std::cerr << "Unknown exception caught\\n";
+        }
+        std::exit(EXIT_FAILURE);
+    });
 
-     std::thread t{run};
-     t.join();
- }
+    std::thread t{run};
+    t.join();
+}
 
 .SH Output:
 
- foo::foo()
- Exception: Thread failure
- foo::~foo()
+foo::foo()
+Exception: Thread failure
+foo::~foo()
 
 .SH See also
 
-   terminate         function called when exception handling fails
-                     \fI(function)\fP
-   get_terminate     obtains the current terminate_handler
-   \fI(C++11)\fP           \fI(function)\fP
-   terminate_handler the type of the function called by std::terminate
-                     \fI(typedef)\fP
+terminate         function called when exception handling fails
+                  \fI(function)\fP
+get_terminate     obtains the current terminate_handler
+\fI(C++11)\fP           \fI(function)\fP
+terminate_handler the type of the function called by std::terminate
+                  \fI(typedef)\fP

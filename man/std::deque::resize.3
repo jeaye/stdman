@@ -1,102 +1,109 @@
-.TH std::deque::resize 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::deque::resize 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::deque::resize \- std::deque::resize
 
 .SH Synopsis
-   void resize( size_type count );                          \fB(1)\fP
-   void resize( size_type count, const value_type& value ); \fB(2)\fP
+void resize( size_type count );                          \fB(1)\fP
+void resize( size_type count, const value_type& value ); \fB(2)\fP
 
-   Resizes the container to contain count elements, does nothing if count == size().
+Resizes the container to contain count elements, does nothing if count == size().
 
-   If the current size is greater than count, the container is reduced to its first
-   count elements.
+If the current size is greater than count, the container is reduced to its first count
+elements.
 
-   If the current size is less than count,
+If the current size is less than count, then:
 
-   1) additional default-inserted elements are appended.
-   2) additional copies of value are appended.
+1) Additional default-inserted elements are appended.
+2) Additional copies of value are appended.
 
 .SH Parameters
 
-   count            -           new size of the container
-   value            -           the value to initialize the new elements with
+count                -                new size of the container
+value                -                the value to initialize the new elements with
 .SH Type requirements
-   -
-   T must meet the requirements of MoveInsertable and DefaultInsertable in order to use
-   overload \fB(1)\fP.
-   -
-   T must meet the requirements of CopyInsertable in order to use overload \fB(2)\fP.
-
-.SH Return value
-
-   \fI(none)\fP
+-
+T must meet the requirements of MoveInsertable and DefaultInsertable in order to use
+overload \fB(1)\fP.
+-
+T must meet the requirements of CopyInsertable in order to use overload \fB(2)\fP.
 
 .SH Complexity
 
-   Linear in the difference between the current size and count.
+Linear in the difference between the current size and count.
 
 .SH Notes
 
-   If value-initialization in overload \fB(1)\fP is undesirable, for example, if the elements
-   are of non-class type and zeroing out is not needed, it can be avoided by providing
-   a custom Allocator::construct.
+If value-initialization in overload \fB(1)\fP is undesirable, for example, if the elements are
+of non-class type and zeroing out is not needed, it can be avoided by providing a custom
+Allocator::construct.
 
 .SH Example
 
 
 // Run this code
 
- #include <deque>
- #include <iostream>
+#include <deque>
+#include <iostream>
 
- void print(auto rem, const std::deque<int>& c)
- {
-     for (std::cout << rem; const int el : c)
-         std::cout << el << ' ';
-     std::cout << '\\n';
- }
+void print(auto rem, const std::deque<int>& c)
+{
+    for (std::cout << rem; const int el : c)
+        std::cout << el << ' ';
+    std::cout << '\\n';
+}
 
- int main()
- {
-     std::deque<int> c = {1, 2, 3};
-     print("The deque holds: ", c);
+int main()
+{
+    std::deque<int> c = {1, 2, 3};
+    print("The deque holds: ", c);
 
-     c.resize(5);
-     print("After resize up to 5: ", c);
+    c.resize(5);
+    print("After resize up to 5: ", c);
 
-     c.resize(2);
-     print("After resize down to 2: ", c);
+    c.resize(2);
+    print("After resize down to 2: ", c);
 
-     c.resize(6, 4);
-     print("After resize up to 6 (initializer = 4): ", c);
- }
+    c.resize(6, 4);
+    print("After resize up to 6 (initializer = 4): ", c);
+}
 
 .SH Output:
 
- The deque holds: 1 2 3
- After resize up to 5: 1 2 3 0 0
- After resize down to 2: 1 2
- After resize up to 6 (initializer = 4): 1 2 4 4 4 4
+The deque holds: 1 2 3
+After resize up to 5: 1 2 3 0 0
+After resize down to 2: 1 2
+After resize up to 6 (initializer = 4): 1 2 4 4 4 4
 
   Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-      DR    Applied to         Behavior as published              Correct behavior
-   LWG 679  C++98      resize() passed value by value         passes by const reference
-   LWG 1418 C++98      the behavior of resize(size()) was not specified
-                       specified
-                       1. elements were removed by using
-   LWG 2033 C++11      erase()                                1. uses pop_back()
-                       2. T was not required to be            2. required
-                       MoveInsertable
+   DR    Applied to           Behavior as published                 Correct behavior
+LWG 679  C++98      resize() passed value by value             passes by const reference
+LWG 1418 C++98      the behavior of resize(size()) was not     specified
+                    specified
+                    1. elements were removed by using          1. uses pop_back()
+LWG 2033 C++11      erase()^[1]                                2. required
+                    2. T was not required to be MoveInsertable
+LWG 2066 C++11      overload \fB(1)\fP did not have the exception    added
+                    safety guarantee of overload \fB(2)\fP
+                    elements were removed by using             does not specify the method
+LWG 2160 C++11      pop_back()^[2]                             of removing elements
+                    due to the resolution of LWG 2033
+
+ 1. ↑ erase() can remove elements in the middle of a deque, so the value type is required
+    to be MoveAssignable so that the elements following the removed section can be moved
+    forward to fill the gap. However, resize() can only remove elements at the end of the
+    deque, making the MoveAssignable unnecessary.
+ 2. ↑ Removing elements by using pop_back() implies that the elements are required to be
+    removed from back to front.
 
 .SH See also
 
-   size   returns the number of elements
-          \fI(public member function)\fP
-   insert inserts elements
-          \fI(public member function)\fP
-   erase  erases elements
-          \fI(public member function)\fP
+max_size returns the maximum possible number of elements
+         \fI(public member function)\fP
+size     returns the number of elements
+         \fI(public member function)\fP
+empty    checks whether the container is empty
+         \fI(public member function)\fP

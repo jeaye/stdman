@@ -1,147 +1,145 @@
-.TH std::promise::set_value 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::promise::set_value 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::promise::set_value \- std::promise::set_value
 
 .SH Synopsis
-   Main template
-   void set_value( const R& value ); \fB(1)\fP \fI(since C++11)\fP
-   void set_value( R&& value );      \fB(2)\fP \fI(since C++11)\fP
-   std::promise<R&> specializations
-   void set_value( R& value );       \fB(3)\fP \fI(since C++11)\fP
-   std::promise<void> specialization
-   void set_value();                 \fB(4)\fP \fI(since C++11)\fP
+Main template
+void set_value( const R& value ); \fB(1)\fP \fI(since C++11)\fP
+void set_value( R&& value );      \fB(2)\fP \fI(since C++11)\fP
+std::promise<R&> specializations
+void set_value( R& value );       \fB(3)\fP \fI(since C++11)\fP
+std::promise<void> specialization
+void set_value();                 \fB(4)\fP \fI(since C++11)\fP
 
-   1-3) Atomically stores value into the shared state and makes the state ready.
-   4) Makes the state ready.
+1-3) Atomically stores value into the shared state and makes the state ready.
+4) Makes the state ready.
 
-   The operation behaves as though set_value, set_exception, set_value_at_thread_exit,
-   and set_exception_at_thread_exit acquire a single mutex associated with the promise
-   object while updating the promise object.
+The operation behaves as though set_value, set_exception, set_value_at_thread_exit, and
+set_exception_at_thread_exit acquire a single mutex associated with the promise object
+while updating the promise object.
 
-   Calls to this function do not introduce data races with calls to get_future
-   (therefore they need not synchronize with each other).
+Calls to this function do not introduce data races with calls to get_future (therefore
+they need not synchronize with each other).
 
 .SH Parameters
 
-   value - value to store in the shared state
+value - value to store in the shared state
 
 .SH Return value
 
-   \fI(none)\fP
+\fI(none)\fP
 
 .SH Exceptions
 
-   std::future_error on the following conditions:
+std::future_error on the following conditions:
 
-     * *this has no shared state. The error code is set to no_state.
-     * The shared state already stores a value or exception. The error code is set to
-       promise_already_satisfied.
+  * *this has no shared state. The error code is set to no_state.
+  * The shared state already stores a value or exception. The error code is set to
+    promise_already_satisfied.
 
-   Additionally:
+Additionally:
 
-   1) Any exception thrown by the constructor selected to copy an object of type R.
-   2) Any exception thrown by the constructor selected to move an object of type R.
+1) Any exception thrown by the constructor selected to copy an object of type R.
+2) Any exception thrown by the constructor selected to move an object of type R.
 
 .SH Example
 
-   This example shows how std::promise<void> can be used as signals between threads.
+This example shows how std::promise<void> can be used as signals between threads.
 
 
 // Run this code
 
- #include <algorithm>
- #include <cctype>
- #include <chrono>
- #include <future>
- #include <iostream>
- #include <iterator>
- #include <sstream>
- #include <thread>
- #include <vector>
+#include <algorithm>
+#include <cctype>
+#include <chrono>
+#include <future>
+#include <iostream>
+#include <iterator>
+#include <sstream>
+#include <thread>
+#include <vector>
 
- using namespace std::chrono_literals;
+using namespace std::chrono_literals;
 
- int main()
- {
-     std::istringstream iss_numbers{"3 4 1 42 23 -23 93 2 -289 93"};
-     std::istringstream iss_letters{" a 23 b,e a2 k k?a;si,ksa c"};
+int main()
+{
+    std::istringstream iss_numbers{"3 4 1 42 23 -23 93 2 -289 93"};
+    std::istringstream iss_letters{" a 23 b,e a2 k k?a;si,ksa c"};
 
-     std::vector<int> numbers;
-     std::vector<char> letters;
-     std::promise<void> numbers_promise, letters_promise;
+    std::vector<int> numbers;
+    std::vector<char> letters;
+    std::promise<void> numbers_promise, letters_promise;
 
-     auto numbers_ready = numbers_promise.get_future();
-     auto letter_ready = letters_promise.get_future();
+    auto numbers_ready = numbers_promise.get_future();
+    auto letter_ready = letters_promise.get_future();
 
-     std::thread value_reader([&]
-     {
-         // I/O operations
-         std::copy(std::istream_iterator<int>{iss_numbers},
-                   std::istream_iterator<int>{},
-                   std::back_inserter(numbers));
+    std::thread value_reader([&]
+    {
+        // I/O operations
+        std::copy(std::istream_iterator<int>{iss_numbers},
+                  std::istream_iterator<int>{},
+                  std::back_inserter(numbers));
 
-         // notify for numbers
-         numbers_promise.set_value();
+        // notify for numbers
+        numbers_promise.set_value();
 
-         std::copy_if(std::istreambuf_iterator<char>{iss_letters},
-                      std::istreambuf_iterator<char>{},
-                      std::back_inserter(letters),
-                      ::isalpha);
+        std::copy_if(std::istreambuf_iterator<char>{iss_letters},
+                     std::istreambuf_iterator<char>{},
+                     std::back_inserter(letters),
+                     ::isalpha);
 
-         // notify for letters
-         letters_promise.set_value();
-     });
+        // notify for letters
+        letters_promise.set_value();
+    });
 
 
-     numbers_ready.wait();
+    numbers_ready.wait();
 
-     std::sort(numbers.begin(), numbers.end());
+    std::sort(numbers.begin(), numbers.end());
 
-     if (letter_ready.wait_for(1s) == std::future_status::timeout)
-     {
-         // output the numbers while letters are being obtained
-         for (int num : numbers)
-             std::cout << num << ' ';
-         numbers.clear(); // numbers were already printed
-     }
+    if (letter_ready.wait_for(1s) == std::future_status::timeout)
+    {
+        // output the numbers while letters are being obtained
+        for (int num : numbers)
+            std::cout << num << ' ';
+        numbers.clear(); // numbers were already printed
+    }
 
-     letter_ready.wait();
-     std::sort(letters.begin(), letters.end());
+    letter_ready.wait();
+    std::sort(letters.begin(), letters.end());
 
-     // does nothing if numbers were already printed
-     for (int num : numbers)
-         std::cout << num << ' ';
-     std::cout << '\\n';
+    // does nothing if numbers were already printed
+    for (int num : numbers)
+        std::cout << num << ' ';
+    std::cout << '\\n';
 
-     for (char let : letters)
-         std::cout << let << ' ';
-     std::cout << '\\n';
+    for (char let : letters)
+        std::cout << let << ' ';
+    std::cout << '\\n';
 
-     value_reader.join();
- }
+    value_reader.join();
+}
 
 .SH Output:
 
- -289 -23 1 2 3 4 23 42 93 93
- a a a a b c e i k k k s s
+-289 -23 1 2 3 4 23 42 93 93
+a a a a b c e i k k k s s
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-      DR    Applied to       Behavior as published              Correct behavior
-                       overloads (1,2) could only throw  they can throw the exceptions
-                       the                               thrown
-   LWG 2098 C++11      exceptions thrown by the          by the actual constructor
-                       copy/move                         selected
-                       constructor of R respectively     to copy/move an object of type
-                                                         R
+   DR    Applied to        Behavior as published                 Correct behavior
+                    overloads (1,2) could only throw    they can throw the exceptions
+LWG 2098 C++11      the                                 thrown
+                    exceptions thrown by the copy/move  by the actual constructor selected
+                    constructor of R respectively       to copy/move an object of type R
 
 .SH See also
 
-                            sets the result to specific value while delivering the
-   set_value_at_thread_exit notification only at thread exit
-                            \fI(public member function)\fP
-   set_exception            sets the result to indicate an exception
-                            \fI(public member function)\fP
+                         sets the result to specific value while delivering the
+set_value_at_thread_exit notification only at thread exit
+                         \fI(public member function)\fP
+set_exception            sets the result to indicate an exception
+                         \fI(public member function)\fP

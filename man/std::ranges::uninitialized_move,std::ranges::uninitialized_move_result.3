@@ -1,190 +1,190 @@
-.TH std::ranges::uninitialized_move,std::ranges::uninitialized_move_result 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::uninitialized_move,std::ranges::uninitialized_move_result 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::uninitialized_move,std::ranges::uninitialized_move_result \- std::ranges::uninitialized_move,std::ranges::uninitialized_move_result
 
 .SH Synopsis
-   Defined in header <memory>
-   Call signature
-   template< std::input_iterator I, std::sentinel_for<I> S1,
+Defined in header <memory>
+Call signature
+template< std::input_iterator I, std::sentinel_for<I> S1,
 
-             no-throw-forward-iterator O, no-throw-sentinel-for<O> S2 >
-   requires std::constructible_from<std::iter_value_t<O>,               \fB(1)\fP (since
-            std::iter_rvalue_reference_t<I>>                                C++20)
-   uninitialized_move_result<I, O>
+no-throw-forward-iterator O, no-throw-sentinel-for<O> S2 >
+requires std::constructible_from<std::iter_value_t<O>,         \fB(1)\fP \fI(since C++20)\fP
+std::iter_rvalue_reference_t<I>>                                   (constexpr since C++26)
+uninitialized_move_result<I, O>
 
-   uninitialized_move( I ifirst, S1 ilast, O ofirst, S2 olast );
-   template< ranges::input_range IR, no-throw-forward-range OR >
+uninitialized_move( I ifirst, S1 ilast, O ofirst, S2 olast );
+template< ranges::input_range IR, no-throw-forward-range OR >
 
-   requires std::constructible_from<ranges::range_value_t<OR>,
-            ranges::range_rvalue_reference_t<IR>>                       \fB(2)\fP (since
-   uninitialized_move_result<ranges::borrowed_iterator_t<IR>,               C++20)
-                             ranges::borrowed_iterator_t<OR>>
+requires std::constructible_from
+<ranges::range_value_t<OR>,                                        \fI(since C++20)\fP
+ranges::range_rvalue_reference_t<IR>>                          \fB(2)\fP (constexpr since C++26)
+uninitialized_move_result<ranges::borrowed_iterator_t<IR>,
+ranges::borrowed_iterator_t<OR>>
 
-   uninitialized_move( IR&& in_range, OR&& out_range );
+uninitialized_move( IR&& in_range, OR&& out_range );
 .SH Helper types
-   template< class I, class O >                                         \fB(3)\fP (since
-   using uninitialized_move_result = ranges::in_out_result<I, O>;           C++20)
+template< class I, class O >                                   \fB(3)\fP \fI(since C++20)\fP
+using uninitialized_move_result = ranges::in_out_result<I, O>;
 
-   1) Moves N elements from the input range [ifirst, ilast) to the output range
-   [ofirst, olast) (that is an uninitialized memory area), where N is
-   min(ranges::distance(ifirst, ilast), ranges::distance(ofirst, olast)).
-   The effect is equivalent to:
+Let \\(\\scriptsize N\\)N be ranges::min(ranges::distance(ifirst, ilast),
+ranges::distance(ofirst, olast)).
 
- for (; ifirst != ilast && ofirst != olast; ++ofirst, ++ifirst)
-     ::new (static_cast<void*>(std::addressof(*ofirst)))
-         std::remove_reference_t<std::iter_reference_t<O>>(ranges::iter_move(ifirst));
+1) Copies \\(\\scriptsize N\\)N elements from [ifirst, ilast) (using move semantics if
+supported) to an uninitialized memory area [ofirst, olast) as if by
 
-   If an exception is thrown during the initialization then the objects that already
-   constructed in [ofirst, olast) are destroyed in an unspecified order. Also, the
-   objects in [ifirst, ilast) that were already moved, are left in a valid but
-   unspecified state.
-   2) Same as \fB(1)\fP, but uses in_range as the first range and out_range as the second
-   range, as if using ranges::begin(in_range) as ifirst, ranges::end(in_range) as
-   ilast, ranges::begin(out_range) as ofirst, and ranges::end(out_range) as olast.
+for (; ifirst != ilast && ofirst != olast; ++ofirst, (void)++ifirst)
+::new (voidify(*ofirst))
+std::remove_reference_t<std::iter_reference_t<O>>(ranges::iter_move(ifirst));
+return {std::move(ifirst), ofirst};
 
-   The function-like entities described on this page are niebloids, that is:
+If an exception is thrown during the initialization then the objects that already
+constructed in [ofirst, olast) are destroyed in an unspecified order. Also, the objects in
+[ifirst, ilast) that were already moved, are left in a valid but unspecified state.
+2) Equivalent to return ranges::uninitialized_move(ranges::begin(in_range),
+ranges::end(in_range),
+ranges::begin(out_range), ranges::end(out_range));.
 
-     * Explicit template argument lists cannot be specified when calling any of them.
-     * None of them are visible to argument-dependent lookup.
-     * When any of them are found by normal unqualified lookup as the name to the left
-       of the function-call operator, argument-dependent lookup is inhibited.
+The function-like entities described on this page are algorithm function objects
+(informally known as niebloids), that is:
 
-   In practice, they may be implemented as function objects, or with special compiler
-   extensions.
+  * Explicit template argument lists cannot be specified when calling any of them.
+  * None of them are visible to argument-dependent lookup.
+  * When any of them are found by normal unqualified lookup as the name to the left of the
+    function-call operator, argument-dependent lookup is inhibited.
 
 .SH Parameters
 
-   ifirst, ilast - iterator-sentinel pair denoting the input range of elements to move
-                   from
-   in_range      - the input range of elements to move from
-   ofirst, olast - iterator-sentinel pair denoting the output range to initialize
-   out_range     - the output range to initialize
+ifirst, ilast - iterator-sentinel pair denoting the input range of elements to move from
+in_range      - the input range of elements to move from
+ofirst, olast - iterator-sentinel pair denoting the output range to initialize
+out_range     - the output range to initialize
 
 .SH Return value
 
-   {ifirst + N, ofirst + N}
+As described above.
 
 .SH Complexity
 
-   Linear in N.
+Linear in \\(\\scriptsize N\\)N.
 
 .SH Exceptions
 
-   The exception thrown on construction of the elements in the destination range, if
-   any.
+Any exception thrown on construction of the elements in the destination range.
 
 .SH Notes
 
-   An implementation may improve the efficiency of the ranges::uninitialized_move, e.g.
-   by using ranges::copy_n, if the value type of the output range is TrivialType.
+An implementation may improve the efficiency of the ranges::uninitialized_move, e.g. by
+using ranges::copy_n, if the value type of the output range is TrivialType.
+
+      Feature-test macro         Value    Std                    Feature
+__cpp_lib_raw_memory_algorithms 202411L (C++26) constexpr for specialized memory
+                                                algorithms, (1,2)
 
 .SH Possible implementation
 
-   struct uninitialized_move_fn
-   {
-       template<std::input_iterator I, std::sentinel_for<I> S1,
-                no-throw-forward-iterator O, no-throw-sentinel-for<O> S2>
-       requires std::constructible_from<std::iter_value_t<O>,
-                std::iter_rvalue_reference_t<I>>
-       ranges::uninitialized_move_result<I, O>
-       operator()(I ifirst, S1 ilast, O ofirst, S2 olast) const
-       {
-           O current{ofirst};
-           try
-           {
-               for (; !(ifirst == ilast or current == olast); ++ifirst, ++current)
-                   ::new (const_cast<void*>(static_cast<const volatile void*>
-                       (std::addressof(*current)))) std::remove_reference_t<
-                           std::iter_reference_t<O>>(ranges::iter_move(ifirst));
-               return {std::move(ifirst), std::move(current)};
-           }
-           catch (...) // rollback: destroy constructed elements
-           {
-               for (; ofirst != current; ++ofirst)
-                   ranges::destroy_at(std::addressof(*ofirst));
-               throw;
-           }
-       }
+struct uninitialized_move_fn
+{
+    template<std::input_iterator I, std::sentinel_for<I> S1,
+             no-throw-forward-iterator O, no-throw-sentinel-for<O> S2>
+        requires std::constructible_from<std::iter_value_t<O>,
+                                         std::iter_rvalue_reference_t<I>>
+    constexpr ranges::uninitialized_move_result<I, O>
+        operator()(I ifirst, S1 ilast, O ofirst, S2 olast) const
+    {
+        using ValueType = std::remove_reference_t<std::iter_reference_t<O>>;
+        O current{ofirst};
+        try
+        {
+            for (; !(ifirst == ilast or current == olast); ++ifirst, ++current)
+                ::new (static_cast<void*>(std::addressof(*current))))
+                    ValueType(ranges::iter_move(ifirst));
+            return {std::move(ifirst), std::move(current)};
+        }
+        catch (...) // rollback: destroy constructed elements
+        {
+            for (; ofirst != current; ++ofirst)
+                ranges::destroy_at(std::addressof(*ofirst));
+            throw;
+        }
+    }
 
-       template<ranges::input_range IR, no-throw-forward-range OR>
-       requires std::constructible_from<ranges::range_value_t<OR>,
-                ranges::range_rvalue_reference_t<IR>>
-       ranges::uninitialized_move_result<ranges::borrowed_iterator_t<IR>,
-                                         ranges::borrowed_iterator_t<OR>>
-       operator()(IR&& in_range, OR&& out_range) const
-       {
-           return (*this)(ranges::begin(in_range), ranges::end(in_range),
-                          ranges::begin(out_range), ranges::end(out_range));
-       }
-   };
+    template<ranges::input_range IR, no-throw-forward-range OR>
+        requires std::constructible_from<ranges::range_value_t<OR>,
+                                         ranges::range_rvalue_reference_t<IR>>
+    constexpr ranges::uninitialized_move_result<ranges::borrowed_iterator_t<IR>,
+                                                ranges::borrowed_iterator_t<OR>>
+        operator()(IR&& in_range, OR&& out_range) const
+    {
+        return (*this)(ranges::begin(in_range), ranges::end(in_range),
+                       ranges::begin(out_range), ranges::end(out_range));
+    }
+};
 
-   inline constexpr uninitialized_move_fn uninitialized_move{};
+inline constexpr uninitialized_move_fn uninitialized_move{};
 
 .SH Example
 
 
 // Run this code
 
- #include <cstdlib>
- #include <iomanip>
- #include <iostream>
- #include <memory>
- #include <string>
+#include <cstdlib>
+#include <iomanip>
+#include <iostream>
+#include <memory>
+#include <string>
 
- void print(auto rem, auto first, auto last)
- {
-     for (std::cout << rem; first != last; ++first)
-         std::cout << std::quoted(*first) << ' ';
-     std::cout << '\\n';
- }
+void print(auto rem, auto first, auto last)
+{
+    for (std::cout << rem; first != last; ++first)
+        std::cout << std::quoted(*first) << ' ';
+    std::cout << '\\n';
+}
 
- int main()
- {
-     std::string in[]{"Home", "World"};
-     print("initially, in: ", std::begin(in), std::end(in));
+int main()
+{
+    std::string in[]{"Home", "World"};
+    print("initially, in: ", std::begin(in), std::end(in));
 
-     if (constexpr auto sz = std::size(in);
-         void* out = std::aligned_alloc(alignof(std::string), sizeof(std::string) * sz))
-     {
-         try
-         {
-             auto first{static_cast<std::string*>(out)};
-             auto last{first + sz};
-             std::ranges::uninitialized_move(std::begin(in), std::end(in), first, last);
+    if (constexpr auto sz = std::size(in);
+        void* out = std::aligned_alloc(alignof(std::string), sizeof(std::string) * sz))
+    {
+        try
+        {
+            auto first{static_cast<std::string*>(out)};
+            auto last{first + sz};
+            std::ranges::uninitialized_move(std::begin(in), std::end(in), first, last);
 
-             print("after move, in: ", std::begin(in), std::end(in));
-             print("after move, out: ", first, last);
+            print("after move, in: ", std::begin(in), std::end(in));
+            print("after move, out: ", first, last);
 
-             std::ranges::destroy(first, last);
-         }
-         catch (...)
-         {
-             std::cout << "Exception!\\n";
-         }
-         std::free(out);
-     }
- }
+            std::ranges::destroy(first, last);
+        }
+        catch (...)
+        {
+            std::cout << "Exception!\\n";
+        }
+        std::free(out);
+    }
+}
 
 .SH Possible output:
 
- initially, in: "Home" "World"
- after move, in: "" ""
- after move, out: "Home" "World"
+initially, in: "Home" "World"
+after move, in: "" ""
+after move, out: "Home" "World"
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-      DR    Applied to              Behavior as published              Correct behavior
-   LWG 3870 C++20      this algorithm might create objects on a const  kept disallowed
-                       storage
+   DR    Applied to                 Behavior as published                 Correct behavior
+LWG 3870 C++20      this algorithm might create objects on a const        kept disallowed
+                    storage
 
 .SH See also
 
-   ranges::uninitialized_move_n moves a number of objects to an uninitialized area of
-   (C++20)                      memory
-                                (niebloid)
-   uninitialized_move           moves a range of objects to an uninitialized area of
-   \fI(C++17)\fP                      memory
-                                \fI(function template)\fP
+ranges::uninitialized_move_n moves a number of objects to an uninitialized area of memory
+(C++20)                      (algorithm function object)
+uninitialized_move           moves a range of objects to an uninitialized area of memory
+\fI(C++17)\fP                      \fI(function template)\fP

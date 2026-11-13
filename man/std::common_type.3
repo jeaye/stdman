@@ -1,46 +1,220 @@
-.TH std::common_type 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::common_type 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::common_type \- std::common_type
 
 .SH Synopsis
-   Defined in header <iterator>
-   template< class T, std::common_with<T> U >
+Defined in header <type_traits>
+template< class... T >           \fI(since C++11)\fP
+struct common_type;
 
-       requires std::input_iterator<std::common_type_t<T, U>> \fB(1)\fP (since C++23)
+Determines the common type among all types T..., that is the type all T... can be
+implicitly converted to. If such a type exists (as determined according to the rules
+below), the member type names that type. Otherwise, there is no member type.
 
-   struct common_type<std::basic_const_iterator<T>, U>;
-   template< class T, std::common_with<T> U >
+  * If sizeof...(T) is zero, there is no member type.
+  * If sizeof...(T) is one (i.e., T... contains only one type T0), the member type names
+    the same type as std::common_type<T0, T0>::type if it exists; otherwise there is no
+    member type.
+  * If sizeof...(T) is two (i.e., T... contains exactly two types T1 and T2),
 
-       requires std::input_iterator<std::common_type_t<T, U>> \fB(2)\fP (since C++23)
+           * If applying std::decay to at least one of T1 and T2 produces a different
+             type, the member type names the same type as
+             std::common_type<std::decay<T1>::type, std::decay<T2>::type>::type, if it
+             exists; if not, there is no member type;
+           * Otherwise, if there is a user specialization for std::common_type<T1, T2>,
+             that specialization is used;
+           * Otherwise, if std::decay<decltype(false ? std::declval<T1>() :
+             std::declval<T2>())>::type is a valid type, the member type denotes that
+             type, see the conditional operator;
 
-   struct common_type<U, std::basic_const_iterator<T>>;
-   template< class T, std::common_with<T> U >
+      * Otherwise, if std::decay<decltype(false ? std::declval<CR1>() :
+        std::declval<CR2>())>::type is a valid type, where CR1 and CR2 are
+        const std::remove_reference_t<T1>& and const                         \fI(since C++20)\fP
+        std::remove_reference_t<T2>& respectively, the member type denotes
+        that type;
 
-       requires std::input_iterator<std::common_type_t<T, U>> \fB(3)\fP (since C++23)
-   struct common_type<std::basic_const_iterator<T>,
+           * Otherwise, there is no member type.
 
-                      std::basic_const_iterator<U>>;
+  * If sizeof...(T) is greater than two (i.e., T... consists of the types T1, T2, R...),
+    then if std::common_type<T1, T2>::type exists, the member type denotes
+    std::common_type<typename std::common_type<T1, T2>::type, R...>::type if such a type
+    exists. In all other cases, there is no member type.
 
-   The common type of two basic_const_iterators or a basic_const_iterator and another
-   iterator type is a basic_const_iterator of the common underlying type.
+If any type in the parameter pack T is not a complete type, (possibly cv-qualified) void,
+or an array of unknown bound, the behavior is undefined.
 
-   The common type is defined only if T and U share a common type which models
-   input_iterator.
+If an instantiation of a template above depends, directly or indirectly, on an incomplete
+type, and that instantiation could yield a different result if that type were
+hypothetically completed, the behavior is undefined.
 
-.SH Member types
+  Nested types
 
-   Member type Definition
-   type        std::basic_const_iterator<std::common_type_t<T, U>> (1-3)
+Name Definition
+type the common type for all T
 
-.SH Example
+.SH Helper types
 
-    This section is incomplete
-    Reason: no example
+template< class... T >                                   \fI(since C++14)\fP
+using common_type_t = typename common_type<T...>::type;
+
+.SH Specializations
+
+Users may specialize common_type for types T1 and T2 if
+
+  * At least one of T1 and T2 depends on a user-defined type, and
+  * std::decay is an identity transformation for both T1 and T2.
+
+If such a specialization has a member named type, it must be a public and unambiguous
+member that names a cv-unqualified non-reference type to which both T1 and T2 are
+explicitly convertible. Additionally, std::common_type<T1, T2>::type and
+std::common_type<T2, T1>::type must denote the same type.
+
+A program that adds common_type specializations in violation of these rules has undefined
+behavior.
+
+Note that the behavior of a program that adds a specialization to any other template
+(except for std::basic_common_reference)
+\fI(since C++20)\fP from <type_traits> is undefined.
+
+The following specializations are already provided by the standard library:
+
+std::common_type<std::chrono::duration>     specializes the std::common_type trait
+\fI(C++11)\fP                                     \fI(class template specialization)\fP
+std::common_type<std::chrono::time_point>   specializes the std::common_type trait
+\fI(C++11)\fP                                     \fI(class template specialization)\fP
+std::common_type<std::pair>                 determines the common type of two pairs
+(C++23)                                     \fI(class template specialization)\fP
+std::common_type<tuple-like>                determines the common type of a tuple and a
+(C++23)                                     tuple-like type
+                                            \fI(class template specialization)\fP
+std::common_type<std::basic_const_iterator> determines the common type of an iterator and
+(C++23)                                     an adapted basic_const_iterator type
+                                            \fI(class template specialization)\fP
+
+.SH Possible implementation
+
+// primary template (used for zero types)
+template<class...>
+struct common_type {};
+
+// one type
+template<class T>
+struct common_type<T> : common_type<T, T> {};
+
+namespace detail
+{
+    template<class...>
+    using void_t = void;
+
+    template<class T1, class T2>
+    using conditional_result_t = decltype(false ? std::declval<T1>() : std::declval<T2>());
+
+    template<class, class, class = void>
+    struct decay_conditional_result {};
+    template<class T1, class T2>
+    struct decay_conditional_result<T1, T2, void_t<conditional_result_t<T1, T2>>>
+        : std::decay<conditional_result_t<T1, T2>> {};
+
+    template<class T1, class T2, class = void>
+    struct common_type_2_impl : decay_conditional_result<const T1&, const T2&> {};
+
+    // C++11 implementation:
+    // template<class, class, class = void>
+    // struct common_type_2_impl {};
+
+    template<class T1, class T2>
+    struct common_type_2_impl<T1, T2, void_t<conditional_result_t<T1, T2>>>
+        : decay_conditional_result<T1, T2> {};
+}
+
+// two types
+template<class T1, class T2>
+struct common_type<T1, T2>
+    : std::conditional<std::is_same<T1, typename std::decay<T1>::type>::value &&
+                       std::is_same<T2, typename std::decay<T2>::type>::value,
+                       detail::common_type_2_impl<T1, T2>,
+                       common_type<typename std::decay<T1>::type,
+                                   typename std::decay<T2>::type>>::type {};
+
+// 3+ types
+namespace detail
+{
+    template<class AlwaysVoid, class T1, class T2, class... R>
+    struct common_type_multi_impl {};
+    template<class T1, class T2, class...R>
+    struct common_type_multi_impl<void_t<typename common_type<T1, T2>::type>, T1, T2, R...>
+        : common_type<typename common_type<T1, T2>::type, R...> {};
+}
+
+template<class T1, class T2, class... R>
+struct common_type<T1, T2, R...>
+    : detail::common_type_multi_impl<void, T1, T2, R...> {};
+
+.SH Notes
+
+For arithmetic types not subject to promotion, the common type may be viewed as the type
+of the (possibly mixed-mode) arithmetic expression such as T0() + T1() + ... + Tn().
+
+.SH Examples
+
+Demonstrates mixed-mode arithmetic on a program-defined class:
+
+
+// Run this code
+
+#include <iostream>
+#include <type_traits>
+
+template<class T>
+struct Number { T n; };
+
+template<class T, class U>
+constexpr Number<std::common_type_t<T, U>>
+    operator+(const Number<T>& lhs, const Number<U>& rhs)
+{
+    return {lhs.n + rhs.n};
+}
+
+void describe(const char* expr, const Number<int>& x)
+{
+    std::cout << expr << "  is  Number<int>{" << x.n << "}\\n";
+}
+
+void describe(const char* expr, const Number<double>& x)
+{
+    std::cout << expr << "  is  Number<double>{" << x.n << "}\\n";
+}
+
+int main()
+{
+    Number<int> i1 = {1}, i2 = {2};
+    Number<double> d1 = {2.3}, d2 = {3.5};
+    describe("i1 + i2", i1 + i2);
+    describe("i1 + d2", i1 + d2);
+    describe("d1 + i2", d1 + i2);
+    describe("d1 + d2", d1 + d2);
+}
+
+.SH Output:
+
+i1 + i2  is  Number<int>{3}
+i1 + d2  is  Number<double>{4.5}
+d1 + i2  is  Number<double>{4.3}
+d1 + d2  is  Number<double>{5.8}
+
+  Defect reports
+
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
+
+   DR    Applied to             Behavior as published                 Correct behavior
+LWG 2141 C++11      the result type of the conditional operator    decayed the result type
+                    was not decayed
+LWG 2408 C++11      common_type was not SFINAE-friendly            made SFINAE-friendly
+LWG 2460 C++11      common_type specializations were nearly        reduced the number of
+                    impossible to write                            specializations needed
 
 .SH See also
 
-   common_type determines the common type of a group of types
-   \fI(C++11)\fP     \fI(class template)\fP
-
-.SH Category:
-     * Todo no example
+common_with specifies that two types share a common type
+(C++20)     (concept)

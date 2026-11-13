@@ -1,102 +1,107 @@
-.TH std::extent 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::extent 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::extent \- std::extent
 
 .SH Synopsis
-   Defined in header <type_traits>
-   template< class T, unsigned N = 0 >  \fI(since C++11)\fP
-   struct extent;
+Defined in header <type_traits>
+template< class T, unsigned N = 0 >  \fI(since C++11)\fP
+struct extent;
 
-   If T is an array type, provides the member constant value equal to the number of
-   elements along the N^th dimension of the array, if N is in [0, std::rank<T>::value).
-   For any other type, or if T is an array of unknown bound along its first dimension
-   and N is 0, value is 0.
+If T is an array type, provides the member constant value equal to the number of elements
+along the N^th dimension of the array, if N is in [0, std::rank<T>::value). For any
+other type, or if T is an array of unknown bound along its first dimension and N is 0,
+value is 0.
 
-   If the program adds specializations for std::extent
-   or std::extent_v
-   \fI(since C++17)\fP, the behavior is undefined.
+If the program adds specializations for std::extent
+or std::extent_v
+\fI(since C++17)\fP, the behavior is undefined.
+
+  Helper variable template
+
+template< class T, unsigned N = 0 >                    \fI(since C++17)\fP
+constexpr std::size_t extent_v = extent<T, N>::value;
+
+Inherited from std::integral_constant
 
 .SH Member constants
 
-   value    the number of elements along the Nth dimension of T
-   \fB[static]\fP \fI(public static member constant)\fP
+value    the number of elements along the Nth dimension of T
+\fB[static]\fP \fI(public static member constant)\fP
 
 .SH Member functions
 
-   operator std::size_t converts the object to std::size_t, returns value
-                        \fI(public member function)\fP
-   operator()           returns value
-   \fI(C++14)\fP              \fI(public member function)\fP
+operator std::size_t converts the object to std::size_t, returns value
+                     \fI(public member function)\fP
+operator()           returns value
+\fI(C++14)\fP              \fI(public member function)\fP
 
 .SH Member types
 
-   Type       Definition
-   value_type std::size_t
-   type       std::integral_constant<std::size_t, value>
+Type       Definition
+value_type std::size_t
+type       std::integral_constant<std::size_t, value>
 
 .SH Possible implementation
 
-   template<class T, unsigned N = 0>
-   struct extent : std::integral_constant<std::size_t, 0> {};
+template<class T, unsigned N = 0>
+struct extent : std::integral_constant<std::size_t, 0> {};
 
-   template<class T>
-   struct extent<T[], 0> : std::integral_constant<std::size_t, 0> {};
+template<class T>
+struct extent<T[], 0> : std::integral_constant<std::size_t, 0> {};
 
-   template<class T, unsigned N>
-   struct extent<T[], N> : std::extent<T, N - 1> {};
+template<class T, unsigned N>
+struct extent<T[], N> : std::extent<T, N - 1> {};
 
-   template<class T, std::size_t I>
-   struct extent<T[I], 0> : std::integral_constant<std::size_t, I> {};
+template<class T, std::size_t I>
+struct extent<T[I], 0> : std::integral_constant<std::size_t, I> {};
 
-   template<class T, std::size_t I, unsigned N>
-   struct extent<T[I], N> : std::extent<T, N - 1> {};
+template<class T, std::size_t I, unsigned N>
+struct extent<T[I], N> : std::extent<T, N - 1> {};
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
- #include <type_traits>
+#include <type_traits>
 
- int main()
- {
-     static_assert(
-         std::extent_v<int[3]> == 3 && //< default dimension is 0
-         std::extent_v<int[3], 0> == 3 && //< the same as above
-         std::extent_v<int[3][4], 0> == 3 &&
-         std::extent_v<int[3][4], 1> == 4 &&
-         std::extent_v<int[3][4], 2> == 0 &&
-         std::extent_v<int[]> == 0
-     );
+static_assert(
+    std::extent_v<int[3]> == 3 && // default dimension is 0
+    std::extent_v<int[3], 0> == 3 && // the same as above
+    std::extent_v<int[3][4], 0> == 3 &&
+    std::extent_v<int[3][4], 1> == 4 &&
+    std::extent_v<int[3][4], 2> == 0 &&
+    std::extent_v<int[]> == 0
+);
 
-     const auto ext = std::extent<int['*']>{};
-     std::cout << ext << '\\n'; //< implicit conversion to std::size_t
+int main()
+{
+    const auto ext = std::extent<int['*']>{};
+    static_assert(ext == 42); // with implicit conversion to std::size_t
 
-     const int ints[]{1, 2, 3, 4};
-     static_assert(std::extent_v<decltype(ints)> == 4); //< array size
+    const int ints[]{1, 2, 3, 4};
+    static_assert(std::extent_v<decltype(ints)> == 4); // array size
 
-     [[maybe_unused]] int ary[][3] = {{1, 2, 3}};
+    [[maybe_unused]] int ary[][3] = {{1, 2, 3}};
 
-     // ary[0] is type of reference of 'int[3]', so, extent
-     // cannot calculate correctly and return 0
-     static_assert(std::is_same_v<decltype(ary[0]), int(&)[3]>);
-     static_assert(std::extent_v<decltype(ary[0])> == 0);
-     // removing reference will give correct extent value 3
-     static_assert(std::extent_v<std::remove_cvref_t<decltype(ary[0])>> == 3);
- }
+    // ary[0] is of type reference to 'int[3]', so, the extent
+    // cannot be calculated correctly and it returns 0
+    static_assert(std::is_same_v<decltype(ary[0]), int(&)[3]>);
+    static_assert(std::extent_v<decltype(ary[0])> == 0);
 
-.SH Output:
-
- 42
+    // removing reference gives correct extent value 3
+    static_assert(std::extent_v<std::remove_cvref_t<decltype(ary[0])>> == 3);
+}
 
 .SH See also
 
-   is_array           checks if a type is an array type
-   \fI(C++11)\fP            \fI(class template)\fP
-   rank               obtains the number of dimensions of an array type
-   \fI(C++11)\fP            \fI(class template)\fP
-   remove_extent      removes one extent from the given array type
-   \fI(C++11)\fP            \fI(class template)\fP
-   remove_all_extents removes all extents from the given array type
-   \fI(C++11)\fP            \fI(class template)\fP
+is_array           checks if a type is an array type
+\fI(C++11)\fP            \fI(class template)\fP
+rank               obtains the number of dimensions of an array type
+\fI(C++11)\fP            \fI(class template)\fP
+remove_extent      removes one extent from the given array type
+\fI(C++11)\fP            \fI(class template)\fP
+remove_all_extents removes all extents from the given array type
+\fI(C++11)\fP            \fI(class template)\fP
+extents            a descriptor of a multidimensional index space of some rank
+(C++23)            \fI(class template)\fP

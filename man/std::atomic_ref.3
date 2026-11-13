@@ -1,176 +1,173 @@
-.TH std::atomic_ref 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::atomic_ref 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::atomic_ref \- std::atomic_ref
 
 .SH Synopsis
-   Defined in header <atomic>
-   template< class T >        \fB(1)\fP \fI(since C++20)\fP
-   struct atomic_ref;
-   template< class T >        \fB(2)\fP \fI(since C++20)\fP
-   struct atomic_ref<T*>;
+Defined in header <atomic>
+template< class T >         \fI(since C++20)\fP
+struct atomic_ref;
 
-   The std::atomic_ref class template applies atomic operations to the object it
-   references. For the lifetime of the std::atomic_ref object, the object it references
-   is considered an atomic object. If one thread writes to an atomic object while
-   another thread reads from it, the behavior is well-defined (see memory model for
-   details on data races). In addition, accesses to atomic objects may establish
-   inter-thread synchronization and order non-atomic memory accesses as specified by
-   std::memory_order.
+The std::atomic_ref class template applies atomic operations to the object it references.
 
-   The lifetime of an object must exceed the lifetime of all std::atomic_refs that
-   references the object. While any std::atomic_ref instance referencing an object
-   exists, the object must be exclusively accessed through these std::atomic_ref
-   instances. No subobject of an object referenced by an std::atomic_ref object may be
-   concurrently referenced by any other std::atomic_ref object.
+For the lifetime of the std::atomic_ref object, the object it references is considered an
+atomic object. If one thread writes to an atomic object while another thread reads from
+it, the behavior is well-defined (see memory model for details on data races). In
+addition, accesses to atomic objects may establish inter-thread synchronization and order
+non-atomic memory accesses as specified by std::memory_order.
 
-   Atomic operations applied to an object through an std::atomic_ref are atomic with
-   respect to atomic operations applied through any other std::atomic_ref referencing
-   the same object.
+The lifetime of an object must exceed the lifetime of all std::atomic_refs that references
+the object. While any std::atomic_ref instance referencing an object exists, the object
+must be exclusively accessed through these std::atomic_ref instances. No subobject of an
+object referenced by an std::atomic_ref object may be concurrently referenced by any other
+std::atomic_ref object.
 
-   std::atomic_ref is CopyConstructible.
+Atomic operations applied to an object through an std::atomic_ref are atomic with respect
+to atomic operations applied through any other std::atomic_ref referencing the same
+object.
 
-   Like language references, constness is shallow for std::atomic_ref - it is possible
-   to modify the referenced value through a const std::atomic_ref object.
+Like references in the core language, constness is shallow for std::atomic_ref - it is
+possible to modify the referenced value through a const std::atomic_ref object.
 
-.SH Specializations
+If any of the following conditions are satisfied, the program is ill-formed:
 
-     Primary template
+  * std::is_trivially_copyable_v<T> is false.
+  * is_always_lock_free is false and std::is_volatile_v<T> is true.
 
-   The primary std::atomic_ref template may be instantiated with any TriviallyCopyable
-   type T (including bool):
+std::atomic_ref is CopyConstructible.
 
- struct Counters { int a; int b; }; // user-defined trivially-copyable type
- alignas(std::atomic_ref<Counters>::required_alignment) Counters counter;
- std::atomic_ref<Counters> cnt(counter); // specialization for the user-defined type
+  Nested types
 
-     Partial specialization for pointer types
+Type            Definition
+value_type      std::remove_cv_t<T>
+                  * value_type, if T is an arithmetic type other than cv bool.
+difference_type   * Otherwise, std::ptrdiff_t, if T is a pointer-to-object type.
+                  * Otherwise, not defined.
 
-   The standard library provides partial specializations of the std::atomic_ref
-   template for all pointer types. In addition to the operations provided for all
-   atomic types, these specializations additionally support atomic arithmetic
-   operations appropriate to pointer types, such as fetch_add, fetch_sub.
+  Data members
 
-     Specializations for integral types
-
-   When instantiated with one of the following integral types, std::atomic_ref provides
-   additional atomic operations appropriate to integral types such as fetch_add,
-   fetch_sub, fetch_and, fetch_or, fetch_xor:
-
-     * The character types char, char8_t, char16_t, char32_t, and wchar_t;
-     * The standard signed integer types: signed char, short, int, long, and long long;
-     * The standard unsigned integer types: unsigned char, unsigned short, unsigned
-       int, unsigned long, and unsigned long long;
-     * Any additional integral types needed by the typedefs in the header <cstdint>.
-
-   Signed integer arithmetic is defined to use two's complement; there are no undefined
-   results.
-
-     Specializations for floating-point types
-
-   When instantiated with one of the cv-unqualified floating-point types (float,
-   double, long double
-   and cv-unqualified extended floating-point types
-   (since C++23)), std::atomic_ref provides additional atomic operations appropriate to
-   floating-point types such as fetch_add and fetch_sub.
-
-   No operations result in undefined behavior even if the result is not representable
-   in the floating-point type. The floating-point environment in effect may be
-   different from the calling thread's floating-point environment.
-
-.SH Member types
-
-   Member type     Definition
-   value_type      see below
-                   value_type (only for atomic_ref<Integral> and atomic_ref<Floating>
-   difference_type specializations)
-                   std::ptrdiff_t (only for std::atomic_ref<T*> specializations)
-
-   For every std::atomic_ref<X> (whether or not specialized),
-   std::atomic_ref<X>::value_type is X.
-
-   difference_type is not defined in the primary atomic_ref template.
+Member              Description
+T* ptr              the pointer to the referenced object
+                    (exposition-only member object*)
+is_always_lock_free indicates that the type is always lock-free
+\fB[static]\fP            \fI(public static member constant)\fP
+required_alignment  indicates the required alignment of an object to be referenced by
+\fB[static]\fP            atomic_ref
+                    \fI(public static member constant)\fP
 
 .SH Member functions
 
-   constructor             constructs an atomic_ref object
-                           \fI(public member function)\fP
-                           stores a value into the object referenced by an atomic_ref
-   operator=               object
-                           \fI(public member function)\fP
-   is_lock_free            checks if the atomic_ref object is lock-free
-                           \fI(public member function)\fP
-                           atomically replaces the value of the referenced object with
-   store                   a non-atomic argument
-                           \fI(public member function)\fP
-   load                    atomically obtains the value of the referenced object
-                           \fI(public member function)\fP
-   operator T              loads a value from the referenced object
-                           \fI(public member function)\fP
-                           atomically replaces the value of the referenced object and
-   exchange                obtains the value held previously
-                           \fI(public member function)\fP
-                           atomically compares the value of the referenced object with
-   compare_exchange_weak   non-atomic argument and performs atomic exchange if equal or
-   compare_exchange_strong atomic load if not
-                           \fI(public member function)\fP
-                           blocks the thread until notified and the atomic value
-   wait                    changes
-                           \fI(public member function)\fP
-   notify_one              notifies at least one thread waiting on the atomic object
-                           \fI(public member function)\fP
-   notify_all              notifies all threads blocked waiting on the atomic object
-                           \fI(public member function)\fP
-.SH Constants
-   is_always_lock_free     indicates that the type is always lock-free
-   \fB[static]\fP                \fI(public static member constant)\fP
-   required_alignment      indicates the required alignment of an object to be
-   \fB[static]\fP                referenced by atomic_ref
-                           \fI(public static member constant)\fP
+constructor             constructs an atomic_ref object
+                        \fI(public member function)\fP
+operator=               stores a value into the object referenced by an atomic_ref object
+                        \fI(public member function)\fP
+is_lock_free            checks if the atomic_ref object is lock-free
+                        \fI(public member function)\fP
+                        atomically replaces the value of the referenced object with a
+store                   non-atomic argument
+                        \fI(public member function)\fP
+load                    atomically obtains the value of the referenced object
+                        \fI(public member function)\fP
+operator value_type     loads a value from the referenced object
+                        \fI(public member function)\fP
+                        atomically replaces the value of the referenced object and obtains
+exchange                the value held previously
+                        \fI(public member function)\fP
+                        atomically compares the value of the referenced object with
+compare_exchange_weak   non-atomic argument and performs atomic exchange if equal or
+compare_exchange_strong atomic load if not
+                        \fI(public member function)\fP
+wait                    blocks the thread until notified and the atomic value changes
+                        \fI(public member function)\fP
+notify_one              notifies at least one thread waiting on the atomic object
+                        \fI(public member function)\fP
+notify_all              notifies all threads blocked waiting on the atomic object
+                        \fI(public member function)\fP
+address                 returns the object's address
+(C++26)                 \fI(public member function)\fP
+      Provided only when T is an arithmetic type other than cv bool or a pointer-to-object
+      type
+                        atomically adds the argument to the value stored in the referenced
+fetch_add               object and obtains the value held previously
+                        \fI(public member function)\fP
+                        atomically subtracts the argument from the value stored in the
+fetch_sub               referenced object and obtains the value held previously
+                        \fI(public member function)\fP
+operator+=              atomically adds to or subtracts from the referenced value
+operator-=              \fI(public member function)\fP
+      Provided only when T is an integral type other than cv bool or a pointer-to-object
+      type
+fetch_max               atomically performs std::max between the argument and the value of
+(C++26)                 the referenced object and obtains the value held previously
+                        \fI(public member function)\fP
+fetch_min               atomically performs std::min between the argument and the value of
+(C++26)                 the referenced object and obtains the value held previously
+                        \fI(public member function)\fP
+operator++
+operator++(int)         atomically increments or decrements the referenced object by one
+operator--              \fI(public member function)\fP
+operator--(int)
+      Provided only when T is an integral type other than cv bool
+                        atomically performs bitwise AND between the argument and the value
+fetch_and               of the referenced object and obtains the value held previously
+                        \fI(public member function)\fP
+                        atomically performs bitwise OR between the argument and the value
+fetch_or                of the referenced object and obtains the value held previously
+                        \fI(public member function)\fP
+                        atomically performs bitwise XOR between the argument and the value
+fetch_xor               of the referenced object and obtains the value held previously
+                        \fI(public member function)\fP
+operator&=              atomically performs bitwise AND, OR, XOR with the referenced value
+operator|=              \fI(public member function)\fP
+operator^=
 
-.SH Specialized member functions
+.SH Specializations
 
-         Specialized for integral, floating-point and pointer types
-                   atomically adds the argument to the value stored in the referenced
-   fetch_add       object and obtains the value held previously
-                   \fI(public member function)\fP
-                   atomically subtracts the argument from the value stored in the
-   fetch_sub       referenced object and obtains the value held previously
-                   \fI(public member function)\fP
-   operator+=      atomically adds to or subtracts from the referenced value
-   operator-=      \fI(public member function)\fP
-         Specialized for integral and pointer types only
-   fetch_max       atomically performs std::max between the argument and the value of
-   (C++26)         the referenced object and obtains the value held previously
-                   \fI(public member function)\fP
-   fetch_min       atomically performs std::min between the argument and the value of
-   (C++26)         the referenced object and obtains the value held previously
-                   \fI(public member function)\fP
-   operator++
-   operator++(int) atomically increments or decrements the referenced object by one
-   operator--      \fI(public member function)\fP
-   operator--(int)
-         Specialized for integral types only
-                   atomically performs bitwise AND between the argument and the value
-   fetch_and       of the referenced object and obtains the value held previously
-                   \fI(public member function)\fP
-                   atomically performs bitwise OR between the argument and the value of
-   fetch_or        the referenced object and obtains the value held previously
-                   \fI(public member function)\fP
-                   atomically performs bitwise XOR between the argument and the value
-   fetch_xor       of the referenced object and obtains the value held previously
-                   \fI(public member function)\fP
-   operator&=      atomically performs bitwise AND, OR, XOR with the referenced value
-   operator|=      \fI(public member function)\fP
-   operator^=
+The standard specifies that std::atomic_ref has following specializations:
+
+template<>                                  \fB(1)\fP \fI(since C++20)\fP
+struct atomic_ref</*integral-type*/>;
+template<>                                  \fB(2)\fP \fI(since C++20)\fP
+struct atomic_ref</*floating-point-type*/>;
+template< class /*pointer-type*/ >
+
+requires /* see below */                    \fB(3)\fP \fI(since C++20)\fP
+
+struct atomic_ref</*pointer-type*/>;
+
+1) /*integral-type*/ denotes a possibly cv-qualified integral type other than cv bool.
+2) /*floating-point-type*/ denotes a possibly cv-qualified floating-point type.
+3) The partial specialization is provided for /*pointer-type*/ types that are possibly
+cv-qualified pointer-to-object types.
 
 .SH Notes
 
-    Feature-test macro   Value    Std       Feature
-   __cpp_lib_atomic_ref 201806L (C++20) std::atomic_ref
+Implementations may merge the specified specializations. E.g. MSVC STL merges all of them
+into the primary template.
+
+When T is cv void or a function type, std::atomic_ref<T*> (i.e. std::atomic_ref<void*>,
+std::atomic_ref<int(*)()> etc.) does not have difference_type or any operation requiring
+pointer arithmetic
+or relational comparison
+(since C++26).
+
+    Feature-test macro      Value    Std                    Feature
+__cpp_lib_atomic_ref       201806L (C++20) std::atomic_ref
+__cpp_lib_constexpr_atomic 202411L (C++26) constexpr std::atomic and std::atomic_ref
+
+  Defect reports
+
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
+
+   DR     Applied to              Behavior as published                 Correct behavior
+                     atomic_ref<T> had unimplementable operations     these operations are
+LWG 3508  C++20      if T is a const type or pointer-to-non-object    either constained
+(P3323R1)            type                                             or not provided for
+                                                                      unsuitable T
 
 .SH See also
 
-           atomic class template and specializations for bool, integral,
-   atomic  floating-point,
-   \fI(C++11)\fP \fI(since C++20)\fP and pointer types
-           \fI(class template)\fP
+        atomic class template and specializations for bool, integral,
+atomic  floating-point,
+\fI(C++11)\fP \fI(since C++20)\fP and pointer types
+        \fI(class template)\fP

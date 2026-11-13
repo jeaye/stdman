@@ -1,87 +1,96 @@
-.TH std::is_member_pointer 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::is_member_pointer 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::is_member_pointer \- std::is_member_pointer
 
 .SH Synopsis
-   Defined in header <type_traits>
-   template< class T >              \fI(since C++11)\fP
-   struct is_member_pointer;
+Defined in header <type_traits>
+template< class T >              \fI(since C++11)\fP
+struct is_member_pointer;
 
-   std::is_member_pointer is a UnaryTypeTrait.
+std::is_member_pointer is a UnaryTypeTrait.
 
-   If T is pointer to non-static member object or a pointer to non-static member
-   function, provides the member constant value equal true. For any other type, value
-   is false.
+If T is pointer to non-static member object or a pointer to non-static member function,
+provides the member constant value equal true. For any other type, value is false.
 
-   If the program adds specializations for std::is_member_pointer or
-   std::is_member_pointer_v, the behavior is undefined.
+If the program adds specializations for std::is_member_pointer or
+std::is_member_pointer_v, the behavior is undefined.
 
 .SH Template parameters
 
-   T - a type to check
+T - a type to check
 
-   Helper variable template
+  Helper variable template
 
-   template< class T >
-   inline constexpr bool is_member_pointer_v =                            \fI(since C++17)\fP
-   is_member_pointer<T>::value;
-
-
+template< class T >                                                \fI(since C++17)\fP
+constexpr bool is_member_pointer_v = is_member_pointer<T>::value;
 
 Inherited from std::integral_constant
 
 .SH Member constants
 
-   value    true if T is a member pointer type, false otherwise
-   \fB[static]\fP \fI(public static member constant)\fP
+value    true if T is a member pointer type, false otherwise
+\fB[static]\fP \fI(public static member constant)\fP
 
 .SH Member functions
 
-   operator bool converts the object to bool, returns value
-                 \fI(public member function)\fP
-   operator()    returns value
-   \fI(C++14)\fP       \fI(public member function)\fP
+operator bool converts the object to bool, returns value
+              \fI(public member function)\fP
+operator()    returns value
+\fI(C++14)\fP       \fI(public member function)\fP
 
 .SH Member types
 
-   Type       Definition
-   value_type bool
-   type       std::integral_constant<bool, value>
+Type       Definition
+value_type bool
+type       std::integral_constant<bool, value>
 
 .SH Possible implementation
 
- template<class T>
- struct is_member_pointer_helper : std::false_type {};
+template<class T>
+struct is_member_pointer_helper : std::false_type {};
 
- template<class T, class U>
- struct is_member_pointer_helper<T U::*> : std::true_type {};
+template<class T, class U>
+struct is_member_pointer_helper<T U::*> : std::true_type {};
 
- template<class T>
- struct is_member_pointer : is_member_pointer_helper<typename std::remove_cv<T>::type> {};
+template<class T>
+struct is_member_pointer : is_member_pointer_helper<typename std::remove_cv<T>::type> {};
 
 .SH Example
 
 
 // Run this code
 
- #include <type_traits>
+#include <cassert>
+#include <type_traits>
 
- class C {};
- static_assert(std::is_member_pointer_v<int(C::*)>);
+static_assert(!std::is_member_pointer_v<int*>);
 
- static_assert(!std::is_member_pointer_v<int>);
+struct S
+{
+    int i{42};
+    int foo() { return 0xF00; }
+};
+using mem_int_ptr_t = int S::*;
+using mem_fun_ptr_t = int (S::*)();
+static_assert(std::is_member_pointer_v<mem_int_ptr_t>);
+static_assert(std::is_member_pointer_v<mem_fun_ptr_t>);
 
- int main()
- {
- }
+int main()
+{
+    S s;
+
+    mem_int_ptr_t pm = &S::i;
+    assert(s.i == s.*pm);
+
+    mem_fun_ptr_t pmf = &S::foo;
+    assert((s.*pmf)() == s.foo());
+}
 
 .SH See also
 
-   is_pointer                 checks if a type is a pointer type
-   \fI(C++11)\fP                    \fI(class template)\fP
-   is_member_object_pointer   checks if a type is a pointer to a non-static member
-   \fI(C++11)\fP                    object
-                              \fI(class template)\fP
-   is_member_function_pointer checks if a type is a pointer to a non-static member
-   \fI(C++11)\fP                    function
-                              \fI(class template)\fP
+is_pointer                 checks if a type is a pointer type
+\fI(C++11)\fP                    \fI(class template)\fP
+is_member_object_pointer   checks if a type is a non-static member object pointer
+\fI(C++11)\fP                    \fI(class template)\fP
+is_member_function_pointer checks if a type is a non-static member function pointer
+\fI(C++11)\fP                    \fI(class template)\fP

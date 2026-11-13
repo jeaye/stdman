@@ -1,115 +1,113 @@
-.TH std::filesystem::u8path 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::filesystem::u8path 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::filesystem::u8path \- std::filesystem::u8path
 
 .SH Synopsis
-   Defined in header <filesystem>
-   template< class Source >                                   \fB(1)\fP \fI(since C++17)\fP
-   std::filesystem::path u8path( const Source& source );          (deprecated in C++20)
-   template< class InputIt >                                      \fI(since C++17)\fP
-   std::filesystem::path u8path( InputIt first, InputIt last  \fB(2)\fP (deprecated in C++20)
-   );
+Defined in header <filesystem>
+template< class Source >                                     \fB(1)\fP \fI(since C++17)\fP
+std::filesystem::path u8path( const Source& source );            (deprecated in C++20)
+template< class InputIt >                                    \fB(2)\fP \fI(since C++17)\fP
+std::filesystem::path u8path( InputIt first, InputIt last );     (deprecated in C++20)
 
-   Constructs a path p from a UTF-8 encoded sequence of chars
-   or char8_ts
-   \fI(since C++20)\fP, supplied either as an std::string, or as std::string_view, or as a
-   null-terminated multibyte string, or as a [first, last) iterator pair.
+Constructs a path p from a UTF-8 encoded sequence of chars
+or char8_ts
+\fI(since C++20)\fP, supplied either as an std::string, or as std::string_view, or as a
+null-terminated multibyte string, or as a [first, last) iterator pair.
 
-     * If path::value_type is char and native encoding is UTF-8, constructs a path
-       directly as if by path(source) or path(first, last). Note: this is the typical
-       situation of a POSIX system that uses Unicode, such as Linux.
-     * Otherwise, if path::value_type is wchar_t and native encoding is UTF-16 (this is
-       the situation on Windows), or if path::value_type is char16_t (native encoding
-       guaranteed UTF-16) or char32_t (native encoding guaranteed UTF-32), then first
-       converts the UTF-8 character sequence to a temporary string tmp of type
-       path::string_type and then the new path is constructed as if by path(tmp).
-     * Otherwise (for non-UTF-8 narrow character encodings and for non-UTF-16 wchar_t),
-       first converts the UTF-8 character sequence to a temporary UTF-32-encoded string
-       tmp of type std::u32string, and then the new path is constructed as if by
-       path(tmp) (this path is taken on a POSIX system with a non-Unicode multibyte or
-       single-byte encoded filesystem).
+  * If path::value_type is char and native encoding is UTF-8, constructs a path directly
+    as if by path(source) or path(first, last). Note: this is the typical situation of a
+    POSIX system that uses Unicode, such as Linux.
+  * Otherwise, if path::value_type is wchar_t and native encoding is UTF-16 (this is the
+    situation on Windows), or if path::value_type is char16_t (native encoding guaranteed
+    UTF-16) or char32_t (native encoding guaranteed UTF-32), then first converts the UTF-8
+    character sequence to a temporary string tmp of type path::string_type and then the
+    new path is constructed as if by path(tmp).
+  * Otherwise (for non-UTF-8 narrow character encodings and for non-UTF-16 wchar_t), first
+    converts the UTF-8 character sequence to a temporary UTF-32-encoded string tmp of type
+    std::u32string, and then the new path is constructed as if by path(tmp) (this path is
+    taken on a POSIX system with a non-Unicode multibyte or single-byte encoded
+    filesystem).
 
 .SH Parameters
 
-                 a UTF-8 encoded std::string, std::string_view, a pointer to a
-   source      - null-terminated multibyte string, or an input iterator with char value
-                 type that points to a null-terminated multibyte string
-   first, last - pair of LegacyInputIterators that specify a UTF-8 encoded character
-                 sequence
+              a UTF-8 encoded std::string, std::string_view, a pointer to a
+source      - null-terminated multibyte string, or an input iterator with char value type
+              that points to a null-terminated multibyte string
+first, last - pair of LegacyInputIterators that specify a UTF-8 encoded character sequence
 .SH Type requirements
-   -
-   InputIt must meet the requirements of LegacyInputIterator.
-   -
-   The value type of Source or InputIt must be char
-   or char8_t.
-   \fI(since C++20)\fP
+-
+InputIt must meet the requirements of LegacyInputIterator.
+-
+The value type of Source or InputIt must be char
+or char8_t.
+\fI(since C++20)\fP
 
 .SH Return value
 
-   The path constructed from the input string after conversion from UTF-8 to the
-   filesystem's native character encoding.
+The path constructed from the input string after conversion from UTF-8 to the filesystem's
+native character encoding.
 
 .SH Exceptions
 
-   May throw std::bad_alloc if memory allocation fails.
+May throw std::bad_alloc if memory allocation fails.
 
 .SH Notes
 
-   On systems where native path format differs from the generic path format (neither
-   Windows nor POSIX systems are examples of such OSes), if the argument to this
-   function is using generic format, it will be converted to native.
+On systems where native path format differs from the generic path format (neither Windows
+nor POSIX systems are examples of such OSes), if the argument to this function is using
+generic format, it will be converted to native.
 
 .SH Example
 
 
 // Run this code
 
- #include <cstdio>
- #ifdef _MSC_VER
- #include <fcntl.h>
- #include <io.h>
- #else
- #include <clocale>
- #include <locale>
- #endif
- #include <filesystem>
- #include <fstream>
+#include <cstdio>
+#ifdef _MSC_VER
+#include <fcntl.h>
+#include <io.h>
+#else
+#include <clocale>
+#include <locale>
+#endif
+#include <filesystem>
+#include <fstream>
 
- int main()
- {
- #ifdef _MSC_VER
-     _setmode(_fileno(stderr), _O_WTEXT);
- #else
-     std::setlocale(LC_ALL, "");
-     std::locale::global(std::locale(""));
- #endif
+int main()
+{
+#ifdef _MSC_VER
+    _setmode(_fileno(stderr), _O_WTEXT);
+#else
+    std::setlocale(LC_ALL, "");
+    std::locale::global(std::locale(""));
+#endif
 
-     std::filesystem::path p(u8"要らない.txt");
-     std::ofstream(p) << "File contents"; // Prior to LWG2676 uses operator string_type()
-                                          // on MSVC, where string_type is wstring, only
-                                          // works due to non-standard extension.
-                                          // Post-LWG2676 uses new fstream constructors
+    std::filesystem::path p(u8"要らない.txt");
+    std::ofstream(p) << "File contents"; // Prior to LWG2676 uses operator string_type()
+                                         // on MSVC, where string_type is wstring, only
+                                         // works due to non-standard extension.
+                                         // Post-LWG2676 uses new fstream constructors
 
-     // Native string representation can be used with OS-specific APIs
- #ifdef _MSC_VER
-     if (std::FILE* f = _wfopen(p.c_str(), L"r"))
- #else
-     if (std::FILE* f = std::fopen(p.c_str(), "r"))
- #endif
-     {
-         for (int ch; (ch = fgetc(f)) != EOF; std::putchar(ch))
-         {}
-         std::fclose(f);
-     }
+    // Native string representation can be used with OS-specific APIs
+#ifdef _MSC_VER
+    if (std::FILE* f = _wfopen(p.c_str(), L"r"))
+#else
+    if (std::FILE* f = std::fopen(p.c_str(), "r"))
+#endif
+    {
+        for (int ch; (ch = fgetc(f)) != EOF; std::putchar(ch))
+        {}
+        std::fclose(f);
+    }
 
-     std::filesystem::remove(p);
- }
+    std::filesystem::remove(p);
+}
 
 .SH Possible output:
 
- File contents
+File contents
 
 .SH See also
 
-   path    represents a path
-   \fI(C++17)\fP \fI(class)\fP
+path    represents a path
+\fI(C++17)\fP \fI(class)\fP

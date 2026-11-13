@@ -1,63 +1,85 @@
-.TH std::ranges::contiguous_range 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::contiguous_range 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::contiguous_range \- std::ranges::contiguous_range
 
 .SH Synopsis
-   Defined in header <ranges>
-   template< class T >
+Defined in header <ranges>
+template< class T >
 
-     concept contiguous_range =
-       ranges::random_access_range<T> &&
-       std::contiguous_iterator<ranges::iterator_t<T>> &&                   (since
-       requires(T& t) {                                                     C++20)
-         { ranges::data(t) } ->
-           std::same_as<std::add_pointer_t<ranges::range_reference_t<T>>>;
+concept contiguous_range =
+ranges::random_access_range<T> &&
+std::contiguous_iterator<ranges::iterator_t<T>> &&               \fI(since C++20)\fP
+requires(T& t) {
+{ ranges::data(t) } ->
+std::same_as<std::add_pointer_t<ranges::range_reference_t<T>>>;
 
-       };
+};
 
-   The contiguous_range concept is a refinement of range for which ranges::begin
-   returns a model of contiguous_iterator and the customization point ranges::data is
-   usable.
+The contiguous_range concept is a refinement of range for which ranges::begin returns a
+model of contiguous_iterator and the customization point ranges::data is usable.
 
-   Semantic requirements
+  Semantic requirements
 
-   T models contiguous_range only if given an expression e such that decltype((e)) is
-   T&, std::to_address(ranges::begin(e)) == ranges::data(e).
+T models contiguous_range only if given an expression e such that decltype((e)) is T&,
+std::to_address(ranges::begin(e)) == ranges::data(e).
 
 .SH Example
 
 
 // Run this code
 
- #include <array>
- #include <deque>
- #include <list>
- #include <ranges>
- #include <set>
- #include <valarray>
- #include <vector>
+#include <array>
+#include <deque>
+#include <list>
+#include <mdspan>
+#include <ranges>
+#include <set>
+#include <span>
+#include <string_view>
+#include <valarray>
+#include <vector>
 
- template<typename T> concept CR = std::ranges::contiguous_range<T>;
+template<typename T>
+concept CR = std::ranges::contiguous_range<T>;
 
- int main()
- {
-     int a[4];
-     static_assert(
-             CR<std::vector<int>> and
-         not CR<std::vector<bool>> and
-         not CR<std::deque<int>> and
-             CR<std::valarray<int>> and
-             CR<decltype(a)> and
-         not CR<std::list<int>> and
-         not CR<std::set<int>> and
-             CR<std::array<std::list<int>,42>>
-     );
- }
+// zstring being a ranges::contiguous_range doesn't have to be a ranges::sized_range
+struct zstring
+{
+    struct sentinel
+    {
+        friend constexpr bool operator==(const char* str, sentinel) noexcept
+        { return *str == '\\0'; }
+    };
+
+    const char* str;
+
+    const char* begin() const noexcept { return str; }
+    sentinel end() const noexcept { return {}; }
+};
+
+int main()
+{
+    int a[4];
+    static_assert(
+            CR<std::vector<int>> and
+        not CR<std::vector<bool>> and
+        not CR<std::deque<int>> and
+            CR<std::valarray<int>> and
+            CR<decltype(a)> and
+        not CR<std::list<int>> and
+        not CR<std::set<int>> and
+            CR<std::array<std::list<int>,42>> and
+            CR<std::string_view> and
+            CR<zstring> and
+            CR<std::span<const int>> and
+        not CR<std::mdspan<int, std::dims<1>>>
+    );
+}
 
 .SH See also
 
-   ranges::sized_range         specifies that a range knows its size in constant time
-   (C++20)                     (concept)
-   ranges::random_access_range specifies a range whose iterator type satisfies
-   (C++20)                     random_access_iterator
-                               (concept)
+ranges::sized_range         specifies that a range knows its size in constant time
+(C++20)                     (concept)
+ranges::random_access_range specifies a range whose iterator type satisfies
+(C++20)                     random_access_iterator
+                            (concept)

@@ -1,45 +1,65 @@
-.TH std::basic_const_iterator::operatorconstant-iterator 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::basic_const_iterator::operatorconstant-iterator 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::basic_const_iterator::operatorconstant-iterator \- std::basic_const_iterator::operatorconstant-iterator
 
 .SH Synopsis
-   template< /*not-a-const-iterator*/ CI >
+template< /*not-a-const-iterator*/ CI >
 
-     requires /*constant-iterator*/<CI> &&    \fB(1)\fP (since C++23)
-         std::convertible_to<Iter const&, CI>
+requires /*constant-iterator*/<CI> &&   \fB(1)\fP (since C++23)
+std::convertible_to<Iter const&, CI>
 
-   constexpr operator CI() const &;
-   template< /*not-a-const-iterator*/ CI >
+constexpr operator CI() const &;
+template< /*not-a-const-iterator*/ CI >
 
-     requires /*constant-iterator*/<CI> &&    \fB(2)\fP (since C++23)
-         std::convertible_to<Iter, CI>
+requires /*constant-iterator*/<CI> &&   \fB(2)\fP (since C++23)
+std::convertible_to<Iter, CI>
 
-   constexpr operator CI() &&;
+constexpr operator CI() &&;
 
-   Returns the converted constant iterator to which an underlying iterator current can
-   be explicitly or implicitly convertible.
+Returns the converted constant iterator to which an underlying iterator current can be
+explicitly or implicitly convertible.
 
-   CI satisfies the exposition-only concept /*not-a-const-iterator*/ if and only if
-   it's not a specialization of basic_const_iterator.
+CI satisfies the exposition-only concept /*not-a-const-iterator*/ if and only if it's not
+a specialization of basic_const_iterator.
 
 .SH Return value
 
-   1) current
-   2) std::move(current)
+1) current
+2) std::move(current)
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
 
-   Defect reports
+// Run this code
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+#include <iterator>
+#include <ranges>
+#include <vector>
 
-     DR    Applied to             Behavior as published              Correct behavior
-   P2836R1 C++23      basic_const_iterator doesn't follow its       conversion operator
-                      underlying type's convertibility              provided
+void foo(std::vector<int>::const_iterator) {}
 
-.SH Category:
-     * Todo no example
+int main()
+{
+    auto v = std::vector<int>();
+    {
+        // ranges::cbegin below returns vector<int>::const_iterator
+        auto i1 = std::ranges::cbegin(v);
+        foo(i1); // okay
+    }
+
+    auto t = v | std::views::take_while([](int const x) { return x < 100; });
+    {
+        // ranges::cbegin below returns basic_const_iterator<vector<int>::iterator>
+        auto i2 = std::ranges::cbegin(t);
+        foo(i2); // error until P2836R1
+    }
+}
+
+  Defect reports
+
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
+
+  DR    Applied to                Behavior as published                 Correct behavior
+P2836R1 C++23      basic_const_iterator doesn't follow its underlying  conversion operator
+                   type's convertibility                               provided

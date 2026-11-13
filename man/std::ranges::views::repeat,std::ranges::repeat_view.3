@@ -1,179 +1,225 @@
-.TH std::ranges::views::repeat,std::ranges::repeat_view 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::ranges::views::repeat,std::ranges::repeat_view 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::ranges::views::repeat,std::ranges::repeat_view \- std::ranges::views::repeat,std::ranges::repeat_view
 
 .SH Synopsis
-   Defined in header <ranges>
-   template< std::move_constructible W,
+Defined in header <ranges>
+template< std::move_constructible W,
 
-             std::semiregular Bound = std::unreachable_sentinel_t >
-       requires (std::is_object_v<W> && std::same_as<W,
-   std::remove_cv_t<W>> &&                                            \fB(1)\fP (since C++23)
-                (/*is-integer-like*/<Bound> ||
-                 std::same_as<Bound, std::unreachable_sentinel_t>))
+std::semiregular Bound = std::unreachable_sentinel_t >
+requires (std::is_object_v<W> && std::same_as<W,
+std::remove_cv_t<W>> &&                                             \fB(1)\fP (since C++23)
+(/*integer-like-with-usable-difference-type*/<Bound> ||
+std::same_as<Bound, std::unreachable_sentinel_t>))
 
-   class repeat_view : public ranges::view_interface<repeat_view<W,
-   Bound>>
-   namespace views {
+class repeat_view : public ranges::view_interface<repeat_view<W,
+Bound>>
+namespace views {
 
-       inline constexpr /*unspecified*/ repeat = /*unspecified*/;     \fB(2)\fP (since C++23)
+inline constexpr /* unspecified */ repeat = /* unspecified */;      \fB(2)\fP (since C++23)
 
-   }
-   Call signature
-   template< class W >
+}
+Call signature
+template< class W >
 
-       requires /* see below */                                           (since C++23)
+requires /* see below */                                                (since C++23)
 
-   constexpr /* see below */ repeat( W&& value );
-   template< class W, class Bound >
+constexpr /* see below */ repeat( W&& value );
+template< class W, class Bound >
 
-       requires /* see below */                                           (since C++23)
+requires /* see below */                                                (since C++23)
 
-   constexpr /* see below */ repeat( W&& value, Bound&& bound );
+constexpr /* see below */ repeat( W&& value, Bound&& bound );
+Helper concepts
+concept /*integer-like-with-usable-difference-type*/ =
 
-   1) A range factory that generates a sequence of elements by repeatedly producing the
-   same value. Can be either bounded or unbounded (infinite).
-   2) views::repeat(e) and views::repeat(e, f) are expression-equivalent to (has the
-   same effect as) repeat_view(e) and repeat_view(e, f) respectively for any suitable
-   subexpressions e and f.
+/*is-signed-integer-like*/<T> ||                                    \fB(3)\fP (exposition only*)
 
-   repeat_view models random_access_range. If Bound is not std::unreachable_sentinel_t,
-   repeat_view also models sized_range and common_range.
+(/*is-integer-like*/ <T> && std::weakly_incrementable<T>)
+
+1) A range factory that generates a sequence of elements by repeatedly producing the same
+value. Can be either bounded or unbounded (infinite).
+2) views::repeat(e) and views::repeat(e, f) are expression-equivalent to
+repeat_view<std::decay_t<decltype((E))>>(e) and repeat_view(e, f) respectively for any
+suitable subexpressions e and f.
+3) Determines whether a type is integer-like and has a usable difference type.
+
+repeat_view models random_access_range. If Bound is not std::unreachable_sentinel_t,
+repeat_view also models sized_range and common_range.
+
+  Customization point objects
+
+The name views::repeat denotes a customization point object, which is a const function
+object of a literal semiregular class type. For exposition purposes, the cv-unqualified
+version of its type is denoted as __repeat_fn.
+
+All instances of __repeat_fn are equal. The effects of invoking different instances of
+type __repeat_fn on the same arguments are equivalent, regardless of whether the
+expression denoting the instance is an lvalue or rvalue, and is const-qualified or not
+(however, a volatile-qualified instance is not required to be invocable). Thus,
+views::repeat can be copied freely and its copies can be used interchangeably.
+
+Given a set of types Args..., if std::declval<Args>()... meet the requirements for
+arguments to views::repeat above, __repeat_fn models
+
+  * std::invocable<__repeat_fn, Args...>,
+  * std::invocable<const __repeat_fn, Args...>,
+  * std::invocable<__repeat_fn&, Args...>, and
+  * std::invocable<const __repeat_fn&, Args...>.
+
+Otherwise, no function call operator of __repeat_fn participates in overload resolution.
+
+  Data members
+
+Member                  Definition
+movable-box ﻿<W> value_ the repeating element of the view
+                        (exposition-only member object*)
+Bound bound_            the sentinel value
+                        (exposition-only member object*)
 
 .SH Member functions
 
-   constructor   creates a repeat_view
-                 \fI(public member function)\fP
-   begin         obtains the beginning iterator of a repeat_view
-                 \fI(public member function)\fP
-   end           obtains the sentinel denoting the end of a repeat_view
-                 \fI(public member function)\fP
-   size          obtains the size of a repeat_view if it is sized
-                 \fI(public member function)\fP
-         Inherited from std::ranges::view_interface
-   empty         returns whether the derived view is empty. Provided if it satisfies
-   (C++20)       sized_range or forward_range.
-                 \fI(public member function of std::ranges::view_interface<D>)\fP
-   cbegin        returns a constant iterator to the beginning of the range.
-   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
-   cend          returns a sentinel for the constant iterator of the range.
-   (C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
-   operator bool returns whether the derived view is not empty. Provided if
-   (C++20)       ranges::empty is applicable to it.
-                 \fI(public member function of std::ranges::view_interface<D>)\fP
-   front         returns the first element in the derived view. Provided if it
-   (C++20)       satisfies forward_range.
-                 \fI(public member function of std::ranges::view_interface<D>)\fP
-   back          returns the last element in the derived view. Provided if it satisfies
-   (C++20)       bidirectional_range and common_range.
-                 \fI(public member function of std::ranges::view_interface<D>)\fP
-   operator[]    returns the n^th element in the derived view. Provided if it satisfies
-   (C++20)       random_access_range.
-                 \fI(public member function of std::ranges::view_interface<D>)\fP
+constructor   creates a repeat_view
+              \fI(public member function)\fP
+begin         obtains the beginning iterator of a repeat_view
+              \fI(public member function)\fP
+end           obtains the sentinel denoting the end of a repeat_view
+              \fI(public member function)\fP
+size          obtains the size of a repeat_view if it is sized
+              \fI(public member function)\fP
+      Inherited from std::ranges::view_interface
+              returns whether the derived view is empty. Provided if it satisfies
+empty         sized_range or forward_range.
+              \fI(public member function of std::ranges::view_interface<D>)\fP
+cbegin        returns a constant iterator to the beginning of the range.
+(C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+cend          returns a sentinel for the constant iterator of the range.
+(C++23)       \fI(public member function of std::ranges::view_interface<D>)\fP
+              returns whether the derived view is not empty. Provided if ranges::empty is
+operator bool applicable to it.
+              \fI(public member function of std::ranges::view_interface<D>)\fP
+              returns the first element in the derived view. Provided if it satisfies
+front         forward_range.
+              \fI(public member function of std::ranges::view_interface<D>)\fP
+              returns the last element in the derived view. Provided if it satisfies
+back          bidirectional_range and common_range.
+              \fI(public member function of std::ranges::view_interface<D>)\fP
+              returns the n^th element in the derived view. Provided if it satisfies
+operator[]    random_access_range.
+              \fI(public member function of std::ranges::view_interface<D>)\fP
 
 std::ranges::repeat_view::repeat_view
 
-   repeat_view() requires std::default_initializable<W> = default;    \fB(1)\fP (since C++23)
-   constexpr explicit repeat_view( const W& value, Bound bound =      \fB(2)\fP (since C++23)
-   Bound() );
-   constexpr explicit repeat_view( W&& value, Bound bound = Bound()   \fB(3)\fP (since C++23)
-   );
-   template < class... WArgs, class... BoundArgs >
+repeat_view() requires std::default_initializable<W> = default;          \fB(1)\fP (since C++23)
+constexpr explicit repeat_view( const W& value, Bound bound = Bound() ); \fB(2)\fP (since C++23)
+constexpr explicit repeat_view( W&& value, Bound bound = Bound() );      \fB(3)\fP (since C++23)
+template < class... WArgs, class... BoundArgs >
 
-       requires std::constructible_from<W, WArgs...>
-             && std::constructible_from<Bound, BoundArgs...>
-   constexpr explicit repeat( std::piecewise_construct_t,             \fB(4)\fP (since C++23)
-                              std::tuple<WArgs...> value_args,
+requires std::constructible_from<W, WArgs...>
+&& std::constructible_from<Bound, BoundArgs...>                          \fB(4)\fP (since C++23)
+constexpr explicit
+repeat( std::piecewise_construct_t, std::tuple<WArgs...> value_args,
 
-                              std::tuple<BoundArgs...> bound_args =
-   std::tuple<>{} );
+std::tuple<BoundArgs...> bound_args = std::tuple<>{} );
 
-   1) Value-initializes value_ and bound_ via their default member initializers (= W()
-   and = Bound()).
-   2) Initializes value_ with value and initializes bound_ with bound. The behavior is
-   undefined if Bound is not std::unreachable_sentinel_t and bool(bound >= 0) is false.
-   3) Initializes value_ with std::move(value) and initializes bound_ with bound. The
-   behavior is undefined if Bound is not std::unreachable_sentinel_t and bool(bound >=
-   0) is false.
-   4) Initializes value_ and bound_ through piecewise construction.
+1) Default-initializes value_ and value-initializes bound_ ﻿.
+2) Initializes value_ with value and initializes bound_ with bound.
+If Bound is not std::unreachable_sentinel_t and bool(bound >= 0) is false, the behavior is
+undefined.
+3) Initializes value_ with std::move(value) and initializes bound_ with bound.
+If Bound is not std::unreachable_sentinel_t and bool(bound >= 0) is false, the behavior is
+undefined.
+4) Initializes value_ with std::make_from_tuple<T>(std::move(value_args)) and bound_ with
+std::make_from_tuple<Bound>(std::move(bound_args)).
+If Bound is not std::unreachable_sentinel_t and bool(bound >= 0) is false, the behavior is
+undefined.
 
 .SH Parameters
 
-   value - the value to be repeatedly produced
-   bound - the bound
+value      - the value to be repeatedly produced
+bound      - the bound
+value_args - the tuple containing the initializers of value_
+bound_args - the tuple containing the initializers of bound_
 
 std::ranges::repeat_view::begin
 
-   constexpr /*iterator*/ begin() const;  (since C++23)
+constexpr /*iterator*/ begin() const;  (since C++23)
 
-   Returns an iterator initialized with std::addressof(*value_).
+Returns iterator ﻿(std::addressof(*value_ ﻿)).
 
 std::ranges::repeat_view::end
 
-   constexpr /*iterator*/ end() const                                \fB(1)\fP (since C++23)
-       requires (!std::same_as<Bound, std::unreachable_sentinel_t>);
-   constexpr std::unreachable_sentinel_t end() const;                \fB(2)\fP (since C++23)
+constexpr /*iterator*/ end() const                            \fB(1)\fP (since C++23)
+requires (!std::same_as<Bound, std::unreachable_sentinel_t>);
+constexpr std::unreachable_sentinel_t end() const;            \fB(2)\fP (since C++23)
 
-   1) Returns an iterator initialized with std::addressof(*value_) and bound_.
-   2) Returns an std::unreachable_sentinel.
+1) Returns iterator ﻿(std::addressof(*value_ ﻿),  bound_ ﻿).
+2) Returns std::unreachable_sentinel.
 
 std::ranges::repeat_view::size
 
-   constexpr auto size() const                                        (since C++23)
-       requires (!std::same_as<Bound, std::unreachable_sentinel_t>);
+constexpr auto size() const                                    (since C++23)
+requires (!std::same_as<Bound, std::unreachable_sentinel_t>);
 
-   Returns the size of the view if the view is bounded. Equivalent to return
-   /*to-unsigned-like*/(bound_);.
+Returns to-unsigned-like ﻿(bound_ ﻿).
 
-   The exposition-only function template to-unsigned-like converts its argument (which
-   must be integer-like) to the corresponding unsigned version of the argument type.
+  Deduction guides
 
-   Deduction guides
+template< class W, class Bound = std::unreachable_sentinel_t >  (since C++23)
+repeat_view( W, Bound = Bound() ) -> repeat_view<W, Bound>;
 
-   template< class W, class Bound >                   (since C++23)
-   repeat_view( W, Bound ) -> repeat_view<W, Bound>;
+  Nested classes
 
-   Nested classes
-
-   iterator the iterator type
-   (C++23)  (exposition-only member class*)
+iterator the iterator type
+         (exposition-only member class*)
 
 .SH Notes
 
-     Feature-test macro     Value    Std           Feature
-   __cpp_lib_ranges_repeat 202207L (C++23) std::ranges::repeat_view
+  Feature-test macro     Value    Std           Feature
+__cpp_lib_ranges_repeat 202207L (C++23) std::ranges::repeat_view
 
 .SH Example
 
 
 // Run this code
 
- #include <iostream>
- #include <ranges>
- #include <string_view>
- using namespace std::literals;
+#include <iostream>
+#include <ranges>
+#include <string_view>
+using namespace std::literals;
 
- int main()
- {
-     // bounded overload
-     for (auto s : std::views::repeat("C++"sv, 3))
-         std::cout << s << ' ';
-     std::cout << '\\n';
+int main()
+{
+    // bounded overload
+    for (auto s : std::views::repeat("C++"sv, 3))
+        std::cout << s << ' ';
+    std::cout << '\\n';
 
-     // unbounded overload
-     for (auto s : std::views::repeat("I know that you know that"sv)
-                 | std::views::take(3))
-         std::cout << s << ' ';
-     std::cout << "...\\n";
- }
+    // unbounded overload
+    for (auto s : std::views::repeat("I know that you know that"sv)
+                | std::views::take(3))
+        std::cout << s << ' ';
+    std::cout << "...\\n";
+}
 
 .SH Output:
 
- C++ C++ C++
- I know that you know that I know that you know that I know that you know that ...
+C++ C++ C++
+I know that you know that I know that you know that I know that you know that ...
+
+  Defect reports
+
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
+
+   DR    Applied to                Behavior as published                 Correct behavior
+LWG 4053 C++20      unary calls to views::repeat did not decay the      decay the argument
+                    argument
+LWG 4054 C++20      calling views::repeat with a repeat_view            creates a nested
+                    did not create a nested repeat_view                 repeat_view
 
 .SH See also
 
-   ranges::iota_view a view consisting of a sequence generated by repeatedly
-   views::iota       incrementing an initial value
-   (C++20)           \fI(class template)\fP (customization point object)
+ranges::iota_view a view consisting of a sequence generated by repeatedly incrementing an
+views::iota       initial value
+(C++20)           \fI(class template)\fP (customization point object)

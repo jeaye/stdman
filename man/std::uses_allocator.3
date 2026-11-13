@@ -1,50 +1,136 @@
-.TH std::uses_allocator 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::uses_allocator 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::uses_allocator \- std::uses_allocator
 
 .SH Synopsis
-   Defined in header <tuple>
-   template< class... Types, class Alloc >
-   struct uses_allocator< std::tuple<Types...>, Alloc > : std::true_type  \fI(since C++11)\fP
-   { };
+Defined in header <memory>
+template< class T, class Alloc >  \fI(since C++11)\fP
+struct uses_allocator;
 
-   This specialization of std::uses_allocator informs other library components that
-   tuples support uses-allocator construction, even though they do not have a nested
-   allocator_type.
+If T has a nested type allocator_type which is convertible from Alloc, the member constant
+value is true. Otherwise value is false.
+
+  Helper variable template
+
+template< class T, class Alloc >                                    \fI(since C++17)\fP
+constexpr bool uses_allocator_v = uses_allocator<T, Alloc>::value;
+
+Inherited from std::integral_constant
 
 .SH Member constants
 
-   value    true
-   \fB[static]\fP \fI(public static member constant)\fP
+value    true if T uses allocator Alloc, false otherwise
+\fB[static]\fP \fI(public static member constant)\fP
 
 .SH Member functions
 
-   operator bool converts the object to bool, returns value
-                 \fI(public member function)\fP
-   operator()    returns value
-   \fI(C++14)\fP       \fI(public member function)\fP
+operator bool converts the object to bool, returns value
+              \fI(public member function)\fP
+operator()    returns value
+\fI(C++14)\fP       \fI(public member function)\fP
 
 .SH Member types
 
-   Type       Definition
-   value_type bool
-   type       std::integral_constant<bool, value>
+Type       Definition
+value_type bool
+type       std::integral_constant<bool, value>
 
-.SH Example
+  Uses-allocator construction
 
- // myalloc is a stateful Allocator with a single-argument constructor
- // that takes an int. It has no default constructor.
+There are three conventions of passing an allocator alloc to a constructor of some type T:
 
-     using innervector_t = std::vector<int, myalloc<int>>;
-     using elem_t = std::tuple<int, innervector_t>;
-     using Alloc = std::scoped_allocator_adaptor< myalloc<elem_t>, myalloc<int>>;
+  * If T does not use a compatible allocator (std::uses_allocator_v<T, Alloc> is false),
+    then alloc is ignored.
+  * Otherwise, std::uses_allocator_v<T, Alloc> is true, and
 
-     Alloc a(1,2);
-     std::vector<elem_t, Alloc> v(a);
-     v.resize(1);                  // uses allocator #1 for elements of v
-     std::get<1>(v[0]).resize(10); // uses allocator #2 for innervector_t
+           * if T uses the leading-allocator convention (is invocable as
+             T(std::allocator_arg, alloc, args...)), then uses-allocator construction uses
+             this form.
+           * if T uses the trailing-allocator convention (is invocable as T(args...,
+             alloc)), then uses-allocator construction uses this form.
+           * Otherwise, the program is ill-formed (this means std::uses_allocator_v<T,
+             Alloc> is true, but the type does not follow either of the two allowed
+             conventions).
+
+  * As a special case, std::pair is treated as a uses-allocator type even though
+    std::uses_allocator is false for pairs (unlike e.g. std::tuple): see pair-specific
+    overloads of
+    std::pmr::polymorphic_allocator::construct and
+    std::scoped_allocator_adaptor::construct
+    \fI(until C++20)\fP
+    std::uses_allocator_construction_args
+    \fI(since C++20)\fP.
+
+The utility functions std::make_obj_using_allocator, and
+std::uninitialized_construct_using_allocator may be used to explicitly
+create an object following the above protocol, and                           \fI(since C++20)\fP
+std::uses_allocator_construction_args can be used to prepare the argument
+list that matches the flavor of uses-allocator construction expected by the
+type.
+
+.SH Specializations
+
+Given a program-defined type T that does not have a nested allocator_type, a program can
+specialize std::uses_allocator to derive from std::true_type for T if any of the following
+requirements is satisfied:
+
+  * T has a constructor which takes std::allocator_arg_t as the first argument, and Alloc
+    as the second argument.
+  * T has a constructor which takes Alloc as the last argument.
+
+In the above, Alloc is a type that satisfies Allocator
+or is a pointer type convertible to std::experimental::pmr::memory_resource*
+(library fundamentals TS).
+
+The following specializations are already provided by the standard library:
+
+std::uses_allocator<std::tuple>          specializes the std::uses_allocator type trait
+\fI(C++11)\fP                                  \fI(class template specialization)\fP
+std::uses_allocator<std::queue>          specializes the std::uses_allocator type trait
+\fI(C++11)\fP                                  \fI(class template specialization)\fP
+std::uses_allocator<std::priority_queue> specializes the std::uses_allocator type trait
+\fI(C++11)\fP                                  \fI(class template specialization)\fP
+std::uses_allocator<std::stack>          specializes the std::uses_allocator type trait
+\fI(C++11)\fP                                  \fI(class template specialization)\fP
+std::uses_allocator<std::flat_map>       specializes the std::uses_allocator type trait
+(C++23)                                  \fI(class template specialization)\fP
+std::uses_allocator<std::flat_set>       specializes the std::uses_allocator type trait
+(C++23)                                  \fI(class template specialization)\fP
+std::uses_allocator<std::flat_multimap>  specializes the std::uses_allocator type trait
+(C++23)                                  \fI(class template specialization)\fP
+std::uses_allocator<std::flat_multiset>  specializes the std::uses_allocator type trait
+(C++23)                                  \fI(class template specialization)\fP
+std::uses_allocator<std::function>       specializes the std::uses_allocator type trait
+\fI(C++11)\fP \fI(until C++17)\fP                    \fI(class template specialization)\fP
+std::uses_allocator<std::promise>        specializes the std::uses_allocator type trait
+\fI(C++11)\fP                                  \fI(class template specialization)\fP
+std::uses_allocator<std::packaged_task>  specializes the std::uses_allocator type trait
+\fI(C++11)\fP \fI(until C++17)\fP                    \fI(class template specialization)\fP
+
+.SH Notes
+
+This type trait is used by std::tuple, std::scoped_allocator_adaptor, and
+std::pmr::polymorphic_allocator. It may also be used by custom allocators or wrapper types
+to determine whether the object or member being constructed is itself capable of using an
+allocator (e.g. is a container), in which case an allocator should be passed to its
+constructor.
 
 .SH See also
 
-   uses_allocator checks if the specified type supports uses-allocator construction
-   \fI(C++11)\fP        \fI(class template)\fP
+allocator_arg                           a tag used to select allocator-aware constructors
+allocator_arg_t                         (tag)
+\fI(C++11)\fP
+                                        prepares the argument list matching the flavor of
+uses_allocator_construction_args        uses-allocator construction required by the given
+(C++20)                                 type
+                                        \fI(function template)\fP
+make_obj_using_allocator                creates an object of the given type by means of
+(C++20)                                 uses-allocator construction
+                                        \fI(function template)\fP
+                                        creates an object of the given type at specified
+uninitialized_construct_using_allocator memory location by means of uses-allocator
+(C++20)                                 construction
+                                        \fI(function template)\fP
+scoped_allocator_adaptor                implements multi-level allocator for multi-level
+\fI(C++11)\fP                                 containers
+                                        \fI(class template)\fP

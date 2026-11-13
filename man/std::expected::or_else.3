@@ -1,92 +1,88 @@
-.TH std::expected::or_else 3 "2024.06.10" "http://cppreference.com" "C++ Standard Libary"
+.TH std::expected::or_else 3 "2026.11.10" "http://cppreference.com" "C++ Standard Libary"
 .SH NAME
 std::expected::or_else \- std::expected::or_else
 
 .SH Synopsis
-   template< class F >                      \fB(1)\fP (since C++23)
-   constexpr auto or_else( F&& f ) &;
-   template< class F >                      \fB(2)\fP (since C++23)
-   constexpr auto or_else( F&& f ) const&;
-   template< class F >                      \fB(3)\fP (since C++23)
-   constexpr auto or_else( F&& f ) &&;
-   template< class F >                      \fB(4)\fP (since C++23)
-   constexpr auto or_else( F&& f ) const&&;
+Primary template
+template< class F >                      \fB(1)\fP (since C++23)
+constexpr auto or_else( F&& f ) &;
+template< class F >                      \fB(2)\fP (since C++23)
+constexpr auto or_else( F&& f ) const&;
+template< class F >                      \fB(3)\fP (since C++23)
+constexpr auto or_else( F&& f ) &&;
+template< class F >                      \fB(4)\fP (since C++23)
+constexpr auto or_else( F&& f ) const&&;
+void partial specialization
+template< class F >                      \fB(5)\fP (since C++23)
+constexpr auto or_else( F&& f ) &;
+template< class F >                      \fB(6)\fP (since C++23)
+constexpr auto or_else( F&& f ) const&;
+template< class F >                      \fB(7)\fP (since C++23)
+constexpr auto or_else( F&& f ) &&;
+template< class F >                      \fB(8)\fP (since C++23)
+constexpr auto or_else( F&& f ) const&&;
 
-   If *this contains an unexpected value, invokes f with the argument error() and
-   returns its result; otherwise, returns a std::expected object that contains a copy
-   of the contained expected value (obtained from operator*).
+If *this contains an unexpected value, invokes f with the unexpected value of *this as the
+argument and returns its result. Otherwise, returns a std::expected object that represents
+an expected value.
 
-   1,2) Given type G as std::remove_cvref_t<std::invoke_result_t<F,
-   decltype(error())>>.
-   If G is not a specialization of std::expected, or std::is_same_v<G::value_type, T>
-   is false, the program is ill-formed.
-   The effect is equivalent to
+1-4) The expected value is initialized with the expected value val of *this.
 
- if (has_value())
- {
-     if constexpr (std::is_void_v<T>)
-         return G();
-     else
-         return G(std::in_place, **this);
- }
- else
-     return std::invoke(std::forward<F>(f), error());
+Given type G as:
 
-   These overloads participate in overload resolution only if std::is_void_v<T> or
-   std::is_constructible_v<T, decltype(**this)> is true.
-   3,4) Given type G as std::remove_cvref_t<std::invoke_result_t<F,
-   decltype(std::move(error()))>>.
-   If G is not a specialization of std::expected, or std::is_same_v<G::value_type, T>
-   is false, the program is ill-formed.
-   The effect is equivalent to
+1,2) std::remove_cvref_t<std::invoke_result_t<F, decltype(error())>>
+3,4) std::remove_cvref_t<std::invoke_result_t<F, decltype(std::move(error()))>>
+5,6) std::remove_cvref_t<std::invoke_result_t<F, decltype(error())>>
+7,8) std::remove_cvref_t<std::invoke_result_t<F, decltype(std::move(error()))>>
 
- if (has_value())
- {
-     if constexpr (std::is_void_v<T>)
-         return G();
-     else
-         return G(std::in_place, std::move(**this));
- }
- else
-     return std::invoke(std::forward<F>(f), std::move(error()));
+If G is not a specialization of std::expected, or std::is_same_v<G::value_type, T> is
+false, the program is ill-formed.
 
-   These overloads participate in overload resolution only if std::is_void_v<T> or
-   std::is_constructible_v<T, decltype(std::move(**this))> is true.
+1,2) These overloads participate in overload resolution only if std::is_constructible_v<T,
+decltype((val))> is true.
+3,4) These overloads participate in overload resolution only if std::is_constructible_v<T,
+decltype(std::move(val))> is true.
 
 .SH Parameters
 
-   f - a suitable function or Callable object that returns a std::expected
+f - a suitable function or Callable object that returns a std::expected
 
 .SH Return value
 
-   The result of f, or a std::expected object that contains a copy of the expected
-   value, as described above.
+Overload                               Value of has_value()
+                      true                                    false
+(1,2)    G(std::in_place,  val)         std::invoke(std::forward<F>(f), error())
+(3,4)    G(std::in_place,               std::invoke(std::forward<F>(f),
+         std::move(val))                std::move(error()))
+(5,6)                                   std::invoke(std::forward<F>(f), error())
+(7,8)    G()                            std::invoke(std::forward<F>(f),
+                                        std::move(error()))
 
 .SH Notes
 
-   Feature-test macro  Value    Std                 Feature
-   __cpp_lib_expected 202211L (C++23) Monadic functions for std::expected
+Feature-test macro  Value    Std                 Feature
+__cpp_lib_expected 202211L (C++23) Monadic functions for std::expected
 
 .SH Example
 
-    This section is incomplete
-    Reason: no example
+ This section is incomplete
+ Reason: no example
 
-   Defect reports
+  Defect reports
 
-   The following behavior-changing defect reports were applied retroactively to
-   previously published C++ standards.
+The following behavior-changing defect reports were applied retroactively to previously
+published C++ standards.
 
-      DR    Applied to            Behavior as published             Correct behavior
-   LWG 3938 C++23      or_else was ill-formed if T is not (possibly made well-formed
-                       cv-qualified) void and E is not copyable
+   DR    Applied to             Behavior as published              Correct behavior
+LWG 3938 C++23      the expected value was obtained by value()^[1] changed to **this
+LWG 3973 C++23      the expected value was obtained by **this^[2]  changed to val
+
+ 1. ↑ value() requires E to be copy constructible (see LWG issue 3843), where operator*
+    does not.
+ 2. ↑ **this can trigger argument-dependent lookup.
 
 .SH See also
 
-                   returns the expected itself if it contains an expected value;
-   transform_error otherwise, returns an expected containing the transformed unexpected
-                   value
-                   \fI(public member function)\fP
-
-.SH Category:
-     * Todo no example
+                returns the expected itself if it contains an expected value; otherwise,
+transform_error returns an expected containing the transformed unexpected value
+                \fI(public member function)\fP
